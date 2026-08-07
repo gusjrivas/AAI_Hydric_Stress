@@ -44,4 +44,4 @@ Mapa orientativo HU → carpeta de capacidad esperada en `openspec/specs/`:
 
 ## Stack técnico
 
-Aún no definido — se registrará en un ADR posterior (lenguaje/framework de modelado, formato de almacenamiento de series temporales, mecanismo de versionado de experimentos) antes de abrir el primer *change* de implementación.
+Definido en [ADR-0002](../docs/adr/0002-stack-tecnico-poc.md): Python (scikit-learn / PyTorch cuando se justifique) para el modelado, MLflow local para el registro de experimentos, y persistencia en Parquet/CSV local detrás de un contrato de acceso a datos versionado e intercambiable. Ningún módulo de IA debe acceder directamente al backend de almacenamiento: todo acceso pasa por la interfaz definida en la capa 2 de ADR-0001.
