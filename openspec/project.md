@@ -35,6 +35,18 @@ Mapa orientativo HU → carpeta de capacidad esperada en `openspec/specs/`:
 | HU7 | `experiment-runner` | 4. Evaluación experimental |
 | HU8 | (análisis de resultados, sin capacidad de código) | 4. Evaluación experimental |
 
+## Secuenciación HU1 → HU2
+
+HU1 (estado del arte) y HU2 (preparación del conjunto experimental de datos) pertenecen a la misma Épica 1 y no requieren un bloqueo estricto en cascada: HU1 completo (110 h) cubre también literatura sobre detección de anomalías, datos sintéticos y retroalimentación humana, temas que informan HU3 y HU5, no HU2.
+
+Sin embargo, existe una dependencia real y acotada: la primera tarea de HU2 ("definir las variables agronómicas, climáticas y temporales requeridas") determina el esquema del contrato de acceso a datos, y ese esquema es costoso de rehacer una vez ingerido. Por eso, antes de redactar el `proposal.md` del primer *change* de `data-ingestion` (HU2), debe completarse al menos este subconjunto de HU1:
+
+- "Analizar trabajos sobre modelado predictivo de estrés hídrico" (identifica qué variables la literatura trata como predictoras).
+- "Elaborar la matriz comparativa de antecedentes" (identifica qué fuentes/datasets usaron trabajos comparables).
+- "Identificar vacancias y criterios para el diseño de la arquitectura" (fija los criterios que debe respetar el esquema de datos).
+
+El resto de HU1 (antecedentes sobre detección de anomalías, datos sintéticos y retroalimentación humana) puede completarse en paralelo o inmediatamente antes de abrir los *changes* de HU3 y HU5 respectivamente, sin bloquear el arranque de HU2. Esta secuenciación parcial evita tanto el riesgo de re-trabajo de esquema (variables mal elegidas) como el riesgo de cronograma por cascada estricta (Riesgo 7 de la matriz de gestión de riesgos del plan de tesis, RPN=36).
+
 ## Convenciones para changes
 
 - Un *change* por historia de usuario (o por tarea técnica significativa dentro de una HU), nunca mezclando componentes de capas distintas de la arquitectura de ADR-0001.
