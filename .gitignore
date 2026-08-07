@@ -1,0 +1,23 @@
+# Credenciales de fuentes de datos externas (ver docs/research/hu2-fuentes-datos-acceso.md)
+.cdsapirc
+.netrc
+.env
+*.env
+credentials.json
+secrets.json
+
+# Datos locales (según ADR-0002, la persistencia arranca en Parquet/CSV local)
+/data/
+*.parquet
+*.csv
+
+# Entornos y artefactos de Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Artefactos de MLflow (ADR-0002)
+mlruns/
+mlartifacts/
