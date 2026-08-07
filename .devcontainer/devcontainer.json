@@ -1,0 +1,13 @@
+{
+  "name": "aai-hydric-stress",
+  "build": {
+    "context": "..",
+    "dockerfile": "../Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python"]
+    }
+  },
+  "postCreateCommand": "pip install -e '.[dev]'"
+}
