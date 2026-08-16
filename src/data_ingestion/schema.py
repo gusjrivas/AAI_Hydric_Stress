@@ -64,7 +64,5 @@ def normalize_to_schema(df: pd.DataFrame, provenance: str = "real") -> pd.DataFr
 def missing_required_columns(df: pd.DataFrame) -> list[str]:
     """Columnas obligatorias completamente ausentes (100% nulas) en `df`."""
     return [
-        column
-        for column in REQUIRED_COLUMNS
-        if column not in df.columns or df[column].isna().all()
+        column for column in REQUIRED_COLUMNS if column not in df.columns or df[column].isna().all()
     ]
