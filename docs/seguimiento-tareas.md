@@ -65,6 +65,17 @@ Esta sección no corresponde a una tarea del backlog de tesis (HU1-HU8), sino a 
 
 **Balance:** las 4 piezas de ADR-0003 quedan implementadas y verificadas (CI corriendo localmente en verde, hook con pipe-tests, bypass probado). Pendiente fuera del alcance de esta rama: confirmar en un PR real que el check `python-quality` aparece en GitHub (requiere push real, ver "Verificación final" del plan de implementación).
 
+## Infraestructura de ML (ADR-0004)
+
+Tampoco corresponde a una tarea del backlog de tesis (HU1-HU8): es infraestructura de orquestación de experimentos decidida en `docs/adr/0004-orquestacion-experimentos-mlflow-minio.md`, que reemplaza la decisión de "MLflow local sin servidor" de ADR-0002. Se registra por trazabilidad, aunque el diff no toca `src/` ni `docs/research/` (no activa la regla 2 del hook).
+
+| Tarea | Estado | Evidencia / motivo |
+|---|---|---|
+| Definir orquestación de experimentos (servidor MLflow + backend Postgres + artefactos MinIO) | ✅ | `docs/adr/0004-orquestacion-experimentos-mlflow-minio.md`, aceptado 2026-08-16. Reemplaza la sección correspondiente de ADR-0002 (marcada ahí como superseded). |
+| Levantar y verificar el stack de punta a punta | ✅ | `docker-compose.yml` + `docker/mlflow/Dockerfile` probados con `docker compose up -d --build`: los 3 servicios (`postgres`, `minio`, `mlflow`) quedan saludables; se registró un run de prueba real (parámetro, métrica y artefacto) y se confirmó el artefacto físicamente en MinIO vía `mc ls`. Sin código de modelado real todavía (HU3/HU4 no iniciadas) — la verificación fue un experimento de humo, no una corrida de un modelo real. |
+
+**Balance:** infraestructura implementada y verificada de punta a punta con un experimento de prueba. Ningún código de HU3/HU4 depende de esto todavía porque esas historias no arrancaron; queda listo para cuando lo hagan. Docker Desktop pasa a ser un prerequisito de desarrollo desde ahora (ver "Consecuencias" del ADR).
+
 ## Conclusión
 
 De las **600 h** planificadas en HU1-HU8, el trabajo real ejecutado en este repositorio equivale, en el mejor de los casos, a una fracción pequeña de las **180 h** de HU1+HU2 (la mayoría de las tareas hechas son "parciales": mecanismo de código presente y testeado, con una primera ejecución real sobre datos de NASA POWER, pero sin cobertura multi-fuente ni cobertura completa de la tarea). Ninguna tarea de HU3 a HU8 tiene avance.

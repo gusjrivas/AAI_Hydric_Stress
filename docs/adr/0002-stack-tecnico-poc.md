@@ -18,6 +18,8 @@ Python, con scikit-learn para los modelos de referencia y modelos candidatos sup
 
 ### Registro y versionado de experimentos
 
+> **Reemplazado por [ADR-0004](0004-orquestacion-experimentos-mlflow-minio.md) (2026-08-16).** La decisión original de esta sección (MLflow local sin servidor) queda documentada por su valor histórico, pero ya no rige: ADR-0004 adopta un servidor de tracking de MLflow con backend Postgres y almacenamiento de artefactos MinIO (S3-compatible) como patrón vigente, adelantando la recomendación de escalado futuro mencionada en el contexto de este ADR.
+
 MLflow, ejecutado localmente (sin servidor remoto), para registrar parámetros, métricas, artefactos y versiones de modelo de cada corrida. Cada configuración experimental de la Épica 4 (base, base+sintéticos, base+anomalías, completa) se registra como un *run* independiente, lo que permite comparar configuraciones y sostener la trazabilidad de hiperparámetros, métricas y decisiones exigida en las secciones 12.1 y 13.3 del plan de proyecto.
 
 ### Persistencia de datos
@@ -36,7 +38,7 @@ Este contrato es el que se congela como estable; el backend concreto (Parquet lo
 
 - Antes de implementar HU2 (ingesta de datos) debe definirse y documentarse la interfaz del contrato de acceso a datos, no solo el formato de archivo.
 - Cualquier cambio futuro de backend de almacenamiento (por ejemplo, al incorporar la prueba de concepto física con sensores en tiempo real) se resuelve implementando una nueva versión del contrato de acceso a datos, sin modificar los módulos de calidad/robustez, modelado predictivo o retroalimentación humana.
-- MLflow local no requiere infraestructura adicional durante la tesis, pero si el proyecto escala a un entorno colaborativo o productivo, deberá reevaluarse un servidor de tracking centralizado.
+- ~~MLflow local no requiere infraestructura adicional durante la tesis, pero si el proyecto escala a un entorno colaborativo o productivo, deberá reevaluarse un servidor de tracking centralizado.~~ Superseded por ADR-0004: el servidor de tracking centralizado se adopta ya, no se difiere.
 - El uso de PyTorch queda habilitado pero no obligatorio: su adopción concreta se decidirá en HU4 según el desempeño observado, evitando complejidad innecesaria si los modelos supervisados clásicos resultan suficientes.
 
 ## Referencias
