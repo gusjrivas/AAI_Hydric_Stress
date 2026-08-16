@@ -23,13 +23,13 @@ Ya estaba 100% completo antes de crear este repositorio: es el propio documento 
 | Evaluar títulos y resúmenes según criterios definidos | ⬜ | No se ejecutó un protocolo de cribado; la búsqueda hecha fue dirigida y acotada, no sistemática. |
 | Analizar trabajos sobre modelado predictivo de estrés hídrico | 🟡 | `docs/research/hu1-variables-y-antecedentes.md` tiene ~4 referencias verificables sobre esto, pero es una búsqueda dirigida puntual, no el análisis exhaustivo que exige la tarea. |
 | Analizar trabajos sobre detección de anomalías y datos sintéticos | 🟡 | Mismo documento incluye ~5 referencias sobre anomalías/datos sintéticos en sensores agrícolas, con la misma limitación de alcance. |
-| Analizar trabajos sobre retroalimentación humana y recalibración | ⬜ | No se buscó bibliografía sobre este tema todavía. |
+| Analizar trabajos sobre retroalimentación humana y recalibración | 🟡 | `docs/research/hu1-retroalimentacion-humana.md` tiene 6 referencias verificables (HILAD, scoping review de HITL en agricultura de precisión, LLM human-in-the-loop para manejo agrícola, revisión sistemática de HITL, marco conceptual de rol del usuario, CALM), pero es búsqueda dirigida acotada, no el protocolo sistemático completo. |
 | Elaborar la matriz comparativa de antecedentes | 🟡 | Existe una matriz de 8 filas en el documento de investigación, pero es un borrador preliminar, explícitamente marcado como no sustituto del protocolo sistemático. |
 | Identificar vacancias y criterios para el diseño de la arquitectura | 🟡 | Se identificaron 3 vacancias y 2 criterios de diseño concretos, ya usados para el esquema de `data-ingestion` — pero acotados a lo que la búsqueda parcial permitió ver. |
 | Redactar el estado del arte y el marco conceptual | ⬜ | No existe ese documento; lo que hay es un subconjunto de insumos, no el entregable de HU1. |
 | Revisar trazabilidad de citas, antecedentes y decisiones metodológicas | ⬜ | No iniciado. |
 
-**Balance HU1:** de 16 tareas, 3 completas (protocolo de revisión bibliográfica), 5 parciales (todas acotadas y explícitamente marcadas como preliminares), 8 no iniciadas. El entregable formal de HU1 (estado del arte redactado, sección 7 del plan) **no está cumplido**: lo hecho hasta ahora es insumo de apoyo para HU2 más el protocolo de búsqueda, no el resultado de HU1 en sí. Las búsquedas en Scopus/WoS/IEEE Xplore siguen bloqueadas por falta de acceso institucional; el protocolo ya está listo para ejecutarlas en cuanto haya acceso.
+**Balance HU1:** de 16 tareas, 3 completas (protocolo de revisión bibliográfica), 6 parciales (todas acotadas y explícitamente marcadas como preliminares), 7 no iniciadas. El entregable formal de HU1 (estado del arte redactado, sección 7 del plan) **no está cumplido**: lo hecho hasta ahora es insumo de apoyo para HU2 (y, ahora, para HU5/HU6) más el protocolo de búsqueda, no el resultado de HU1 en sí. Las búsquedas en Scopus/WoS/IEEE Xplore siguen bloqueadas por falta de acceso institucional; el protocolo ya está listo para ejecutarlas en cuanto haya acceso.
 
 ## HU2 — Preparación del conjunto experimental de datos (70 h planificadas)
 
