@@ -312,7 +312,7 @@ Los cambios a `.claude/settings.json` requieren que Claude Code recargue la conf
 
 Este plan se ejecuta en una rama nueva (siguiendo la convención de este repositorio: una rama por *change*/tarea). Al abrir el pull request de esta rama:
 
-1. El hook de Task 3 debe evaluar ese `gh pr create` (el título/cuerpo del PR debe mencionar explícitamente ADR-0003, y el diff no toca `src/` ni `docs/research/`, así que la regla de seguimiento-tareas no aplica).
+1. El hook de Task 3 debe evaluar ese `gh pr create` (el título/cuerpo del PR debe mencionar explícitamente ADR-0003; el diff sí toca `src/` — Task 1 reformateó `src/data_ingestion/aggregation.py` y `src/data_ingestion/schema.py` con Black —, así que la regla de seguimiento-tareas aplica y por eso esta misma rama actualiza `docs/seguimiento-tareas.md` antes de abrir el PR).
 2. El check `python-quality` del workflow de Task 2 debe aparecer en la página del PR de GitHub y terminar en verde.
 
 Si el check de CI no aparece o falla, revisar los logs de Actions en GitHub y corregir antes de mergear.

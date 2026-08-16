@@ -47,7 +47,11 @@ Se incorpora un hook de Claude Code que intercepta la ejecución del comando `gh
 1. El diff de la rama contra `main` no referencia ningún *change* de `openspec/changes/` ni menciona explícitamente una historia de usuario (HU1-HU8) en el título o el cuerpo del PR, o
 2. El diff modifica archivos bajo `src/` o `docs/research/` sin modificar también `docs/seguimiento-tareas.md`.
 
+La condición 1 se verifica tanto en el título/cuerpo del PR (la cadena de comando de `gh pr create`) como en los mensajes de commit de la rama (`git log origin/main..HEAD`): cualquiera de los dos lugares donde aparezca la referencia a una HU alcanza. Esto es deliberado, no una relajación accidental: reduce falsos negativos, porque es fácil olvidar restatear la HU al abrir el PR pero casi siempre queda registrada en el historial de commits de la rama.
+
 Este mecanismo reemplaza, para el caso puntual de la trazabilidad plan-de-tesis-a-código, la función que en un equipo tradicional cumpliría un revisor humano: convierte una convención hoy documentada en `openspec/project.md` (sección "Convenciones para *changes*") pero no verificada, en una condición mecánicamente exigida antes de integrar cualquier cambio a `main`.
+
+El hook admite un salvado explícito para el caso descrito en "Consecuencias" (PR fuera del esquema de trazabilidad, sin HU asociada): la variable de entorno `SKIP_PR_TRACEABILITY=1` hace que el script permita la operación sin evaluar ninguna regla, dejando registro en stderr de que el bypass se usó. Uso: `SKIP_PR_TRACEABILITY=1 gh pr create ...`.
 
 ## Alternativas consideradas
 

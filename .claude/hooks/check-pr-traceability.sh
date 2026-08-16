@@ -8,10 +8,17 @@ allow() {
 
 deny() {
   local reason="$1"
-  printf '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": %s}}\n' \
-    "$(printf '%s' "$reason" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' 2>/dev/null || printf '"%s"' "$reason")"
+  local reason_escaped="${reason//\\/\\\\}"
+  reason_escaped="${reason_escaped//\"/\\\"}"
+  printf '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "%s"}}\n' \
+    "$reason_escaped"
   exit 0
 }
+
+if [[ "${SKIP_PR_TRACEABILITY:-}" == "1" ]]; then
+  echo "check-pr-traceability.sh: bypass explícito vía SKIP_PR_TRACEABILITY=1" >&2
+  allow
+fi
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "check-pr-traceability.sh: jq no está instalado, se omite la verificación de trazabilidad (fail-open)" >&2
