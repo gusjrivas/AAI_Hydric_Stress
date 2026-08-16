@@ -1,3 +1,4 @@
+
 # HU1 — Subconjunto prerequisito de HU2: variables y antecedentes
 
 Este documento cubre únicamente las 3 tareas de HU1 (Estado del arte y comprensión del dominio) identificadas en `openspec/project.md` como prerequisito duro del primer *change* de HU2 (`data-ingestion`). El resto de HU1 (antecedentes sobre detección de anomalías, datos sintéticos y retroalimentación humana) se documentará por separado y no bloquea el arranque de HU2.
