@@ -14,11 +14,12 @@ deny() {
 }
 
 if ! command -v jq >/dev/null 2>&1; then
+  echo "check-pr-traceability.sh: jq no está instalado, se omite la verificación de trazabilidad (fail-open)" >&2
   allow
 fi
 
 input="$(cat)"
-command_str="$(printf '%s' "$input" | jq -r '.tool_input.command // empty')"
+command_str="$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
 
 if [[ -z "$command_str" ]]; then
   allow
