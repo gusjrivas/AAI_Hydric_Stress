@@ -12,9 +12,9 @@ Ya estaba 100% completo antes de crear este repositorio: es el propio documento 
 
 | Tarea | Estado | Evidencia / motivo |
 |---|---|---|
-| Definir el protocolo de revisión bibliográfica | ⬜ | No se redactó un protocolo formal. |
-| Definir términos, sinónimos y cadenas de búsqueda (ES/EN) | ⬜ | No iniciado. |
-| Definir criterios de inclusión, exclusión y período de análisis | ⬜ | No iniciado. |
+| Definir el protocolo de revisión bibliográfica | ✅ | `docs/research/hu1-protocolo-revision-bibliografica.md` define objetivo/alcance, términos, cadenas de búsqueda, criterios y procedimiento de registro. |
+| Definir términos, sinónimos y cadenas de búsqueda (ES/EN) | ✅ | Mismo documento, secciones 2 y 3, con cadenas adaptadas a Scopus, Web of Science, IEEE Xplore y AGRIS/SciELO/Horticultura Argentina. |
+| Definir criterios de inclusión, exclusión y período de análisis | ✅ | Mismo documento, secciones 4 y 5 (período 2019–2026 con excepción para referencias seminales). |
 | Ejecutar y registrar búsquedas en Scopus y Web of Science | ⬜ | No iniciado — requiere acceso institucional a esas bases. |
 | Ejecutar y registrar búsquedas en IEEE Xplore | ⬜ | No iniciado. |
 | Buscar antecedentes agronómicos en AGRIS, SciELO y Horticultura Argentina | ⬜ | No iniciado. |
@@ -29,7 +29,7 @@ Ya estaba 100% completo antes de crear este repositorio: es el propio documento 
 | Redactar el estado del arte y el marco conceptual | ⬜ | No existe ese documento; lo que hay es un subconjunto de insumos, no el entregable de HU1. |
 | Revisar trazabilidad de citas, antecedentes y decisiones metodológicas | ⬜ | No iniciado. |
 
-**Balance HU1:** de 16 tareas, 0 completas, 5 parciales (todas acotadas y explícitamente marcadas como preliminares), 11 no iniciadas. El entregable formal de HU1 (estado del arte redactado, sección 7 del plan) **no está cumplido**: lo hecho hasta ahora es insumo de apoyo para HU2, no el resultado de HU1 en sí.
+**Balance HU1:** de 16 tareas, 3 completas (protocolo de revisión bibliográfica), 5 parciales (todas acotadas y explícitamente marcadas como preliminares), 8 no iniciadas. El entregable formal de HU1 (estado del arte redactado, sección 7 del plan) **no está cumplido**: lo hecho hasta ahora es insumo de apoyo para HU2 más el protocolo de búsqueda, no el resultado de HU1 en sí. Las búsquedas en Scopus/WoS/IEEE Xplore siguen bloqueadas por falta de acceso institucional; el protocolo ya está listo para ejecutarlas en cuanto haya acceso.
 
 ## HU2 — Preparación del conjunto experimental de datos (70 h planificadas)
 
