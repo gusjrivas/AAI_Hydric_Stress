@@ -52,6 +52,19 @@ Ya estaba 100% completo antes de crear este repositorio: es el propio documento 
 
 Sin avance de código o documentación específica más allá del diseño conceptual ya cubierto por ADR-0001 (arquitectura) y la mención de HU3/HU5 en `openspec/project.md`. Estado: ⬜ no iniciado en las 4 historias (calidad/robustez de datos, modelado predictivo, retroalimentación humana, integración, evaluación experimental). Sin tareas técnicas ejecutadas de las Épicas 2, 3 y 4 (245 h planificadas entre HU3-HU8, más HU6 no contado aquí).
 
+## Infraestructura de desarrollo (ADR-0003)
+
+Esta sección no corresponde a una tarea del backlog de tesis (HU1-HU8), sino a infraestructura de ciclo de vida de desarrollo decidida en `docs/adr/0003-stack-web-y-ciclo-de-vida-automatizado.md`. Se registra igual porque el diff que la introduce toca `src/` (reformateo con Black) y por eso queda alcanzado por la regla de trazabilidad que este mismo documento exige para cualquier PR.
+
+| Tarea | Estado | Evidencia / motivo |
+|---|---|---|
+| Definir stack backend/frontend y gobernanza del ciclo de vida (ADR) | ✅ | `docs/adr/0003-stack-web-y-ciclo-de-vida-automatizado.md`, aceptado 2026-08-16. |
+| Integración continua (lint + formato + tests) | ✅ | `.github/workflows/ci.yml` corre `ruff check`, `black --check` y `pytest` sobre `src/`/`tests/` en cada PR contra `main`; `ruff` y `black` agregados como dependencias de desarrollo en `pyproject.toml`. |
+| Formatear el código Python existente con Black | ✅ | Reformateo aplicado a `src/data_ingestion/aggregation.py` y `src/data_ingestion/schema.py` (Task 1 del plan de implementación); `black --check src tests` pasa limpio. |
+| Hook de trazabilidad OpenSpec/ADR/seguimiento en `gh pr create` | ✅ | `.claude/hooks/check-pr-traceability.sh` (script) y `.claude/settings.json` (wiring del hook `PreToolUse`) bloquean la apertura de un PR que no referencie una HU/change de OpenSpec, o que toque `src/`/`docs/research/` sin actualizar este mismo documento; incluye bypass explícito vía `SKIP_PR_TRACEABILITY=1` para el caso de PR fuera de ese esquema. |
+
+**Balance:** las 4 piezas de ADR-0003 quedan implementadas y verificadas (CI corriendo localmente en verde, hook con pipe-tests, bypass probado). Pendiente fuera del alcance de esta rama: confirmar en un PR real que el check `python-quality` aparece en GitHub (requiere push real, ver "Verificación final" del plan de implementación).
+
 ## Conclusión
 
 De las **600 h** planificadas en HU1-HU8, el trabajo real ejecutado en este repositorio equivale, en el mejor de los casos, a una fracción pequeña de las **180 h** de HU1+HU2 (la mayoría de las tareas hechas son "parciales": mecanismo de código presente y testeado con datos sintéticos, pero sin ejecución sobre datos reales ni cobertura completa de la tarea). Ninguna tarea de HU3 a HU8 tiene avance.
