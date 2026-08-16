@@ -17,7 +17,7 @@ Ya estaba 100% completo antes de crear este repositorio: es el propio documento 
 | Definir criterios de inclusión, exclusión y período de análisis | ✅ | Mismo documento, secciones 4 y 5 (período 2019–2026 con excepción para referencias seminales). |
 | Ejecutar y registrar búsquedas en Scopus y Web of Science | ⬜ | No iniciado — requiere acceso institucional a esas bases. |
 | Ejecutar y registrar búsquedas en IEEE Xplore | ⬜ | No iniciado. |
-| Buscar antecedentes agronómicos en AGRIS, SciELO y Horticultura Argentina | ⬜ | No iniciado. |
+| Buscar antecedentes agronómicos en AGRIS, SciELO y Horticultura Argentina | 🟡 | `docs/research/hu1-antecedentes-argentina.md` releva 4 antecedentes verificables en SciELO Argentina, Horticultura Argentina e INTA, pero AGRIS todavía no se consultó mediante su interfaz de búsqueda sistemática. |
 | Revisar documentación técnica del INTA, FAO y organismos nacionales | 🟡 | Se relevó INTA RIAN, pero como fuente de **datos** (HU2), no como antecedente bibliográfico de estrés hídrico. |
 | Consolidar referencias y eliminar registros duplicados | ⬜ | No aplica todavía — no hay corpus de búsqueda sistemática. |
 | Evaluar títulos y resúmenes según criterios definidos | ⬜ | No se ejecutó un protocolo de cribado; la búsqueda hecha fue dirigida y acotada, no sistemática. |
@@ -26,10 +26,10 @@ Ya estaba 100% completo antes de crear este repositorio: es el propio documento 
 | Analizar trabajos sobre retroalimentación humana y recalibración | 🟡 | `docs/research/hu1-retroalimentacion-humana.md` tiene 6 referencias verificables (HILAD, scoping review de HITL en agricultura de precisión, LLM human-in-the-loop para manejo agrícola, revisión sistemática de HITL, marco conceptual de rol del usuario, CALM), pero es búsqueda dirigida acotada, no el protocolo sistemático completo. |
 | Elaborar la matriz comparativa de antecedentes | 🟡 | Existe una matriz de 8 filas en el documento de investigación, pero es un borrador preliminar, explícitamente marcado como no sustituto del protocolo sistemático. |
 | Identificar vacancias y criterios para el diseño de la arquitectura | 🟡 | Se identificaron 3 vacancias y 2 criterios de diseño concretos, ya usados para el esquema de `data-ingestion` — pero acotados a lo que la búsqueda parcial permitió ver. |
-| Redactar el estado del arte y el marco conceptual | ⬜ | No existe ese documento; lo que hay es un subconjunto de insumos, no el entregable de HU1. |
+| Redactar el estado del arte y el marco conceptual | 🟡 | `docs/research/hu1-estado-del-arte.md` consolida los tres ejes en un documento único (marco conceptual, síntesis comparativa, vacancias, limitaciones), pero sigue basado en búsqueda dirigida acotada, no en el protocolo sistemático (Scopus/WoS/IEEE Xplore bloqueadas). |
 | Revisar trazabilidad de citas, antecedentes y decisiones metodológicas | ⬜ | No iniciado. |
 
-**Balance HU1:** de 16 tareas, 3 completas (protocolo de revisión bibliográfica), 6 parciales (todas acotadas y explícitamente marcadas como preliminares), 7 no iniciadas. El entregable formal de HU1 (estado del arte redactado, sección 7 del plan) **no está cumplido**: lo hecho hasta ahora es insumo de apoyo para HU2 (y, ahora, para HU5/HU6) más el protocolo de búsqueda, no el resultado de HU1 en sí. Las búsquedas en Scopus/WoS/IEEE Xplore siguen bloqueadas por falta de acceso institucional; el protocolo ya está listo para ejecutarlas en cuanto haya acceso.
+**Balance HU1:** de 16 tareas, 3 completas (protocolo de revisión bibliográfica), 8 parciales (todas acotadas y explícitamente marcadas como preliminares), 5 no iniciadas. El entregable formal de HU1 (estado del arte redactado, sección 7 del plan) existe como documento (`docs/research/hu1-estado-del-arte.md`) pero **no está cumplido en su versión definitiva**, dado que se basa en búsqueda dirigida acotada y no en el protocolo sistemático. Las búsquedas en Scopus/WoS/IEEE Xplore siguen bloqueadas por falta de acceso institucional; el protocolo ya está listo para ejecutarlas en cuanto haya acceso.
 
 ## HU2 — Preparación del conjunto experimental de datos (70 h planificadas)
 
