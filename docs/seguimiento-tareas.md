@@ -111,9 +111,24 @@ HU5 se dividió en tres *changes* de OpenSpec independientes (modelo de datos, r
 
 **Balance HU5:** de 8 tareas, 8 completas, 0 parciales, 0 no iniciadas. HU5 completa.
 
-## HU6 — HU8
+## HU6 — Integración de la arquitectura experimental
 
-Sin avance de código o documentación específica más allá del diseño conceptual ya cubierto por ADR-0001 (arquitectura). Estado: ⬜ no iniciado en las 3 historias restantes (integración de arquitectura, diseño/ejecución experimental, análisis de resultados). Sin tareas técnicas ejecutadas de las Épicas 3 (resto) y 4.
+HU6 se dividió en dos *changes* de OpenSpec independientes (contratos entre componentes y orquestador de punta a punta; configuración de ejecución completa, pruebas funcionales y ajustes de integración). Este es el primero.
+
+| Tarea | Estado | Evidencia / motivo |
+|---|---|---|
+| Definir contratos, entradas y salidas entre componentes | ✅ | `openspec/specs/architecture-integration/spec.md`; orden de etapas documentado en `src/architecture_integration/pipeline.py`. |
+| Integrar el componente de calidad con el componente predictivo | ✅ | `run_end_to_end_pipeline` encadena `data-quality` (imputación, anomalías) con `predictive-modeling` (etiquetado, variables, entrenamiento), evitando fuga temporal. `tests/test_architecture_integration_pipeline.py`. |
+| Integrar las alertas con el mecanismo de retroalimentación | ✅ | El orquestador genera alertas y las pasa a `human_feedback.schema.init_feedback_log`. Verificado sobre el dataset real: 286 filas de entrenamiento, 71 de test, 0 NaN en variables predictoras del test, 22 alertas, 71 filas de feedback `pendiente`. |
+| Configurar la ejecución completa de la arquitectura | ⬜ | No iniciado — segundo *change* de HU6. |
+| Ejecutar pruebas funcionales de integración | ⬜ | No iniciado. |
+| Resolver incidencias y documentar los ajustes de integración | ⬜ | No iniciado. |
+
+**Balance HU6:** de 6 tareas, 3 completas (contratos, integración calidad/predictivo, integración alertas/feedback), 0 parciales, 3 no iniciadas.
+
+## HU7 — HU8
+
+Sin avance de código o documentación específica más allá del diseño conceptual ya cubierto por ADR-0001 (arquitectura). Estado: ⬜ no iniciado en las 2 historias restantes (diseño/ejecución experimental, análisis de resultados). Sin tareas técnicas ejecutadas de la Épica 4.
 
 ## Infraestructura de desarrollo (ADR-0003)
 
