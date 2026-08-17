@@ -1,11 +1,16 @@
 ---
 name: closing-issues
-description: Use before closing any GitHub issue in this repo — verifies the task is genuinely done against docs/seguimiento-tareas.md and concrete evidence, then closes with a comment citing that evidence. Triggers on requests like "cerrá los issues que ya estén terminados", "revisá qué issues se pueden cerrar", or before running `gh issue close`.
+description: Use before closing any GitHub issue in this repo — verifies the task is genuinely done against docs/seguimiento-tareas.md and concrete evidence, then closes with a comment citing that evidence. Triggers on requests like "cerrá los issues que ya estén terminados", "revisá qué issues se pueden cerrar", before running `gh issue close`, or automatically after `gh pr merge` (ver hook `remind-close-issues-after-merge.sh`).
 ---
 
 # Cerrar issues con evidencia verificable
 
-Este repositorio tiene un issue por cada tarea técnica del plan de tesis (ver `openspec/project.md`, mapa HU → capacidad). Un hook (`check-issue-close-evidence.sh`) bloquea `gh issue close` sin un `--comment` que referencie evidencia concreta, pero el hook solo aplica una heurística mecánica (¿el comentario menciona una ruta, un PR o un test?). Esta skill es el criterio real: qué cuenta como evidencia suficiente.
+Este repositorio tiene un issue por cada tarea técnica del plan de tesis (ver `openspec/project.md`, mapa HU → capacidad). Dos hooks sostienen esto automáticamente:
+
+- `check-issue-close-evidence.sh` (PreToolUse) bloquea `gh issue close` sin un `--comment` que referencie evidencia concreta.
+- `remind-close-issues-after-merge.sh` (PostToolUse) se dispara después de cada `gh pr merge` e inyecta un recordatorio para invocar esta skill — no depende de que el usuario lo pida ni de que el agente se acuerde por su cuenta.
+
+Ambos hooks solo aplican heurísticas mecánicas (¿hay un `--comment`? ¿el comando fue `gh pr merge`?). Esta skill es el criterio real: qué cuenta como evidencia suficiente.
 
 ## Regla central
 
