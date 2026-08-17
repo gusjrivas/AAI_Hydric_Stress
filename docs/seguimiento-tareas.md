@@ -66,10 +66,10 @@ HU3 se dividió en tres *changes* de OpenSpec independientes (calidad/limpieza b
 | Seleccionar técnicas candidatas para generación de datos sintéticos | ✅ | Muestreo de distribución normal multivariada seleccionado como técnica base; GAN/VAE descartado para este prototipo (no definitivamente) por el tamaño del dataset disponible (366 filas). Justificación en `openspec/changes/add-synthetic-data-generation/proposal.md`. |
 | Implementar un prototipo de generación de datos sintéticos | ✅ | `src/data_quality/synthetic_data.py` (`generate_synthetic`), marca `origen: sintetico` conforme al esquema de `data-ingestion`. |
 | Evaluar similitud estadística y utilidad predictiva de los datos sintéticos | ✅ | `statistical_similarity` y `evaluate_predictive_utility`; sobre el dataset real: diferencia de correlación promedio 0.023 entre real y sintético; utilidad predictiva casi idéntica (MAE real 0.02312 vs. MAE sintético 0.02323 al predecir humedad de suelo desde variables climáticas, evaluado sobre el mismo test real). |
-| Integrar las transformaciones en un flujo reproducible | ⬜ | No iniciado — pendiente hasta tener los tres sub-proyectos de HU3. |
-| Documentar decisiones, parámetros y limitaciones del componente | ⬜ | No iniciado. |
+| Integrar las transformaciones en un flujo reproducible | ✅ | `src/data_quality/pipeline.py` (`run_quality_pipeline`) + `scripts/run_data_quality_pipeline.py`. Verificado sobre el dataset real en las 4 configuraciones de la Épica 4 (base, +sintéticos, +anomalías, completa), sin fuga de información entre entrenamiento y evaluación (parámetros de escalado ajustados solo sobre el conjunto de entrenamiento). |
+| Documentar decisiones, parámetros y limitaciones del componente | ✅ | `openspec/specs/data-quality/spec.md` consolida las decisiones, parámetros y limitaciones de los 4 *changes* de HU3 en un único documento vigente, con notas de verificación real por requirement. |
 
-**Balance HU3:** de 14 tareas, 12 completas (calidad/limpieza básica + detección de anomalías + datos sintéticos), 0 parciales, 2 no iniciadas. Los tres sub-proyectos de HU3 están implementados; falta la integración de los tres en un flujo reproducible y la documentación final de decisiones/parámetros/limitaciones del componente (2 tareas de cierre).
+**Balance HU3:** de 14 tareas, 14 completas, 0 parciales, 0 no iniciadas. **HU3 queda completa**: los tres sub-proyectos (calidad básica, detección de anomalías, datos sintéticos) y su integración en un flujo reproducible y parametrizable por configuración experimental están implementados y verificados sobre datos reales.
 
 ## HU4 — HU8
 

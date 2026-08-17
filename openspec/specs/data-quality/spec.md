@@ -1,8 +1,8 @@
 # Spec: data-quality
 
-Capacidad implementada (Épica 2, HU3). Origen: `openspec/changes/add-data-quality-basics/` (calidad/limpieza básica), `openspec/changes/add-anomaly-detection/` (detección de anomalías) y `openspec/changes/add-synthetic-data-generation/` (generación de datos sintéticos). Este documento es la fuente de verdad vigente de la capacidad; los *changes* que la originaron quedan como registro histórico de cada decisión, no se actualizan en paralelo a este archivo.
+Capacidad implementada (Épica 2, HU3). Origen: `openspec/changes/add-data-quality-basics/` (calidad/limpieza básica), `openspec/changes/add-anomaly-detection/` (detección de anomalías), `openspec/changes/add-synthetic-data-generation/` (generación de datos sintéticos) y `openspec/changes/add-data-quality-integration/` (flujo integrado). Este documento es la fuente de verdad vigente de la capacidad; los *changes* que la originaron quedan como registro histórico de cada decisión, no se actualizan en paralelo a este archivo.
 
-Con esto, los tres sub-proyectos de HU3 están implementados. Queda pendiente la integración de los tres en un flujo reproducible y la documentación final de decisiones/parámetros/limitaciones (tareas de cierre de HU3, ver `docs/seguimiento-tareas.md`).
+**HU3 queda completa con este documento**: los tres sub-proyectos y su integración están implementados y verificados con datos reales. Este spec, junto con la sección "Limitaciones conocidas" al final, cumple también la tarea de cierre "Documentar decisiones, parámetros y limitaciones del componente".
 
 ## Requirements
 
@@ -70,7 +70,7 @@ El sistema DEBE poder estandarizar (media cero, desvío uno) las columnas numér
 - **WHEN** se estandariza esa columna y luego se revierte la transformación usando los parámetros guardados
 - **THEN** los valores revertidos coinciden con los valores originales
 
-Implementado en `src/data_quality/scaling.py` (`standardize`, `inverse_standardize`), testeado en `tests/test_scaling.py`. Verificado con roundtrip exacto sobre el dataset real (temperatura, humedad de suelo imputada).
+Implementado en `src/data_quality/scaling.py` (`standardize`, `inverse_standardize`, y `apply_standardization` — agregada en `add-data-quality-integration` para aplicar parámetros ya ajustados sin recalcularlos, evitando fuga de información hacia el conjunto de evaluación), testeado en `tests/test_scaling.py` y `tests/test_scaling_apply.py`. Verificado con roundtrip exacto sobre el dataset real (temperatura, humedad de suelo imputada).
 
 ### Requirement: Partición entrenamiento/evaluación sin fuga temporal
 
@@ -144,12 +144,36 @@ El sistema DEBE poder comparar la utilidad predictiva de datos reales contra dat
 
 Implementado en `src/data_quality/synthetic_data.py` (`evaluate_predictive_utility`), testeado en `tests/test_synthetic_data.py`. Verificado sobre el dataset real: un modelo de regresión lineal que predice humedad de suelo a partir de variables climáticas, evaluado sobre el mismo conjunto de test real, obtuvo MAE 0.02312 entrenado con datos reales y MAE 0.02323 entrenado con datos sintéticos — utilidad predictiva casi idéntica en este caso.
 
+### Requirement: Flujo integrado y parametrizable por configuración experimental
+
+El sistema DEBE poder ejecutar, en un único procedimiento reproducible, el reporte de calidad, la imputación de faltantes, la partición entrenamiento/evaluación, la detección de anomalías (opcional) y la generación de datos sintéticos (opcional), de forma que las 4 configuraciones experimentales de la Épica 4 (base, +sintéticos, +anomalías, completa) se puedan seleccionar sin reescribir código. Los parámetros de estandarización DEBEN ajustarse únicamente sobre el conjunto de entrenamiento y aplicarse, sin recalcular, al conjunto de evaluación y a los datos sintéticos.
+
+#### Scenario: Configuración base sin anomalías ni datos sintéticos
+
+- **GIVEN** un dataset real con valores faltantes en alguna columna
+- **WHEN** se ejecuta el flujo integrado con detección de anomalías y datos sintéticos desactivados
+- **THEN** el conjunto de entrenamiento resultante no tiene valores faltantes, no tiene columna de anomalías, y todas sus filas tienen procedencia `real`
+
+#### Scenario: Configuración completa con anomalías y datos sintéticos
+
+- **GIVEN** el mismo dataset real
+- **WHEN** se ejecuta el flujo integrado con detección de anomalías y datos sintéticos activados
+- **THEN** el conjunto de entrenamiento resultante tiene una columna de anomalías y contiene tanto filas con procedencia `real` como filas con procedencia `sintético`
+
+#### Scenario: Los parámetros de escalado no usan estadísticos del conjunto de evaluación
+
+- **GIVEN** un dataset real particionado en entrenamiento y evaluación
+- **WHEN** se ejecuta el flujo integrado
+- **THEN** los parámetros de estandarización devueltos coinciden con la media y el desvío calculados únicamente sobre el conjunto de entrenamiento
+
+Implementado en `src/data_quality/pipeline.py` (`run_quality_pipeline`) y `scripts/run_data_quality_pipeline.py`, testeado en `tests/test_pipeline.py`. Los flags `include_anomaly_detection`/`include_synthetic` son parámetros booleanos simples, no una herramienta de feature flags — decisión explícita (ver `openspec/changes/add-data-quality-integration/proposal.md`) dado que la Épica 4 solo necesita seleccionar 4 configuraciones conocidas de antemano al lanzar una corrida, no alternar comportamiento en tiempo de ejecución para usuarios/entornos. Verificado sobre el dataset real en las 4 configuraciones: base (274 train / 92 test, sin anomalías ni sintéticos), +sintéticos (374 train con 100 filas sintéticas agregadas), +anomalías (columna `is_anomaly` presente), completa (ambas). Los parámetros de escalado se confirmaron calculados solo sobre el conjunto de entrenamiento real.
+
 ## Limitaciones conocidas
 
 - Verificado con un único dataset real (Melchor Romero 2024, consolidado de NASA POWER + ESA CCI). No se validó con datos de otros puntos geográficos o años.
 - Los rangos agronómicos son genéricos (físicos/climáticos plausibles), no específicos de un cultivo hortícola en particular — una iteración futura podría acotarlos por cultivo si se justifica.
 - La detección de atípicos basada en reglas de rango (`quality_report`) y la detección de anomalías no supervisada (`anomaly_detection`) son complementarias, no intercambiables: la primera detecta valores físicamente imposibles, la segunda detecta valores estadísticamente atípicos aunque sean físicamente plausibles (confirmado en la práctica: los eventos marcados por Isolation Forest en el dataset real no violaban ningún rango físico).
-- El detector de anomalías se evaluó únicamente con anomalías sintéticas inyectadas (no hay anomalías reales etiquetadas en este dominio); no hay evidencia de su desempeño sobre fallas de sensor reales no evidentes a simple vista.
-- La estandarización usa media/desvío del propio dataset (no de un conjunto de referencia externo); si se aplica por separado a train y test, cada partición tendría sus propios parámetros — al usar esta función en HU4, se recomienda ajustar los parámetros solo sobre el conjunto de entrenamiento y aplicarlos también al de evaluación, para evitar fuga de información.
+- El detector de anomalías se evaluó únicamente con anomalías sintéticas inyectadas (no hay anomalías reales etiquetadas en este dominio); no hay evidencia de su desempeño sobre fallas de sensor reales no evidentes a simple vista. En `run_quality_pipeline`, la detección de anomalías se ajusta por separado sobre entrenamiento y evaluación (cada partición fitea su propio Isolation Forest); a diferencia de la estandarización, esto no se corrigió para evitar fuga, porque el flag de anomalía no es un parámetro que se filtre hacia un modelo de la misma manera — queda documentado como simplificación deliberada, no como descuido.
 - La generación de datos sintéticos asume una distribución normal multivariada; variables con distribuciones marcadamente distintas a la normal (ej. precipitación, con muchos ceros y cola derecha larga) se modelan de forma aproximada, no exacta. Un modelo generativo profundo (GAN/VAE) queda como candidato a evaluar cuando haya más datos reales disponibles (ver `openspec/changes/add-synthetic-data-generation/proposal.md`, "Alternativas consideradas").
 - La utilidad predictiva se evaluó con un modelo de regresión lineal simple, no con el modelo que finalmente se use en `predictive-modeling` (HU4, no iniciada); el resultado (MAE similar entre real y sintético) es una señal favorable para este prototipo, no una garantía de que se sostenga con un modelo más complejo.
+- El flujo integrado se verificó con una única semilla/corrida por configuración; la ejecución sistemática con múltiples repeticiones/semillas corresponde a `experiment-runner` (HU7, no iniciada).
