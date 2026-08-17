@@ -8,6 +8,11 @@
             "type": "command",
             "command": "bash .claude/hooks/check-pr-traceability.sh",
             "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/check-issue-close-evidence.sh",
+            "timeout": 15
           }
         ]
       }
