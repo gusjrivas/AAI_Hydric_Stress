@@ -17,7 +17,7 @@ Ya estaba 100% completo antes de crear este repositorio: es el propio documento 
 | Definir criterios de inclusión, exclusión y período de análisis | ✅ | Mismo documento, secciones 4 y 5 (período 2019–2026 con excepción para referencias seminales). |
 | Ejecutar y registrar búsquedas en Scopus y Web of Science | ⬜ | No iniciado — requiere acceso institucional a esas bases. |
 | Ejecutar y registrar búsquedas en IEEE Xplore | ⬜ | No iniciado. |
-| Buscar antecedentes agronómicos en AGRIS, SciELO y Horticultura Argentina | 🟡 | `docs/research/hu1-antecedentes-argentina.md` releva 4 antecedentes verificables en SciELO Argentina, Horticultura Argentina e INTA, pero AGRIS todavía no se consultó mediante su interfaz de búsqueda sistemática. |
+| Buscar antecedentes agronómicos en AGRIS, SciELO y Horticultura Argentina | 🟡 | `docs/research/hu1-antecedentes-argentina.md` releva 4 antecedentes verificables en SciELO Argentina, Horticultura Argentina e INTA. AGRIS se intentó ejecutar de forma automatizada y quedó bloqueado por herramienta (SPA con JS, 403 en fetch, sin navegador disponible — ver nota en `docs/research/hu1-protocolo-revision-bibliografica.md`); requiere navegación manual, no scripting. |
 | Revisar documentación técnica del INTA, FAO y organismos nacionales | 🟡 | Se relevó INTA RIAN, pero como fuente de **datos** (HU2), no como antecedente bibliográfico de estrés hídrico. |
 | Consolidar referencias y eliminar registros duplicados | ⬜ | No aplica todavía — no hay corpus de búsqueda sistemática. |
 | Evaluar títulos y resúmenes según criterios definidos | ⬜ | No se ejecutó un protocolo de cribado; la búsqueda hecha fue dirigida y acotada, no sistemática. |

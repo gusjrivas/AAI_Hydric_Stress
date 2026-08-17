@@ -58,6 +58,8 @@ Estas bases tienen buscadores más simples (sin operadores de campo compuestos n
 - Eje 2: `detección de anomalías sensores agrícolas` / `synthetic data agriculture`
 - Eje 3: `retroalimentación humana modelo agrícola` / `human-in-the-loop agriculture`
 
+> **Bloqueo de automatización (2026-08-16):** se intentó ejecutar estas cadenas de forma automatizada en AGRIS (`agris.fao.org`) y no fue posible: la interfaz de búsqueda es una SPA que renderiza resultados por JavaScript (`curl` devuelve la página vacía, HTTP 200 sin resultados), un fetch automatizado recibe HTTP 403, y no se pudo verificar con navegador real (extensión Claude in Chrome no disponible en el intento). A diferencia de SMN (bloqueo técnico del lado del servidor), esto es una limitación de herramienta: la ejecución de estas cadenas en AGRIS requiere navegación manual en un navegador, no scripting. SciELO y Horticultura Argentina sí se ejecutaron sin este problema (ver `docs/research/hu1-antecedentes-argentina.md`).
+
 ## 4. Criterios de inclusión y exclusión
 
 **Inclusión:**
