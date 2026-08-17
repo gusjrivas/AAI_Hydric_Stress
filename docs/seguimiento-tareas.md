@@ -73,7 +73,7 @@ HU3 se dividió en tres *changes* de OpenSpec independientes (calidad/limpieza b
 
 ## HU4 — Componente de modelado predictivo
 
-HU4 se dividió en tres *changes* de OpenSpec independientes (definición del problema/ingeniería de variables, modelos base/candidatos, alertas tempranas), mismo criterio que HU3. Este es el primero.
+HU4 se dividió en tres *changes* de OpenSpec independientes (definición del problema/ingeniería de variables, modelos base/candidatos, alertas tempranas), mismo criterio que HU3. Los dos primeros ya están implementados.
 
 | Tarea | Estado | Evidencia / motivo |
 |---|---|---|
@@ -81,18 +81,18 @@ HU4 se dividió en tres *changes* de OpenSpec independientes (definición del pr
 | Identificar variables predictoras, retardos y ventanas temporales | ✅ | Variables climáticas + humedad de suelo, retardos 1/2/3 días, ventanas móviles 3/7 días. |
 | Implementar la ingeniería de variables temporales y agronómicas | ✅ | `src/predictive_modeling/labeling.py`, `src/predictive_modeling/feature_engineering.py`. |
 | Evaluar relevancia de variables y posibles fugas de información | ✅ | `src/predictive_modeling/relevance.py`; test explícito de no-fuga (`tests/test_no_leakage.py`). Sobre datos reales: 363/366 filas etiquetadas (19.6% estrés), variables más correlacionadas con sentido físico (radiación solar +0.51, humedad relativa/suelo -0.46 a -0.48). |
-| Definir modelos de referencia y modelos candidatos | ⬜ | No iniciado — segundo *change* de HU4. |
-| Implementar el modelo de referencia | ⬜ | No iniciado. |
-| Implementar el flujo de entrenamiento para los modelos candidatos | ⬜ | No iniciado. |
-| Implementar el esquema de validación temporal o cruzada | ⬜ | No iniciado. |
-| Ejecutar el entrenamiento inicial de los modelos candidatos | ⬜ | No iniciado. |
-| Ejecutar el ajuste de hiperparámetros | ⬜ | No iniciado. |
-| Comparar desempeño, estabilidad y complejidad de los modelos | ⬜ | No iniciado. |
+| Definir modelos de referencia y modelos candidatos | ✅ | `src/predictive_modeling/models.py::build_candidate_models` (regresión logística + Random Forest) y `predict_persistence_baseline`; `tests/test_models.py`. |
+| Implementar el modelo de referencia | ✅ | `predict_persistence_baseline`; sobre datos reales (72 filas de test): precisión 0.500, recall 0.474, F1 0.486. |
+| Implementar el flujo de entrenamiento para los modelos candidatos | ✅ | `src/predictive_modeling/training.py::train_models`; `tests/test_training.py`. |
+| Implementar el esquema de validación temporal o cruzada | ✅ | `tune_hyperparameters` con `TimeSeriesSplit` (scikit-learn). |
+| Ejecutar el entrenamiento inicial de los modelos candidatos | ✅ | Verificado sobre `data/melchor_romero_2024_consolidado.parquet`: 285 filas de entrenamiento, 72 de test. |
+| Ejecutar el ajuste de hiperparámetros | ✅ | Mejores parámetros reales: regresión logística `C=0.1`; Random Forest `max_depth=5, n_estimators=100`. |
+| Comparar desempeño, estabilidad y complejidad de los modelos | ✅ | `src/predictive_modeling/evaluation.py::compare_models`; `tests/test_evaluation.py`. Resultado real: persistencia F1=0.486, regresión logística F1=0.406 (ROC-AUC 0.533), Random Forest F1=0.475 (ROC-AUC 0.554). Ningún candidato supera claramente al baseline en F1 (ver spec, "Limitaciones conocidas"). |
 | Definir e implementar la lógica de generación de alertas tempranas | ⬜ | No iniciado — tercer *change* de HU4. |
 | Analizar errores de predicción y alertas incorrectas | ⬜ | No iniciado. |
 | Documentar configuración, métricas y limitaciones del modelo | ⬜ | No iniciado. |
 
-**Balance HU4:** de 14 tareas, 4 completas (definición del problema e ingeniería de variables), 0 parciales, 10 no iniciadas.
+**Balance HU4:** de 14 tareas, 11 completas (definición del problema, ingeniería de variables, modelos base/candidatos), 0 parciales, 3 no iniciadas (alertas tempranas).
 
 ## HU5 — HU8
 
