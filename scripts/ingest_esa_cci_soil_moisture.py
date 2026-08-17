@@ -1,13 +1,22 @@
 """Ejecuta la ingestión real de ESA CCI Soil Moisture (CEDA Archive) para
-una ubicación y rango de fechas dados. Por defecto, La Plata (Buenos
-Aires) para el año calendario 2024 (año más reciente disponible en la
-versión v09.2 del producto COMBINED al momento de escribir este script).
+una ubicación y rango de fechas dados. Por defecto, Melchor Romero
+(Partido de La Plata, Buenos Aires) para el año calendario 2024 (año más
+reciente disponible en la versión v09.2 del producto COMBINED al momento
+de escribir este script).
+
+Nota: el punto original evaluado (-34.92, -57.95, centro de la ciudad de
+La Plata) cae sobre el estuario del Río de la Plata en la grilla de
+0.25° de este producto, que enmascara esa celda por completo
+(contaminación de agua: `flag` y `sm` ambos NaN los 365 días del año,
+confirmado empíricamente). Melchor Romero (-34.95, -58.05) es un punto
+real dentro del mismo Cinturón Hortícola Platense, tierra adentro, sin
+ese problema (ver docs/research/hu2-fuentes-datos-acceso.md).
 
 Uso:
     python scripts/ingest_esa_cci_soil_moisture.py
-    python scripts/ingest_esa_cci_soil_moisture.py --latitude -34.92 \
-        --longitude -57.95 --start 2024-01-01 --end 2024-12-31 \
-        --name esa_cci_soil_moisture_la_plata_2024
+    python scripts/ingest_esa_cci_soil_moisture.py --latitude -34.95 \
+        --longitude -58.05 --start 2024-01-01 --end 2024-12-31 \
+        --name esa_cci_soil_moisture_melchor_romero_2024
 """
 
 from __future__ import annotations
@@ -37,11 +46,11 @@ LIMITATIONS = (
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--latitude", type=float, default=-34.92)
-    parser.add_argument("--longitude", type=float, default=-57.95)
+    parser.add_argument("--latitude", type=float, default=-34.95)
+    parser.add_argument("--longitude", type=float, default=-58.05)
     parser.add_argument("--start", type=date.fromisoformat, default=date(2024, 1, 1))
     parser.add_argument("--end", type=date.fromisoformat, default=date(2024, 12, 31))
-    parser.add_argument("--name", default="esa_cci_soil_moisture_la_plata_2024")
+    parser.add_argument("--name", default="esa_cci_soil_moisture_melchor_romero_2024")
     return parser.parse_args()
 
 
