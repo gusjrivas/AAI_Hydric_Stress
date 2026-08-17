@@ -63,13 +63,13 @@ HU3 se dividió en tres *changes* de OpenSpec independientes (calidad/limpieza b
 | Seleccionar métodos candidatos para detección de anomalías | ✅ | Isolation Forest (scikit-learn) seleccionado como método base no supervisado — no hay etiquetas de anomalía disponibles (confirmado en antecedentes de HU1). Justificación y alternativas en `openspec/changes/add-anomaly-detection/proposal.md`. |
 | Implementar el método base de detección de anomalías | ✅ | `src/data_quality/anomaly_detection.py` (`detect_anomalies`). |
 | Evaluar el comportamiento del detector de anomalías | ✅ | `evaluate_with_injected_anomalies`; sobre el dataset real: 100% de detección de 10 anomalías sintéticas inyectadas, y sobre los datos sin modificar marcó 19/366 filas (~5.2%) correspondientes a una ola de calor y eventos de lluvia intensa reales, ninguna fuera del rango físico ya validado por `quality_report`. |
-| Seleccionar técnicas candidatas para generación de datos sintéticos | ⬜ | No iniciado — tercer *change* de HU3. |
-| Implementar un prototipo de generación de datos sintéticos | ⬜ | No iniciado. |
-| Evaluar similitud estadística y utilidad predictiva de los datos sintéticos | ⬜ | No iniciado. |
+| Seleccionar técnicas candidatas para generación de datos sintéticos | ✅ | Muestreo de distribución normal multivariada seleccionado como técnica base; GAN/VAE descartado para este prototipo (no definitivamente) por el tamaño del dataset disponible (366 filas). Justificación en `openspec/changes/add-synthetic-data-generation/proposal.md`. |
+| Implementar un prototipo de generación de datos sintéticos | ✅ | `src/data_quality/synthetic_data.py` (`generate_synthetic`), marca `origen: sintetico` conforme al esquema de `data-ingestion`. |
+| Evaluar similitud estadística y utilidad predictiva de los datos sintéticos | ✅ | `statistical_similarity` y `evaluate_predictive_utility`; sobre el dataset real: diferencia de correlación promedio 0.023 entre real y sintético; utilidad predictiva casi idéntica (MAE real 0.02312 vs. MAE sintético 0.02323 al predecir humedad de suelo desde variables climáticas, evaluado sobre el mismo test real). |
 | Integrar las transformaciones en un flujo reproducible | ⬜ | No iniciado — pendiente hasta tener los tres sub-proyectos de HU3. |
 | Documentar decisiones, parámetros y limitaciones del componente | ⬜ | No iniciado. |
 
-**Balance HU3:** de 14 tareas, 9 completas (calidad/limpieza básica + detección de anomalías), 0 parciales, 5 no iniciadas. El criterio de aceptación de HU3 no está cumplido: falta el sub-proyecto de datos sintéticos y la integración final.
+**Balance HU3:** de 14 tareas, 12 completas (calidad/limpieza básica + detección de anomalías + datos sintéticos), 0 parciales, 2 no iniciadas. Los tres sub-proyectos de HU3 están implementados; falta la integración de los tres en un flujo reproducible y la documentación final de decisiones/parámetros/limitaciones del componente (2 tareas de cierre).
 
 ## HU4 — HU8
 
