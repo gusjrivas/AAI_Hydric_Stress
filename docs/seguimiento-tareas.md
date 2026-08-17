@@ -48,9 +48,32 @@ Ya estaba 100% completo antes de crear este repositorio: es el propio documento 
 
 **Balance HU2:** de 10 tareas, 7 completas, 2 parciales, 1 no iniciada. El criterio de aceptación de HU2 ("se obtuvo un conjunto experimental apto para el desarrollo... el procedimiento puede reproducirse") **se cumple por primera vez, con alcance acotado**: `data/melchor_romero_2024_consolidado.parquet` combina dos fuentes reales (NASA POWER + ESA CCI Soil Moisture) para un único punto y año, con 6 de 7 variables obligatorias cubiertas (falta ET0, que se deriva en preprocesamiento, no se ingiere). Limitaciones que siguen abiertas: un solo punto geográfico y un solo año; SMN y Copernicus siguen bloqueados; sin el componente de calidad de datos (HU3, todavía no iniciado) aplicado sobre este conjunto.
 
-## HU3 — HU8
+## HU3 — Componente de calidad y robustez de datos
 
-Sin avance de código o documentación específica más allá del diseño conceptual ya cubierto por ADR-0001 (arquitectura) y la mención de HU3/HU5 en `openspec/project.md`. Estado: ⬜ no iniciado en las 4 historias (calidad/robustez de datos, modelado predictivo, retroalimentación humana, integración, evaluación experimental). Sin tareas técnicas ejecutadas de las Épicas 2, 3 y 4 (245 h planificadas entre HU3-HU8, más HU6 no contado aquí).
+HU3 se dividió en tres *changes* de OpenSpec independientes (calidad/limpieza básica, detección de anomalías, generación de datos sintéticos), más integración y documentación. Este es el primero.
+
+| Tarea | Estado | Evidencia / motivo |
+|---|---|---|
+| Analizar distribuciones, rangos y tipos de las variables | ✅ | `src/data_quality/distributions.py` (`describe_variables`), verificado sobre `data/melchor_romero_2024_consolidado.parquet`. |
+| Definir reglas de calidad y rangos agronómicos esperados | ✅ | `src/data_quality/rules.py` (`AGRONOMIC_RANGES`), rangos físicos/climáticos genéricos con justificación por variable. |
+| Implementar el reporte de valores faltantes, duplicados y atípicos | ✅ | `src/data_quality/quality_report.py`; sobre el dataset real: 24.04% de faltantes en humedad de suelo, 0 duplicados, 0 valores fuera de rango. |
+| Implementar el tratamiento de valores faltantes | ✅ | `src/data_quality/imputation.py` (`interpolate_missing`); imputó 88 de 366 filas de humedad de suelo en el dataset real, dejando 0 faltantes. |
+| Implementar normalización, codificación y alineación temporal | ✅ | `src/data_quality/scaling.py` (`standardize`/`inverse_standardize`), roundtrip exacto verificado sobre el dataset real. Interpretada como estandarización numérica para modelado, ya que la alineación de formato/zona horaria entre fuentes la resuelve `data-ingestion` (HU2). |
+| Preparar particiones sin contaminación entre entrenamiento y evaluación | ✅ | `src/data_quality/splitting.py` (`temporal_train_test_split`), verificado sobre el dataset real (274 filas de entrenamiento / 92 de evaluación, sin fechas mezcladas). |
+| Seleccionar métodos candidatos para detección de anomalías | ⬜ | No iniciado — segundo *change* de HU3. |
+| Implementar el método base de detección de anomalías | ⬜ | No iniciado. |
+| Evaluar el comportamiento del detector de anomalías | ⬜ | No iniciado. |
+| Seleccionar técnicas candidatas para generación de datos sintéticos | ⬜ | No iniciado — tercer *change* de HU3. |
+| Implementar un prototipo de generación de datos sintéticos | ⬜ | No iniciado. |
+| Evaluar similitud estadística y utilidad predictiva de los datos sintéticos | ⬜ | No iniciado. |
+| Integrar las transformaciones en un flujo reproducible | ⬜ | No iniciado — pendiente hasta tener los tres sub-proyectos de HU3. |
+| Documentar decisiones, parámetros y limitaciones del componente | ⬜ | No iniciado. |
+
+**Balance HU3:** de 14 tareas, 6 completas (el sub-proyecto de calidad/limpieza básica), 0 parciales, 8 no iniciadas. El criterio de aceptación de HU3 no está cumplido: faltan los sub-proyectos de detección de anomalías y datos sintéticos, y la integración final.
+
+## HU4 — HU8
+
+Sin avance de código o documentación específica más allá del diseño conceptual ya cubierto por ADR-0001 (arquitectura) y la mención de HU4/HU5 en `openspec/project.md`. Estado: ⬜ no iniciado en las 4 historias restantes (modelado predictivo, retroalimentación humana, integración, evaluación experimental). Sin tareas técnicas ejecutadas de las Épicas 2 (resto), 3 y 4.
 
 ## Infraestructura de desarrollo (ADR-0003)
 
