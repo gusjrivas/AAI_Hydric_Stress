@@ -94,9 +94,26 @@ HU4 se dividió en tres *changes* de OpenSpec independientes (definición del pr
 
 **Balance HU4:** de 14 tareas, 14 completas, 0 parciales, 0 no iniciadas. HU4 completa.
 
-## HU5 — HU8
+## HU5 — Mecanismo de retroalimentación humana
 
-Sin avance de código o documentación específica más allá del diseño conceptual ya cubierto por ADR-0001 (arquitectura) y la mención de HU5 en `openspec/project.md`. Estado: ⬜ no iniciado en las 4 historias restantes (retroalimentación humana, integración, evaluación experimental). Sin tareas técnicas ejecutadas de las Épicas 2 (resto), 3 y 4.
+HU5 se dividió en tres *changes* de OpenSpec independientes (modelo de datos, registro persistente e integración con predicciones, recalibración supervisada), mismo criterio que HU3/HU4. Este es el primero.
+
+| Tarea | Estado | Evidencia / motivo |
+|---|---|---|
+| Definir casos de uso y estados de validación de las alertas | ✅ | Estados `pendiente`/`confirmada`/`rechazada` (`src/human_feedback/schema.py::VALIDATION_STATES`); justificación en `openspec/changes/add-feedback-data-model/proposal.md`. |
+| Diseñar el modelo de datos para registrar retroalimentación | ✅ | `src/human_feedback/schema.py::FEEDBACK_COLUMNS`, `init_feedback_log`; `tests/test_feedback_schema.py`. |
+| Diseñar el flujo de interacción entre alerta, usuario y modelo | ✅ | `update_feedback` (confirmar/rechazar con corrección y observación opcionales). Verificado sobre las alertas reales de HU4: registro de 72 filas inicializado en `pendiente`, una confirmada, un falso negativo real (2024-10-18) rechazado con corrección y observación. |
+| Implementar el registro de validaciones de alertas | ⬜ | No iniciado — segundo *change* de HU5. |
+| Implementar el registro de correcciones y observaciones | ⬜ | No iniciado. |
+| Integrar la retroalimentación con los registros de predicción | ⬜ | No iniciado. |
+| Definir reglas para seleccionar observaciones de recalibración | ⬜ | No iniciado — tercer *change* de HU5. |
+| Implementar una prueba de recalibración supervisada | ⬜ | No iniciado. |
+
+**Balance HU5:** de 8 tareas, 3 completas (casos de uso, modelo de datos, flujo de interacción), 0 parciales, 5 no iniciadas.
+
+## HU6 — HU8
+
+Sin avance de código o documentación específica más allá del diseño conceptual ya cubierto por ADR-0001 (arquitectura). Estado: ⬜ no iniciado en las 3 historias restantes (integración de arquitectura, diseño/ejecución experimental, análisis de resultados). Sin tareas técnicas ejecutadas de las Épicas 3 (resto) y 4.
 
 ## Infraestructura de desarrollo (ADR-0003)
 
