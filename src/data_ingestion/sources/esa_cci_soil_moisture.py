@@ -7,6 +7,7 @@ píxel más cercano a un punto dado.
 from __future__ import annotations
 
 import tempfile
+import time
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -18,6 +19,7 @@ from data_ingestion.schema import normalize_to_schema
 
 BASE_URL = "https://dap.ceda.ac.uk/neodc/esacci/soil_moisture/data/daily_files/COMBINED"
 VERSION = "v09.2"
+MAX_ATTEMPTS = 3
 
 
 def _file_url(day: date) -> str:
@@ -40,31 +42,60 @@ def _extract_point_soil_moisture(content: bytes, latitude: float, longitude: flo
         tmp_path.unlink(missing_ok=True)
 
 
+def _fetch_day(
+    http,
+    day: date,
+    latitude: float,
+    longitude: float,
+    retry_delay: float,
+) -> float:
+    """Intenta descargar y extraer el valor de un día, con reintentos ante
+    errores transitorios (de conexión o HTTP >= 400, ej. 500). Si todos los
+    intentos fallan, o el archivo no existe (404 persistente), devuelve NaN
+    en lugar de propagar la excepción: un día puntual no debe abortar la
+    serie completa (fallas reales observadas: 500 en 2024-04-18,
+    RemoteDisconnected en una corrida posterior).
+    """
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            response = http.get(_file_url(day), timeout=60)
+        except requests.exceptions.RequestException:
+            if attempt == MAX_ATTEMPTS:
+                return float("nan")
+            time.sleep(retry_delay)
+            continue
+
+        if getattr(response, "status_code", 200) >= 400:
+            if attempt == MAX_ATTEMPTS:
+                return float("nan")
+            time.sleep(retry_delay)
+            continue
+
+        return _extract_point_soil_moisture(response.content, latitude, longitude)
+
+    return float("nan")
+
+
 def fetch_esa_cci_soil_moisture(
     latitude: float,
     longitude: float,
     start: date,
     end: date,
     session: requests.Session | None = None,
+    retry_delay: float = 2.0,
 ) -> pd.DataFrame:
     """Descarga humedad de suelo diaria de ESA CCI (CEDA Archive) para un
     punto y rango de fechas, extrayendo el píxel más cercano de cada grilla
     global diaria, y normaliza al esquema con procedencia 'real'. Los días
-    sin archivo disponible (404) quedan como NaN, no interrumpen la serie.
+    sin archivo disponible o con errores transitorios (de conexión o HTTP)
+    quedan como NaN tras reintentar, sin interrumpir la serie.
     """
     http = session or requests
     rows: list[dict[str, object]] = []
     day = start
     while day <= end:
-        response = http.get(_file_url(day), timeout=60)
-        if getattr(response, "status_code", 200) >= 400:
-            # Un archivo faltante (404) o un error transitorio del servidor
-            # (ej. 500) no debe abortar la serie completa: se registra como
-            # NaN y se continúa con el resto de los días.
-            rows.append({"timestamp": day, "soil_moisture": float("nan")})
-        else:
-            value = _extract_point_soil_moisture(response.content, latitude, longitude)
-            rows.append({"timestamp": day, "soil_moisture": value})
+        value = _fetch_day(http, day, latitude, longitude, retry_delay)
+        rows.append({"timestamp": day, "soil_moisture": value})
         day += timedelta(days=1)
 
     frame = pd.DataFrame(rows)

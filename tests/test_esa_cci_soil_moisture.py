@@ -2,6 +2,7 @@ from datetime import date
 
 import numpy as np
 import pandas as pd
+import requests
 import xarray as xr
 
 from data_ingestion.sources.esa_cci_soil_moisture import fetch_esa_cci_soil_moisture
@@ -60,6 +61,7 @@ def test_fetch_esa_cci_extracts_nearest_pixel_and_marks_provenance_real(tmp_path
         start=day1,
         end=day2,
         session=session,
+        retry_delay=0,
     )
 
     assert list(df["soil_moisture"].round(2)) == [0.25, 0.31]
@@ -77,10 +79,41 @@ def test_fetch_esa_cci_marks_missing_day_as_na(tmp_path):
         start=day1,
         end=day2,
         session=session,
+        retry_delay=0,
     )
 
     missing_day_value = df.loc[df["timestamp"] == "2024-01-02", "soil_moisture"].iloc[0]
     assert pd.isna(missing_day_value)
+
+
+def test_fetch_esa_cci_marks_connection_error_day_as_na_without_aborting(tmp_path):
+    """Un error de conexión transitorio (no un status HTTP, una excepción de
+    requests) tampoco debe abortar la serie: ver falla real observada en
+    una segunda corrida de la ingesta de 2024 (RemoteDisconnected)."""
+
+    class _FlakySession(_FakeSession):
+        def get(self, url: str, timeout: int):
+            if "20240102" in url:
+                raise requests.exceptions.ConnectionError("conexión reiniciada por el servidor")
+            return super().get(url, timeout=timeout)
+
+    day1 = date(2024, 1, 1)
+    day2 = date(2024, 1, 2)
+    session = _FlakySession({day1: _make_netcdf_bytes(tmp_path, day1, 0.25)})
+
+    df = fetch_esa_cci_soil_moisture(
+        latitude=-34.92,
+        longitude=-57.95,
+        start=day1,
+        end=day2,
+        session=session,
+        retry_delay=0,
+    )
+
+    first_day_value = df.loc[df["timestamp"] == "2024-01-01", "soil_moisture"].iloc[0]
+    assert round(first_day_value, 2) == 0.25
+    connection_error_day_value = df.loc[df["timestamp"] == "2024-01-02", "soil_moisture"].iloc[0]
+    assert pd.isna(connection_error_day_value)
 
 
 def test_fetch_esa_cci_marks_server_error_day_as_na_without_aborting(tmp_path):
@@ -97,6 +130,7 @@ def test_fetch_esa_cci_marks_server_error_day_as_na_without_aborting(tmp_path):
         start=day1,
         end=day2,
         session=session,
+        retry_delay=0,
     )
 
     first_day_value = df.loc[df["timestamp"] == "2024-01-01", "soil_moisture"].iloc[0]
