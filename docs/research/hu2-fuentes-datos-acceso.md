@@ -40,6 +40,25 @@ Complementan a NASA POWER/Copernicus/ESA CCI con datos locales, relevantes para 
 - Ninguna API key, token o archivo de credenciales (`.cdsapirc`, `.env`, etc.) debe commitearse a este repositorio. Ver `.gitignore` agregado en este mismo change.
 - El token de Copernicus CDS y las credenciales de NASA Earthdata son personales — no deben compartirse en código ni en documentación versionada.
 
+## Criterios de selección y descarte de fuentes de datos
+
+Tarea de origen: "Definir criterios de selección y descarte de fuentes de datos" (HU2, Épica 1). El checklist de arriba usaba únicamente "¿requiere registro?" como criterio; esta sección lo reemplaza por criterios explícitos de calidad y relevancia agronómica, informados por los intentos reales de incorporación de fuentes documentados en este mismo archivo (NASA POWER, ESA CCI, SMN, INTA RIAN/SIGA).
+
+### Criterios de inclusión (una fuente se adopta si cumple todos)
+
+1. **Aporte de variable obligatoria.** La fuente debe proveer al menos una columna obligatoria del esquema (`src/data_ingestion/schema.py`: humedad de suelo, temperatura, humedad relativa, precipitación, radiación solar, viento). Una fuente que solo aporta variables opcionales no justifica el esfuerzo de incorporación por sí sola.
+2. **Cobertura geográfica verificada en el punto de interés, no solo en general.** No alcanza con que la fuente cubra "Argentina" o "global": hay que verificar el punto/región específica antes de adoptarla. Hallazgo real que motiva este criterio: el punto original de La Plata (-34.92, -57.95) cae sobre el estuario del Río de la Plata en la grilla de ESA CCI Soil Moisture, enmascarado por completo — una fuente con cobertura "global" fallaba igual en el punto elegido.
+3. **Accesibilidad técnica real por script, no solo ausencia de registro.** Una fuente "sin bloqueo de registro" puede seguir bloqueada por protección anti-bot, endpoints removidos, o requerir necesariamente un navegador interactivo. Hallazgos reales que motivan este criterio: SMN (`datos.gob.ar` con dataset removido, `smn.gob.ar` con protección anti-bot) y AGRIS (SPA que renderiza por JavaScript, 403 en fetch automatizado) — ambas "sin registro" según el criterio anterior, ambas bloqueadas en la práctica.
+4. **Licencia compatible con uso académico.** Datos abiertos, dominio público, o licencia que permita uso en un trabajo de tesis con atribución (todas las fuentes ya incorporadas — NASA POWER, ESA CCI — cumplen esto explícitamente en su documentación).
+5. **Completitud suficiente para ser útil, no necesariamente perfecta.** Un producto satelital con gaps reales (ej. ESA CCI Soil Moisture, 75.96% de completitud en el punto y año evaluados) se considera aceptable porque el hueco es cuantificable y documentado (`coverage_report`, `data_ingestion.coverage`), no oculto. Se descartaría una fuente con completitud tan baja que no permita ningún análisis (por debajo de, orientativamente, 50% en una variable obligatoria), salvo que sea la única fuente disponible para esa variable.
+
+### Criterios de descarte (o de "pendiente", según el caso)
+
+- **Bloqueo técnico persistente sin alternativa de acceso en un plazo razonable** → descarte temporal, documentado con fecha y motivo (ver filas de SMN y AGRIS en este documento y en `docs/research/hu1-protocolo-revision-bibliografica.md`), reevaluable si cambia el acceso (ej. si se prueba con navegador real más adelante).
+- **Registro que depende de un tercero fuera del control del proyecto** (ej. acceso institucional a Scopus/Web of Science, o registro pendiente de Copernicus CDS) → estado "pendiente", no descarte definitivo; no bloquea el avance de otras fuentes.
+- **Fuente que solo aporta pronóstico a corto plazo o datos no históricos** → descarte definitivo si el objetivo es series históricas para el conjunto experimental (ya aplicado explícitamente a la API no oficial de SMN, fila de "Fuentes climáticas / meteorológicas").
+- **Fuente redundante sin aporte diferencial** → si dos fuentes cubren exactamente las mismas variables con la misma calidad para el mismo punto/período, se prioriza la de menor fricción de acceso; no se incorporan ambas solo por completitud del checklist.
+
 ## Próximos pasos
 
 1. El responsable del proyecto gestiona el registro en Copernicus CDS (y, si corresponde, NASA Earthdata/ISMN) siguiendo los enlaces de la tabla.
