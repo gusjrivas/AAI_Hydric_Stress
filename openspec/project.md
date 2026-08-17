@@ -56,4 +56,8 @@ El resto de HU1 (antecedentes sobre detección de anomalías, datos sintéticos 
 
 ## Stack técnico
 
-Definido en [ADR-0002](../docs/adr/0002-stack-tecnico-poc.md): Python (scikit-learn / PyTorch cuando se justifique) para el modelado, MLflow local para el registro de experimentos, y persistencia en Parquet/CSV local detrás de un contrato de acceso a datos versionado e intercambiable. Ningún módulo de IA debe acceder directamente al backend de almacenamiento: todo acceso pasa por la interfaz definida en la capa 2 de ADR-0001.
+Definido en [ADR-0002](../docs/adr/0002-stack-tecnico-poc.md): Python (scikit-learn / PyTorch cuando se justifique) para el modelado, y persistencia en Parquet/CSV local detrás de un contrato de acceso a datos versionado e intercambiable. Ningún módulo de IA debe acceder directamente al backend de almacenamiento: todo acceso pasa por la interfaz definida en la capa 2 de ADR-0001.
+
+El registro y versionado de experimentos se define en [ADR-0004](../docs/adr/0004-orquestacion-experimentos-mlflow-minio.md) (reemplaza esa sección de ADR-0002): servidor de tracking de MLflow con backend Postgres y almacenamiento de artefactos en MinIO (S3-compatible), levantado vía `docker compose up`. Cualquier tarea de HU3/HU4 que registre experimentos requiere este stack corriendo.
+
+El stack web (backend/frontend) y el ciclo de vida de desarrollo automatizado (CI, hook de trazabilidad) se definen en [ADR-0003](../docs/adr/0003-stack-web-y-ciclo-de-vida-automatizado.md).
