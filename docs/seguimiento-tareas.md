@@ -96,7 +96,7 @@ HU4 se dividió en tres *changes* de OpenSpec independientes (definición del pr
 
 ## HU5 — Mecanismo de retroalimentación humana
 
-HU5 se dividió en tres *changes* de OpenSpec independientes (modelo de datos, registro persistente e integración con predicciones, recalibración supervisada), mismo criterio que HU3/HU4. Los dos primeros ya están implementados.
+HU5 se dividió en tres *changes* de OpenSpec independientes (modelo de datos, registro persistente e integración con predicciones, recalibración supervisada), mismo criterio que HU3/HU4. Los tres ya están implementados — HU5 completa.
 
 | Tarea | Estado | Evidencia / motivo |
 |---|---|---|
@@ -106,10 +106,10 @@ HU5 se dividió en tres *changes* de OpenSpec independientes (modelo de datos, r
 | Implementar el registro de validaciones de alertas | ✅ | `src/human_feedback/registry.py::save_feedback_log`/`load_feedback_log` (reutiliza `data_ingestion.storage`); `tests/test_feedback_registry.py`. Verificado sobre datos reales: guardado y recuperado sin pérdida de información. |
 | Implementar el registro de correcciones y observaciones | ✅ | `upsert_feedback_log` (agrega fechas nuevas en `pendiente`, preserva estado/corrección/observación de fechas existentes). Verificado sobre datos reales: la fecha ya confirmada conservó su estado tras simular una nueva corrida de alertas. |
 | Integrar la retroalimentación con los registros de predicción | ✅ | `integrate_feedback_with_predictions` (join por fecha con probabilidad predicha y etiqueta real). Verificado sobre datos reales: 72 filas integradas con `y_proba` y `stress_label` del modelo Random Forest de HU4. |
-| Definir reglas para seleccionar observaciones de recalibración | ⬜ | No iniciado — tercer *change* de HU5. |
-| Implementar una prueba de recalibración supervisada | ⬜ | No iniciado. |
+| Definir reglas para seleccionar observaciones de recalibración | ✅ | `src/human_feedback/recalibration.py::select_recalibration_observations` (solo `rechazada` con `etiqueta_corregida` no nula). Tests: `tests/test_recalibration.py`. |
+| Implementar una prueba de recalibración supervisada | ✅ | `recalibrate_model` (reemplaza etiquetas por las corregidas y reentrena). Verificado sobre el dataset real con 3 correcciones sintéticas inyectadas: el modelo recalibrado predice distinto exactamente en esas 3 fechas (1,1,0 → 0,0,1, coincidiendo con la corrección). |
 
-**Balance HU5:** de 8 tareas, 6 completas (casos de uso, modelo de datos, flujo de interacción, registro persistente, integración con predicciones), 0 parciales, 2 no iniciadas (recalibración supervisada).
+**Balance HU5:** de 8 tareas, 8 completas, 0 parciales, 0 no iniciadas. HU5 completa.
 
 ## HU6 — HU8
 

@@ -1,8 +1,6 @@
 # Spec: human-feedback
 
-Capacidad implementada (Épica 3, HU5 — primer y segundo sub-proyecto: casos de uso/estados de validación/modelo de datos/flujo de interacción, y registro persistente/integración con predicciones). Orígenes: `openspec/changes/add-feedback-data-model/`, `openspec/changes/add-feedback-registry-integration/`. Este documento es la fuente de verdad vigente de la capacidad; los *changes* que la originaron quedan como registro histórico de la decisión, no se actualizan en paralelo a este archivo.
-
-El tercer sub-proyecto de HU5 (reglas de selección y prueba de recalibración supervisada) todavía no comenzó y se documentará como *change* independiente que extiende esta spec.
+Capacidad implementada (Épica 3, HU5 — completa, los tres sub-proyectos: casos de uso/estados de validación/modelo de datos/flujo de interacción, registro persistente/integración con predicciones, y recalibración supervisada). Orígenes: `openspec/changes/add-feedback-data-model/`, `openspec/changes/add-feedback-registry-integration/`, `openspec/changes/add-supervised-recalibration/`. Este documento es la fuente de verdad vigente de la capacidad; los *changes* que la originaron quedan como registro histórico de la decisión, no se actualizan en paralelo a este archivo.
 
 ## Requirements
 
@@ -72,9 +70,34 @@ El sistema DEBE poder unir, por fecha, el registro de retroalimentación con la 
 
 Implementado en `src/human_feedback/registry.py` (`integrate_feedback_with_predictions`), testeado en `tests/test_feedback_registry.py`. Verificado sobre datos reales: 72 filas integradas con `y_proba` y `stress_label` reales del modelo Random Forest de HU4.
 
+### Requirement: Selección de observaciones para recalibración
+
+El sistema DEBE poder seleccionar, de un registro de retroalimentación integrado con predicciones, únicamente las observaciones rechazadas que tienen una etiqueta corregida.
+
+#### Scenario: Selección excluye confirmaciones y rechazos sin corrección
+
+- **GIVEN** un registro integrado con una fila `confirmada`, una fila `rechazada` con etiqueta corregida, y una fila `rechazada` sin etiqueta corregida
+- **WHEN** se seleccionan las observaciones de recalibración
+- **THEN** solo la fila `rechazada` con etiqueta corregida queda seleccionada
+
+Implementado en `src/human_feedback/recalibration.py` (`select_recalibration_observations`), testeado en `tests/test_recalibration.py`. Las confirmaciones se excluyen deliberadamente: no corrigen ningún error, ya que el modelo acertó.
+
+### Requirement: Recalibración supervisada de un modelo candidato
+
+El sistema DEBE poder reentrenar un modelo candidato sobre un conjunto de entrenamiento donde las etiquetas de las fechas seleccionadas para recalibración fueron reemplazadas por su etiqueta corregida.
+
+#### Scenario: El modelo recalibrado predice distinto en las fechas corregidas
+
+- **GIVEN** un modelo entrenado sobre un conjunto original y un conjunto de observaciones de recalibración que corrige la etiqueta de al menos una fecha presente en ese conjunto
+- **WHEN** se recalibra el modelo con esas correcciones
+- **THEN** el conjunto de entrenamiento usado para el modelo recalibrado tiene, en esas fechas, la etiqueta corregida en lugar de la original
+
+Implementado en `src/human_feedback/recalibration.py` (`recalibrate_model`), testeado en `tests/test_recalibration.py`. Verificado sobre el dataset real (modelo Random Forest de HU4) con 3 correcciones sintéticas inyectadas — la retroalimentación humana real acumulada todavía es insuficiente en volumen (1-2 casos) para una prueba con múltiples correcciones simultáneas: las 3 observaciones fueron seleccionadas correctamente, las etiquetas de entrenamiento quedaron reemplazadas, y el modelo recalibrado predice distinto exactamente en esas 3 fechas respecto del modelo original (predicciones 1,1,0 pasan a 0,0,1, coincidiendo con la corrección inyectada).
+
 ## Limitaciones conocidas
 
 - No hay interfaz de usuario para que una persona interactúe con estos estados; por ahora son funciones de Python que una interfaz futura (HU6/frontend) consumiría.
 - Los 3 estados de validación (`pendiente`/`confirmada`/`rechazada`) son una simplificación deliberada; no capturan nivel de confianza ni múltiples revisores por alerta.
 - `upsert_feedback_log` conserva la retroalimentación existente por fecha, pero no fusiona valores dentro de una misma fecha si dos ejecuciones distintas generaron alertas contradictorias — asume una única fuente de verdad de alertas por fecha.
-- Falta todavía definir reglas de selección de observaciones para recalibración y la prueba de recalibración supervisada — tercer y último sub-proyecto de HU5.
+- La verificación de recalibración usa correcciones sintéticas inyectadas, no retroalimentación humana real acumulada en volumen (todavía hay solo 1-2 casos reales) — es una prueba de que el mecanismo funciona, no una validación de que mejora el desempeño real del modelo con retroalimentación genuina.
+- La recalibración no se dispara automáticamente ni se persiste el modelo recalibrado; ambas cosas requieren una interfaz o un flujo de despliegue que todavía no existe (HU6).
