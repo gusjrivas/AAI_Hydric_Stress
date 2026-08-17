@@ -9,6 +9,7 @@ dependencies = [
     "requests>=2.31",
     "xarray>=2024.1",
     "netCDF4>=1.6",
+    "scikit-learn>=1.4",
 ]
 
 [project.optional-dependencies]
