@@ -1,5 +1,7 @@
 # Change: Add data-ingestion capability
 
+> **Estado: implementado.** Ver `openspec/specs/data-ingestion/spec.md` (spec vigente, con notas de verificación real) y `tasks.md` de este *change* (todas las tareas marcadas). Este documento queda como registro histórico de la propuesta original.
+
 ## Trazabilidad
 
 - **Épica:** 1. Fundamentación científica y preparación de la información.
