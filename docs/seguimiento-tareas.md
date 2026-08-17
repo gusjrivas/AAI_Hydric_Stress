@@ -71,9 +71,32 @@ HU3 se dividió en tres *changes* de OpenSpec independientes (calidad/limpieza b
 
 **Balance HU3:** de 14 tareas, 14 completas, 0 parciales, 0 no iniciadas. **HU3 queda completa**: los tres sub-proyectos (calidad básica, detección de anomalías, datos sintéticos) y su integración en un flujo reproducible y parametrizable por configuración experimental están implementados y verificados sobre datos reales.
 
-## HU4 — HU8
+## HU4 — Componente de modelado predictivo
 
-Sin avance de código o documentación específica más allá del diseño conceptual ya cubierto por ADR-0001 (arquitectura) y la mención de HU4/HU5 en `openspec/project.md`. Estado: ⬜ no iniciado en las 4 historias restantes (modelado predictivo, retroalimentación humana, integración, evaluación experimental). Sin tareas técnicas ejecutadas de las Épicas 2 (resto), 3 y 4.
+HU4 se dividió en tres *changes* de OpenSpec independientes (definición del problema/ingeniería de variables, modelos base/candidatos, alertas tempranas), mismo criterio que HU3. Este es el primero.
+
+| Tarea | Estado | Evidencia / motivo |
+|---|---|---|
+| Definir la variable objetivo y el horizonte de anticipación | ✅ | Clasificación binaria (estrés sí/no), horizonte 3 días, umbral relativo (percentil 20 de humedad de suelo observada). Justificación en `openspec/changes/add-feature-engineering/proposal.md`. |
+| Identificar variables predictoras, retardos y ventanas temporales | ✅ | Variables climáticas + humedad de suelo, retardos 1/2/3 días, ventanas móviles 3/7 días. |
+| Implementar la ingeniería de variables temporales y agronómicas | ✅ | `src/predictive_modeling/labeling.py`, `src/predictive_modeling/feature_engineering.py`. |
+| Evaluar relevancia de variables y posibles fugas de información | ✅ | `src/predictive_modeling/relevance.py`; test explícito de no-fuga (`tests/test_no_leakage.py`). Sobre datos reales: 363/366 filas etiquetadas (19.6% estrés), variables más correlacionadas con sentido físico (radiación solar +0.51, humedad relativa/suelo -0.46 a -0.48). |
+| Definir modelos de referencia y modelos candidatos | ⬜ | No iniciado — segundo *change* de HU4. |
+| Implementar el modelo de referencia | ⬜ | No iniciado. |
+| Implementar el flujo de entrenamiento para los modelos candidatos | ⬜ | No iniciado. |
+| Implementar el esquema de validación temporal o cruzada | ⬜ | No iniciado. |
+| Ejecutar el entrenamiento inicial de los modelos candidatos | ⬜ | No iniciado. |
+| Ejecutar el ajuste de hiperparámetros | ⬜ | No iniciado. |
+| Comparar desempeño, estabilidad y complejidad de los modelos | ⬜ | No iniciado. |
+| Definir e implementar la lógica de generación de alertas tempranas | ⬜ | No iniciado — tercer *change* de HU4. |
+| Analizar errores de predicción y alertas incorrectas | ⬜ | No iniciado. |
+| Documentar configuración, métricas y limitaciones del modelo | ⬜ | No iniciado. |
+
+**Balance HU4:** de 14 tareas, 4 completas (definición del problema e ingeniería de variables), 0 parciales, 10 no iniciadas.
+
+## HU5 — HU8
+
+Sin avance de código o documentación específica más allá del diseño conceptual ya cubierto por ADR-0001 (arquitectura) y la mención de HU5 en `openspec/project.md`. Estado: ⬜ no iniciado en las 4 historias restantes (retroalimentación humana, integración, evaluación experimental). Sin tareas técnicas ejecutadas de las Épicas 2 (resto), 3 y 4.
 
 ## Infraestructura de desarrollo (ADR-0003)
 
