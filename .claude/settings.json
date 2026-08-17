@@ -16,6 +16,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/remind-close-issues-after-merge.sh",
+            "timeout": 15
+          }
+        ]
+      }
     ]
   }
 }
