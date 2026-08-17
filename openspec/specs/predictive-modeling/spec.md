@@ -1,8 +1,6 @@
 # Spec: predictive-modeling
 
-Capacidad implementada (Épica 2, HU4 — primer y segundo sub-proyecto: definición del problema/ingeniería de variables, y modelos base/candidatos). Orígenes: `openspec/changes/add-feature-engineering/`, `openspec/changes/add-baseline-and-candidate-models/`. Este documento es la fuente de verdad vigente de la capacidad; los *changes* que la originaron quedan como registro histórico de la decisión, no se actualizan en paralelo a este archivo.
-
-El tercer sub-proyecto de HU4 (alertas tempranas) todavía no comenzó y se documentará como *change* independiente que extiende esta spec.
+Capacidad implementada (Épica 2, HU4 — completa, los tres sub-proyectos: definición del problema/ingeniería de variables, modelos base/candidatos, y alertas tempranas). Orígenes: `openspec/changes/add-feature-engineering/`, `openspec/changes/add-baseline-and-candidate-models/`, `openspec/changes/add-early-warning-alerts/`. Este documento es la fuente de verdad vigente de la capacidad; los *changes* que la originaron quedan como registro histórico de la decisión, no se actualizan en paralelo a este archivo.
 
 ## Requirements
 
@@ -106,6 +104,30 @@ Implementado en `src/predictive_modeling/evaluation.py` (`evaluate_classifier`, 
 
 En este dataset, ninguno de los dos candidatos supera al modelo de referencia en F1; el Random Forest tiene mejor precisión y ROC-AUC. Ver "Limitaciones conocidas".
 
+### Requirement: Generación de alertas tempranas por umbral de probabilidad
+
+El sistema DEBE poder convertir la probabilidad predicha de estrés de un modelo entrenado en una alerta binaria, usando un umbral de decisión configurable.
+
+#### Scenario: Emisión de alerta cuando la probabilidad supera el umbral
+
+- **GIVEN** un modelo entrenado con `predict_proba` y un conjunto de datos con variables predictoras
+- **WHEN** se generan alertas con un umbral de decisión configurado
+- **THEN** cada fila con probabilidad de estrés mayor o igual al umbral queda marcada con alerta (1), y el resto sin alerta (0)
+
+Implementado en `src/predictive_modeling/alerts.py` (`generate_alerts`), testeado en `tests/test_alerts.py`. Configuración final: modelo Random Forest (mejor precisión y ROC-AUC de los tres modelos comparados), umbral 0.5 (no calibrado contra el propio conjunto de validación, ver "Limitaciones conocidas"). Verificado sobre el dataset real: 21 alertas de 72 filas de test (29.2%).
+
+### Requirement: Análisis de errores de predicción por fecha
+
+El sistema DEBE poder identificar, sobre un conjunto de evaluación con fechas, las fechas concretas de falsos positivos (alerta sin estrés real) y falsos negativos (estrés real sin alerta).
+
+#### Scenario: Identificación de una alerta incorrecta puntual
+
+- **GIVEN** un conjunto de evaluación con fecha, etiqueta real y alerta generada, donde una fila tiene alerta pero la etiqueta real es "sin estrés"
+- **WHEN** se analiza los errores de predicción
+- **THEN** la fecha de esa fila aparece listada como falso positivo
+
+Implementado en `src/predictive_modeling/alerts.py` (`analyze_prediction_errors`), testeado en `tests/test_alerts.py`. Verificado sobre el dataset real: 7 falsos positivos (ej. 2024-11-15, 2024-12-10 a 2024-12-13) y 24 falsos negativos (ej. 2024-10-18 a 2024-10-20, 2024-11-17 a 2024-11-22) — consistente con la precisión (0.667) y recall (0.368) reportados para Random Forest en la comparación de modelos.
+
 ## Limitaciones conocidas
 
 - El umbral de estrés es relativo (percentil 20 de la distribución observada en un único punto/año), no un umbral agronómico validado con datos de capacidad de campo/punto de marchitez reales. Reevaluar si se consiguen esos datos.
@@ -114,3 +136,4 @@ En este dataset, ninguno de los dos candidatos supera al modelo de referencia en
 - La evaluación de relevancia usa correlación lineal simple; no captura relaciones no lineales entre variables y objetivo, que un modelo de los sub-proyectos siguientes de HU4 sí podría aprovechar.
 - Con ~285 filas de entrenamiento y ~20% de tasa positiva, algunos folds tempranos de `TimeSeriesSplit` quedan con pocos o ningún ejemplo de la clase de estrés, lo que hace que `cv_mean_score`/`cv_std_score` (F1 promedio entre folds) resulten en 0.0 aunque el modelo final sí discrimine razonablemente sobre el conjunto de test completo (ver tabla de comparación). Esto es una limitación del tamaño de muestra, no un defecto de la implementación de `TimeSeriesSplit`; se espera que mejore con más años/puntos de datos.
 - Ni la regresión logística ni el Random Forest superan claramente al modelo de referencia por persistencia en F1 sobre este dataset — señal de que, con los datos actuales, el valor de humedad de suelo actual ya captura la mayor parte de la información predictiva disponible a 3 días.
+- El umbral de alerta (0.5) no se ajustó contra el conjunto de validación por riesgo de sobreajuste con ~285 filas de entrenamiento; queda documentado como punto de recalibración cuando haya más datos o retroalimentación humana real (HU5). El recall relativamente bajo (0.368 sobre Random Forest) implica que, con este umbral, la mayoría de los eventos de estrés reales (24 de 38 en el conjunto de test) no generan alerta — una limitación a comunicar explícitamente si esta capa se usa para decisiones operativas antes de recalibrar.
