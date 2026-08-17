@@ -73,7 +73,7 @@ HU3 se dividió en tres *changes* de OpenSpec independientes (calidad/limpieza b
 
 ## HU4 — Componente de modelado predictivo
 
-HU4 se dividió en tres *changes* de OpenSpec independientes (definición del problema/ingeniería de variables, modelos base/candidatos, alertas tempranas), mismo criterio que HU3. Los dos primeros ya están implementados.
+HU4 se dividió en tres *changes* de OpenSpec independientes (definición del problema/ingeniería de variables, modelos base/candidatos, alertas tempranas), mismo criterio que HU3. Los tres ya están implementados — HU4 completa.
 
 | Tarea | Estado | Evidencia / motivo |
 |---|---|---|
@@ -88,11 +88,11 @@ HU4 se dividió en tres *changes* de OpenSpec independientes (definición del pr
 | Ejecutar el entrenamiento inicial de los modelos candidatos | ✅ | Verificado sobre `data/melchor_romero_2024_consolidado.parquet`: 285 filas de entrenamiento, 72 de test. |
 | Ejecutar el ajuste de hiperparámetros | ✅ | Mejores parámetros reales: regresión logística `C=0.1`; Random Forest `max_depth=5, n_estimators=100`. |
 | Comparar desempeño, estabilidad y complejidad de los modelos | ✅ | `src/predictive_modeling/evaluation.py::compare_models`; `tests/test_evaluation.py`. Resultado real: persistencia F1=0.486, regresión logística F1=0.406 (ROC-AUC 0.533), Random Forest F1=0.475 (ROC-AUC 0.554). Ningún candidato supera claramente al baseline en F1 (ver spec, "Limitaciones conocidas"). |
-| Definir e implementar la lógica de generación de alertas tempranas | ⬜ | No iniciado — tercer *change* de HU4. |
-| Analizar errores de predicción y alertas incorrectas | ⬜ | No iniciado. |
-| Documentar configuración, métricas y limitaciones del modelo | ⬜ | No iniciado. |
+| Definir e implementar la lógica de generación de alertas tempranas | ✅ | `src/predictive_modeling/alerts.py::generate_alerts` (umbral 0.5 sobre `predict_proba` del Random Forest ajustado); `tests/test_alerts.py`. Sobre datos reales: 21 alertas de 72 filas de test. |
+| Analizar errores de predicción y alertas incorrectas | ✅ | `src/predictive_modeling/alerts.py::analyze_prediction_errors`; `tests/test_alerts.py`. Sobre datos reales: 7 falsos positivos, 24 falsos negativos, con fechas concretas listadas en el spec. |
+| Documentar configuración, métricas y limitaciones del modelo | ✅ | `openspec/specs/predictive-modeling/spec.md` — requirements de alertas + tabla de configuración + "Limitaciones conocidas" (umbral no calibrado, recall bajo con este umbral). |
 
-**Balance HU4:** de 14 tareas, 11 completas (definición del problema, ingeniería de variables, modelos base/candidatos), 0 parciales, 3 no iniciadas (alertas tempranas).
+**Balance HU4:** de 14 tareas, 14 completas, 0 parciales, 0 no iniciadas. HU4 completa.
 
 ## HU5 — HU8
 
