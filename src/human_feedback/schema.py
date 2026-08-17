@@ -30,7 +30,7 @@ def init_feedback_log(dates: pd.Series, alerts: pd.Series) -> pd.DataFrame:
             "alerta_generada": pd.Series(alerts).reset_index(drop=True).astype("int64"),
             "estado_validacion": "pendiente",
             "etiqueta_corregida": pd.array([pd.NA] * len(dates), dtype="Int64"),
-            "observacion": pd.Series([pd.NA] * len(dates), dtype="object"),
+            "observacion": pd.Series([None] * len(dates), dtype="object"),
         }
     )
 
