@@ -35,6 +35,19 @@ OPTIONAL_COLUMNS: dict[str, str] = {
 VALID_PROVENANCE_VALUES = {"real", "sintetico"}
 
 
+def schema_column_order() -> list[str]:
+    """Orden estable de columnas del esquema (timestamp, obligatorias,
+    opcionales, procedencia), compartido por cualquier operación que deba
+    reordenar un DataFrame al esquema (normalización, consolidación).
+    """
+    return (
+        [TIMESTAMP_COLUMN]
+        + [c for c in REQUIRED_COLUMNS if c != TIMESTAMP_COLUMN]
+        + list(OPTIONAL_COLUMNS)
+        + [PROVENANCE_COLUMN]
+    )
+
+
 def normalize_to_schema(df: pd.DataFrame, provenance: str = "real") -> pd.DataFrame:
     """Reindexa `df` para que contenga todas las columnas obligatorias y
     opcionales del esquema, agregando como NaN las que la fuente no reporta,
@@ -52,13 +65,7 @@ def normalize_to_schema(df: pd.DataFrame, provenance: str = "real") -> pd.DataFr
 
     normalized[PROVENANCE_COLUMN] = provenance
 
-    ordered_columns = (
-        [TIMESTAMP_COLUMN]
-        + [c for c in REQUIRED_COLUMNS if c != TIMESTAMP_COLUMN]
-        + list(OPTIONAL_COLUMNS)
-        + [PROVENANCE_COLUMN]
-    )
-    return normalized[ordered_columns]
+    return normalized[schema_column_order()]
 
 
 def missing_required_columns(df: pd.DataFrame) -> list[str]:
