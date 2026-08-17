@@ -22,16 +22,16 @@ Las variables climáticas estándar (temperatura, humedad relativa, precipitaci�
 
 | Variable | Tipo | Prioridad | Referencia |
 |---|---|---|---|
-| Humedad de suelo (SMC) | Agronómica | Obligatoria | Zhang et al., 2024 (*Sensors*) |
-| Temperatura de canopia / foliar | Agronómica | Opcional | *ScienceDirect*, 2024 |
-| Índices de vegetación (NDVI y derivados) | Agronómica | Opcional | Zhang et al., 2024 (*Sensors*) |
-| Conductancia estomática / potencial hídrico foliar | Agronómica | Opcional (referencia) | Zhang et al., 2024 (*Sensors*) |
-| Temperatura ambiente | Climática | Obligatoria | *J. Hydroinformatics* |
-| Humedad relativa | Climática | Obligatoria | *J. Hydroinformatics* |
-| Precipitación | Climática | Obligatoria | *J. Hydroinformatics* |
-| Radiación solar | Climática | Obligatoria | *J. Hydroinformatics* |
-| Velocidad del viento | Climática | Obligatoria | *J. Hydroinformatics* |
-| Evapotranspiración de referencia (ET0) | Climática (derivada) | Obligatoria | *J. Hydroinformatics* |
+| Humedad de suelo (SMC) | Agronómica | Obligatoria | Cho et al., 2024 ([*Sensors*](https://www.mdpi.com/1424-8220/24/19/6313)) |
+| Temperatura de canopia / foliar | Agronómica | Opcional | [*ScienceDirect*, 2024](https://www.sciencedirect.com/science/article/pii/S0378377424003949) |
+| Índices de vegetación (NDVI y derivados) | Agronómica | Opcional | Cho et al., 2024 ([*Sensors*](https://www.mdpi.com/1424-8220/24/19/6313)) |
+| Conductancia estomática / potencial hídrico foliar | Agronómica | Opcional (referencia) | Cho et al., 2024 ([*Sensors*](https://www.mdpi.com/1424-8220/24/19/6313)) |
+| Temperatura ambiente | Climática | Obligatoria | [*J. Hydroinformatics*](https://iwaponline.com/jh/article/27/3/474/107443/Advances-in-machine-learning-for-agricultural) |
+| Humedad relativa | Climática | Obligatoria | [*J. Hydroinformatics*](https://iwaponline.com/jh/article/27/3/474/107443/Advances-in-machine-learning-for-agricultural) |
+| Precipitación | Climática | Obligatoria | [*J. Hydroinformatics*](https://iwaponline.com/jh/article/27/3/474/107443/Advances-in-machine-learning-for-agricultural) |
+| Radiación solar | Climática | Obligatoria | [*J. Hydroinformatics*](https://iwaponline.com/jh/article/27/3/474/107443/Advances-in-machine-learning-for-agricultural) |
+| Velocidad del viento | Climática | Obligatoria | [*J. Hydroinformatics*](https://iwaponline.com/jh/article/27/3/474/107443/Advances-in-machine-learning-for-agricultural) |
+| Evapotranspiración de referencia (ET0) | Climática (derivada) | Obligatoria | [*J. Hydroinformatics*](https://iwaponline.com/jh/article/27/3/474/107443/Advances-in-machine-learning-for-agricultural) |
 | Marca temporal / frecuencia de muestreo | Temporal | Obligatoria | Requisito transversal |
 
 El detalle de justificación por variable, con enlaces a cada referencia, se encuentra en `docs/research/hu1-variables-y-antecedentes.md`, sección 1.
