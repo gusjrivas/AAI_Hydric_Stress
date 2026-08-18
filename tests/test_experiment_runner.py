@@ -57,3 +57,43 @@ def test_run_configuration_with_synthetic_augmentation_runs_without_error():
 
     assert len(results) == 2
     assert not results[["precision", "recall", "f1", "roc_auc"]].isna().any().any()
+
+
+def test_run_configuration_with_scarcity_scenario_runs_without_error():
+    df = _synthetic_dataset()
+    split_date = df["timestamp"].iloc[60].date()
+
+    results = run_configuration(
+        df,
+        label_column="soil_moisture",
+        feature_columns=["soil_moisture", "solar_radiation"],
+        split_date=split_date,
+        model_name="logistic_regression",
+        include_anomaly_detection=False,
+        include_synthetic=False,
+        seeds=[1, 2],
+        train_fraction=0.5,
+    )
+
+    assert len(results) == 2
+    assert not results[["precision", "recall", "f1", "roc_auc"]].isna().any().any()
+
+
+def test_run_configuration_with_noise_scenario_runs_without_error():
+    df = _synthetic_dataset()
+    split_date = df["timestamp"].iloc[60].date()
+
+    results = run_configuration(
+        df,
+        label_column="soil_moisture",
+        feature_columns=["soil_moisture", "solar_radiation"],
+        split_date=split_date,
+        model_name="logistic_regression",
+        include_anomaly_detection=False,
+        include_synthetic=False,
+        seeds=[1, 2],
+        noise_std_ratio=0.5,
+    )
+
+    assert len(results) == 2
+    assert not results[["precision", "recall", "f1", "roc_auc"]].isna().any().any()

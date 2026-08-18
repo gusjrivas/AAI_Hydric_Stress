@@ -49,12 +49,14 @@ Sobre la partición única de evaluación (72 filas, Random Forest, umbral 0.5, 
 
 ## 8. Desempeño bajo escenarios de escasez de datos
 
-**No ejecutado.** HU7 documentó el escenario de escasez (subconjunto del entrenamiento real) como parte del diseño experimental, pero el procedimiento automatizado (`experiment_runner.runner.run_configuration`) no llegó a implementar un parámetro de tamaño de muestra reducido, y no se corrió sobre datos reales. No hay evidencia real para reportar sobre este escenario — se documenta como limitación abierta, no se inventa un resultado.
+**Ejecutado** (`openspec/changes/add-experiment-scenarios/`): `experiment_runner.scenarios.subsample_training_period` reduce el entrenamiento a su mitad más reciente (`train_fraction=0.5`), sin tocar el conjunto de evaluación. Resultado real (configuración base, 5 semillas): F1 medio **0.6219 ± 0.0888**, ROC-AUC no reportado aquí (ver spec) — **superior** al F1 medio de la configuración base sin reducir (0.4585 ± 0.0423).
+
+**Hallazgo contraintuitivo pero explicable**: menos datos de entrenamiento, pero más recientes, dieron mejor desempeño que todo el año completo. La explicación más plausible es un corrimiento de distribución (*distribution shift*) estacional: el conjunto de evaluación es el 20% final del año (aprox. octubre-diciembre), y entrenar solo con la mitad de fechas más cercanas a ese período (en vez de con el año completo, que incluye estaciones climáticamente distintas) produce un modelo más ajustado a las condiciones de la época que efectivamente se evalúa. No es evidencia de que "menos datos sea mejor" en general — es evidencia de que, en este dataset de un solo año, la relevancia temporal de los datos de entrenamiento importa más que su cantidad.
 
 ## 9. Desempeño bajo escenarios de ruido y variabilidad de datos
 
-- **Variabilidad**: sí evaluada — el desvío estándar entre las 5 semillas de cada configuración (sección 3) es la medida de variabilidad disponible. Es moderado en `Base`/`+Anomalías` (F1 std=0.042) y considerablemente mayor en `+Sintéticos`/`Completa` (F1 std=0.086).
-- **Ruido**: **no ejecutado.** HU7 documentó explícitamente que no hay una caracterización real del ruido de sensor esperado más allá de los gaps ya observados y documentados en ESA CCI Soil Moisture (HU2, 75.96% de completitud en humedad de suelo) — no se inyectó ruido sintético artificial. Se documenta como limitación abierta.
+- **Variabilidad**: sí evaluada — el desvío estándar entre las 5 semillas de cada configuración (sección 3) es la medida de variabilidad disponible. Es moderado en `Base`/`+Anomalías` (F1 std=0.042) y considerablemente mayor en `+Sintéticos`/`Completa` (F1 std=0.086) y en el escenario de ruido (F1 std=0.113, el más alto de todos).
+- **Ruido**: **ejecutado** (`openspec/changes/add-experiment-scenarios/`): `experiment_runner.scenarios.inject_gaussian_noise` agrega ruido gaussiano proporcional al desvío de cada variable predictora (`noise_std_ratio=0.3`, valor de ejemplo no calibrado contra ninguna caracterización real de ruido de sensor — HU7 documentó que esa caracterización no existe todavía). Resultado real (configuración base + ruido, 5 semillas): F1 medio **0.3188 ± 0.1130**, **inferior** al F1 medio sin ruido (0.4585 ± 0.0423) y con casi el triple de variabilidad entre semillas. El ruido degrada tanto el desempeño medio como su estabilidad, en la dirección esperada.
 
 ## 10. Robustez, estabilidad y compromisos entre métricas
 
@@ -65,6 +67,7 @@ Sobre la partición única de evaluación (72 filas, Random Forest, umbral 0.5, 
 ## Limitaciones de este análisis
 
 - Basado en un único dataset (un punto geográfico, un año); no se puede generalizar a otros sitios o períodos sin repetir la evaluación con más datos.
-- Los escenarios de escasez y ruido no tienen evidencia real — quedan como trabajo futuro explícito, no como resultados asumidos.
 - El hallazgo sobre detección de anomalías refleja una limitación de integración del orquestador (HU6), no necesariamente que la técnica en sí no aporte — requeriría corregir esa integración y volver a medir antes de concluir lo contrario.
 - El efecto de la retroalimentación humana está verificado mecánicamente pero no evaluado a escala agregada, por falta de volumen real de correcciones.
+- El escenario de ruido usa un valor de ejemplo (`noise_std_ratio=0.3`) no calibrado contra ninguna fuente real de ruido de sensor.
+- El hallazgo sobre escasez (menos datos, mejor desempeño) es específico de este dataset y de este recorte cronológico particular; no se probaron otras fracciones ni otras formas de subselección.

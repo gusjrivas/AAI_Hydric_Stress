@@ -159,8 +159,8 @@ HU8 no tiene capacidad de código (igual que HU1) — se dividió en dos sub-pro
 | Analizar el aporte de la detección de anomalías y los datos sintéticos | ✅ | Sección 5: detección de anomalías sin efecto medible (`is_anomaly` no llega al modelo, limitación de integración de HU6); datos sintéticos con efecto negativo (F1 0.312 vs 0.459). |
 | Evaluar el efecto de la retroalimentación y la recalibración | ✅ | Sección 6: mecanismo verificado (HU5) con corrección sintética que cambia la predicción; sin evaluación agregada por falta de volumen real. |
 | Analizar falsos positivos, falsos negativos y errores relevantes | ✅ | Sección 7: 7 falsos positivos, 24 falsos negativos con fechas concretas (HU4). |
-| Analizar el desempeño bajo escenarios de escasez de datos | ⬜ | Sección 8: no ejecutado — HU7 no implementó este escenario; documentado como limitación honesta, sin inventar resultado. |
-| Analizar el desempeño bajo escenarios de ruido y variabilidad de datos | 🟡 | Sección 9: variabilidad sí evaluada (desvío entre semillas); ruido no ejecutado por falta de caracterización real. |
+| Analizar el desempeño bajo escenarios de escasez de datos | ✅ | `src/experiment_runner/scenarios.py::subsample_training_period` (`openspec/changes/add-experiment-scenarios/`). Verificado sobre datos reales: entrenamiento reducido a la mitad más reciente, F1 medio 0.6219±0.0888 — mejor que la configuración base sin reducir (0.4585±0.0423), hallazgo explicado por relevancia estacional. |
+| Analizar el desempeño bajo escenarios de ruido y variabilidad de datos | ✅ | Variabilidad evaluada (desvío entre semillas, HU7). Ruido: `src/experiment_runner/scenarios.py::inject_gaussian_noise`. Verificado sobre datos reales: F1 medio 0.3188±0.1130 — peor y más variable que sin ruido, como se esperaba. Valor de ruido no calibrado contra una fuente real (documentado como limitación). |
 | Evaluar robustez, estabilidad y compromisos entre métricas | ✅ | Sección 10: estabilidad peor con datos sintéticos; compromiso precisión>recall en todas las configuraciones; complejidad del modelo no se traduce en mejor desempeño. |
 | Contrastar los resultados con la hipótesis de investigación | ✅ | `docs/research/hu8-resultados-discusion-conclusiones.md`, sección 2: la hipótesis **no se confirma** en general; modelado predictivo evaluado y sin mejora, datos sintéticos evaluados con efecto contrario, detección de anomalías y retroalimentación humana sin evaluación concluyente (limitaciones, no refutación). |
 | Identificar limitaciones y amenazas a la validez | ✅ | Sección 3: amenazas a validez interna (integración de `is_anomaly`, umbrales no calibrados, método de síntesis simple) y externa (un solo sitio/año, dataset chico, escenarios de escasez/ruido no ejecutados, retroalimentación real mínima). |
@@ -168,7 +168,7 @@ HU8 no tiene capacidad de código (igual que HU1) — se dividió en dos sub-pro
 | Redactar la discusión y las conclusiones | ✅ | Sección 4, con 5 recomendaciones concretas para trabajo futuro ordenadas por impacto esperado. |
 | Consolidar tablas, figuras, referencias y evidencias | ✅ | Sección 5: tabla de fuentes de evidencia primaria con referencia a cada spec/documento verificado. |
 
-**Balance HU8:** de 15 tareas, 13 completas, 1 parcial (escenario de ruido/variabilidad), 1 no iniciada (escenario de escasez). HU8 esencialmente completa — las 2 tareas restantes dependen de datos que no existen todavía en el proyecto (ver "Limitaciones conocidas" de `experiment-runner`).
+**Balance HU8:** de 15 tareas, 15 completas, 0 parciales, 0 no iniciadas. HU8 completa.
 
 ## Infraestructura de desarrollo (ADR-0003)
 
