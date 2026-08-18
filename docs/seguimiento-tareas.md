@@ -128,7 +128,7 @@ HU6 se dividió en dos *changes* de OpenSpec independientes (contratos entre com
 
 ## HU7 — Diseño y ejecución del plan experimental
 
-HU7 se dividió en tres *changes* de OpenSpec independientes (diseño experimental, procedimiento automatizado con registro en MLflow, ejecución real de los experimentos). Este es el primero.
+HU7 se dividió en tres *changes* de OpenSpec independientes (diseño experimental, procedimiento automatizado con registro en MLflow, ejecución real de los experimentos). Los dos primeros ya están implementados.
 
 | Tarea | Estado | Evidencia / motivo |
 |---|---|---|
@@ -137,14 +137,14 @@ HU7 se dividió en tres *changes* de OpenSpec independientes (diseño experiment
 | Definir configuraciones comparativas y pruebas de ablación | ✅ | Las 4 configuraciones de la Épica 4 (base/+sintéticos/+anomalías/completa). **Bloqueo de HU6 resuelto**: `src/experiment_runner/synthetic_augmentation.py::add_synthetic_rows` genera sintéticos sobre las variables ya construidas, no sobre columnas físicas crudas. Tests: `tests/test_synthetic_augmentation.py`. Verificado sobre datos reales: 100 filas sintéticas agregadas a un entrenamiento de 286, sin NaN, modelo reentrenado sin error. |
 | Definir métricas y criterios de evaluación | ✅ | Se reutilizan sin cambios `predictive_modeling.evaluation.evaluate_classifier`/`compare_models`. |
 | Definir particiones, semillas y cantidad de repeticiones | ✅ | Partición temporal existente (`data_quality.splitting`); 5 semillas por configuración. |
-| Implementar el procedimiento automatizado de experimentación | ⬜ | No iniciado — segundo *change* de HU7. |
-| Configurar el registro de parámetros, versiones y resultados | ⬜ | No iniciado. |
+| Implementar el procedimiento automatizado de experimentación | ✅ | `src/experiment_runner/runner.py::run_configuration` (ejecuta el orquestador de HU6 por semilla, con aumento sintético opcional). Tests: `tests/test_experiment_runner.py`. Verificado sobre el dataset real: configuración base, 3 semillas, F1 entre 0.400 y 0.500. |
+| Configurar el registro de parámetros, versiones y resultados | ✅ | `src/experiment_runner/mlflow_logging.py::log_configuration_results` (run padre con métricas agregadas + run hijo anidado por semilla). Tests: `tests/test_mlflow_logging.py`. `mlflow>=2.14,<3` agregado como dependencia. Verificado sobre resultados reales: run padre + 3 runs hijos anidados recuperables por `tags.mlflow.parentRunId`. |
 | Ejecutar una prueba piloto del protocolo experimental | ⬜ | No iniciado — tercer *change* de HU7. |
 | Ejecutar experimentos con modelos de referencia | ⬜ | No iniciado. |
 | Ejecutar experimentos con mecanismos de robustez integrados | ⬜ | No iniciado. |
 | Verificar integridad y reproducibilidad de los experimentos | ⬜ | No iniciado. |
 
-**Balance HU7:** de 11 tareas, 5 completas (diseño experimental), 0 parciales, 6 no iniciadas.
+**Balance HU7:** de 11 tareas, 7 completas (diseño experimental, procedimiento automatizado y registro), 0 parciales, 4 no iniciadas.
 
 ## HU8
 
