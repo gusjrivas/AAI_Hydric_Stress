@@ -6,10 +6,9 @@
 credentials.json
 secrets.json
 
-# Datos locales (según ADR-0002, la persistencia arranca en Parquet/CSV local)
-/data/
-*.parquet
-*.csv
+# Los datos locales (ADR-0002: Parquet/CSV) SÍ se versionan en git, junto con
+# su diccionario de datos — ver docs/adr/0002-stack-tecnico-poc.md. No hay
+# regla de exclusión acá a propósito.
 
 # Entornos y artefactos de Python
 __pycache__/

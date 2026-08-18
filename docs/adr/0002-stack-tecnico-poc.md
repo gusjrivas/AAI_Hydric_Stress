@@ -24,7 +24,9 @@ MLflow, ejecutado localmente (sin servidor remoto), para registrar parámetros, 
 
 ### Persistencia de datos
 
-La persistencia arranca simple: archivos Parquet/CSV en almacenamiento local, versionados junto con su diccionario de datos (HU2). Sin embargo, ningún módulo de la capa 3 (módulos de IA) accede directamente a estos archivos. Todo acceso a datos pasa por un **contrato de acceso a datos versionado** (una interfaz estable, p. ej. funciones `load_dataset(...)` / `save_dataset(...)` que devuelven y reciben estructuras tabulares estándar como `DataFrame`), definido como parte de la capa 2 (almacenamiento y preprocesamiento) del ADR-0001.
+La persistencia arranca simple: archivos Parquet/CSV en almacenamiento local, versionados junto con su diccionario de datos (HU2). Sin embargo, ningún módulo de la capa 3 (módulos de IA) accede directamente a estos archivos.
+
+> **Corrección (2026-08-17):** el `.gitignore` había excluido por error `/data/`, `*.parquet` y `*.csv` de todo el repositorio, contradiciendo esta misma decisión ("versionados junto con su diccionario de datos"). Se corrigió para que los datasets reales generados por HU2-HU6 (actualmente ~130 KB en total) queden respaldados en GitHub, no solo en el entorno local de trabajo. Todo acceso a datos pasa por un **contrato de acceso a datos versionado** (una interfaz estable, p. ej. funciones `load_dataset(...)` / `save_dataset(...)` que devuelven y reciben estructuras tabulares estándar como `DataFrame`), definido como parte de la capa 2 (almacenamiento y preprocesamiento) del ADR-0001.
 
 Este contrato es el que se congela como estable; el backend concreto (Parquet local hoy, SQLite o una base de series temporales como TimescaleDB/InfluxDB más adelante si se incorpora la prueba de concepto física con sensores en tiempo real) es un detalle de implementación intercambiable detrás de esa interfaz. Ninguna capa de IA, de generación de alertas o de retroalimentación humana debe depender del formato de almacenamiento subyacente.
 

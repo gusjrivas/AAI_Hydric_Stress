@@ -1,0 +1,8 @@
+column,completeness_pct,start,end
+soil_moisture,75.96,2024-01-01,2024-12-31
+temperature,0.0,,
+relative_humidity,0.0,,
+precipitation,0.0,,
+solar_radiation,0.0,,
+wind_speed,0.0,,
+et0,0.0,,

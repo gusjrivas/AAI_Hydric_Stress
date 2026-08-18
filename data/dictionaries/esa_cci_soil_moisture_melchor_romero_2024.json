@@ -1,0 +1,12 @@
+{
+  "source_name": "esa_cci_soil_moisture_melchor_romero_2024",
+  "provenance": "real",
+  "license": "ESA CCI Soil Moisture, datos públicos vía CEDA Archive, descarga sin cuenta ni login (ver https://catalogue.ceda.ac.uk/uuid/6f99cdb86a9e4d3da2d47c79612c00a2/ y docs/research/hu2-fuentes-datos-acceso.md). Requiere cita del dataset según sus términos y condiciones.",
+  "limitations": "Solo provee humedad de suelo (variable 'sm', m3/m3) en grilla global de 0.25° (~25 km); no provee variables climáticas. La versión v09.2 del producto COMBINED solo llega hasta 2024, no hay datos de 2025 todavía por el rezago de reprocesamiento satelital. Días sin archivo disponible quedan como NaN, no interrumpen la serie.",
+  "generated_at": "2026-08-17T00:48:29.346509+00:00",
+  "latitude": -34.95,
+  "longitude": -58.05,
+  "start": "2024-01-01",
+  "end": "2024-12-31",
+  "rows": 366
+}
