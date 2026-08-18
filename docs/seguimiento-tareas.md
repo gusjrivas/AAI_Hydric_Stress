@@ -126,9 +126,29 @@ HU6 se dividió en dos *changes* de OpenSpec independientes (contratos entre com
 
 **Balance HU6:** de 6 tareas, 6 completas, 0 parciales, 0 no iniciadas. HU6 completa.
 
-## HU7 — HU8
+## HU7 — Diseño y ejecución del plan experimental
 
-Sin avance de código o documentación específica más allá del diseño conceptual ya cubierto por ADR-0001 (arquitectura). Estado: ⬜ no iniciado en las 2 historias restantes (diseño/ejecución experimental, análisis de resultados). Sin tareas técnicas ejecutadas de la Épica 4.
+HU7 se dividió en tres *changes* de OpenSpec independientes (diseño experimental, procedimiento automatizado con registro en MLflow, ejecución real de los experimentos). Este es el primero.
+
+| Tarea | Estado | Evidencia / motivo |
+|---|---|---|
+| Definir preguntas experimentales y factores de evaluación | ✅ | `openspec/changes/add-experiment-design/proposal.md`: ¿aporta la detección de anomalías? ¿aportan los datos sintéticos combinados con las variables de HU4? |
+| Definir escenarios de escasez, ruido y variabilidad de datos | ✅ | Escasez = subconjunto del entrenamiento real; variabilidad = 5 semillas por configuración; ruido fuera de alcance (sin caracterización real disponible). |
+| Definir configuraciones comparativas y pruebas de ablación | ✅ | Las 4 configuraciones de la Épica 4 (base/+sintéticos/+anomalías/completa). **Bloqueo de HU6 resuelto**: `src/experiment_runner/synthetic_augmentation.py::add_synthetic_rows` genera sintéticos sobre las variables ya construidas, no sobre columnas físicas crudas. Tests: `tests/test_synthetic_augmentation.py`. Verificado sobre datos reales: 100 filas sintéticas agregadas a un entrenamiento de 286, sin NaN, modelo reentrenado sin error. |
+| Definir métricas y criterios de evaluación | ✅ | Se reutilizan sin cambios `predictive_modeling.evaluation.evaluate_classifier`/`compare_models`. |
+| Definir particiones, semillas y cantidad de repeticiones | ✅ | Partición temporal existente (`data_quality.splitting`); 5 semillas por configuración. |
+| Implementar el procedimiento automatizado de experimentación | ⬜ | No iniciado — segundo *change* de HU7. |
+| Configurar el registro de parámetros, versiones y resultados | ⬜ | No iniciado. |
+| Ejecutar una prueba piloto del protocolo experimental | ⬜ | No iniciado — tercer *change* de HU7. |
+| Ejecutar experimentos con modelos de referencia | ⬜ | No iniciado. |
+| Ejecutar experimentos con mecanismos de robustez integrados | ⬜ | No iniciado. |
+| Verificar integridad y reproducibilidad de los experimentos | ⬜ | No iniciado. |
+
+**Balance HU7:** de 11 tareas, 5 completas (diseño experimental), 0 parciales, 6 no iniciadas.
+
+## HU8
+
+Sin avance de código o documentación específica más allá del diseño conceptual ya cubierto por ADR-0001 (arquitectura). Estado: ⬜ no iniciado (análisis de resultados y contrastación de la hipótesis). Sin tareas técnicas ejecutadas.
 
 ## Infraestructura de desarrollo (ADR-0003)
 

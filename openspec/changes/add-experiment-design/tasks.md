@@ -1,0 +1,9 @@
+# Tareas — add-experiment-design
+
+Subconjunto de las tareas técnicas de HU7 del plan de tesis relevante para esta capacidad (ver también el desglose completo en el plan de proyecto, sección 9). Primero de tres *changes* en que se dividió HU7.
+
+- [x] Definir preguntas experimentales y factores de evaluación. Documentado en `proposal.md`: ¿aporta la detección de anomalías? ¿aportan los datos sintéticos combinados con las variables de HU4? Factores: detección de anomalías (on/off), aumento sintético (on/off).
+- [x] Definir escenarios de escasez, ruido y variabilidad de datos. Documentado en `proposal.md`: escasez = subconjunto del entrenamiento real; variabilidad = 5 semillas por configuración; ruido queda fuera de alcance por falta de una caracterización real (ver "Alternativas consideradas").
+- [x] Definir configuraciones comparativas y pruebas de ablación. Las 4 configuraciones de la Épica 4 (base, +sintéticos, +anomalías, completa), cruzando los dos factores. **Bloqueo resuelto**: `src/experiment_runner/synthetic_augmentation.py::add_synthetic_rows` genera filas sintéticas muestreando sobre las variables ya construidas (retardos/ventanas móviles) y la etiqueta, no sobre columnas físicas crudas — evita el problema de fecha ficticia. Tests: `tests/test_synthetic_augmentation.py`. Verificado sobre el dataset real: 100 filas sintéticas agregadas a un entrenamiento de 286 filas, sin NaN, etiqueta binaria válida, modelo reentrenado sin error.
+- [x] Definir métricas y criterios de evaluación. Se reutilizan sin cambios `predictive_modeling.evaluation.evaluate_classifier`/`compare_models` (precisión/recall/F1/ROC-AUC, estabilidad, complejidad).
+- [x] Definir particiones, semillas y cantidad de repeticiones. Partición temporal existente (`data_quality.splitting`); 5 semillas por configuración experimental.
