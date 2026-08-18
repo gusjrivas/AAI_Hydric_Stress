@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pandas as pd
 from fastapi import APIRouter, Depends
 
 from architecture_integration.pipeline import run_end_to_end_pipeline
