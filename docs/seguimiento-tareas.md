@@ -148,7 +148,7 @@ HU7 se dividió en tres *changes* de OpenSpec independientes (diseño experiment
 
 ## HU8 — Análisis de resultados y contrastación de la hipótesis
 
-HU8 no tiene capacidad de código (igual que HU1) — se dividió en dos sub-proyectos documentales: análisis de resultados y redacción final. Este es el primero.
+HU8 no tiene capacidad de código (igual que HU1) — se dividió en dos sub-proyectos documentales: análisis de resultados y redacción final. Los dos ya están implementados.
 
 | Tarea | Estado | Evidencia / motivo |
 |---|---|---|
@@ -162,13 +162,13 @@ HU8 no tiene capacidad de código (igual que HU1) — se dividió en dos sub-pro
 | Analizar el desempeño bajo escenarios de escasez de datos | ⬜ | Sección 8: no ejecutado — HU7 no implementó este escenario; documentado como limitación honesta, sin inventar resultado. |
 | Analizar el desempeño bajo escenarios de ruido y variabilidad de datos | 🟡 | Sección 9: variabilidad sí evaluada (desvío entre semillas); ruido no ejecutado por falta de caracterización real. |
 | Evaluar robustez, estabilidad y compromisos entre métricas | ✅ | Sección 10: estabilidad peor con datos sintéticos; compromiso precisión>recall en todas las configuraciones; complejidad del modelo no se traduce en mejor desempeño. |
-| Contrastar los resultados con la hipótesis de investigación | ⬜ | No iniciado — segundo sub-proyecto de HU8. |
-| Identificar limitaciones y amenazas a la validez | ⬜ | No iniciado. |
-| Redactar la sección de resultados experimentales | ⬜ | No iniciado. |
-| Redactar la discusión y las conclusiones | ⬜ | No iniciado. |
-| Consolidar tablas, figuras, referencias y evidencias | ⬜ | No iniciado. |
+| Contrastar los resultados con la hipótesis de investigación | ✅ | `docs/research/hu8-resultados-discusion-conclusiones.md`, sección 2: la hipótesis **no se confirma** en general; modelado predictivo evaluado y sin mejora, datos sintéticos evaluados con efecto contrario, detección de anomalías y retroalimentación humana sin evaluación concluyente (limitaciones, no refutación). |
+| Identificar limitaciones y amenazas a la validez | ✅ | Sección 3: amenazas a validez interna (integración de `is_anomaly`, umbrales no calibrados, método de síntesis simple) y externa (un solo sitio/año, dataset chico, escenarios de escasez/ruido no ejecutados, retroalimentación real mínima). |
+| Redactar la sección de resultados experimentales | ✅ | Sección 1. |
+| Redactar la discusión y las conclusiones | ✅ | Sección 4, con 5 recomendaciones concretas para trabajo futuro ordenadas por impacto esperado. |
+| Consolidar tablas, figuras, referencias y evidencias | ✅ | Sección 5: tabla de fuentes de evidencia primaria con referencia a cada spec/documento verificado. |
 
-**Balance HU8:** de 15 tareas, 8 completas, 1 parcial (escenario de ruido/variabilidad), 6 no iniciadas.
+**Balance HU8:** de 15 tareas, 13 completas, 1 parcial (escenario de ruido/variabilidad), 1 no iniciada (escenario de escasez). HU8 esencialmente completa — las 2 tareas restantes dependen de datos que no existen todavía en el proyecto (ver "Limitaciones conocidas" de `experiment-runner`).
 
 ## Infraestructura de desarrollo (ADR-0003)
 
