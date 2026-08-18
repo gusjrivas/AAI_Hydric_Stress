@@ -113,18 +113,18 @@ HU5 se dividió en tres *changes* de OpenSpec independientes (modelo de datos, r
 
 ## HU6 — Integración de la arquitectura experimental
 
-HU6 se dividió en dos *changes* de OpenSpec independientes (contratos entre componentes y orquestador de punta a punta; configuración de ejecución completa, pruebas funcionales y ajustes de integración). Este es el primero.
+HU6 se dividió en dos *changes* de OpenSpec independientes (contratos entre componentes y orquestador de punta a punta; configuración de ejecución completa, pruebas funcionales y ajustes de integración). Los dos ya están implementados — HU6 completa.
 
 | Tarea | Estado | Evidencia / motivo |
 |---|---|---|
 | Definir contratos, entradas y salidas entre componentes | ✅ | `openspec/specs/architecture-integration/spec.md`; orden de etapas documentado en `src/architecture_integration/pipeline.py`. |
 | Integrar el componente de calidad con el componente predictivo | ✅ | `run_end_to_end_pipeline` encadena `data-quality` (imputación, anomalías) con `predictive-modeling` (etiquetado, variables, entrenamiento), evitando fuga temporal. `tests/test_architecture_integration_pipeline.py`. |
 | Integrar las alertas con el mecanismo de retroalimentación | ✅ | El orquestador genera alertas y las pasa a `human_feedback.schema.init_feedback_log`. Verificado sobre el dataset real: 286 filas de entrenamiento, 71 de test, 0 NaN en variables predictoras del test, 22 alertas, 71 filas de feedback `pendiente`. |
-| Configurar la ejecución completa de la arquitectura | ⬜ | No iniciado — segundo *change* de HU6. |
-| Ejecutar pruebas funcionales de integración | ⬜ | No iniciado. |
-| Resolver incidencias y documentar los ajustes de integración | ⬜ | No iniciado. |
+| Configurar la ejecución completa de la arquitectura | ✅ | `scripts/run_end_to_end_pipeline.py` (misma convención que `scripts/run_data_quality_pipeline.py`). Verificado sobre el dataset real: 286 filas de entrenamiento, 71 de evaluación, 22 alertas, 71 filas `pendiente`, 15 anómalas — coincide con la verificación anterior. |
+| Ejecutar pruebas funcionales de integración | ✅ | `tests/test_architecture_integration_functional.py`: valores faltantes intercalados se interpolan correctamente, desactivar anomalías omite `is_anomaly`, resultado consistente entre train/test/feedback. 3 pruebas, todas pasaron sin ajustes al orquestador. |
+| Resolver incidencias y documentar los ajustes de integración | ✅ | Única incidencia: orden de imports en `scripts/run_end_to_end_pipeline.py` (detectado por `ruff`), corregido. Ningún ajuste necesario en el orquestador — las pruebas funcionales confirmaron el diseño del primer *change*. |
 
-**Balance HU6:** de 6 tareas, 3 completas (contratos, integración calidad/predictivo, integración alertas/feedback), 0 parciales, 3 no iniciadas.
+**Balance HU6:** de 6 tareas, 6 completas, 0 parciales, 0 no iniciadas. HU6 completa.
 
 ## HU7 — HU8
 

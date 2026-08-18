@@ -1,8 +1,6 @@
 # Spec: architecture-integration
 
-Capacidad implementada (Épica 3, HU6 — primer sub-proyecto: contratos entre componentes y orquestador de punta a punta). Origen: `openspec/changes/add-architecture-integration-pipeline/`. Este documento es la fuente de verdad vigente de la capacidad; el *change* que la originó queda como registro histórico de la decisión, no se actualiza en paralelo a este archivo.
-
-El segundo sub-proyecto de HU6 (configuración de la ejecución completa, pruebas funcionales de integración, y ajustes/documentación de incidencias) todavía no comenzó y se documentará como *change* independiente que extiende esta spec.
+Capacidad implementada (Épica 3, HU6 — completa, los dos sub-proyectos: contratos entre componentes/orquestador de punta a punta, y configuración de la ejecución completa/pruebas funcionales/ajustes de integración). Orígenes: `openspec/changes/add-architecture-integration-pipeline/`, `openspec/changes/add-architecture-integration-execution/`. Este documento es la fuente de verdad vigente de la capacidad; los *changes* que la originaron quedan como registro histórico de la decisión, no se actualizan en paralelo a este archivo.
 
 ## Requirements
 
@@ -30,9 +28,34 @@ Implementado en `src/architecture_integration/pipeline.py` (`run_end_to_end_pipe
 
 Verificado sobre el dataset real (Melchor Romero 2024, modelo Random Forest, umbral 0.5, corte 2024-10-19): 286 filas de entrenamiento, 71 de test, 0 valores NaN en las variables predictoras del conjunto de test, 22 alertas generadas, registro de retroalimentación inicializado con 71 filas en estado `pendiente`, 15 filas marcadas `is_anomaly` en el conjunto de entrenamiento.
 
+### Requirement: Ejecución configurable del orquestador desde línea de comandos
+
+El sistema DEBE poder ejecutar el orquestador de punta a punta desde línea de comandos, configurando dataset, columnas, fecha de corte, modelo, umbral de alerta y detección de anomalías.
+
+#### Scenario: Ejecución exitosa reporta un resumen del resultado
+
+- **GIVEN** un dataset ya consolidado y disponible bajo el contrato de acceso a datos
+- **WHEN** se ejecuta el script de línea de comandos con los parámetros de ese dataset
+- **THEN** se reporta un resumen con al menos: filas de entrenamiento, filas de evaluación, cantidad de alertas generadas, y estados del registro de retroalimentación
+
+Implementado en `scripts/run_end_to_end_pipeline.py`, siguiendo la misma convención que `scripts/run_data_quality_pipeline.py`. Verificado sobre el dataset real (Melchor Romero 2024, Random Forest, corte 2024-10-19): 286 filas de entrenamiento, 71 de evaluación, 22 alertas generadas, 71 filas de retroalimentación `pendiente`, 15 filas anómalas en entrenamiento — coincide exactamente con la verificación por función directa del *change* anterior.
+
+### Requirement: Comportamiento correcto ante valores faltantes intercalados
+
+El sistema DEBE producir un resultado sin valores faltantes en las variables predictoras del conjunto de evaluación incluso cuando el dataset de entrada tiene valores faltantes intercalados en la variable de humedad de suelo.
+
+#### Scenario: Valores faltantes se interpolan antes del etiquetado y la ingeniería de variables
+
+- **GIVEN** un dataset con algunos valores faltantes intercalados en la columna de humedad de suelo
+- **WHEN** se ejecuta el orquestador de punta a punta sobre ese dataset
+- **THEN** ninguna variable predictora del conjunto de evaluación queda con valores faltantes
+
+Implementado y testeado en `tests/test_architecture_integration_functional.py` (pruebas funcionales con datos sintéticos con valores faltantes intercalados). Se verificó además que desactivar la detección de anomalías omite correctamente la columna `is_anomaly`, y que el resultado es consistente entre `train`/`test`/`feedback_log` (mismo largo, valores válidos). Las 3 pruebas pasaron sin necesidad de ajustar `run_end_to_end_pipeline` — confirman que el diseño del primer sub-proyecto de HU6 ya cubre estos escenarios.
+
 ## Limitaciones conocidas
 
 - La generación de datos sintéticos (HU3) no está integrada en este orquestador: las filas sintéticas no tienen continuidad temporal real, y no está definido cómo calcular variables de retardo/ventana móvil para ellas. Queda como trabajo futuro para `experiment-runner` (HU7) si alguna configuración experimental lo requiere.
 - El orquestador no estandariza/escala las variables predictoras, consistente con cómo se entrenaron y verificaron los modelos candidatos en HU4 (sin escalar).
 - No dispara automáticamente la recalibración supervisada de HU5; eso queda como una decisión de ejecución explícita, no parte del contrato entre componentes.
-- Este sub-proyecto cubre el orquestador y sus contratos, pero no incluye todavía la configuración de una ejecución completa parametrizada (ej. desde línea de comandos o configuración externa), pruebas funcionales de integración más amplias, ni el registro de incidencias/ajustes encontrados al integrar — eso corresponde al segundo *change* de HU6.
+- Las pruebas funcionales usan datos sintéticos, no el dataset real (gitignorado, no disponible en CI) — la verificación con datos reales se hizo vía el script de línea de comandos y quedó documentada con números concretos, mismo criterio usado en todo el repo.
+- La ejecución no está programada/automatizada (no hay scheduler); tampoco corre todavía las 4 configuraciones experimentales de la Épica 4 en una sola invocación — eso es alcance de `experiment-runner` (HU7).

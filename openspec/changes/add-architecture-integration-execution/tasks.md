@@ -1,0 +1,7 @@
+# Tareas — add-architecture-integration-execution
+
+Subconjunto de las tareas técnicas de HU6 del plan de tesis relevante para esta capacidad (ver también el desglose completo en el plan de proyecto, sección 9). Segundo y último *change* en que se dividió HU6.
+
+- [x] Configurar la ejecución completa de la arquitectura. `scripts/run_end_to_end_pipeline.py` (misma convención que `scripts/run_data_quality_pipeline.py`). Verificado sobre el dataset real: 286 filas de entrenamiento, 71 de evaluación, 22 alertas, 71 filas `pendiente`, 15 filas anómalas en entrenamiento — coincide exactamente con la verificación del *change* anterior.
+- [x] Ejecutar pruebas funcionales de integración. `tests/test_architecture_integration_functional.py`: valores faltantes intercalados se interpolan antes del etiquetado/ingeniería de variables (sin NaN en el resultado), desactivar la detección de anomalías omite `is_anomaly`, y el resultado es consistente entre train/test/feedback_log. Las 3 pruebas pasaron sin ajustes al orquestador — confirman el diseño del *change* anterior.
+- [x] Resolver incidencias y documentar los ajustes de integración. Única incidencia encontrada: `ruff` marcó el orden de imports de `scripts/run_end_to_end_pipeline.py` (import block sin ordenar); corregido reordenando alfabéticamente. Ningún ajuste fue necesario en `run_end_to_end_pipeline` en sí — las pruebas funcionales confirmaron que el diseño del primer *change* de HU6 ya cubre estos escenarios correctamente.
