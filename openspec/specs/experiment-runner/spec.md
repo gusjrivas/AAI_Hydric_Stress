@@ -1,6 +1,6 @@
 # Spec: experiment-runner
 
-Capacidad implementada (Épica 4, HU7 — completa, los tres sub-proyectos: diseño experimental, procedimiento automatizado con registro en MLflow, y ejecución real). Orígenes: `openspec/changes/add-experiment-design/`, `openspec/changes/add-experiment-automation/`, `openspec/changes/add-experiment-execution/`. Este documento es la fuente de verdad vigente de la capacidad; los *changes* que la originaron quedan como registro histórico de la decisión, no se actualizan en paralelo a este archivo.
+Capacidad implementada (Épica 4, HU7 completa — diseño experimental, procedimiento automatizado con registro en MLflow, y ejecución real —, más los escenarios de escasez/ruido cerrados durante HU8). Orígenes: `openspec/changes/add-experiment-design/`, `openspec/changes/add-experiment-automation/`, `openspec/changes/add-experiment-execution/`, `openspec/changes/add-experiment-scenarios/`. Este documento es la fuente de verdad vigente de la capacidad; los *changes* que la originaron quedan como registro histórico de la decisión, no se actualizan en paralelo a este archivo.
 
 ## Requirements
 
@@ -101,10 +101,35 @@ El sistema DEBE producir métricas idénticas al re-ejecutar la misma configurac
 
 Verificado re-ejecutando la configuración `base` con las mismas 5 semillas contra el dataset real: `pandas.testing.assert_frame_equal` confirmó que las métricas de ambas corridas son idénticas fila por fila, sin ninguna diferencia — el procedimiento es completamente determinista dadas las semillas.
 
+### Requirement: Escenario de escasez de datos
+
+El sistema DEBE poder simular escasez de datos conservando solo una fracción configurable del período de entrenamiento (las fechas más recientes antes del corte), sin alterar el período de evaluación.
+
+#### Scenario: Reducir el entrenamiento a la mitad más reciente
+
+- **GIVEN** un dataset con un período de entrenamiento y uno de evaluación ya definidos por una fecha de corte
+- **WHEN** se aplica el escenario de escasez con una fracción de 0.5
+- **THEN** el período de entrenamiento resultante contiene solo la mitad más reciente de las fechas de entrenamiento originales, y el período de evaluación no cambia
+
+Implementado en `src/experiment_runner/scenarios.py` (`subsample_training_period`), integrado en `run_configuration` vía el parámetro `train_fraction`, testeado en `tests/test_scenarios.py` y `tests/test_experiment_runner.py`. Verificado sobre el dataset real (configuración base, `train_fraction=0.5`, 5 semillas): F1 medio **0.6219 ± 0.0888**, superior al F1 medio de la configuración base sin reducir (0.4585 ± 0.0423). Hallazgo real: reducir el entrenamiento a su mitad más reciente *mejoró* el desempeño en este dataset — explicación plausible: al conservar solo las fechas más cercanas al corte, el conjunto de entrenamiento queda estacionalmente más parecido al período de evaluación inmediatamente posterior, reduciendo el corrimiento de distribución (*distribution shift*) frente a usar todo el año.
+
+### Requirement: Escenario de ruido de datos
+
+El sistema DEBE poder simular ruido de sensor agregando ruido gaussiano de media cero a las variables predictoras, con desvío proporcional al desvío observado de cada variable.
+
+#### Scenario: El ruido inyectado no altera la forma del dataset
+
+- **GIVEN** un dataset con variables predictoras numéricas
+- **WHEN** se inyecta ruido gaussiano con una proporción de desvío mayor a cero
+- **THEN** el dataset resultante tiene la misma forma que el original, con los valores de las variables predictoras modificados
+
+Implementado en `src/experiment_runner/scenarios.py` (`inject_gaussian_noise`), integrado en `run_configuration` vía el parámetro `noise_std_ratio` (semilla de ruido distinta por repetición), testeado en `tests/test_scenarios.py` y `tests/test_experiment_runner.py`. Verificado sobre el dataset real (configuración base, `noise_std_ratio=0.3`, 5 semillas): F1 medio **0.3188 ± 0.1130**, inferior al F1 medio de la configuración base sin ruido (0.4585 ± 0.0423) — el ruido inyectado degrada el desempeño, como se esperaba, y además aumenta notablemente la variabilidad entre semillas (desvío de F1 casi triplicado).
+
 ## Limitaciones conocidas
 
-- El escenario de "ruido" queda sin implementar por falta de una fuente real que lo caracterice; se reevaluará si surge una necesidad concreta durante el análisis de resultados (HU8).
-- El escenario de "escasez" (subconjunto del entrenamiento real) no se ejecutó en esta ronda de experimentos; el procedimiento automatizado ya soporta variar semillas y configuración, pero no todavía un parámetro de tamaño de muestra reducido.
-- **La detección de anomalías no afecta actualmente el desempeño del modelo**: `is_anomaly` no se incluye entre las variables predictoras en `run_end_to_end_pipeline` (HU6). Para que el factor "detección de anomalías" sea comparable de verdad en HU8, esto debería resolverse (ej. incluyendo `is_anomaly` como variable predictora, o filtrando filas anómalas del entrenamiento en vez de solo marcarlas) — se documenta como hallazgo para el análisis de HU8, no se corrige en este *change* para no alterar retroactivamente los resultados ya registrados.
+- **La detección de anomalías no afecta actualmente el desempeño del modelo**: `is_anomaly` no se incluye entre las variables predictoras en `run_end_to_end_pipeline` (HU6). Para que el factor "detección de anomalías" sea comparable de verdad, esto debería resolverse (ej. incluyendo `is_anomaly` como variable predictora, o filtrando filas anómalas del entrenamiento en vez de solo marcarlas) — se documenta como hallazgo para el análisis de HU8, no se corrige en este *change* para no alterar retroactivamente los resultados ya registrados.
 - El aumento sintético sobre variables ya construidas empeoró el desempeño frente a la configuración base en este dataset — consistente con la limitación ya documentada de que el muestreo por normal multivariada no captura relaciones no lineales ni la estructura temporal real de las variables de retardo/ventana móvil.
 - El aumento sintético es estadísticamente equivalente al de HU3 (normal multivariada); no fue validado con similitud estadística/utilidad predictiva formal como se hizo en HU3 para los datos sintéticos crudos.
+- El escenario de ruido (`inject_gaussian_noise`) es una aproximación deliberadamente simple, no calibrada contra ninguna caracterización real de ruido de sensor — se eligió `noise_std_ratio=0.3` como un valor razonable de ejemplo, no como un valor validado empíricamente.
+- El hallazgo de que la escasez mejora el desempeño es específico de este dataset (un año, un punto geográfico) y de esta forma de reducir el entrenamiento (recorte por las fechas más recientes); no se probaron otras fracciones ni otras formas de subselección (ej. muestreo aleatorio en vez de recorte cronológico), que podrían dar un resultado distinto.
+- No se ejecutó un escenario combinado de escasez + ruido simultáneos.
