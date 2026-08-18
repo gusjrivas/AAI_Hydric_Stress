@@ -146,9 +146,29 @@ HU7 se dividió en tres *changes* de OpenSpec independientes (diseño experiment
 
 **Balance HU7:** de 11 tareas, 11 completas, 0 parciales, 0 no iniciadas. HU7 completa.
 
-## HU8
+## HU8 — Análisis de resultados y contrastación de la hipótesis
 
-Sin avance de código o documentación específica más allá del diseño conceptual ya cubierto por ADR-0001 (arquitectura). Estado: ⬜ no iniciado (análisis de resultados y contrastación de la hipótesis). Sin tareas técnicas ejecutadas.
+HU8 no tiene capacidad de código (igual que HU1) — se dividió en dos sub-proyectos documentales: análisis de resultados y redacción final. Este es el primero.
+
+| Tarea | Estado | Evidencia / motivo |
+|---|---|---|
+| Consolidar los resultados de todas las ejecuciones experimentales | ✅ | `docs/research/hu8-analisis-resultados.md`, sección 1: tabla de las 4 configuraciones × 5 semillas, registradas en MLflow real (HU7). |
+| Identificar ejecuciones incompletas o inconsistentes | ✅ | Sección 2: las 20 corridas completaron sin error; inconsistencia real detectada (no fallo): `+anomalías`=`base`, `completa`=`+sintéticos`. |
+| Calcular métricas agregadas y medidas de dispersión | ✅ | Sección 3: media±desvío de F1/ROC-AUC por configuración, ya en la tabla de la sección 1. |
+| Comparar el enfoque de referencia con la arquitectura propuesta | ✅ | Sección 4: la arquitectura propuesta (RF, F1=0.4585) no supera al modelo de referencia por persistencia (F1=0.486, HU4). |
+| Analizar el aporte de la detección de anomalías y los datos sintéticos | ✅ | Sección 5: detección de anomalías sin efecto medible (`is_anomaly` no llega al modelo, limitación de integración de HU6); datos sintéticos con efecto negativo (F1 0.312 vs 0.459). |
+| Evaluar el efecto de la retroalimentación y la recalibración | ✅ | Sección 6: mecanismo verificado (HU5) con corrección sintética que cambia la predicción; sin evaluación agregada por falta de volumen real. |
+| Analizar falsos positivos, falsos negativos y errores relevantes | ✅ | Sección 7: 7 falsos positivos, 24 falsos negativos con fechas concretas (HU4). |
+| Analizar el desempeño bajo escenarios de escasez de datos | ⬜ | Sección 8: no ejecutado — HU7 no implementó este escenario; documentado como limitación honesta, sin inventar resultado. |
+| Analizar el desempeño bajo escenarios de ruido y variabilidad de datos | 🟡 | Sección 9: variabilidad sí evaluada (desvío entre semillas); ruido no ejecutado por falta de caracterización real. |
+| Evaluar robustez, estabilidad y compromisos entre métricas | ✅ | Sección 10: estabilidad peor con datos sintéticos; compromiso precisión>recall en todas las configuraciones; complejidad del modelo no se traduce en mejor desempeño. |
+| Contrastar los resultados con la hipótesis de investigación | ⬜ | No iniciado — segundo sub-proyecto de HU8. |
+| Identificar limitaciones y amenazas a la validez | ⬜ | No iniciado. |
+| Redactar la sección de resultados experimentales | ⬜ | No iniciado. |
+| Redactar la discusión y las conclusiones | ⬜ | No iniciado. |
+| Consolidar tablas, figuras, referencias y evidencias | ⬜ | No iniciado. |
+
+**Balance HU8:** de 15 tareas, 8 completas, 1 parcial (escenario de ruido/variabilidad), 6 no iniciadas.
 
 ## Infraestructura de desarrollo (ADR-0003)
 
