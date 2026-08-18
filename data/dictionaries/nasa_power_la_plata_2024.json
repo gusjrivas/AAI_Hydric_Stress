@@ -1,0 +1,12 @@
+{
+  "source_name": "nasa_power_la_plata_2024",
+  "provenance": "real",
+  "license": "Datos abiertos de NASA POWER (comunidad Agroclimatology), sin cuenta ni API key requerida. Ver https://power.larc.nasa.gov/docs/services/api/ (docs/research/hu2-fuentes-datos-acceso.md).",
+  "limitations": "No provee humedad de suelo ni evapotranspiración de referencia (ET0) directamente; ET0 se deriva en preprocesamiento a partir de las variables climáticas descargadas.",
+  "generated_at": "2026-08-16T23:24:25.556179+00:00",
+  "latitude": -34.92,
+  "longitude": -57.95,
+  "start": "2024-01-01",
+  "end": "2024-12-31",
+  "rows": 366
+}
