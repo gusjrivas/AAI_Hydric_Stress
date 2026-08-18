@@ -128,7 +128,7 @@ HU6 se dividió en dos *changes* de OpenSpec independientes (contratos entre com
 
 ## HU7 — Diseño y ejecución del plan experimental
 
-HU7 se dividió en tres *changes* de OpenSpec independientes (diseño experimental, procedimiento automatizado con registro en MLflow, ejecución real de los experimentos). Los dos primeros ya están implementados.
+HU7 se dividió en tres *changes* de OpenSpec independientes (diseño experimental, procedimiento automatizado con registro en MLflow, ejecución real de los experimentos). Los tres ya están implementados — HU7 completa.
 
 | Tarea | Estado | Evidencia / motivo |
 |---|---|---|
@@ -139,12 +139,12 @@ HU7 se dividió en tres *changes* de OpenSpec independientes (diseño experiment
 | Definir particiones, semillas y cantidad de repeticiones | ✅ | Partición temporal existente (`data_quality.splitting`); 5 semillas por configuración. |
 | Implementar el procedimiento automatizado de experimentación | ✅ | `src/experiment_runner/runner.py::run_configuration` (ejecuta el orquestador de HU6 por semilla, con aumento sintético opcional). Tests: `tests/test_experiment_runner.py`. Verificado sobre el dataset real: configuración base, 3 semillas, F1 entre 0.400 y 0.500. |
 | Configurar el registro de parámetros, versiones y resultados | ✅ | `src/experiment_runner/mlflow_logging.py::log_configuration_results` (run padre con métricas agregadas + run hijo anidado por semilla). Tests: `tests/test_mlflow_logging.py`. `mlflow>=2.14,<3` agregado como dependencia. Verificado sobre resultados reales: run padre + 3 runs hijos anidados recuperables por `tags.mlflow.parentRunId`. |
-| Ejecutar una prueba piloto del protocolo experimental | ⬜ | No iniciado — tercer *change* de HU7. |
-| Ejecutar experimentos con modelos de referencia | ⬜ | No iniciado. |
-| Ejecutar experimentos con mecanismos de robustez integrados | ⬜ | No iniciado. |
-| Verificar integridad y reproducibilidad de los experimentos | ⬜ | No iniciado. |
+| Ejecutar una prueba piloto del protocolo experimental | ✅ | Configuración base, 2 semillas, contra el servidor MLflow real (`http://localhost:5000`). Run padre `piloto-base` con 2 runs hijos anidados. |
+| Ejecutar experimentos con modelos de referencia | ✅ | `base` y `+sintéticos`, 5 semillas cada una. Real: `base` F1=0.4585±0.0423; `+sintéticos` F1=0.3123±0.0862 (peor que base). |
+| Ejecutar experimentos con mecanismos de robustez integrados | ✅ | `+anomalías` y `completa`, 5 semillas cada una. **Hallazgo**: métricas idénticas a `base`/`+sintéticos` respectivamente — `is_anomaly` no se usa como variable predictora en el pipeline actual (HU6), documentado en "Limitaciones conocidas" del spec para el análisis de HU8. |
+| Verificar integridad y reproducibilidad de los experimentos | ✅ | Re-ejecución de `base` con las mismas 5 semillas: `pd.testing.assert_frame_equal` confirmó métricas idénticas bit a bit entre ambas corridas. |
 
-**Balance HU7:** de 11 tareas, 7 completas (diseño experimental, procedimiento automatizado y registro), 0 parciales, 4 no iniciadas.
+**Balance HU7:** de 11 tareas, 11 completas, 0 parciales, 0 no iniciadas. HU7 completa.
 
 ## HU8
 

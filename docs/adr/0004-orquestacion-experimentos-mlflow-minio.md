@@ -42,8 +42,8 @@ Las credenciales de MinIO (usuario/contraseña root) y las variables de conexió
 ## Consecuencias
 
 - **Docker Desktop (o un daemon Docker equivalente) pasa a ser un prerequisito de desarrollo** para cualquier tarea que registre experimentos con MLflow, incluso durante el desarrollo local de HU3/HU4 en la tesis. Esto es más carga operativa que la decisión original de ADR-0002, asumida deliberadamente para demostrar el patrón de escalado.
-- Ningún código de modelado existe todavía en este repositorio (HU3/HU4 no iniciadas), por lo que esta decisión no requiere migrar corridas ya registradas: se adopta el patrón antes de que exista el primer experimento.
-- El CI (`.github/workflows/ci.yml`) no necesita cambios todavía, porque los tests actuales no entrenan modelos ni registran experimentos. Cuando HU3/HU4 agreguen tests que sí lo hagan, deberá evaluarse si el CI levanta este mismo `docker-compose.yml` o si esos tests se marcan para excluir del pipeline estándar (decisión diferida a ese momento).
+- ~~Ningún código de modelado existe todavía en este repositorio (HU3/HU4 no iniciadas), por lo que esta decisión no requiere migrar corridas ya registradas: se adopta el patrón antes de que exista el primer experimento.~~ **Actualización (2026-08-18):** HU7 (`experiment-runner`) ya ejecuta y registra experimentos reales contra este servidor — las 4 configuraciones de la Épica 4, 5 semillas cada una, con `mlflow>=2.14,<3` como dependencia del proyecto. El patrón demostrado con el experimento de humo (ADR-0004 original) ya tiene uso real.
+- El CI (`.github/workflows/ci.yml`) sigue sin necesitar cambios: los tests de `experiment_runner` (HU7) usan un tracking store de archivo local (`file://`) para las pruebas automatizadas, no el servidor Docker real — evita que CI dependa de Docker Compose levantado. La ejecución contra el servidor real es manual/documentada, no parte del pipeline de CI.
 - El contrato de acceso a datos de ADR-0002 (`load_dataset`/`save_dataset`) no cambia: este ADR solo reemplaza el mecanismo de *tracking* de experimentos, no la persistencia de los datasets de ingesta.
 
 ## Referencias
