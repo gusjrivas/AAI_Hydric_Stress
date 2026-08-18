@@ -54,8 +54,8 @@ Implementado y testeado en `tests/test_architecture_integration_functional.py` (
 
 ## Limitaciones conocidas
 
-- La generación de datos sintéticos (HU3) no está integrada en este orquestador: las filas sintéticas no tienen continuidad temporal real, y no está definido cómo calcular variables de retardo/ventana móvil para ellas. Queda como trabajo futuro para `experiment-runner` (HU7) si alguna configuración experimental lo requiere.
+- La generación de datos sintéticos (HU3) no está integrada en este orquestador directamente: las filas sintéticas de `data_quality.synthetic_data.generate_synthetic` no tienen continuidad temporal real. **Resuelto en `experiment-runner` (HU7)**: `add_synthetic_rows` genera filas sintéticas muestreando sobre las variables ya construidas (retardos/ventanas móviles) en vez de las columnas físicas crudas, evitando el problema de la fecha ficticia.
 - El orquestador no estandariza/escala las variables predictoras, consistente con cómo se entrenaron y verificaron los modelos candidatos en HU4 (sin escalar).
 - No dispara automáticamente la recalibración supervisada de HU5; eso queda como una decisión de ejecución explícita, no parte del contrato entre componentes.
-- Las pruebas funcionales usan datos sintéticos, no el dataset real (gitignorado, no disponible en CI) — la verificación con datos reales se hizo vía el script de línea de comandos y quedó documentada con números concretos, mismo criterio usado en todo el repo.
+- Las pruebas funcionales usan datos sintéticos de test, no el dataset real de producción — la verificación con datos reales se hizo vía el script de línea de comandos y quedó documentada con números concretos. (El dataset real de Melchor Romero 2024 sí está versionado en el repositorio desde 2026-08-17, ver ADR-0002.)
 - La ejecución no está programada/automatizada (no hay scheduler); tampoco corre todavía las 4 configuraciones experimentales de la Épica 4 en una sola invocación — eso es alcance de `experiment-runner` (HU7).
