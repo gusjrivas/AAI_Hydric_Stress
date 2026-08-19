@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./ForecastPage.css";
 import {
   confirmAlert,
   listFeedback,
@@ -12,10 +13,12 @@ export function ForecastPage() {
   const [feedback, setFeedback] = useState<FeedbackRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   async function handleRunForecast() {
     setLoading(true);
     setError(null);
+    setActionMessage(null);
     try {
       const result = await runForecast();
       setVerdicts(result.verdicts);
@@ -31,11 +34,13 @@ export function ForecastPage() {
   async function handleConfirm(fecha: string) {
     const updated = await confirmAlert(fecha);
     setFeedback((rows) => rows.map((row) => (row.fecha === fecha ? updated : row)));
+    setActionMessage(`Guardada la validación del ${fecha} — el modelo no se actualizó.`);
   }
 
   async function handleReject(fecha: string) {
     const updated = await rejectAlert(fecha, 0, "Rechazada desde la interfaz");
     setFeedback((rows) => rows.map((row) => (row.fecha === fecha ? updated : row)));
+    setActionMessage(`Guardada la validación del ${fecha} — el modelo no se actualizó.`);
   }
 
   function stateFor(fecha: string): string {
@@ -43,37 +48,60 @@ export function ForecastPage() {
   }
 
   return (
-    <div>
-      <h1>Pronóstico de estrés hídrico</h1>
-      <button onClick={handleRunForecast} disabled={loading}>
-        {loading ? "Corriendo..." : "Correr pronóstico"}
-      </button>
-      {error && <p role="alert">{error}</p>}
-      <table>
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Alerta</th>
-            <th>Probabilidad</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {verdicts.map((verdict) => (
-            <tr key={verdict.fecha}>
-              <td>{verdict.fecha}</td>
-              <td>{verdict.alerta ? "Sí" : "No"}</td>
-              <td>{verdict.probabilidad.toFixed(2)}</td>
-              <td>{stateFor(verdict.fecha)}</td>
-              <td>
+    <div className="fp-page">
+      <header className="fp-header">
+        <div>
+          <h1 className="fp-title">Pronóstico de estrés hídrico</h1>
+          <p className="fp-subtitle">Validación humana de alertas sobre el dataset consolidado</p>
+        </div>
+        <button className="fp-run-btn" onClick={handleRunForecast} disabled={loading}>
+          {loading ? "Corriendo..." : "Correr pronóstico"}
+        </button>
+      </header>
+
+      <div className="fp-banner" role="note">
+        <strong>Qué prueba esta pantalla:</strong> confirmar o rechazar guarda tu validación en
+        el registro de retroalimentación. En esta primera iteración{" "}
+        <strong>no se reentrena el modelo automáticamente</strong> — la evidencia se acumula
+        para una futura recalibración.
+      </div>
+
+      {error && <p role="alert" className="fp-error">{error}</p>}
+      {actionMessage && (
+        <p role="status" className="fp-action-message">
+          {actionMessage}
+        </p>
+      )}
+
+      <ul className="fp-list">
+        {verdicts.map((verdict) => {
+          const estado = stateFor(verdict.fecha);
+          const severity = verdict.alerta ? "alert" : "safe";
+          return (
+            <li key={verdict.fecha} className={`fp-row fp-row--${severity}`}>
+              <span className="fp-signal" aria-hidden="true" />
+              <div className="fp-row-main">
+                <div className="fp-row-date">{verdict.fecha}</div>
+                <div className="fp-row-verdict">{verdict.alerta ? "Alerta" : "Sin alerta"}</div>
+              </div>
+              <div className="fp-gauge">
+                <span className="fp-gauge-value">{verdict.probabilidad.toFixed(2)}</span>
+                <span className="fp-gauge-bar">
+                  <span
+                    className="fp-gauge-fill"
+                    style={{ width: `${Math.round(verdict.probabilidad * 100)}%` }}
+                  />
+                </span>
+              </div>
+              <span className={`fp-badge fp-badge--${estado}`}>{estado}</span>
+              <div className="fp-actions">
                 <button onClick={() => handleConfirm(verdict.fecha)}>Confirmar</button>
                 <button onClick={() => handleReject(verdict.fecha)}>Rechazar</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
