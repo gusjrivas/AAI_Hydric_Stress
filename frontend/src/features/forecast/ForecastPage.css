@@ -1,0 +1,238 @@
+/* Paleta y tipografía: ver docs/design/alerting-ui-visual-design.md */
+
+.fp-page {
+  --fp-bg: #f4f6f2;
+  --fp-surface: #ffffff;
+  --fp-ink: #1b2a1e;
+  --fp-muted: #5c6b5f;
+  --fp-border: #d9e0d5;
+  --fp-alert: #c1440e;
+  --fp-alert-bg: #fbeae1;
+  --fp-safe: #2f6e4f;
+  --fp-safe-bg: #e7f1ea;
+  --fp-action: #1f5b6b;
+  --fp-action-bg: #e5eef0;
+  --fp-mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+  min-height: 100vh;
+  padding: 2.5rem clamp(1rem, 4vw, 3rem);
+  background: var(--fp-bg);
+  color: var(--fp-ink);
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+.fp-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.fp-title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.fp-subtitle {
+  margin: 0.25rem 0 0;
+  color: var(--fp-muted);
+  font-size: 0.95rem;
+}
+
+.fp-run-btn {
+  padding: 0.7rem 1.4rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--fp-action);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fp-run-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.fp-banner {
+  border: 1px solid var(--fp-border);
+  border-left: 4px solid var(--fp-action);
+  background: var(--fp-action-bg);
+  border-radius: 4px;
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-width: 62ch;
+}
+
+.fp-error {
+  color: var(--fp-alert);
+  font-weight: 600;
+}
+
+.fp-action-message {
+  background: var(--fp-safe-bg);
+  color: var(--fp-safe);
+  border-radius: 4px;
+  padding: 0.5rem 0.8rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.fp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.fp-row {
+  display: grid;
+  grid-template-columns: 6px minmax(7rem, auto) 1fr auto auto;
+  align-items: center;
+  gap: 1rem;
+  background: var(--fp-surface);
+  border: 1px solid var(--fp-border);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}
+
+.fp-signal {
+  align-self: stretch;
+  border-radius: 3px;
+  background: var(--fp-muted);
+}
+
+.fp-row--alert .fp-signal {
+  background: var(--fp-alert);
+}
+
+.fp-row--safe .fp-signal {
+  background: var(--fp-safe);
+}
+
+.fp-row-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.fp-row-date {
+  font-family: var(--fp-mono);
+  font-size: 0.95rem;
+}
+
+.fp-row-verdict {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.fp-row--alert .fp-row-verdict {
+  color: var(--fp-alert);
+}
+
+.fp-row--safe .fp-row-verdict {
+  color: var(--fp-safe);
+}
+
+.fp-gauge {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 10rem;
+}
+
+.fp-gauge-value {
+  font-family: var(--fp-mono);
+  font-size: 0.85rem;
+  color: var(--fp-muted);
+  width: 3ch;
+}
+
+.fp-gauge-bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--fp-border);
+  overflow: hidden;
+}
+
+.fp-gauge-fill {
+  display: block;
+  height: 100%;
+  background: var(--fp-action);
+}
+
+.fp-row--alert .fp-gauge-fill {
+  background: var(--fp-alert);
+}
+
+.fp-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.fp-badge--pendiente {
+  background: var(--fp-border);
+  color: var(--fp-muted);
+}
+
+.fp-badge--confirmada {
+  background: var(--fp-safe-bg);
+  color: var(--fp-safe);
+}
+
+.fp-badge--rechazada {
+  background: var(--fp-alert-bg);
+  color: var(--fp-alert);
+}
+
+.fp-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.fp-actions button {
+  padding: 0.4rem 0.75rem;
+  border-radius: 5px;
+  border: 1px solid var(--fp-border);
+  background: var(--fp-surface);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.fp-actions button:first-child:hover {
+  border-color: var(--fp-safe);
+  color: var(--fp-safe);
+}
+
+.fp-actions button:last-child:hover {
+  border-color: var(--fp-alert);
+  color: var(--fp-alert);
+}
+
+@media (max-width: 640px) {
+  .fp-row {
+    grid-template-columns: 6px 1fr;
+    grid-auto-flow: row;
+    row-gap: 0.5rem;
+  }
+
+  .fp-row > :not(.fp-signal) {
+    grid-column: 2;
+  }
+}
