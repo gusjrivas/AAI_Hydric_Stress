@@ -50,9 +50,7 @@ def recalibrate(data_dir: Path = Depends(get_feedback_data_dir)) -> Recalibratio
     recalibration_obs = select_recalibration_observations(integrated)
 
     if recalibration_obs.empty:
-        raise HTTPException(
-            status_code=400, detail="No hay correcciones pendientes de aplicar."
-        )
+        raise HTTPException(status_code=400, detail="No hay correcciones pendientes de aplicar.")
 
     X_recal = pd.concat([train[feature_cols], test[feature_cols]], ignore_index=True)
     y_recal = pd.concat([train["stress_label"], test["stress_label"]], ignore_index=True)

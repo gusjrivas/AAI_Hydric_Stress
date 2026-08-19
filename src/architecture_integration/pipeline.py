@@ -49,7 +49,8 @@ def run_end_to_end_pipeline(
     """Ejecuta el flujo completo sobre `df`: imputación, etiquetado,
     variables predictoras, partición temporal, detección de anomalías
     opcional, entrenamiento del modelo, alertas, y registro de
-    retroalimentación inicializado. Si `skip_fit` es `True`, usa `model` tal cual, ya entrenado, sin reentrenar.
+    retroalimentación inicializado. Si `skip_fit` es `True`, usa `model`
+    tal cual, ya entrenado, sin reentrenar.
     """
     lags = lags if lags is not None else [1, 2, 3]
     rolling_windows = rolling_windows if rolling_windows is not None else [3, 7]
