@@ -31,7 +31,7 @@ def register_recalibrated_model(model: object, params: dict, metrics: dict) -> s
     client = mlflow.MlflowClient()
     versions = client.search_model_versions(f"name='{REGISTERED_MODEL_NAME}'")
     matching = [v for v in versions if v.run_id == run_id]
-    return matching[0].version
+    return str(matching[0].version)
 
 
 def load_latest_recalibrated_model() -> object | None:

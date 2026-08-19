@@ -34,3 +34,9 @@ class FeedbackListResponse(BaseModel):
 class RejectRequest(BaseModel):
     etiqueta_corregida: int
     observacion: str
+
+
+class RecalibrationResponse(BaseModel):
+    version: str
+    n_correcciones: int
+    fechas_corregidas: list[date]
