@@ -74,8 +74,11 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     restart: unless-stopped
+    depends_on:
+      - mlflow
     environment:
       ALERTING_UI_DATASET: ${ALERTING_UI_DATASET:-melchor_romero_2024_consolidado}
+      MLFLOW_TRACKING_URI: http://mlflow:5000
     ports:
       - "8000:8000"
     volumes:
