@@ -20,3 +20,8 @@ venv/
 # Artefactos de MLflow (ADR-0002)
 mlruns/
 mlartifacts/
+
+# Registro de retroalimentación generado por la UI local (alerting-ui): es
+# estado de ejecución efímero de uso local, no un dataset curado — a
+# diferencia de los datasets reales de HU2, no tiene sentido versionarlo.
+data/feedback_ui.parquet

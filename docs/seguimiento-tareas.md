@@ -170,6 +170,20 @@ HU8 no tiene capacidad de código (igual que HU1) — se dividió en dos sub-pro
 
 **Balance HU8:** de 15 tareas, 15 completas, 0 parciales, 0 no iniciadas. HU8 completa.
 
+## Interfaz de usuario (alerting-ui, HU5+HU6)
+
+Primer scaffolding real de `backend/` y `frontend/` (ADR-0003), anticipado desde HU5 y construido después de completar HU1-HU8. Expone el pipeline completo (HU6) y el mecanismo de retroalimentación humana (HU5) a través de una interfaz de usuario.
+
+| Tarea | Estado | Evidencia / motivo |
+|---|---|---|
+| Backend: `POST /forecast/run` | ✅ | `backend/app/routers/forecast.py`; `backend/tests/test_forecast.py`. |
+| Backend: `GET /feedback`, confirmar, rechazar | ✅ | `backend/app/routers/feedback.py`; `backend/tests/test_feedback.py`. |
+| Frontend: página de pronóstico y alertas | ✅ | `frontend/src/features/forecast/ForecastPage.tsx`; `frontend/src/features/forecast/ForecastPage.test.tsx`. |
+| Verificación manual end-to-end (backend + frontend + dataset real) | ✅ | Backend y frontend reales corridos juntos contra `data/melchor_romero_2024_consolidado.parquet`: `train_rows=286`, `test_rows=71`, 22 de 71 fechas con alerta. Confirmar/rechazar sobre 2024-10-19/2024-10-20 actualizó el estado mostrado de inmediato y ambos se preservaron tras re-correr el pronóstico (`upsert_feedback_log` verificado de punta a punta). Ver `openspec/specs/alerting-ui/spec.md` para el detalle completo. |
+| CI (jobs `backend-quality`, `frontend-quality`) | ✅ | `.github/workflows/ci.yml`. |
+
+**Fuera de alcance, documentado para la próxima iteración**: motor de selección/ensamble entre varios modelos, ingesta de datos de sensores en vivo, disparo de recalibración desde la UI, robustez ante escasez/ruido en producción (ver `openspec/changes/add-alerting-ui/proposal.md`, "Fuera de alcance de este change").
+
 ## Infraestructura de desarrollo (ADR-0003)
 
 Esta sección no corresponde a una tarea del backlog de tesis (HU1-HU8), sino a infraestructura de ciclo de vida de desarrollo decidida en `docs/adr/0003-stack-web-y-ciclo-de-vida-automatizado.md`. Se registra igual porque el diff que la introduce toca `src/` (reformateo con Black) y por eso queda alcanzado por la regla de trazabilidad que este mismo documento exige para cualquier PR.
