@@ -1,4 +1,4 @@
-name: aai-hydric-stress-mlflow
+name: aai-hydric-stress
 
 services:
   postgres:
@@ -68,6 +68,27 @@ services:
       --serve-artifacts
       --host 0.0.0.0
       --port 5000
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      ALERTING_UI_DATASET: ${ALERTING_UI_DATASET:-melchor_romero_2024_consolidado}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/workspace/data
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
 
 volumes:
   mlflow_postgres_data:
