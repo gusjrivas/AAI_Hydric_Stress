@@ -44,11 +44,13 @@ def run_end_to_end_pipeline(
     include_anomaly_detection: bool = True,
     contamination: float = 0.05,
     random_state: int = 42,
+    skip_fit: bool = False,
 ) -> dict[str, Any]:
     """Ejecuta el flujo completo sobre `df`: imputación, etiquetado,
     variables predictoras, partición temporal, detección de anomalías
     opcional, entrenamiento del modelo, alertas, y registro de
-    retroalimentación inicializado.
+    retroalimentación inicializado. Si `skip_fit` es `True`, usa `model`
+    tal cual, ya entrenado, sin reentrenar.
     """
     lags = lags if lags is not None else [1, 2, 3]
     rolling_windows = rolling_windows if rolling_windows is not None else [3, 7]
@@ -78,8 +80,11 @@ def run_end_to_end_pipeline(
     X_train, y_train = train[feature_cols], train["stress_label"]
     X_test = test[feature_cols]
 
-    fitted_model = clone(model)
-    fitted_model.fit(X_train, y_train)
+    if skip_fit:
+        fitted_model = model
+    else:
+        fitted_model = clone(model)
+        fitted_model.fit(X_train, y_train)
 
     y_proba = pd.Series(fitted_model.predict_proba(X_test)[:, 1]).reset_index(drop=True)
     alerts = generate_alerts(y_proba, threshold=alert_threshold)

@@ -56,3 +56,27 @@ def test_run_end_to_end_pipeline_computes_features_for_first_test_rows_without_n
 
     feature_cols = result["feature_columns"]
     assert not result["test"][feature_cols].isna().any().any()
+
+
+def test_run_end_to_end_pipeline_with_skip_fit_true_does_not_refit_the_model():
+    df = _synthetic_dataset()
+
+    class _FitRaisesModel:
+        def fit(self, X, y):
+            raise AssertionError("fit no debería llamarse cuando skip_fit=True")
+
+        def predict_proba(self, X):
+            return np.tile([0.3, 0.7], (len(X), 1))
+
+    result = run_end_to_end_pipeline(
+        df,
+        label_column="soil_moisture",
+        feature_columns=["soil_moisture", "solar_radiation"],
+        split_date=df["timestamp"].iloc[45].date(),
+        model=_FitRaisesModel(),
+        include_anomaly_detection=False,
+        skip_fit=True,
+    )
+
+    assert len(result["y_proba"]) == len(result["test"])
+    assert all(p == 0.7 for p in result["y_proba"])

@@ -8,20 +8,11 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from architecture_integration.pipeline import run_end_to_end_pipeline
-from data_ingestion.storage import load_dataset
 from human_feedback.registry import load_feedback_log, save_feedback_log, upsert_feedback_log
 from human_feedback.schema import init_feedback_log
-from predictive_modeling.models import build_candidate_models
 
-from ..config import (
-    DATASET_NAME,
-    FEATURE_COLUMNS,
-    FEEDBACK_LOG_NAME,
-    LABEL_COLUMN,
-    RANDOM_STATE,
-    get_feedback_data_dir,
-)
+from ..config import FEEDBACK_LOG_NAME, get_feedback_data_dir
+from ..pipeline import execute_configured_pipeline, load_dataset_or_raise
 from ..schemas import ForecastRunResponse, Verdict
 
 router = APIRouter()
@@ -30,23 +21,11 @@ router = APIRouter()
 @router.post("/forecast/run", response_model=ForecastRunResponse)
 def run_forecast(data_dir: Path = Depends(get_feedback_data_dir)) -> ForecastRunResponse:
     try:
-        df = load_dataset(DATASET_NAME)
+        df = load_dataset_or_raise()
     except FileNotFoundError as error:
-        raise HTTPException(
-            status_code=404, detail=f"No existe el dataset '{DATASET_NAME}'."
-        ) from error
-    split_date = df["timestamp"].sort_values().iloc[int(len(df) * 0.8)].date()
+        raise HTTPException(status_code=404, detail=str(error)) from error
 
-    model = build_candidate_models(random_state=RANDOM_STATE)["random_forest"]
-    result = run_end_to_end_pipeline(
-        df,
-        label_column=LABEL_COLUMN,
-        feature_columns=FEATURE_COLUMNS,
-        split_date=split_date,
-        model=model,
-        include_anomaly_detection=False,
-        random_state=RANDOM_STATE,
-    )
+    result = execute_configured_pipeline(df)
 
     dates = result["test"]["timestamp"].reset_index(drop=True)
     alerts = result["alerts"].reset_index(drop=True)

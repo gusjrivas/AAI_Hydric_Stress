@@ -71,4 +71,65 @@ describe("ForecastPage", () => {
       expect(screen.getByText(/confirmada/i)).toBeInTheDocument();
     });
   });
+
+  it("shows a recalibrate button only when there is a pending correction, and using it shows the registered version", async () => {
+    vi.spyOn(api, "runForecast").mockResolvedValue({
+      train_rows: 286,
+      test_rows: 1,
+      verdicts: [{ fecha: "2024-10-31", alerta: true, probabilidad: 0.72 }],
+    });
+    vi.spyOn(api, "listFeedback").mockResolvedValue({
+      rows: [
+        {
+          fecha: "2024-10-31",
+          alerta_generada: 1,
+          estado_validacion: "rechazada",
+          etiqueta_corregida: 0,
+          observacion: "test",
+        },
+      ],
+    });
+    vi.spyOn(api, "recalibrate").mockResolvedValue({
+      version: "1",
+      n_correcciones: 1,
+      fechas_corregidas: ["2024-10-31"],
+    });
+
+    render(<ForecastPage />);
+    await userEvent.click(screen.getByRole("button", { name: /correr pronóstico/i }));
+    await waitFor(() => screen.getByRole("button", { name: /recalibrar modelo/i }));
+
+    await userEvent.click(screen.getByRole("button", { name: /recalibrar modelo/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/versión 1/i)).toBeInTheDocument();
+    });
+  });
+
+  it("does not show the recalibrate button when there are no pending corrections", async () => {
+    vi.spyOn(api, "runForecast").mockResolvedValue({
+      train_rows: 286,
+      test_rows: 1,
+      verdicts: [{ fecha: "2024-10-31", alerta: true, probabilidad: 0.72 }],
+    });
+    vi.spyOn(api, "listFeedback").mockResolvedValue({
+      rows: [
+        {
+          fecha: "2024-10-31",
+          alerta_generada: 1,
+          estado_validacion: "pendiente",
+          etiqueta_corregida: null,
+          observacion: null,
+        },
+      ],
+    });
+
+    render(<ForecastPage />);
+    await userEvent.click(screen.getByRole("button", { name: /correr pronóstico/i }));
+    await waitFor(() => screen.getByText("2024-10-31"));
+
+    expect(
+      screen.queryByRole("button", { name: /recalibrar modelo/i }),
+    ).not.toBeInTheDocument();
+  });
 });
