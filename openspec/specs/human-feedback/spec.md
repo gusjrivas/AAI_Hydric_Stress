@@ -101,3 +101,4 @@ Implementado en `src/human_feedback/recalibration.py` (`recalibrate_model`), tes
 - `upsert_feedback_log` conserva la retroalimentación existente por fecha, pero no fusiona valores dentro de una misma fecha si dos ejecuciones distintas generaron alertas contradictorias — asume una única fuente de verdad de alertas por fecha.
 - La verificación de recalibración usa correcciones sintéticas inyectadas, no retroalimentación humana real acumulada en volumen (todavía hay solo 1-2 casos reales) — es una prueba de que el mecanismo funciona, no una validación de que mejora el desempeño real del modelo con retroalimentación genuina.
 - La recalibración no se dispara automáticamente ni se persiste el modelo recalibrado; ambas cosas requieren una interfaz o un flujo de despliegue que todavía no existe (HU6).
+- Expuesto por primera vez a través de una interfaz de usuario en `openspec/specs/alerting-ui/spec.md` (`GET /feedback`, confirmar/rechazar).

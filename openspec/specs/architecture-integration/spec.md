@@ -59,3 +59,4 @@ Implementado y testeado en `tests/test_architecture_integration_functional.py` (
 - No dispara automáticamente la recalibración supervisada de HU5; eso queda como una decisión de ejecución explícita, no parte del contrato entre componentes.
 - Las pruebas funcionales usan datos sintéticos de test, no el dataset real de producción — la verificación con datos reales se hizo vía el script de línea de comandos y quedó documentada con números concretos. (El dataset real de Melchor Romero 2024 sí está versionado en el repositorio desde 2026-08-17, ver ADR-0002.)
 - La ejecución no está programada/automatizada (no hay scheduler); tampoco corre todavía las 4 configuraciones experimentales de la Épica 4 en una sola invocación — eso es alcance de `experiment-runner` (HU7).
+- Expuesto por primera vez a través de una interfaz de usuario en `openspec/specs/alerting-ui/spec.md` (`POST /forecast/run`).

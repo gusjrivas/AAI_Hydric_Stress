@@ -38,3 +38,7 @@ HU1-HU8 dejaron un pipeline completo, probado y ejecutado de punta a punta (inge
 - **Registrar cada corrida de la UI en MLflow**: se descarta por ahora — esta UI es una demo operativa de HU5/HU6, no un experimento de investigación de la Épica 4 (HU7); acoplarla a que Docker Desktop esté levantado no aporta valor a este alcance.
 - **Permitir subir un dataset propio desde la UI**: se descarta para esta iteración; se usa el dataset real ya consolidado y versionado en el repo, evitando la complejidad de validación de esquema de un archivo subido por el usuario.
 - **Nombre de dataset hardcodeado en la ruta**: se descarta explícitamente (aunque sería más simple) porque acoplaría el backend a un dataset fijo justo cuando se sabe que una fuente de datos en vivo (sensores) va a reemplazarlo — se usa una variable de entorno con el dataset actual como valor por defecto.
+
+## Estado: implementado
+
+Ver [`openspec/specs/alerting-ui/spec.md`](../../specs/alerting-ui/spec.md) para los requisitos vigentes y la verificación end-to-end real.
