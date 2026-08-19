@@ -3,6 +3,7 @@ import "./ForecastPage.css";
 import {
   confirmAlert,
   listFeedback,
+  recalibrate,
   rejectAlert,
   runForecast,
 } from "./api";
@@ -12,8 +13,13 @@ export function ForecastPage() {
   const [verdicts, setVerdicts] = useState<Verdict[]>([]);
   const [feedback, setFeedback] = useState<FeedbackRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [recalibrating, setRecalibrating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+
+  const pendingCorrections = feedback.filter(
+    (row) => row.estado_validacion === "rechazada" && row.etiqueta_corregida !== null,
+  ).length;
 
   async function handleRunForecast() {
     setLoading(true);
@@ -43,6 +49,21 @@ export function ForecastPage() {
     setActionMessage(`Guardada la validación del ${fecha} — el modelo no se actualizó.`);
   }
 
+  async function handleRecalibrate() {
+    setRecalibrating(true);
+    setError(null);
+    try {
+      const result = await recalibrate();
+      setActionMessage(
+        `Modelo recalibrado (versión ${result.version}) usando ${result.n_correcciones} corrección(es) — el próximo pronóstico usará este modelo.`,
+      );
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setRecalibrating(false);
+    }
+  }
+
   function stateFor(fecha: string): string {
     return feedback.find((row) => row.fecha === fecha)?.estado_validacion ?? "pendiente";
   }
@@ -54,16 +75,26 @@ export function ForecastPage() {
           <h1 className="fp-title">Pronóstico de estrés hídrico</h1>
           <p className="fp-subtitle">Validación humana de alertas sobre el dataset consolidado</p>
         </div>
-        <button className="fp-run-btn" onClick={handleRunForecast} disabled={loading}>
-          {loading ? "Corriendo..." : "Correr pronóstico"}
-        </button>
+        <div className="fp-header-actions">
+          {pendingCorrections > 0 && (
+            <button
+              className="fp-recalibrate-btn"
+              onClick={handleRecalibrate}
+              disabled={recalibrating}
+            >
+              {recalibrating ? "Recalibrando..." : `Recalibrar modelo (${pendingCorrections})`}
+            </button>
+          )}
+          <button className="fp-run-btn" onClick={handleRunForecast} disabled={loading}>
+            {loading ? "Corriendo..." : "Correr pronóstico"}
+          </button>
+        </div>
       </header>
 
       <div className="fp-banner" role="note">
         <strong>Qué prueba esta pantalla:</strong> confirmar o rechazar guarda tu validación en
-        el registro de retroalimentación. En esta primera iteración{" "}
-        <strong>no se reentrena el modelo automáticamente</strong> — la evidencia se acumula
-        para una futura recalibración.
+        el registro de retroalimentación. Recalibrar reentrena el modelo con las correcciones
+        acumuladas y registra una nueva versión — el próximo pronóstico usará esa versión.
       </div>
 
       {error && <p role="alert" className="fp-error">{error}</p>}

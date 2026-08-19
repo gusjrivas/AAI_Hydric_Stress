@@ -63,3 +63,18 @@ export async function rejectAlert(
   }
   return response.json();
 }
+
+export interface RecalibrationResponse {
+  version: string;
+  n_correcciones: number;
+  fechas_corregidas: string[];
+}
+
+export async function recalibrate(): Promise<RecalibrationResponse> {
+  const response = await fetch(`${API_BASE_URL}/recalibrate`, { method: "POST" });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.detail ?? `Error al recalibrar el modelo: ${response.status}`);
+  }
+  return response.json();
+}
