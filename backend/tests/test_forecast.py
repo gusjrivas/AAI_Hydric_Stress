@@ -25,7 +25,7 @@ def test_run_forecast_returns_verdicts(tmp_path: Path):
 
 def test_run_forecast_returns_404_when_dataset_missing(tmp_path: Path, monkeypatch):
     app.dependency_overrides[get_feedback_data_dir] = lambda: tmp_path
-    monkeypatch.setattr("app.routers.forecast.DATASET_NAME", "esto_no_existe")
+    monkeypatch.setattr("app.pipeline.DATASET_NAME", "esto_no_existe")
     client = TestClient(app)
 
     response = client.post("/forecast/run")
