@@ -47,7 +47,7 @@ jobs:
         run: black --check backend/app
 
       - name: Tests (pytest)
-        run: cd backend && python -m pytest
+        run: cd backend && python -m pytest tests/
 
   frontend-quality:
     runs-on: ubuntu-latest

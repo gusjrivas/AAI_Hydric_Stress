@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from architecture_integration.pipeline import run_end_to_end_pipeline
 from data_ingestion.storage import load_dataset
@@ -29,7 +29,12 @@ router = APIRouter()
 
 @router.post("/forecast/run", response_model=ForecastRunResponse)
 def run_forecast(data_dir: Path = Depends(get_feedback_data_dir)) -> ForecastRunResponse:
-    df = load_dataset(DATASET_NAME)
+    try:
+        df = load_dataset(DATASET_NAME)
+    except FileNotFoundError as error:
+        raise HTTPException(
+            status_code=404, detail=f"No existe el dataset '{DATASET_NAME}'."
+        ) from error
     split_date = df["timestamp"].sort_values().iloc[int(len(df) * 0.8)].date()
 
     model = build_candidate_models(random_state=RANDOM_STATE)["random_forest"]
