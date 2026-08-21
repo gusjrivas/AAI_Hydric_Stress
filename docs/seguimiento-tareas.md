@@ -148,7 +148,7 @@ HU7 se dividió en tres *changes* de OpenSpec independientes (diseño experiment
 
 ## HU8 — Análisis de resultados y contrastación de la hipótesis
 
-HU8 no tiene capacidad de código (igual que HU1) — se dividió en dos sub-proyectos documentales: análisis de resultados y redacción final. Los dos ya están implementados.
+HU8 no tiene capacidad de código (igual que HU1) — se dividió en tres sub-proyectos documentales: análisis de resultados, redacción de resultados/discusión/conclusiones, y la memoria técnica final. Los primeros dos ya están implementados; la memoria técnica final todavía no se redactó.
 
 | Tarea | Estado | Evidencia / motivo |
 |---|---|---|
@@ -167,8 +167,9 @@ HU8 no tiene capacidad de código (igual que HU1) — se dividió en dos sub-pro
 | Redactar la sección de resultados experimentales | ✅ | Sección 1. |
 | Redactar la discusión y las conclusiones | ✅ | Sección 4, con 5 recomendaciones concretas para trabajo futuro ordenadas por impacto esperado. |
 | Consolidar tablas, figuras, referencias y evidencias | ✅ | Sección 5: tabla de fuentes de evidencia primaria con referencia a cada spec/documento verificado. |
+| Redactar la memoria técnica final (documento de tesis) | ⬜ | No iniciada. `docs/research/hu8-analisis-resultados.md` y `hu8-resultados-discusion-conclusiones.md` son insumos verificados para esta redacción, no la memoria en sí — no existe todavía un documento consolidado de tesis en el repo. |
 
-**Balance HU8:** de 15 tareas, 15 completas, 0 parciales, 0 no iniciadas. HU8 completa.
+**Balance HU8:** de 16 tareas, 15 completas, 0 parciales, 1 no iniciada (la memoria técnica final). HU8 parcial.
 
 ## Interfaz de usuario (alerting-ui, HU5+HU6)
 
@@ -216,6 +217,6 @@ Tampoco corresponde a una tarea del backlog de tesis (HU1-HU8): es infraestructu
 
 ## Conclusión
 
-**Actualización (2026-08-21):** esta conclusión quedó desactualizada — fue escrita cuando solo HU1/HU2 tenían avance real y describía correctamente ese momento del proyecto. El estado actual, según las secciones de arriba: HU3, HU4, HU5, HU6, HU7 y HU8 están **✅ completas**; HU1 y HU2 siguen **🟡 parciales** (falta protocolo sistemático de búsqueda y una fuente de datos adicional, respectivamente). Además, `backend/`+`frontend/` (alerting-ui) exponen HU5+HU6 a través de una interfaz de usuario real, con recalibración manual disparada desde la UI. Ver el resumen equivalente en [`README.md`](../README.md#estado-del-proyecto).
+**Actualización (2026-08-21):** esta conclusión quedó desactualizada — fue escrita cuando solo HU1/HU2 tenían avance real y describía correctamente ese momento del proyecto. El estado actual, según las secciones de arriba: HU3, HU4, HU5, HU6 y HU7 están **✅ completas**; HU8 está **🟡 parcial** (falta la redacción de la memoria técnica final, ver su sección); HU1 y HU2 siguen **🟡 parciales** (falta protocolo sistemático de búsqueda y una fuente de datos adicional, respectivamente). Además, `backend/`+`frontend/` (alerting-ui) exponen HU5+HU6 a través de una interfaz de usuario real, con recalibración manual disparada desde la UI. Ver el resumen equivalente en [`README.md`](../README.md#estado-del-proyecto).
 
 **Riesgo identificado (histórico, sigue vigente como práctica):** cada PR debe indicar explícitamente a qué tarea(s) de la sección 9 del plan corresponde y si la deja completa o parcial, para que este documento se mantenga preciso sin tener que re-auditar todo el historial cada vez.
