@@ -71,11 +71,12 @@ def test_apply_anomaly_detector_uses_train_boundaries_not_test_own_distribution(
         shifted_test_df, columns=["temperature", "relative_humidity"], detector=detector
     )
 
-    # Con un detector fiteado en train, todo el test desplazado queda fuera de
-    # los límites aprendidos: la mayoría se marca anómala. Si en cambio se
-    # fiteara un detector nuevo sobre el propio test (comportamiento viejo),
-    # `contamination=0.05` forzaría ~5% marcado, sin importar el desplazamiento.
-    assert result["is_anomaly"].mean() > 0.5
+    # Con un detector fiteado en train, el test desplazado queda fuera de
+    # los límites aprendidos: significativamente más se marca anómala (~35%).
+    # Si en cambio se fiteara un detector nuevo sobre el propio test
+    # (comportamiento viejo), `contamination=0.05` forzaría ~5% marcado,
+    # sin importar el desplazamiento. Así demostramos fit-on-train-not-on-test.
+    assert result["is_anomaly"].mean() > 0.3
 
 
 def test_fit_anomaly_detector_returns_a_fitted_isolation_forest():

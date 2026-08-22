@@ -15,7 +15,7 @@ from sklearn.ensemble import IsolationForest
 def fit_anomaly_detector(
     df: pd.DataFrame,
     columns: list[str],
-    contamination: float = 0.1,
+    contamination: float = 0.05,
     random_state: int = 42,
 ) -> IsolationForest:
     """Ajusta un Isolation Forest sobre `columns` de `df` y lo devuelve
@@ -46,7 +46,7 @@ def apply_anomaly_detector(
 def detect_anomalies(
     df: pd.DataFrame,
     columns: list[str],
-    contamination: float = 0.1,
+    contamination: float = 0.05,
     random_state: int = 42,
 ) -> pd.DataFrame:
     """Ajusta un Isolation Forest sobre `columns` y devuelve una copia de
