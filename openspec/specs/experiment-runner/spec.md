@@ -78,16 +78,16 @@ El sistema DEBE poder ejecutar las 4 configuraciones experimentales (base, +sint
 - **WHEN** se ejecutan las 4 configuraciones experimentales con sus 5 semillas
 - **THEN** el servidor MLflow tiene 4 runs padre distintos, cada uno con 5 runs hijos anidados
 
-Ejecutado y registrado contra el servidor real (`http://localhost:5000`, Postgres + MinIO). Resultado real (dataset Melchor Romero 2024, modelo Random Forest, 5 semillas):
+Ejecutado y registrado contra el servidor real (`http://localhost:5000`, Postgres + MinIO). Resultado real (dataset Melchor Romero 2024, modelo Random Forest, 5 semillas — `+Anomalías`/`Completa` usaron semillas `[0, 1, 2, 3, 4]`; la lista exacta de semillas de la ejecución original de `Base`/`+Sintéticos` no quedó registrada en el repositorio, ver `docs/research/hu8-analisis-resultados.md`):
 
 | Configuración | F1 (media ± desvío) | ROC-AUC (media ± desvío) | Precisión (media) | Recall (media) |
 |---|---|---|---|---|
 | Base | 0.4585 ± 0.0423 | 0.5551 ± 0.0191 | 0.5967 | 0.3730 |
 | +Sintéticos | 0.3123 ± 0.0862 | 0.5083 ± 0.0439 | 0.5091 | 0.2324 |
-| +Anomalías | 0.4585 ± 0.0423 | 0.5551 ± 0.0191 | 0.5967 | 0.3730 |
-| Completa | 0.3123 ± 0.0862 | 0.5083 ± 0.0439 | 0.5091 | 0.2324 |
+| +Anomalías | 0.4625 ± 0.0414 | 0.5881 ± 0.0309 | 0.6097 | 0.3730 |
+| Completa | 0.3733 ± 0.1065 | 0.5297 ± 0.0629 | 0.5286 | 0.2973 |
 
-**Hallazgo importante**: `+Anomalías` produce métricas *idénticas* a `Base`, y `Completa` idénticas a `+Sintéticos`. La causa es que `is_anomaly` (la columna que agrega la detección de anomalías) nunca se incluye entre las variables predictoras (`feature_columns`) que recibe el modelo en `run_end_to_end_pipeline` — la detección de anomalías corre y marca filas, pero esa marca no llega a influir la predicción. Con el pipeline actual, el factor "detección de anomalías" no tiene ningún efecto medible en el desempeño del modelo. Además, el aumento sintético empeora el desempeño frente a la configuración base (F1 0.312 vs. 0.459) en este dataset.
+**Hallazgo actualizado** (tras `openspec/changes/fix-anomaly-feature-integration/`): con `is_anomaly` ya incluida entre las variables predictoras, `+Anomalías` deja de ser idéntica a `Base` y `Completa` deja de ser idéntica a `+Sintéticos`. El efecto medido es positivo y modesto: frente a `Base`, `+Anomalías` mejora el ROC-AUC (0.5551 → 0.5881, fuera de una desviación estándar de `Base`) y la precisión (0.5967 → 0.6097), con un F1 prácticamente igual (0.4585 → 0.4625, dentro del ruido entre semillas) y un recall medio que coincide con el de `Base` a cuatro decimales (0.3730) — coincidencia de redondeo entre semillas individualmente distintas, no la identidad total en las 4 métricas que caracterizaba el defecto ya corregido. Frente a `+Sintéticos`, `Completa` mejora los cuatro indicadores (F1 0.3123 → 0.3733, ROC-AUC 0.5083 → 0.5297, precisión 0.5091 → 0.5286, recall 0.2324 → 0.2973). En ninguna de las dos comparaciones un indicador empeora. El aumento sintético por sí solo (`+Sintéticos` vs. `Base`) sigue empeorando el desempeño en este dataset (F1 0.312 vs. 0.459); ese hallazgo no cambia con este *change*, que solo corrige la integración de `is_anomaly`.
 
 ### Requirement: Reproducibilidad verificada entre corridas
 
@@ -127,7 +127,7 @@ Implementado en `src/experiment_runner/scenarios.py` (`inject_gaussian_noise`), 
 
 ## Limitaciones conocidas
 
-- **La detección de anomalías no afecta actualmente el desempeño del modelo**: `is_anomaly` no se incluye entre las variables predictoras en `run_end_to_end_pipeline` (HU6). Para que el factor "detección de anomalías" sea comparable de verdad, esto debería resolverse (ej. incluyendo `is_anomaly` como variable predictora, o filtrando filas anómalas del entrenamiento en vez de solo marcarlas) — se documenta como hallazgo para el análisis de HU8, no se corrige en este *change* para no alterar retroactivamente los resultados ya registrados.
+- ~~La detección de anomalías no afecta actualmente el desempeño del modelo...~~ **Actualización (2026-08-21):** resuelto en `openspec/changes/fix-anomaly-feature-integration/`. `is_anomaly` ahora es una variable predictora real (detector ajustado solo sobre `train`, aplicado sin reajustar sobre `test`); ver la tabla de resultados actualizada arriba.
 - El aumento sintético sobre variables ya construidas empeoró el desempeño frente a la configuración base en este dataset — consistente con la limitación ya documentada de que el muestreo por normal multivariada no captura relaciones no lineales ni la estructura temporal real de las variables de retardo/ventana móvil.
 - El aumento sintético es estadísticamente equivalente al de HU3 (normal multivariada); no fue validado con similitud estadística/utilidad predictiva formal como se hizo en HU3 para los datos sintéticos crudos.
 - El escenario de ruido (`inject_gaussian_noise`) es una aproximación deliberadamente simple, no calibrada contra ninguna caracterización real de ruido de sensor — se eligió `noise_std_ratio=0.3` como un valor razonable de ejemplo, no como un valor validado empíricamente.

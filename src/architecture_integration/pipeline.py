@@ -20,7 +20,7 @@ import pandas as pd
 from sklearn.base import clone
 
 from data_ingestion.schema import TIMESTAMP_COLUMN
-from data_quality.anomaly_detection import detect_anomalies
+from data_quality.anomaly_detection import apply_anomaly_detector, fit_anomaly_detector
 from data_quality.imputation import interpolate_missing
 from data_quality.quality_report import quality_report
 from data_quality.splitting import temporal_train_test_split
@@ -49,8 +49,10 @@ def run_end_to_end_pipeline(
     """Ejecuta el flujo completo sobre `df`: imputación, etiquetado,
     variables predictoras, partición temporal, detección de anomalías
     opcional, entrenamiento del modelo, alertas, y registro de
-    retroalimentación inicializado. Si `skip_fit` es `True`, usa `model`
-    tal cual, ya entrenado, sin reentrenar.
+    retroalimentación inicializado. Si `include_anomaly_detection` es `True`,
+    el detector se ajusta solo sobre el conjunto de entrenamiento y
+    `is_anomaly` se agrega como variable predictora. Si `skip_fit` es `True`,
+    usa `model` tal cual, ya entrenado, sin reentrenar.
     """
     lags = lags if lags is not None else [1, 2, 3]
     rolling_windows = rolling_windows if rolling_windows is not None else [3, 7]
@@ -70,12 +72,12 @@ def run_end_to_end_pipeline(
     train, test = temporal_train_test_split(featured, split_date=split_date)
 
     if include_anomaly_detection:
-        train = detect_anomalies(
+        detector = fit_anomaly_detector(
             train, columns=feature_columns, contamination=contamination, random_state=random_state
         )
-        test = detect_anomalies(
-            test, columns=feature_columns, contamination=contamination, random_state=random_state
-        )
+        train = apply_anomaly_detector(train, columns=feature_columns, detector=detector)
+        test = apply_anomaly_detector(test, columns=feature_columns, detector=detector)
+        feature_cols = feature_cols + ["is_anomaly"]
 
     X_train, y_train = train[feature_cols], train["stress_label"]
     X_test = test[feature_cols]

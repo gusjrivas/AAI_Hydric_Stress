@@ -35,3 +35,20 @@ def test_add_synthetic_rows_marks_provenance_and_keeps_binary_label():
     assert len(synthetic_rows) == 20
     assert set(synthetic_rows["stress_label"].unique()) <= {0, 1}
     assert not synthetic_rows[["feature_a_lag1", "feature_b_roll_mean3"]].isna().any().any()
+
+
+def test_add_synthetic_rows_rounds_boolean_feature_columns_to_zero_or_one():
+    train_df = _feature_engineered_train_df()
+    train_df["is_anomaly"] = False
+    train_df.loc[:5, "is_anomaly"] = True
+
+    augmented = add_synthetic_rows(
+        train_df,
+        feature_columns=["feature_a_lag1", "feature_b_roll_mean3", "is_anomaly"],
+        target_column="stress_label",
+        n_samples=20,
+        random_state=42,
+    )
+
+    synthetic_rows = augmented[augmented["origen"] == "sintetico"]
+    assert set(synthetic_rows["is_anomaly"].unique()) <= {0, 1}

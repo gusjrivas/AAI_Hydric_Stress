@@ -26,7 +26,7 @@ El sistema DEBE calcular las variables de retardo y ventana móvil sobre la seri
 
 Implementado en `src/architecture_integration/pipeline.py` (`run_end_to_end_pipeline`), testeado en `tests/test_architecture_integration_pipeline.py`. Encadena: `data_quality.imputation.interpolate_missing` → `predictive_modeling.labeling.add_stress_label` + `feature_engineering` (sobre la serie completa) → `data_quality.splitting.temporal_train_test_split` → `data_quality.anomaly_detection.detect_anomalies` (opcional, después de partir) → entrenamiento del modelo candidato → `predictive_modeling.alerts.generate_alerts` → `human_feedback.schema.init_feedback_log`.
 
-Verificado sobre el dataset real (Melchor Romero 2024, modelo Random Forest, umbral 0.5, corte 2024-10-19): 286 filas de entrenamiento, 71 de test, 0 valores NaN en las variables predictoras del conjunto de test, 22 alertas generadas, registro de retroalimentación inicializado con 71 filas en estado `pendiente`, 15 filas marcadas `is_anomaly` en el conjunto de entrenamiento.
+Verificado sobre el dataset real (Melchor Romero 2024, modelo Random Forest, umbral 0.5, corte 2024-10-19): 286 filas de entrenamiento, 71 de test, 0 valores NaN en las variables predictoras del conjunto de test, 22 alertas generadas, registro de retroalimentación inicializado con 71 filas en estado `pendiente`, 15 filas marcadas `is_anomaly` en el conjunto de entrenamiento. Desde `openspec/changes/fix-anomaly-feature-integration/`, esa columna `is_anomaly` también forma parte de las variables predictoras que recibe el modelo cuando la detección de anomalías está habilitada.
 
 ### Requirement: Ejecución configurable del orquestador desde línea de comandos
 
@@ -60,3 +60,27 @@ Implementado y testeado en `tests/test_architecture_integration_functional.py` (
 - Las pruebas funcionales usan datos sintéticos de test, no el dataset real de producción — la verificación con datos reales se hizo vía el script de línea de comandos y quedó documentada con números concretos. (El dataset real de Melchor Romero 2024 sí está versionado en el repositorio desde 2026-08-17, ver ADR-0002.)
 - La ejecución no está programada/automatizada (no hay scheduler); tampoco corre todavía las 4 configuraciones experimentales de la Épica 4 en una sola invocación — eso es alcance de `experiment-runner` (HU7).
 - Expuesto por primera vez a través de una interfaz de usuario en `openspec/specs/alerting-ui/spec.md` (`POST /forecast/run`).
+
+### Requirement: Uso de `is_anomaly` como variable predictora cuando la detección de anomalías está habilitada
+
+El sistema DEBE, cuando `include_anomaly_detection=True`, incluir la marca de anomalía (`is_anomaly`) entre las variables predictoras que recibe el modelo, ajustando el detector de anomalías solo sobre el conjunto de entrenamiento y aplicándolo (sin reajustar) al conjunto de evaluación.
+
+#### Scenario: `is_anomaly` llega al modelo cuando la detección está habilitada
+
+- **GIVEN** un dataset y `include_anomaly_detection=True`
+- **WHEN** se ejecuta `run_end_to_end_pipeline`
+- **THEN** `"is_anomaly"` está presente en `feature_columns`, y el modelo se entrena y predice usando esa columna
+
+#### Scenario: El detector de anomalías no se reajusta sobre el conjunto de evaluación
+
+- **GIVEN** un dataset y `include_anomaly_detection=True`
+- **WHEN** se ejecuta `run_end_to_end_pipeline`
+- **THEN** el detector de anomalías se ajusta únicamente sobre `train`, y se usa ese mismo detector (sin reajustar) para marcar `test`
+
+#### Scenario: Sin detección de anomalías, el comportamiento no cambia
+
+- **GIVEN** un dataset y `include_anomaly_detection=False`
+- **WHEN** se ejecuta `run_end_to_end_pipeline`
+- **THEN** `"is_anomaly"` no aparece en `feature_columns`, igual que antes de este *change*
+
+Implementado en `src/architecture_integration/pipeline.py` (`run_end_to_end_pipeline`) y `src/data_quality/anomaly_detection.py` (`fit_anomaly_detector`/`apply_anomaly_detector`). Testeado en `tests/test_architecture_integration_pipeline.py` y `tests/test_anomaly_detection.py`. Verificado sobre el dataset real: ver `openspec/specs/experiment-runner/spec.md` para el efecto medido sobre las métricas de `+anomálias`/`completa`.

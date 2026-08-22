@@ -2,7 +2,12 @@ import numpy as np
 import pandas as pd
 
 from data_ingestion.schema import normalize_to_schema
-from data_quality.anomaly_detection import detect_anomalies, evaluate_with_injected_anomalies
+from data_quality.anomaly_detection import (
+    apply_anomaly_detector,
+    detect_anomalies,
+    evaluate_with_injected_anomalies,
+    fit_anomaly_detector,
+)
 
 
 def _stable_series_df(n=60, seed=0):
@@ -53,3 +58,32 @@ def test_evaluate_with_injected_anomalies_reports_detection_rate():
 
     assert 0.0 <= detection_rate <= 1.0
     assert detection_rate > 0.5  # anomalías extremas inyectadas deberían detectarse en su mayoría
+
+
+def test_apply_anomaly_detector_uses_train_boundaries_not_test_own_distribution():
+    train_df = _stable_series_df(n=60, seed=0)
+    detector = fit_anomaly_detector(train_df, columns=["temperature", "relative_humidity"])
+
+    shifted_test_df = _stable_series_df(n=20, seed=1).copy()
+    shifted_test_df["temperature"] = shifted_test_df["temperature"] + 100.0
+
+    result = apply_anomaly_detector(
+        shifted_test_df, columns=["temperature", "relative_humidity"], detector=detector
+    )
+
+    # Con un detector fiteado en train, el test desplazado queda fuera de
+    # los límites aprendidos: significativamente más se marca anómala (~35%).
+    # Si en cambio se fiteara un detector nuevo sobre el propio test
+    # (comportamiento viejo), `contamination=0.05` forzaría ~5% marcado,
+    # sin importar el desplazamiento. Así demostramos fit-on-train-not-on-test.
+    assert result["is_anomaly"].mean() > 0.3
+
+
+def test_fit_anomaly_detector_returns_a_fitted_isolation_forest():
+    train_df = _stable_series_df(n=60, seed=0)
+
+    detector = fit_anomaly_detector(train_df, columns=["temperature", "relative_humidity"])
+
+    assert hasattr(detector, "predict")
+    predictions = detector.predict(train_df[["temperature", "relative_humidity"]])
+    assert set(predictions) <= {-1, 1}
