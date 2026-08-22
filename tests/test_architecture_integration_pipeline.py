@@ -113,3 +113,36 @@ def test_run_end_to_end_pipeline_excludes_is_anomaly_when_disabled():
     )
 
     assert "is_anomaly" not in result["feature_columns"]
+
+
+def test_run_end_to_end_pipeline_selects_a_model_automatically_when_none_given():
+    df = _synthetic_dataset(n=150, seed=2)
+
+    result = run_end_to_end_pipeline(
+        df,
+        label_column="soil_moisture",
+        feature_columns=["soil_moisture", "solar_radiation"],
+        split_date=df["timestamp"].iloc[110].date(),
+        model=None,
+        include_anomaly_detection=False,
+    )
+
+    assert result["model_name"] in {"logistic_regression", "random_forest"}
+    assert hasattr(result["model"], "predict_proba")
+    assert len(result["y_proba"]) == len(result["test"])
+
+
+def test_run_end_to_end_pipeline_leaves_model_name_none_when_model_is_given():
+    df = _synthetic_dataset()
+    model = build_candidate_models(random_state=0)["logistic_regression"]
+
+    result = run_end_to_end_pipeline(
+        df,
+        label_column="soil_moisture",
+        feature_columns=["soil_moisture", "solar_radiation"],
+        split_date=df["timestamp"].iloc[45].date(),
+        model=model,
+        include_anomaly_detection=False,
+    )
+
+    assert result["model_name"] is None
