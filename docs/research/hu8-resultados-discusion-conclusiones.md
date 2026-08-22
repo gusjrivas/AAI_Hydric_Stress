@@ -53,7 +53,7 @@ En síntesis: de los cuatro componentes que la hipótesis combina, uno (modelado
 **Amenazas a la validez externa** (¿generalizan los resultados más allá de este experimento?):
 
 - Un único punto geográfico (Melchor Romero, Partido de La Plata) y un único año calendario (2024). No hay evidencia de que los resultados se repitan en otro sitio, cultivo o período.
-- El dataset consolidado tiene 357 filas tras limpieza — pequeño para un modelo de ensamble como Random Forest; el desvío estándar entre semillas (0.042-0.086 en F1) ya sugiere sensibilidad del resultado al tamaño de muestra.
+- El dataset consolidado tiene 357 filas tras limpieza — pequeño para un modelo de ensamble como Random Forest; el desvío estándar entre semillas (0.041-0.107 en F1, más alto en las configuraciones con datos sintéticos) ya sugiere sensibilidad del resultado al tamaño de muestra.
 - El escenario de ruido usa un valor de ejemplo (`noise_std_ratio=0.3`) no calibrado contra ninguna fuente real de ruido de sensor — no hay una caracterización real de ese ruido más allá de los gaps ya documentados en ESA CCI Soil Moisture (HU2). El resultado (ruido perjudica el desempeño) es cualitativamente esperable, pero la magnitud reportada no es representativa de un nivel de ruido real medido.
 - El escenario de escasez solo probó una fracción (50%) y una única forma de recorte (las fechas más recientes del período de entrenamiento); no se puede generalizar a otras fracciones u otras formas de subselección (ej. muestreo aleatorio) sin repetir la medición.
 - La retroalimentación humana real acumulada durante el desarrollo (1-2 casos) es demasiado pequeña para generalizar cualquier conclusión sobre su efecto en producción.
