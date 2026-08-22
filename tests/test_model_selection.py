@@ -35,9 +35,7 @@ def test_select_best_candidate_picks_the_higher_cv_mean_score():
     }
     param_grids = {"bad": {}, "good": {"n_estimators": [50]}}
 
-    result = select_best_candidate(
-        X, y, candidates=candidates, param_grids=param_grids, n_splits=4
-    )
+    result = select_best_candidate(X, y, candidates=candidates, param_grids=param_grids, n_splits=4)
 
     assert result["model_name"] == "good"
 
@@ -51,8 +49,6 @@ def test_select_best_candidate_breaks_ties_in_favor_of_random_forest():
     }
     param_grids = {"logistic_regression": {}, "random_forest": {}}
 
-    result = select_best_candidate(
-        X, y, candidates=candidates, param_grids=param_grids, n_splits=4
-    )
+    result = select_best_candidate(X, y, candidates=candidates, param_grids=param_grids, n_splits=4)
 
     assert result["model_name"] == "random_forest"
