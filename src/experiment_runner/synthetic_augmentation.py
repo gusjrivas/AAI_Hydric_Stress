@@ -26,16 +26,19 @@ def add_synthetic_rows(
     multivariada ajustada a `feature_columns` + `target_column` de
     `train_df`, redondea y recorta la variable objetivo a {0, 1}, marca
     las filas nuevas con `origen="sintetico"`, y las concatena a
-    `train_df`.
+    `train_df`. Cualquier columna booleana entre `feature_columns` (ej. `is_anomaly`) también se redondea y recorta a `{0, 1}`.
     """
     rng = np.random.default_rng(random_state)
     columns = feature_columns + [target_column]
+    boolean_columns = [c for c in columns if train_df[c].dtype == bool]
 
     mean = train_df[columns].mean().to_numpy()
     covariance = train_df[columns].cov().to_numpy()
 
     samples = rng.multivariate_normal(mean, covariance, size=n_samples)
     synthetic = pd.DataFrame(samples, columns=columns)
+    for column in boolean_columns:
+        synthetic[column] = synthetic[column].round().clip(0, 1).astype(int)
     synthetic[target_column] = synthetic[target_column].round().clip(0, 1).astype(int)
     synthetic["origen"] = "sintetico"
 
