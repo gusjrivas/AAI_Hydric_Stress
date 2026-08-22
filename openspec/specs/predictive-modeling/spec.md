@@ -84,6 +84,24 @@ El sistema DEBE poder ajustar los hiperparámetros de un modelo candidato usando
 
 Implementado en `src/predictive_modeling/training.py` (`tune_hyperparameters`, con `sklearn.model_selection.TimeSeriesSplit` + `GridSearchCV`), testeado en `tests/test_training.py`. Verificado sobre el dataset real (5 folds, conjunto de entrenamiento de 285 filas): mejores parámetros `C=0.1` (regresión logística) y `max_depth=5, n_estimators=100` (Random Forest).
 
+### Requirement: Selección automática del mejor modelo candidato
+
+El sistema DEBE poder elegir automáticamente, entre un conjunto de modelos candidatos, el de mejor desempeño de validación cruzada temporal, y devolver ese modelo ya ajustado junto con su nombre y su puntaje de validación.
+
+#### Scenario: Selección entre candidatos con desempeño distinto
+
+- **GIVEN** un conjunto de entrenamiento y un conjunto de modelos candidatos con sus grillas de hiperparámetros
+- **WHEN** se ejecuta la selección automática
+- **THEN** se devuelve el modelo candidato con mayor `cv_mean_score` (F1 medio entre folds de `TimeSeriesSplit`), ya ajustado sobre el conjunto de entrenamiento completo, junto con su nombre y su `cv_mean_score`/`cv_std_score`
+
+#### Scenario: Selección usa los candidatos y grillas por defecto si no se especifican otros
+
+- **GIVEN** solo un conjunto de entrenamiento, sin candidatos ni grillas explícitos
+- **WHEN** se ejecuta la selección automática
+- **THEN** se usan `build_candidate_models` y `DEFAULT_HYPERPARAMETER_GRIDS` (los mismos ya existentes de HU4) como candidatos y grillas por defecto
+
+Implementado en `src/predictive_modeling/model_selection.py` (`select_best_candidate`), testeado en `tests/test_model_selection.py`. Verificado sobre el dataset real (Melchor Romero 2024): `logistic_regression` y `random_forest` empataron en `cv_mean_score=0.0` para ambos (mismo fenómeno de folds sin ejemplos de la clase de estrés que afecta a `tune_hyperparameters` con este tamaño de muestra, ver "Limitaciones conocidas" más abajo). El desempate original (`max` sobre el diccionario de resultados) quedaba en `logistic_regression` por orden de inserción, sustituyendo silenciosamente al Random Forest fijo que se usaba antes de este *change*; se endureció para preferir `random_forest` en caso de empate, y con ese fix `select_best_candidate`/`run_end_to_end_pipeline(model=None)` eligen `random_forest` sobre este dataset. Ver `openspec/specs/alerting-ui/spec.md`.
+
 ### Requirement: Comparación de desempeño, estabilidad y complejidad
 
 El sistema DEBE poder comparar el modelo de referencia y los modelos candidatos entrenados, reportando para cada uno: métricas de desempeño de la clase de estrés (precisión, recall, F1, ROC-AUC), estabilidad (desvío de la métrica entre folds de validación cruzada) y un indicador de complejidad del modelo.

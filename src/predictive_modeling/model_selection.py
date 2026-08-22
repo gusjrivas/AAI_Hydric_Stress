@@ -37,7 +37,10 @@ def select_best_candidate(
             model, param_grids[name], X_train, y_train, n_splits=n_splits, scoring=scoring
         )
 
-    best_name = max(results, key=lambda name: results[name]["cv_mean_score"])
+    best_name = max(
+        results,
+        key=lambda name: (results[name]["cv_mean_score"], name == "random_forest"),
+    )
     best = results[best_name]
 
     return {

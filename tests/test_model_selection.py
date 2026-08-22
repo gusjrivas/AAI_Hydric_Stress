@@ -40,3 +40,19 @@ def test_select_best_candidate_picks_the_higher_cv_mean_score():
     )
 
     assert result["model_name"] == "good"
+
+
+def test_select_best_candidate_breaks_ties_in_favor_of_random_forest():
+    X, y = _separable_dataset(n=150, seed=2)
+
+    candidates = {
+        "logistic_regression": DummyClassifier(strategy="constant", constant=0),
+        "random_forest": DummyClassifier(strategy="constant", constant=0),
+    }
+    param_grids = {"logistic_regression": {}, "random_forest": {}}
+
+    result = select_best_candidate(
+        X, y, candidates=candidates, param_grids=param_grids, n_splits=4
+    )
+
+    assert result["model_name"] == "random_forest"
