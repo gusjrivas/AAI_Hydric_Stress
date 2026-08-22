@@ -80,3 +80,36 @@ def test_run_end_to_end_pipeline_with_skip_fit_true_does_not_refit_the_model():
 
     assert len(result["y_proba"]) == len(result["test"])
     assert all(p == 0.7 for p in result["y_proba"])
+
+
+def test_run_end_to_end_pipeline_includes_is_anomaly_as_a_feature_when_enabled():
+    df = _synthetic_dataset()
+    model = build_candidate_models(random_state=0)["logistic_regression"]
+
+    result = run_end_to_end_pipeline(
+        df,
+        label_column="soil_moisture",
+        feature_columns=["soil_moisture", "solar_radiation"],
+        split_date=df["timestamp"].iloc[45].date(),
+        model=model,
+        include_anomaly_detection=True,
+    )
+
+    assert "is_anomaly" in result["feature_columns"]
+    assert "is_anomaly" in result["train"].columns
+
+
+def test_run_end_to_end_pipeline_excludes_is_anomaly_when_disabled():
+    df = _synthetic_dataset()
+    model = build_candidate_models(random_state=0)["logistic_regression"]
+
+    result = run_end_to_end_pipeline(
+        df,
+        label_column="soil_moisture",
+        feature_columns=["soil_moisture", "solar_radiation"],
+        split_date=df["timestamp"].iloc[45].date(),
+        model=model,
+        include_anomaly_detection=False,
+    )
+
+    assert "is_anomaly" not in result["feature_columns"]
