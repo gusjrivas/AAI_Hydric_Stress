@@ -1,0 +1,30 @@
+# Change: Add automatic model selection engine
+
+## Trazabilidad
+
+- **Épica:** 2. Núcleo de IA (nueva capacidad de `predictive-modeling`) + 3. Integración y mejora (integración en `architecture-integration`, cierre de una limitación de `alerting-ui`).
+- **Historia de usuario:** HU4 (`predictive-modeling`, agrega el motor de selección) + HU6 (`architecture-integration`, lo usa cuando no se especifica un modelo fijo). Cierra la limitación documentada en `openspec/changes/add-alerting-ui/proposal.md` ("Fuera de alcance": "el motor de selección/ensamble entre varios modelos queda para una iteración futura") y en `openspec/specs/alerting-ui/spec.md` ("Limitaciones conocidas": "Un único modelo fijo (Random Forest, configuración base) genera el veredicto").
+- **Fase de CRISP-DM:** Modelado.
+- **Insumo de diseño:** `openspec/specs/predictive-modeling/spec.md` (`build_candidate_models`, `tune_hyperparameters`, `DEFAULT_HYPERPARAMETER_GRIDS`, ya implementados en HU4 pero nunca consumidos en producción), `openspec/specs/architecture-integration/spec.md` (`run_end_to_end_pipeline`).
+
+## Why
+
+`run_end_to_end_pipeline` siempre entrena el modelo exacto que se le pasa por parámetro; en producción (`backend/app/pipeline.py`), ese modelo es un Random Forest con configuración fija, elegido a mano, salvo que exista un modelo recalibrado registrado en MLflow (ADR-0006). HU4 ya construyó la maquinaria para comparar modelos candidatos con validación temporal (`tune_hyperparameters`, `TimeSeriesSplit` + `GridSearchCV`) pero nunca la conectó a ningún flujo real — queda como funciones sueltas, testeadas de forma aislada, sin ningún llamador en `src/` fuera de sus propios tests. Este *change* cierra esa brecha: cuando no se fija un modelo explícito, el pipeline elige automáticamente el mejor candidato por validación cruzada, en vez de asumir Random Forest por default.
+
+## What Changes
+
+- **`src/predictive_modeling/model_selection.py`** (nuevo): `select_best_candidate(X_train, y_train, candidates=None, param_grids=None, n_splits=5, scoring="f1", random_state=42) -> dict`. Por defecto usa `build_candidate_models(random_state)` como candidatos y `DEFAULT_HYPERPARAMETER_GRIDS` como grillas (ambos ya existentes, sin modificar). Llama a `tune_hyperparameters` (ya existente, sin modificar) una vez por candidato, y devuelve el de mayor `cv_mean_score` (F1 medio de `TimeSeriesSplit`): `{"model": <estimador ya ajustado>, "model_name": str, "cv_mean_score": float, "cv_std_score": float}`.
+- **`src/architecture_integration/pipeline.py`**: `run_end_to_end_pipeline` cambia la firma de `model: object` a `model: object | None = None`. Si se pasa un modelo explícito, comportamiento idéntico al actual (100% retrocompatible: `skip_fit`, la recalibración, y todos los tests/llamadores existentes no cambian). Si `model` es `None`, usa `select_best_candidate` sobre el `X_train`/`y_train` ya construidos (con `is_anomaly` incluido si `include_anomaly_detection=True`, ver `openspec/changes/fix-anomaly-feature-integration/`) en vez de asumir un modelo fijo, y agrega `"model_name"` al diccionario de resultado.
+- **`backend/app/pipeline.py`**: cuando no hay modelo recalibrado registrado, `execute_configured_pipeline` deja de construir `random_forest` a mano y llama a `run_end_to_end_pipeline(..., model=None)` para que el motor elija. Cuando sí hay modelo recalibrado, sigue igual (`skip_fit=True`, sin pasar por selección). La respuesta de `POST /forecast/run` no cambia — sigue sin exponer qué modelo generó el pronóstico (`openspec/specs/alerting-ui/spec.md`, requirement "Ejecución de pronóstico desde la interfaz").
+
+## Impact
+
+- **Specs afectadas:** `predictive-modeling` (nuevo requirement, ver `specs/predictive-modeling/spec.md` de este *change*), `architecture-integration` (nuevo requirement, ver `specs/architecture-integration/spec.md` de este *change*), `alerting-ui` (resuelve la limitación conocida "Un único modelo fijo...", sin nuevo requirement propio — el pronóstico sigue sin exponer el modelo).
+- **Código afectado:** `src/predictive_modeling/model_selection.py` (nuevo), `src/architecture_integration/pipeline.py`, `backend/app/pipeline.py`, y sus tests.
+- **Fuera de alcance de este change:** `experiment_runner.runner.run_configuration` sigue recibiendo `model_name` fijo — no se modifica, para no alterar retroactivamente los resultados ya registrados de HU7/HU8; ensamble real (voting/stacking) entre candidatos, descartado en el brainstorming (ver Alternativas); recalibración de un modelo *seleccionado automáticamente* con un nombre de candidato específico — la recalibración sigue operando sobre "el modelo que haya generado el último pronóstico", sin distinguir cuál candidato ganó esa vez.
+
+## Alternativas consideradas
+
+- **Ensamble (voting/stacking) en vez de selección de un único ganador**: se descarta por decisión explícita del usuario — para una tesis, un único modelo ganador por validación cruzada es más simple de auditar y explicar que una combinación de predicciones, y evita introducir un componente nuevo (ensamble) sin la maquinaria de comparación que ya existe para candidatos individuales.
+- **Seleccionar sobre un holdout de validación separado en vez de `cv_mean_score` de `TimeSeriesSplit`**: se descarta porque reutiliza `tune_hyperparameters` (ya existente y testeado) sin cambios, en vez de construir una pieza nueva, y porque particionar aún más un conjunto de entrenamiento ya escaso (~285 filas) agravaría el problema de datos limitados en vez de resolverlo. El riesgo conocido (folds sin ejemplos positivos pueden hacer que `cv_mean_score` sea 0.0 para un candidato que en realidad discrimina bien sobre un holdout completo) queda documentado como limitación, no corregido en este *change*.
+- **Ejecutar la selección solo en `/recalibrate`, no en cada `/forecast/run`**: se descarta por decisión explícita del usuario — mantiene el mismo patrón que ya existe hoy ("el backend entrena en cada corrida", ya documentado como limitación aceptada en `openspec/specs/alerting-ui/spec.md`), evitando la complejidad adicional de registrar en MLflow qué candidato ganó cada selección.

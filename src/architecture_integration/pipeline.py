@@ -28,6 +28,7 @@ from human_feedback.schema import init_feedback_log
 from predictive_modeling.alerts import generate_alerts
 from predictive_modeling.feature_engineering import add_lag_features, add_rolling_features
 from predictive_modeling.labeling import add_stress_label
+from predictive_modeling.model_selection import select_best_candidate
 
 
 def run_end_to_end_pipeline(
@@ -35,7 +36,7 @@ def run_end_to_end_pipeline(
     label_column: str,
     feature_columns: list[str],
     split_date: date,
-    model: object,
+    model: object | None = None,
     horizon_days: int = 3,
     percentile: float = 20.0,
     lags: list[int] | None = None,
@@ -52,7 +53,10 @@ def run_end_to_end_pipeline(
     retroalimentación inicializado. Si `include_anomaly_detection` es `True`,
     el detector se ajusta solo sobre el conjunto de entrenamiento y
     `is_anomaly` se agrega como variable predictora. Si `skip_fit` es `True`,
-    usa `model` tal cual, ya entrenado, sin reentrenar.
+    usa `model` tal cual, ya entrenado, sin reentrenar. Si `model` es `None`,
+    selecciona automáticamente el mejor candidato
+    (`predictive_modeling.model_selection.select_best_candidate`) en vez de
+    usar un modelo fijo.
     """
     lags = lags if lags is not None else [1, 2, 3]
     rolling_windows = rolling_windows if rolling_windows is not None else [3, 7]
@@ -82,7 +86,12 @@ def run_end_to_end_pipeline(
     X_train, y_train = train[feature_cols], train["stress_label"]
     X_test = test[feature_cols]
 
-    if skip_fit:
+    model_name = None
+    if model is None:
+        selection = select_best_candidate(X_train, y_train, random_state=random_state)
+        fitted_model = selection["model"]
+        model_name = selection["model_name"]
+    elif skip_fit:
         fitted_model = model
     else:
         fitted_model = clone(model)
@@ -98,6 +107,7 @@ def run_end_to_end_pipeline(
         "test": test,
         "feature_columns": feature_cols,
         "model": fitted_model,
+        "model_name": model_name,
         "y_proba": y_proba,
         "alerts": alerts,
         "feedback_log": feedback_log,

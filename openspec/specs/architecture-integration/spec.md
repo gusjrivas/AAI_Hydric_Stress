@@ -84,3 +84,21 @@ El sistema DEBE, cuando `include_anomaly_detection=True`, incluir la marca de an
 - **THEN** `"is_anomaly"` no aparece en `feature_columns`, igual que antes de este *change*
 
 Implementado en `src/architecture_integration/pipeline.py` (`run_end_to_end_pipeline`) y `src/data_quality/anomaly_detection.py` (`fit_anomaly_detector`/`apply_anomaly_detector`). Testeado en `tests/test_architecture_integration_pipeline.py` y `tests/test_anomaly_detection.py`. Verificado sobre el dataset real: ver `openspec/specs/experiment-runner/spec.md` para el efecto medido sobre las métricas de `+anomálias`/`completa`.
+
+### Requirement: Uso del motor de selección automática cuando no se especifica un modelo
+
+El sistema DEBE, cuando no se provee un modelo explícito, seleccionar automáticamente el mejor modelo candidato en vez de asumir un modelo fijo; cuando sí se provee un modelo explícito, el comportamiento no cambia respecto de antes de este *change*.
+
+#### Scenario: Sin modelo explícito, se selecciona automáticamente
+
+- **GIVEN** un dataset y ningún modelo pasado por parámetro (`model=None`)
+- **WHEN** se ejecuta `run_end_to_end_pipeline`
+- **THEN** el modelo usado para predecir es el resultado de la selección automática entre candidatos, y el resultado incluye el nombre del modelo elegido
+
+#### Scenario: Con modelo explícito, el comportamiento no cambia
+
+- **GIVEN** un dataset y un modelo pasado por parámetro (igual que antes de este *change*)
+- **WHEN** se ejecuta `run_end_to_end_pipeline`
+- **THEN** se usa ese modelo tal cual (respetando `skip_fit` como hasta ahora), sin pasar por la selección automática
+
+Implementado en `src/architecture_integration/pipeline.py` (`run_end_to_end_pipeline`). Testeado en `tests/test_architecture_integration_pipeline.py`. Verificado sobre el dataset real: ver `openspec/specs/alerting-ui/spec.md`.

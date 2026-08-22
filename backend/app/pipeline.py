@@ -13,7 +13,6 @@ import pandas as pd
 from architecture_integration.pipeline import run_end_to_end_pipeline
 from data_ingestion.storage import load_dataset
 from human_feedback.model_registry import load_latest_recalibrated_model
-from predictive_modeling.models import build_candidate_models
 
 from .config import DATASET_NAME, FEATURE_COLUMNS, LABEL_COLUMN, RANDOM_STATE
 
@@ -31,8 +30,8 @@ def load_dataset_or_raise() -> pd.DataFrame:
 def execute_configured_pipeline(df: pd.DataFrame) -> dict[str, Any]:
     """Ejecuta el pipeline completo sobre `df` usando la configuración
     del backend: si hay un modelo recalibrado registrado en MLflow, lo
-    usa sin reentrenar (`skip_fit=True`); si no, entrena un Random
-    Forest nuevo, igual que antes de que existiera la recalibración.
+    usa sin reentrenar (`skip_fit=True`); si no, deja que `run_end_to_end_pipeline`
+    seleccione automáticamente el mejor modelo candidato (`predictive_modeling.model_selection`).
     """
     split_date = df["timestamp"].sort_values().iloc[int(len(df) * 0.8)].date()
 
@@ -41,7 +40,7 @@ def execute_configured_pipeline(df: pd.DataFrame) -> dict[str, Any]:
         model = recalibrated_model
         skip_fit = True
     else:
-        model = build_candidate_models(random_state=RANDOM_STATE)["random_forest"]
+        model = None
         skip_fit = False
 
     return run_end_to_end_pipeline(

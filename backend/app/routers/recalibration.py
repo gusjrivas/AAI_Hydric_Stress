@@ -62,7 +62,10 @@ def recalibrate(data_dir: Path = Depends(get_feedback_data_dir)) -> Recalibratio
 
     version = register_recalibrated_model(
         recalibrated_model,
-        params={"n_correcciones": len(recalibration_obs)},
+        params={
+            "n_correcciones": len(recalibration_obs),
+            "model_name_previo": result["model_name"] or "modelo_recalibrado_previo",
+        },
         metrics={"n_filas_entrenamiento": len(X_recal)},
     )
 
