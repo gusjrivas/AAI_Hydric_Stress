@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import mlflow
 import mlflow.sklearn
-from mlflow.exceptions import MlflowException
 
 REGISTERED_MODEL_NAME = "alerting_ui_recalibrated_model"
 
@@ -37,13 +36,15 @@ def register_recalibrated_model(model: object, params: dict, metrics: dict) -> s
 def load_latest_recalibrated_model() -> object | None:
     """Recupera la versión más reciente registrada en
     `REGISTERED_MODEL_NAME`, o `None` si todavía no se registró
-    ninguna (primera corrida, sin recalibración previa).
+    ninguna (primera corrida, sin recalibración previa). Si MLflow no
+    está disponible (servidor caído, mal configurado), la excepción se
+    propaga sin capturarse (ADR-0006: un fallo de conexión debe ser
+    explícito, no silencioso) — no requiere ningún registro para
+    devolver `None`, `search_model_versions` ya devuelve una lista
+    vacía en ese caso sin levantar ninguna excepción.
     """
     client = mlflow.MlflowClient()
-    try:
-        versions = client.search_model_versions(f"name='{REGISTERED_MODEL_NAME}'")
-    except MlflowException:
-        return None
+    versions = client.search_model_versions(f"name='{REGISTERED_MODEL_NAME}'")
     if not versions:
         return None
     latest = max(versions, key=lambda v: int(v.version))
