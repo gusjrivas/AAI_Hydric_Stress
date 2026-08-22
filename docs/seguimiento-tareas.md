@@ -141,10 +141,11 @@ HU7 se dividió en tres *changes* de OpenSpec independientes (diseño experiment
 | Configurar el registro de parámetros, versiones y resultados | ✅ | `src/experiment_runner/mlflow_logging.py::log_configuration_results` (run padre con métricas agregadas + run hijo anidado por semilla). Tests: `tests/test_mlflow_logging.py`. `mlflow>=2.14,<3` agregado como dependencia. Verificado sobre resultados reales: run padre + 3 runs hijos anidados recuperables por `tags.mlflow.parentRunId`. |
 | Ejecutar una prueba piloto del protocolo experimental | ✅ | Configuración base, 2 semillas, contra el servidor MLflow real (`http://localhost:5000`). Run padre `piloto-base` con 2 runs hijos anidados. |
 | Ejecutar experimentos con modelos de referencia | ✅ | `base` y `+sintéticos`, 5 semillas cada una. Real: `base` F1=0.4585±0.0423; `+sintéticos` F1=0.3123±0.0862 (peor que base). |
-| Ejecutar experimentos con mecanismos de robustez integrados | ✅ | `+anomalías` y `completa`, 5 semillas cada una. **Hallazgo**: métricas idénticas a `base`/`+sintéticos` respectivamente — `is_anomaly` no se usa como variable predictora en el pipeline actual (HU6), documentado en "Limitaciones conocidas" del spec para el análisis de HU8. |
+| Ejecutar experimentos con mecanismos de robustez integrados | ✅ | `+anomalías` y `completa`, 5 semillas cada una. Corregido y re-ejecutado en `openspec/changes/fix-anomaly-feature-integration/` (ver fila siguiente) — el hallazgo original de métricas idénticas a `base`/`+sintéticos` era un defecto de integración, ya resuelto. |
 | Verificar integridad y reproducibilidad de los experimentos | ✅ | Re-ejecución de `base` con las mismas 5 semillas: `pd.testing.assert_frame_equal` confirmó métricas idénticas bit a bit entre ambas corridas. |
+| Corregir la integración de `is_anomaly` como variable predictora y re-ejecutar `+anomalías`/`completa` | ✅ | `openspec/changes/fix-anomaly-feature-integration/`: `is_anomaly` ahora llega al modelo (`fit_anomaly_detector`/`apply_anomaly_detector`, ajustados solo sobre `train`). Re-ejecutado contra MLflow real (runs `anomalias-refit`/`completa-refit`): `+Anomalías` F1=0.4625±0.0414, ROC-AUC=0.5881±0.0309 (vs. `Base` F1=0.4585±0.0423, ROC-AUC=0.5551±0.0191); `Completa` F1=0.3733±0.1065, ROC-AUC=0.5297±0.0629 (vs. `+Sintéticos` F1=0.3123±0.0862, ROC-AUC=0.5083±0.0439). Ya no son idénticas — efecto positivo pero modesto. Specs y análisis de HU8 actualizados con los valores reales. |
 
-**Balance HU7:** de 11 tareas, 11 completas, 0 parciales, 0 no iniciadas. HU7 completa.
+**Balance HU7:** de 12 tareas, 12 completas, 0 parciales, 0 no iniciadas. HU7 completa.
 
 ## HU8 — Análisis de resultados y contrastación de la hipótesis
 
@@ -153,10 +154,10 @@ HU8 no tiene capacidad de código (igual que HU1) — se dividió en tres sub-pr
 | Tarea | Estado | Evidencia / motivo |
 |---|---|---|
 | Consolidar los resultados de todas las ejecuciones experimentales | ✅ | `docs/research/hu8-analisis-resultados.md`, sección 1: tabla de las 4 configuraciones × 5 semillas, registradas en MLflow real (HU7). |
-| Identificar ejecuciones incompletas o inconsistentes | ✅ | Sección 2: las 20 corridas completaron sin error; inconsistencia real detectada (no fallo): `+anomalías`=`base`, `completa`=`+sintéticos`. |
+| Identificar ejecuciones incompletas o inconsistentes | ✅ | Sección 2: las 20 corridas completaron sin error; inconsistencia detectada (`+anomalías`=`base`, `completa`=`+sintéticos`) y ya resuelta tras `openspec/changes/fix-anomaly-feature-integration/` — valores reales actualizados. |
 | Calcular métricas agregadas y medidas de dispersión | ✅ | Sección 3: media±desvío de F1/ROC-AUC por configuración, ya en la tabla de la sección 1. |
 | Comparar el enfoque de referencia con la arquitectura propuesta | ✅ | Sección 4: la arquitectura propuesta (RF, F1=0.4585) no supera al modelo de referencia por persistencia (F1=0.486, HU4). |
-| Analizar el aporte de la detección de anomalías y los datos sintéticos | ✅ | Sección 5: detección de anomalías sin efecto medible (`is_anomaly` no llega al modelo, limitación de integración de HU6); datos sintéticos con efecto negativo (F1 0.312 vs 0.459). |
+| Analizar el aporte de la detección de anomalías y los datos sintéticos | ✅ | Sección 5: detección de anomalías con efecto positivo pero modesto tras corregir la integración (`openspec/changes/fix-anomaly-feature-integration/`; `is_anomaly` ya llega al modelo); datos sintéticos con efecto negativo (F1 0.312 vs 0.459). |
 | Evaluar el efecto de la retroalimentación y la recalibración | ✅ | Sección 6: mecanismo verificado (HU5) con corrección sintética que cambia la predicción; sin evaluación agregada por falta de volumen real. |
 | Analizar falsos positivos, falsos negativos y errores relevantes | ✅ | Sección 7: 7 falsos positivos, 24 falsos negativos con fechas concretas (HU4). |
 | Analizar el desempeño bajo escenarios de escasez de datos | ✅ | `src/experiment_runner/scenarios.py::subsample_training_period` (`openspec/changes/add-experiment-scenarios/`). Verificado sobre datos reales: entrenamiento reducido a la mitad más reciente, F1 medio 0.6219±0.0888 — mejor que la configuración base sin reducir (0.4585±0.0423), hallazgo explicado por relevancia estacional. |

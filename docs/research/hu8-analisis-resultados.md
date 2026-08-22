@@ -12,8 +12,10 @@ Registrados en el servidor MLflow real (`http://localhost:5000`, experimento `hu
 |---|---|---|---|---|---|
 | Base | 1-5 | 0.4585 ± 0.0423 | 0.5551 ± 0.0191 | 0.5967 | 0.3730 |
 | +Sintéticos | 1-5 | 0.3123 ± 0.0862 | 0.5083 ± 0.0439 | 0.5091 | 0.2324 |
-| +Anomalías | 1-5 | 0.4585 ± 0.0423 | 0.5551 ± 0.0191 | 0.5967 | 0.3730 |
-| Completa | 1-5 | 0.3123 ± 0.0862 | 0.5083 ± 0.0439 | 0.5091 | 0.2324 |
+| +Anomalías | 1-5 | 0.4625 ± 0.0414 | 0.5881 ± 0.0309 | 0.6097 | 0.3730 |
+| Completa | 1-5 | 0.3733 ± 0.1065 | 0.5297 ± 0.0629 | 0.5286 | 0.2973 |
+
+`+Anomalías` y `Completa` fueron re-ejecutadas y re-registradas (runs `anomalias-refit`/`completa-refit`) tras `openspec/changes/fix-anomaly-feature-integration/`, que corrigió que `is_anomaly` no llegaba al modelo; los valores de `Base` y `+Sintéticos` no cambian.
 
 Más una prueba piloto (`piloto-base`, semillas 1-2) usada solo para validar el mecanismo contra el servidor real, no incluida en esta tabla de resultados.
 
@@ -21,7 +23,7 @@ Más una prueba piloto (`piloto-base`, semillas 1-2) usada solo para validar el 
 
 Las 4 configuraciones × 5 semillas (20 corridas) completaron sin errores, con las 4 métricas (precisión, recall, F1, ROC-AUC) registradas en cada run hijo del servidor MLflow real. No hay ejecuciones incompletas que descartar.
 
-**Inconsistencia real detectada** (no un fallo de ejecución, sino un hallazgo sobre el propio diseño): `+Anomalías` produjo métricas *idénticas* a `Base`, y `Completa` idénticas a `+Sintéticos` — ver sección 5.
+**Inconsistencia resuelta**: la primera ejecución de HU7 mostró `+Anomalías` con métricas *idénticas* a `Base`, y `Completa` idénticas a `+Sintéticos` — no un fallo de ejecución, sino un defecto de integración (`is_anomaly` no llegaba al modelo). Tras corregirlo en `openspec/changes/fix-anomaly-feature-integration/` y re-ejecutar ambas configuraciones, los valores ya no son idénticos (ver tabla de la sección 1) — ver sección 5 para el efecto real medido.
 
 ## 3. Métricas agregadas y medidas de dispersión
 
@@ -36,7 +38,7 @@ Ya incluidas en la tabla de la sección 1 (media ± desvío entre las 5 semillas
 
 ## 5. Aporte de la detección de anomalías y los datos sintéticos
 
-- **Detección de anomalías**: sin efecto medible. `+Anomalías` = `Base` exactamente, en las 4 métricas, en las 5 semillas. Causa raíz: `is_anomaly` (la columna que agrega `data_quality.anomaly_detection.detect_anomalies`) nunca se incluye entre las variables predictoras (`feature_columns`) que recibe el modelo en `architecture_integration.pipeline.run_end_to_end_pipeline` (HU6) — la detección corre y marca filas, pero esa marca no llega a influir la predicción. **No es evidencia de que la detección de anomalías no aporte**; es evidencia de que el orquestador actual no la conecta con el modelo.
+- **Detección de anomalías**: efecto medible y positivo, aunque modesto. Corregida la integración en `openspec/changes/fix-anomaly-feature-integration/` (`is_anomaly` ahora es una variable predictora real que recibe el modelo, con el detector ajustado solo sobre `train`), `+Anomalías` mejora sobre `Base` en ROC-AUC (0.5551 → 0.5881) y precisión (0.5967 → 0.6097), con F1 prácticamente igual (0.4585 → 0.4625) y el mismo recall medio; `Completa` mejora sobre `+Sintéticos` en las 4 métricas (F1 0.3123 → 0.3733, ROC-AUC 0.5083 → 0.5297, precisión 0.5091 → 0.5286, recall 0.2324 → 0.2973). Ningún indicador empeora en ninguna de las dos comparaciones. La magnitud del efecto es modesta (la mejora de F1 frente a `Base` está dentro del ruido entre semillas), pero es consistente y nunca negativa, lo que sugiere que `is_anomaly` sí aporta señal predictiva real, aunque acotada, una vez que efectivamente llega al modelo.
 - **Datos sintéticos**: efecto medible y negativo. `+Sintéticos` tiene F1 0.3123 frente a 0.4585 de `Base` (recall cae de 0.373 a 0.232, la caída más marcada). Causa probable: `experiment_runner.synthetic_augmentation.add_synthetic_rows` muestrea una normal multivariada sobre el espacio de variables ya construidas (retardos/ventanas móviles + etiqueta), que no preserva relaciones no lineales ni la estructura de autocorrelación temporal real entre esas variables — genera filas sintéticas estadísticamente plausibles en media/covarianza pero que diluyen la señal predictiva real, en vez de reforzarla.
 
 ## 6. Efecto de la retroalimentación y la recalibración (HU5)
@@ -67,7 +69,7 @@ Sobre la partición única de evaluación (72 filas, Random Forest, umbral 0.5, 
 ## Limitaciones de este análisis
 
 - Basado en un único dataset (un punto geográfico, un año); no se puede generalizar a otros sitios o períodos sin repetir la evaluación con más datos.
-- El hallazgo sobre detección de anomalías refleja una limitación de integración del orquestador (HU6), no necesariamente que la técnica en sí no aporte — requeriría corregir esa integración y volver a medir antes de concluir lo contrario.
+- El hallazgo original sobre detección de anomalías reflejaba una limitación de integración del orquestador (HU6); corregida en `openspec/changes/fix-anomaly-feature-integration/` y vuelta a medir, el efecto real es positivo pero modesto (ver sección 5) — sigue siendo un único dataset de un año, por lo que no se puede generalizar la magnitud del efecto a otros contextos.
 - El efecto de la retroalimentación humana está verificado mecánicamente pero no evaluado a escala agregada, por falta de volumen real de correcciones.
 - El escenario de ruido usa un valor de ejemplo (`noise_std_ratio=0.3`) no calibrado contra ninguna fuente real de ruido de sensor.
 - El hallazgo sobre escasez (menos datos, mejor desempeño) es específico de este dataset y de este recorte cronológico particular; no se probaron otras fracciones ni otras formas de subselección.
