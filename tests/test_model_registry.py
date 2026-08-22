@@ -1,5 +1,7 @@
 import mlflow
 import pandas as pd
+import pytest
+from mlflow.exceptions import MlflowException
 from sklearn.linear_model import LogisticRegression
 
 from human_feedback.model_registry import (
@@ -48,3 +50,11 @@ def test_register_recalibrated_model_twice_returns_incrementing_versions(tmp_pat
     assert v2 == "2"
     loaded = load_latest_recalibrated_model()
     assert hasattr(loaded, "predict")
+
+
+def test_load_latest_recalibrated_model_raises_when_mlflow_is_unreachable(monkeypatch):
+    monkeypatch.setenv("MLFLOW_HTTP_REQUEST_MAX_RETRIES", "0")
+    mlflow.set_tracking_uri("http://localhost:59999")
+
+    with pytest.raises(MlflowException):
+        load_latest_recalibrated_model()
