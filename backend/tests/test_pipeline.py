@@ -40,3 +40,14 @@ def test_load_dataset_or_raise_raises_file_not_found_with_explicit_message(monke
         assert False, "debería haber levantado FileNotFoundError"
     except FileNotFoundError as error:
         assert "esto_no_existe" in str(error)
+
+
+def test_execute_configured_pipeline_selects_a_model_automatically_when_none_recalibrated(
+    monkeypatch,
+):
+    monkeypatch.setattr("app.pipeline.load_latest_recalibrated_model", lambda: None)
+    df = load_dataset(DATASET_NAME)
+
+    result = execute_configured_pipeline(df)
+
+    assert result["model_name"] in {"logistic_regression", "random_forest"}
