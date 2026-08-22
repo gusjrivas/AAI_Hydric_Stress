@@ -12,23 +12,52 @@ import pandas as pd
 from sklearn.ensemble import IsolationForest
 
 
+def fit_anomaly_detector(
+    df: pd.DataFrame,
+    columns: list[str],
+    contamination: float = 0.1,
+    random_state: int = 42,
+) -> IsolationForest:
+    """Ajusta un Isolation Forest sobre `columns` de `df` y lo devuelve
+    sin transformar nada. Separado de `apply_anomaly_detector` para
+    poder ajustar sobre un conjunto (ej. entrenamiento) y aplicar el
+    mismo detector, sin reajustar, sobre otro (ej. evaluación) —
+    evitando que el segundo conjunto influya en su propia marca de
+    anomalía.
+    """
+    model = IsolationForest(contamination=contamination, random_state=random_state)
+    model.fit(df[columns])
+    return model
+
+
+def apply_anomaly_detector(
+    df: pd.DataFrame, columns: list[str], detector: IsolationForest
+) -> pd.DataFrame:
+    """Aplica un detector ya ajustado (`fit_anomaly_detector`) sobre
+    `columns` de `df` y devuelve una copia con la columna booleana
+    `is_anomaly`. No reajusta el detector.
+    """
+    result = df.copy()
+    predictions = detector.predict(result[columns])
+    result["is_anomaly"] = predictions == -1
+    return result
+
+
 def detect_anomalies(
     df: pd.DataFrame,
     columns: list[str],
-    contamination: float = 0.05,
+    contamination: float = 0.1,
     random_state: int = 42,
 ) -> pd.DataFrame:
     """Ajusta un Isolation Forest sobre `columns` y devuelve una copia de
     `df` con una columna booleana `is_anomaly`. No requiere etiquetas de
-    anomalía previas.
+    anomalía previas. Atajo de `fit_anomaly_detector` + `apply_anomaly_detector`
+    sobre el mismo `df`.
     """
-    result = df.copy()
-
-    model = IsolationForest(contamination=contamination, random_state=random_state)
-    predictions = model.fit_predict(result[columns])
-    result["is_anomaly"] = predictions == -1
-
-    return result
+    detector = fit_anomaly_detector(
+        df, columns=columns, contamination=contamination, random_state=random_state
+    )
+    return apply_anomaly_detector(df, columns=columns, detector=detector)
 
 
 def evaluate_with_injected_anomalies(
