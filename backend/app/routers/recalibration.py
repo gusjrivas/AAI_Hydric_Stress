@@ -30,11 +30,11 @@ def recalibrate(data_dir: Path = Depends(get_feedback_data_dir)) -> Recalibratio
         ) from error
 
     try:
-        df = load_dataset_or_raise()
+        df, fingerprint = load_dataset_or_raise()
     except FileNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 
-    result = execute_configured_pipeline(df)
+    result = execute_configured_pipeline(df, fingerprint)
     feature_cols = result["feature_columns"]
     train = result["train"]
     test = result["test"]

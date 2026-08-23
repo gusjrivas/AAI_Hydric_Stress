@@ -72,10 +72,34 @@ El sistema DEBE usar la versión más reciente del modelo recalibrado (si existe
 
 Implementado en `backend/app/pipeline.py` (`execute_configured_pipeline`) y `src/architecture_integration/pipeline.py` (`skip_fit`). Testeado en `backend/tests/test_pipeline.py` y `tests/test_architecture_integration_pipeline.py`. Verificado sobre datos reales: ver `docs/seguimiento-tareas.md`.
 
+### Requirement: Reutilización del modelo auto-seleccionado mientras el dataset no cambie
+
+El sistema DEBE reutilizar, sin volver a seleccionar, el último modelo auto-seleccionado mientras el dataset consolidado no haya cambiado; DEBE volver a seleccionar cuando el dataset cambie o cuando todavía no exista un modelo cacheado. Este comportamiento solo aplica cuando no hay un modelo recalibrado registrado — la prioridad de un modelo recalibrado sobre la selección automática no cambia.
+
+#### Scenario: El dataset no cambió entre dos corridas
+
+- **GIVEN** un modelo ya auto-seleccionado en una corrida anterior, sin modelo recalibrado registrado, y el dataset consolidado sin cambios
+- **WHEN** se ejecuta una nueva corrida
+- **THEN** se reutiliza el mismo modelo cacheado sin volver a seleccionar
+
+#### Scenario: El dataset cambió entre dos corridas
+
+- **GIVEN** un modelo ya auto-seleccionado en una corrida anterior, sin modelo recalibrado registrado, y el dataset consolidado modificado desde esa corrida
+- **WHEN** se ejecuta una nueva corrida
+- **THEN** se vuelve a seleccionar el mejor candidato, y el resultado reemplaza al modelo cacheado
+
+#### Scenario: Un modelo recalibrado sigue teniendo prioridad sobre el caché
+
+- **GIVEN** un modelo recalibrado registrado en MLflow y, además, un modelo auto-seleccionado ya cacheado
+- **WHEN** se ejecuta una nueva corrida
+- **THEN** se usa el modelo recalibrado, ignorando el caché de selección automática
+
+Implementado en `backend/app/pipeline.py` (`execute_configured_pipeline`), testeado en `backend/tests/test_pipeline.py`.
+
 ## Limitaciones conocidas
 
 - ~~Un único modelo fijo (Random Forest, configuración base) genera el veredicto; el motor de selección/ensamble entre varios modelos queda para una iteración futura (`openspec/changes/add-alerting-ui/proposal.md`, "Fuera de alcance").~~ **Actualización (2026-08-22):** resuelto — ver el requirement "Selección automática del mejor modelo candidato" en `openspec/specs/predictive-modeling/spec.md` y "Uso del motor de selección automática..." en `openspec/specs/architecture-integration/spec.md`.
 - No hay ingesta de datos de sensores en vivo; el dataset es el mismo consolidado histórico de HU2, configurable por nombre pero no por fuente en tiempo real.
 - ~~El disparo de recalibración supervisada (HU5) no está conectado a la UI todavía.~~ **Actualización (2026-08-19):** resuelto — ver el requirement "Disparo manual de recalibración desde la interfaz" más arriba.
 - El registro de retroalimentación asume un único pronóstico por fecha calendario — no distingue entre pronósticos recalculados en momentos distintos para la misma fecha objetivo. Esto no se expone con el dataset histórico estático actual, pero deberá resolverse antes de soportar datos de sensores en vivo con recálculo continuo.
-- El backend entrena el modelo en cada corrida (sin cachear) cuando no hay un modelo recalibrado registrado; aceptable con el tamaño de dataset actual (~357 filas), a revisar si el dataset crece significativamente, y desde `openspec/changes/add-model-selection-engine/` esa corrida por request es una búsqueda de hiperparámetros con validación cruzada sobre ambos candidatos (más costosa que un único `.fit()`), aceptada como tradeoff deliberado (ver "Alternativas consideradas" de ese *change*).
+- ~~El backend entrena el modelo en cada corrida (sin cachear) cuando no hay un modelo recalibrado registrado; aceptable con el tamaño de dataset actual (~357 filas), a revisar si el dataset crece significativamente~~ **Actualización (2026-08-23):** resuelto — ver el requirement "Reutilización del modelo auto-seleccionado mientras el dataset no cambie" más arriba (`openspec/changes/add-selection-caching/`). Sigue siendo cierto que, desde `openspec/changes/add-model-selection-engine/`, la corrida en caso de *cache miss* es una búsqueda de hiperparámetros con validación cruzada sobre ambos candidatos (más costosa que un único `.fit()`), aceptada como tradeoff deliberado (ver "Alternativas consideradas" de ese *change*).

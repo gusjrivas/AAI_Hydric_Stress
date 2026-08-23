@@ -19,7 +19,7 @@ Desde `add-model-selection-engine`, cada `POST /forecast/run` (y `POST /recalibr
 
 ## Impact
 
-- **Specs afectadas:** `data-ingestion` (nuevo requirement chico), `alerting-ui` (resuelve la limitación conocida citada arriba, sin nuevo requirement — se actualiza la nota existente).
+- **Specs afectadas:** `data-ingestion` (nuevo requirement chico), `alerting-ui` (agrega un nuevo requirement — "Reutilización del modelo auto-seleccionado mientras el dataset no cambie" — y actualiza la nota de "Limitaciones conocidas" ya existente que citaba la falta de caché).
 - **Código afectado:** `src/data_ingestion/storage.py`, `backend/app/pipeline.py`, y sus tests.
 - **Fuera de alcance de este change:** el caché es en memoria del proceso backend — se pierde en cada reinicio/redeploy (aceptado: la próxima corrida paga el costo una vez y vuelve a poblarlo, igual que hoy). No se persiste a disco ni a MLflow. No cambia nada del mecanismo de recalibración manual (ADR-0006) ni de `experiment_runner.runner.run_configuration`.
 
