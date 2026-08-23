@@ -52,10 +52,15 @@ def append_reading(name: str, row: dict, data_dir: Path = DEFAULT_DATA_DIR) -> p
 
     try:
         existing = load_dataset(name, data_dir=data_dir)
+        # Ensure existing has all schema columns for consistent concat
+        for col in new_row.columns:
+            if col not in existing.columns:
+                existing[col] = pd.NA
         updated = pd.concat([existing, new_row], ignore_index=True)
     except FileNotFoundError:
         updated = new_row
 
     updated = updated.sort_values(TIMESTAMP_COLUMN).reset_index(drop=True)
     save_dataset(name, updated, data_dir=data_dir)
-    return updated
+    # Reload to ensure returned DataFrame has consistent dtypes with persisted data
+    return load_dataset(name, data_dir=data_dir)
