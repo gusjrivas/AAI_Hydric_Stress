@@ -10,11 +10,17 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-from data_ingestion.schema import PROVENANCE_COLUMN
-from data_ingestion.storage import append_reading
 from fastapi import APIRouter, Depends, HTTPException
 
-from ..config import DATASET_NAME, DATASET_NAME_EXPLICIT, HISTORICAL_DATASET_NAME, get_dataset_data_dir
+from data_ingestion.schema import PROVENANCE_COLUMN
+from data_ingestion.storage import append_reading
+
+from ..config import (
+    DATASET_NAME,
+    DATASET_NAME_EXPLICIT,
+    HISTORICAL_DATASET_NAME,
+    get_dataset_data_dir,
+)
 from ..schemas import SensorReadingRequest, SensorReadingResponse
 
 router = APIRouter()
