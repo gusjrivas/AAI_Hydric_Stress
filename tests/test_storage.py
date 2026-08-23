@@ -1,6 +1,7 @@
+import time
+
 import pandas as pd
 import pytest
-import time
 
 from data_ingestion.storage import load_dataset, save_dataset
 

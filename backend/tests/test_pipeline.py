@@ -121,3 +121,12 @@ def test_execute_configured_pipeline_recalibrated_model_ignores_selection_cache(
     result = execute_configured_pipeline(df)
 
     assert result["model"] is fake_recalibrated
+
+
+def test_load_dataset_or_raise_returns_dataframe_and_matching_fingerprint():
+    from data_ingestion.storage import get_dataset_fingerprint
+
+    df, fingerprint = load_dataset_or_raise()
+
+    assert len(df) > 0
+    assert fingerprint == get_dataset_fingerprint(DATASET_NAME)

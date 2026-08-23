@@ -22,17 +22,22 @@ _selection_cache_lock = threading.Lock()
 _selection_cache: dict[str, Any] | None = None
 
 
-def load_dataset_or_raise() -> pd.DataFrame:
-    """Carga el dataset consolidado configurado, o levanta
+def load_dataset_or_raise() -> tuple[pd.DataFrame, tuple[float, int]]:
+    """Carga el dataset consolidado configurado junto con su fingerprint
+    (capturado inmediatamente después de la lectura, para minimizar la
+    ventana entre leer el archivo y fijar su huella), o levanta
     `FileNotFoundError` con un mensaje explícito si no existe.
     """
     try:
-        return load_dataset(DATASET_NAME)
+        df = load_dataset(DATASET_NAME)
     except FileNotFoundError as error:
         raise FileNotFoundError(f"No existe el dataset '{DATASET_NAME}'.") from error
+    return df, get_dataset_fingerprint(DATASET_NAME)
 
 
-def execute_configured_pipeline(df: pd.DataFrame) -> dict[str, Any]:
+def execute_configured_pipeline(
+    df: pd.DataFrame, fingerprint: tuple[float, int] | None = None
+) -> dict[str, Any]:
     """Ejecuta el pipeline completo sobre `df` usando la configuración
     del backend: si hay un modelo recalibrado registrado en MLflow, lo
     usa sin reentrenar (`skip_fit=True`), ignorando el caché de
@@ -41,7 +46,9 @@ def execute_configured_pipeline(df: pd.DataFrame) -> dict[str, Any]:
     fingerprint); si cambió o todavía no hay ninguno cacheado, deja que
     `run_end_to_end_pipeline` seleccione automáticamente el mejor
     modelo candidato (`predictive_modeling.model_selection`) y guarda
-    el resultado en el caché.
+    el resultado en el caché. `fingerprint`, si se provee, evita
+    recalcularlo — usado por los routers, que ya lo obtienen de
+    `load_dataset_or_raise`.
     """
     global _selection_cache
 
@@ -60,7 +67,8 @@ def execute_configured_pipeline(df: pd.DataFrame) -> dict[str, Any]:
             skip_fit=True,
         )
 
-    fingerprint = get_dataset_fingerprint(DATASET_NAME)
+    if fingerprint is None:
+        fingerprint = get_dataset_fingerprint(DATASET_NAME)
     with _selection_cache_lock:
         cached = _selection_cache
     if cached is not None and cached["fingerprint"] == fingerprint:

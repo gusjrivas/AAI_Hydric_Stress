@@ -21,11 +21,11 @@ router = APIRouter()
 @router.post("/forecast/run", response_model=ForecastRunResponse)
 def run_forecast(data_dir: Path = Depends(get_feedback_data_dir)) -> ForecastRunResponse:
     try:
-        df = load_dataset_or_raise()
+        df, fingerprint = load_dataset_or_raise()
     except FileNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 
-    result = execute_configured_pipeline(df)
+    result = execute_configured_pipeline(df, fingerprint)
 
     dates = result["test"]["timestamp"].reset_index(drop=True)
     alerts = result["alerts"].reset_index(drop=True)

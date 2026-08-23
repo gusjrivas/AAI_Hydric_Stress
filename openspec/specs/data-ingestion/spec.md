@@ -88,6 +88,24 @@ El sistema DEBE poder combinar varios datasets ya normalizados al esquema en un 
 
 Implementado en `src/data_ingestion/consolidate.py` (`consolidate_sources`), testeado en `tests/test_consolidate.py`. Verificado con datos reales: `data/melchor_romero_2024_consolidado.parquet` combina NASA POWER y ESA CCI Soil Moisture para 366 días. Este requisito no formaba parte de la propuesta original del *change* (que solo mencionaba homogeneización dentro de una fuente); se agregó aquí porque es el objetivo explícito de la tarea "Implementar procedimiento reproducible de ingestión y consolidación" del plan de tesis (HU2), y la propuesta original lo dejaba implícito sin un requisito propio.
 
+### Requirement: Huella del dataset para detectar cambios sin leer su contenido
+
+El sistema DEBE poder obtener una huella (fingerprint) barata de un dataset ya guardado, que cambie si y solo si el archivo fue reescrito, sin necesidad de leer su contenido.
+
+#### Scenario: La huella cambia cuando el dataset se reescribe
+
+- **GIVEN** un dataset ya guardado con `save_dataset`
+- **WHEN** se reescribe ese mismo dataset con `save_dataset` (mismos o distintos datos) y se calcula la huella antes y después
+- **THEN** las dos huellas son distintas
+
+#### Scenario: La huella es estable si el dataset no cambia
+
+- **GIVEN** un dataset ya guardado
+- **WHEN** se calcula la huella dos veces sin modificar el archivo entre medio
+- **THEN** las dos huellas son idénticas
+
+Implementado en `src/data_ingestion/storage.py` (`get_dataset_fingerprint`), testeado en `tests/test_storage.py`.
+
 ## Limitaciones conocidas
 
 - Ejecutado y verificado con datos reales para dos fuentes (NASA POWER, ESA CCI Soil Moisture), un único punto geográfico (Melchor Romero, Partido de La Plata) y un único año (2024). No se validó con múltiples ubicaciones ni múltiples años.
