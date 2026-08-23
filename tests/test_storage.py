@@ -54,3 +54,55 @@ def test_get_dataset_fingerprint_raises_when_dataset_missing(tmp_path):
 
     with pytest.raises(FileNotFoundError):
         get_dataset_fingerprint("no_existe", data_dir=tmp_path)
+
+
+def test_append_reading_creates_dataset_when_missing(tmp_path):
+    from data_ingestion.storage import append_reading
+
+    row = {"timestamp": pd.Timestamp("2026-01-01"), "temperature": 25.0, "origen": "real"}
+
+    updated = append_reading("nuevo_dataset", row, data_dir=tmp_path)
+
+    assert len(updated) == 1
+    assert updated.loc[0, "temperature"] == 25.0
+    assert updated.loc[0, "origen"] == "real"
+    reloaded = load_dataset("nuevo_dataset", data_dir=tmp_path)
+    pd.testing.assert_frame_equal(reloaded, updated)
+
+
+def test_append_reading_adds_row_to_existing_dataset(tmp_path):
+    from data_ingestion.storage import append_reading
+
+    existing = pd.DataFrame({"timestamp": pd.to_datetime(["2026-01-01"]), "temperature": [25.0]})
+    save_dataset("con_historia", existing, data_dir=tmp_path)
+
+    row = {"timestamp": pd.Timestamp("2026-01-02"), "temperature": 26.0, "origen": "real"}
+    updated = append_reading("con_historia", row, data_dir=tmp_path)
+
+    assert len(updated) == 2
+    assert list(updated["timestamp"]) == list(pd.to_datetime(["2026-01-01", "2026-01-02"]))
+
+
+def test_append_reading_sorts_by_timestamp_even_if_out_of_order(tmp_path):
+    from data_ingestion.storage import append_reading
+
+    existing = pd.DataFrame({"timestamp": pd.to_datetime(["2026-01-05"]), "temperature": [25.0]})
+    save_dataset("desordenado", existing, data_dir=tmp_path)
+
+    row = {"timestamp": pd.Timestamp("2026-01-02"), "temperature": 20.0, "origen": "real"}
+    updated = append_reading("desordenado", row, data_dir=tmp_path)
+
+    assert list(updated["timestamp"]) == list(pd.to_datetime(["2026-01-02", "2026-01-05"]))
+
+
+def test_append_reading_replaces_row_for_same_timestamp(tmp_path):
+    from data_ingestion.storage import append_reading
+
+    row1 = {"timestamp": pd.Timestamp("2026-01-01"), "temperature": 25.0, "origen": "real"}
+    append_reading("mismo_dia", row1, data_dir=tmp_path)
+
+    row2 = {"timestamp": pd.Timestamp("2026-01-01"), "temperature": 30.0, "origen": "real"}
+    updated = append_reading("mismo_dia", row2, data_dir=tmp_path)
+
+    assert len(updated) == 1
+    assert updated.loc[0, "temperature"] == 30.0

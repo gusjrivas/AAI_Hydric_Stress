@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from data_ingestion.schema import PROVENANCE_COLUMN, TIMESTAMP_COLUMN, normalize_to_schema
+
 DEFAULT_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
 
@@ -37,3 +39,26 @@ def get_dataset_fingerprint(name: str, data_dir: Path = DEFAULT_DATA_DIR) -> tup
         raise FileNotFoundError(f"No existe el dataset '{name}' en {data_dir}")
     stat = path.stat()
     return (stat.st_mtime, stat.st_size)
+
+
+def append_reading(name: str, row: dict, data_dir: Path = DEFAULT_DATA_DIR) -> pd.DataFrame:
+    """Agrega `row` (un dict con al menos `timestamp`) como una fila
+    nueva al dataset `name`, normalizada al esquema completo. Crea el
+    dataset si todavía no existe. Si ya existe una fila con el mismo
+    timestamp (mismo día), la reemplaza en vez de duplicarla. Devuelve
+    el dataset actualizado, ya guardado, ordenado por `timestamp`.
+    """
+    provenance = row.get(PROVENANCE_COLUMN, "real")
+    new_row = normalize_to_schema(pd.DataFrame([row]), provenance=provenance)
+
+    try:
+        existing = load_dataset(name, data_dir=data_dir)
+        updated = pd.concat([existing, new_row], ignore_index=True)
+    except FileNotFoundError:
+        updated = new_row
+
+    updated = updated.sort_values(TIMESTAMP_COLUMN).reset_index(drop=True)
+    updated = updated.drop_duplicates(subset=TIMESTAMP_COLUMN, keep="last").reset_index(drop=True)
+    save_dataset(name, updated, data_dir=data_dir)
+    # Reload to ensure returned DataFrame has consistent dtypes with persisted data
+    return load_dataset(name, data_dir=data_dir)
