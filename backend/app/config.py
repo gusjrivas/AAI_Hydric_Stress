@@ -24,3 +24,11 @@ def get_feedback_data_dir() -> Path:
     para no escribir en el `data/` real del proyecto.
     """
     return DEFAULT_DATA_DIR
+
+
+def get_dataset_data_dir() -> Path:
+    """Dependencia de FastAPI: directorio donde persiste el dataset
+    configurado. Overrideable en tests (`app.dependency_overrides`)
+    para no escribir en el `data/` real del proyecto.
+    """
+    return DEFAULT_DATA_DIR
