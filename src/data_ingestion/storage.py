@@ -25,3 +25,15 @@ def load_dataset(name: str, data_dir: Path = DEFAULT_DATA_DIR) -> pd.DataFrame:
     if not path.exists():
         raise FileNotFoundError(f"No existe el dataset '{name}' en {data_dir}")
     return pd.read_parquet(path)
+
+
+def get_dataset_fingerprint(name: str, data_dir: Path = DEFAULT_DATA_DIR) -> tuple[float, int]:
+    """Devuelve una huella barata (fecha de modificación, tamaño en
+    bytes) del archivo de `name`, sin leer su contenido. Cambia si y
+    solo si el archivo fue reescrito con `save_dataset`.
+    """
+    path = data_dir / f"{name}.parquet"
+    if not path.exists():
+        raise FileNotFoundError(f"No existe el dataset '{name}' en {data_dir}")
+    stat = path.stat()
+    return (stat.st_mtime, stat.st_size)
