@@ -4,7 +4,7 @@
 
 ### Requirement: Ingesta de lecturas de sensores desde la interfaz de datos
 
-El sistema DEBE poder recibir una lectura individual (timestamp y valores, parcial permitido) y agregarla al dataset configurado, sin distinguir si el origen es un sensor real o un generador sintético.
+El sistema DEBE poder recibir una lectura individual (timestamp y valores, parcial permitido) y agregarla al dataset configurado, sin distinguir si el origen es un sensor real o un generador sintético. El timestamp se normaliza a granularidad diaria (medianoche, sin timezone); una segunda lectura del mismo día reemplaza a la anterior en vez de duplicarla.
 
 #### Scenario: Ingesta de una lectura válida
 

@@ -93,3 +93,16 @@ def test_append_reading_sorts_by_timestamp_even_if_out_of_order(tmp_path):
     updated = append_reading("desordenado", row, data_dir=tmp_path)
 
     assert list(updated["timestamp"]) == list(pd.to_datetime(["2026-01-02", "2026-01-05"]))
+
+
+def test_append_reading_replaces_row_for_same_timestamp(tmp_path):
+    from data_ingestion.storage import append_reading
+
+    row1 = {"timestamp": pd.Timestamp("2026-01-01"), "temperature": 25.0, "origen": "real"}
+    append_reading("mismo_dia", row1, data_dir=tmp_path)
+
+    row2 = {"timestamp": pd.Timestamp("2026-01-01"), "temperature": 30.0, "origen": "real"}
+    updated = append_reading("mismo_dia", row2, data_dir=tmp_path)
+
+    assert len(updated) == 1
+    assert updated.loc[0, "temperature"] == 30.0

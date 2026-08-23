@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 import requests
 
 from data_ingestion.mock_sensor import generate_next_reading
+from data_ingestion.schema import PROVENANCE_COLUMN
 from data_ingestion.storage import load_dataset
 
 
@@ -45,7 +46,7 @@ def main() -> None:
         "precipitation": reading.get("precipitation"),
         "solar_radiation": reading.get("solar_radiation"),
         "wind_speed": reading.get("wind_speed"),
-        "procedencia": "sintetico",
+        "procedencia": reading[PROVENANCE_COLUMN],
     }
     response = requests.post(f"{args.backend_url}/sensors/readings", json=payload, timeout=30)
     response.raise_for_status()
