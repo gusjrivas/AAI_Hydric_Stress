@@ -73,6 +73,27 @@ Un capítulo se aprueba pasando cuatro filtros en orden — cada uno bloquea si 
 
 Al revisar un fragmento, aplicá estos cuatro filtros en ese orden y señalá en cuál falla primero.
 
+## Estructura real de la plantilla (Plantilla-para-memoria)
+
+El repo de la plantilla (https://github.com/TTFA-TTFB/Plantilla-para-memoria) tiene esta forma concreta — usarla al armar el prompt para Prism, no inventar nombres de archivo:
+
+- `memorianueva.tex`: archivo maestro. Incluye `portada.tex`, el `abstract`, y luego `\include{Chapters/Chapter1}` … `\include{Chapters/Chapter5}`.
+- `Chapters/ChapterN.tex` (N = 1..5): cada uno arranca con `\chapter{Título}` y `\label{ChapterN}`. **Ojo:** en la plantilla sin editar, `Chapter1.tex` y `Chapter2.tex` traen de fábrica el instructivo de uso de LaTeX (cómo usar la plantilla, ejemplos de figuras/tablas/ecuaciones) en vez de contenido real — hay que reemplazarlo entero, no agregarle nada a continuación.
+- `portada.tex`: placeholders literales a completar — título del trabajo, nombre del autor, carrera/maestría (elegir una de las opciones comentadas), director, jurados 1-3, ciudad/mes/año.
+- `references.bib`: entradas BibTeX. Citadas inline con `\cite{clave}`; la clase usa `biblatex` en modo `numeric` con `sorting=none`, por lo que `\cite{}` se renderiza automáticamente como `[1]`, `[2]`... en orden de aparición — nunca escribir el número a mano.
+- Figuras/tablas/ecuaciones: `\label{fig:...}`, `\label{tab:...}`, `\label{eq:...}`, citadas con `\ref{}` — mantener esa convención de prefijos.
+
+## Flujo de redacción de un capítulo (pipeline de subagentes)
+
+Para redactar o revisar un capítulo completo (no un fragmento suelto), seguir este flujo:
+
+1. **Investigación**: buscar en el repo el material ya investigado/desarrollado relevante al capítulo pedido (`docs/research/`, `docs/adr/`, `openspec/changes/`, `docs/seguimiento-tareas.md`, `src/`), según la columna "no puede faltar" de la tabla de estructura. Incorporar cualquier texto adicional que el usuario aporte.
+2. **Borrador**: redactar el capítulo en español aplicando todas las reglas de este skill, a partir de lo investigado.
+3. **Crítico** (`memoria-critico`): dispatch con el borrador — revisa contenido y distribución, nunca estilo.
+4. **Corrector** (`memoria-corrector`): dispatch con el borrador (y los hallazgos del crítico, si los hay) — aplica el checklist de formato/redacción y devuelve el texto corregido.
+5. **Loop**: repetir 3→4 hasta que `memoria-critico` responda "Sin hallazgos de contenido." Tope de 3 iteraciones — si al llegar al tope quedan hallazgos, no seguir iterando: pasar igual al editor final marcando los hallazgos pendientes para que el usuario decida.
+6. **Editor final** (`memoria-editor`): dispatch con la última versión limpia — devuelve el texto final y el prompt listo para pegar en Prism (ver estructura real de la plantilla arriba).
+
 ## Quick reference al corregir
 
 | Se ve así | Se corrige a |
