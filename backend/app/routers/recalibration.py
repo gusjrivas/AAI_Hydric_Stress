@@ -1,5 +1,6 @@
 """Router de recalibración manual del modelo (spec alerting-ui,
-requirement "Disparo manual de recalibración desde la interfaz").
+requirement "Disparo manual de recalibración desde la interfaz, por
+sensor").
 """
 
 from __future__ import annotations
@@ -9,32 +10,38 @@ from pathlib import Path
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
+from data_ingestion.sensor_naming import feedback_log_name_for
 from human_feedback.model_registry import register_recalibrated_model
 from human_feedback.recalibration import recalibrate_model, select_recalibration_observations
 from human_feedback.registry import integrate_feedback_with_predictions, load_feedback_log
 
-from ..config import FEEDBACK_LOG_NAME, get_feedback_data_dir
+from ..config import get_dataset_data_dir, get_feedback_data_dir
+from ..dependencies import get_valid_sensor_id
 from ..pipeline import execute_configured_pipeline, load_dataset_or_raise
 from ..schemas import RecalibrationResponse
 
 router = APIRouter()
 
 
-@router.post("/recalibrate", response_model=RecalibrationResponse)
-def recalibrate(data_dir: Path = Depends(get_feedback_data_dir)) -> RecalibrationResponse:
+@router.post("/recalibrate/{sensor_id}", response_model=RecalibrationResponse)
+def recalibrate(
+    sensor_id: str = Depends(get_valid_sensor_id),
+    dataset_dir: Path = Depends(get_dataset_data_dir),
+    feedback_dir: Path = Depends(get_feedback_data_dir),
+) -> RecalibrationResponse:
     try:
-        feedback_log = load_feedback_log(FEEDBACK_LOG_NAME, data_dir=data_dir)
+        feedback_log = load_feedback_log(feedback_log_name_for(sensor_id), data_dir=feedback_dir)
     except FileNotFoundError as error:
         raise HTTPException(
             status_code=404, detail="Todavía no se corrió ningún pronóstico."
         ) from error
 
     try:
-        df, fingerprint = load_dataset_or_raise()
+        df, fingerprint = load_dataset_or_raise(sensor_id, data_dir=dataset_dir)
     except FileNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 
-    result = execute_configured_pipeline(df, fingerprint)
+    result = execute_configured_pipeline(df, sensor_id, fingerprint, data_dir=dataset_dir)
     feature_cols = result["feature_columns"]
     train = result["train"]
     test = result["test"]
@@ -61,6 +68,7 @@ def recalibrate(data_dir: Path = Depends(get_feedback_data_dir)) -> Recalibratio
     )
 
     version = register_recalibrated_model(
+        sensor_id,
         recalibrated_model,
         params={
             "n_correcciones": len(recalibration_obs),

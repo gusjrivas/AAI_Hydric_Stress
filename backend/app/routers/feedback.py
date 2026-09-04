@@ -1,5 +1,5 @@
 """Router de consulta y validación humana de alertas (spec alerting-ui,
-requirement "Consulta y validación humana de alertas").
+requirement "Consulta y validación humana de alertas, por sensor").
 """
 
 from __future__ import annotations
@@ -10,18 +10,20 @@ from pathlib import Path
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
+from data_ingestion.sensor_naming import feedback_log_name_for
 from human_feedback.registry import load_feedback_log, save_feedback_log
 from human_feedback.schema import update_feedback
 
-from ..config import FEEDBACK_LOG_NAME, get_feedback_data_dir
+from ..config import get_feedback_data_dir
+from ..dependencies import get_valid_sensor_id
 from ..schemas import FeedbackListResponse, FeedbackRow, RejectRequest
 
 router = APIRouter()
 
 
-def _load_or_404(data_dir: Path) -> pd.DataFrame:
+def _load_or_404(sensor_id: str, data_dir: Path) -> pd.DataFrame:
     try:
-        return load_feedback_log(FEEDBACK_LOG_NAME, data_dir=data_dir)
+        return load_feedback_log(feedback_log_name_for(sensor_id), data_dir=data_dir)
     except FileNotFoundError as error:
         raise HTTPException(
             status_code=404, detail="Todavía no se corrió ningún pronóstico."
@@ -47,31 +49,36 @@ def _row_to_schema(row: pd.Series) -> FeedbackRow:
     )
 
 
-@router.get("/feedback", response_model=FeedbackListResponse)
-def list_feedback(data_dir: Path = Depends(get_feedback_data_dir)) -> FeedbackListResponse:
-    log = _load_or_404(data_dir)
+@router.get("/feedback/{sensor_id}", response_model=FeedbackListResponse)
+def list_feedback(
+    sensor_id: str = Depends(get_valid_sensor_id), data_dir: Path = Depends(get_feedback_data_dir)
+) -> FeedbackListResponse:
+    log = _load_or_404(sensor_id, data_dir)
     return FeedbackListResponse(rows=[_row_to_schema(row) for _, row in log.iterrows()])
 
 
-@router.post("/feedback/{fecha}/confirm", response_model=FeedbackRow)
+@router.post("/feedback/{sensor_id}/{fecha}/confirm", response_model=FeedbackRow)
 def confirm_feedback(
-    fecha: date_type, data_dir: Path = Depends(get_feedback_data_dir)
+    fecha: date_type,
+    sensor_id: str = Depends(get_valid_sensor_id),
+    data_dir: Path = Depends(get_feedback_data_dir),
 ) -> FeedbackRow:
-    log = _load_or_404(data_dir)
+    log = _load_or_404(sensor_id, data_dir)
     target = _find_date_or_404(log, fecha)
     updated = update_feedback(log, fecha=target, estado_validacion="confirmada")
-    save_feedback_log(FEEDBACK_LOG_NAME, updated, data_dir=data_dir)
+    save_feedback_log(feedback_log_name_for(sensor_id), updated, data_dir=data_dir)
     row = updated.loc[updated["fecha"] == target].iloc[0]
     return _row_to_schema(row)
 
 
-@router.post("/feedback/{fecha}/reject", response_model=FeedbackRow)
+@router.post("/feedback/{sensor_id}/{fecha}/reject", response_model=FeedbackRow)
 def reject_feedback(
     fecha: date_type,
     body: RejectRequest,
+    sensor_id: str = Depends(get_valid_sensor_id),
     data_dir: Path = Depends(get_feedback_data_dir),
 ) -> FeedbackRow:
-    log = _load_or_404(data_dir)
+    log = _load_or_404(sensor_id, data_dir)
     target = _find_date_or_404(log, fecha)
     updated = update_feedback(
         log,
@@ -80,6 +87,6 @@ def reject_feedback(
         etiqueta_corregida=body.etiqueta_corregida,
         observacion=body.observacion,
     )
-    save_feedback_log(FEEDBACK_LOG_NAME, updated, data_dir=data_dir)
+    save_feedback_log(feedback_log_name_for(sensor_id), updated, data_dir=data_dir)
     row = updated.loc[updated["fecha"] == target].iloc[0]
     return _row_to_schema(row)
