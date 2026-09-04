@@ -16,7 +16,7 @@ def validate_sensor_id(sensor_id: str) -> str:
     """Devuelve `sensor_id` sin modificar si cumple
     `^[a-zA-Z0-9_-]{1,64}$`; levanta `ValueError` si no.
     """
-    if not _SENSOR_ID_PATTERN.match(sensor_id):
+    if not _SENSOR_ID_PATTERN.fullmatch(sensor_id):
         raise ValueError(
             f"sensor_id inválido: '{sensor_id}'. Debe cumplir "
             f"'{_SENSOR_ID_PATTERN.pattern}' (alfanumérico, '-' y '_', 1 a 64 caracteres)."

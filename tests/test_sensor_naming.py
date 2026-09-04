@@ -14,7 +14,7 @@ def test_validate_sensor_id_accepts_alphanumeric_dash_underscore():
 
 @pytest.mark.parametrize(
     "invalid_id",
-    ["", "a" * 65, "sensor/1", "../etc/passwd", "sensor con espacio", "sensor.1"],
+    ["", "a" * 65, "sensor/1", "../etc/passwd", "sensor con espacio", "sensor.1", "sensor-a\n"],
 )
 def test_validate_sensor_id_rejects_invalid_ids(invalid_id):
     with pytest.raises(ValueError):

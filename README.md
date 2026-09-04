@@ -30,7 +30,7 @@ Además de las HU del backlog de tesis, el repo incluye una interfaz de usuario 
 - `src/architecture_integration/`: orquestador de punta a punta que encadena las cuatro capacidades anteriores.
 - `src/experiment_runner/`: ejecución del plan experimental (escenarios de escasez/ruido, aumentación sintética, registro de corridas en MLflow).
 - `scripts/`: puntos de entrada de línea de comandos para correr cada pipeline sobre un dataset real (`run_data_quality_pipeline.py`, `run_end_to_end_pipeline.py`, conectores de ingesta).
-- `backend/`: API FastAPI de la interfaz de usuario (alerting-ui) — fachada delgada que orquesta el pipeline y expone `POST /forecast/run`, `GET /feedback` + confirmar/rechazar, y `POST /recalibrate`.
+- `backend/`: API FastAPI de la interfaz de usuario (alerting-ui) — fachada delgada que orquesta el pipeline y expone `POST /sensors/{sensor_id}/readings`, `POST /forecast/{sensor_id}/run`, `GET /feedback/{sensor_id}` + confirmar/rechazar por fecha, y `POST /recalibrate/{sensor_id}`.
 - `frontend/`: aplicación React + TypeScript (Vite) que consume esa API — pronóstico, validación humana de alertas y disparo manual de recalibración.
 - `openspec/specs/`: especificación viva de cada capacidad (requisitos, escenarios, verificación con datos reales, limitaciones conocidas). `openspec/changes/`: historial de decisiones de diseño por *change*.
 - `docs/adr/`: decisiones de arquitectura, desde el stack técnico del PoC (ADR-0001/0002) hasta el stack web, MLflow/MinIO y la dockerización de backend/frontend (ADR-0003 a ADR-0006).

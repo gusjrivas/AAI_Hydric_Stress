@@ -12,9 +12,7 @@ import mlflow.sklearn
 from data_ingestion.sensor_naming import registered_model_name_for
 
 
-def register_recalibrated_model(
-    sensor_id: str, model: object, params: dict, metrics: dict
-) -> str:
+def register_recalibrated_model(sensor_id: str, model: object, params: dict, metrics: dict) -> str:
     """Registra `model` como una nueva versión en el Model Registry de
     MLflow bajo el nombre propio de `sensor_id`, junto con `params` y
     `metrics` en un run propio. Devuelve el número de versión

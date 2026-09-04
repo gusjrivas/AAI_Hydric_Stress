@@ -77,7 +77,6 @@ services:
     depends_on:
       - mlflow
     environment:
-      ALERTING_UI_DATASET: ${ALERTING_UI_DATASET:-sensores_en_vivo}
       MLFLOW_TRACKING_URI: http://mlflow:5000
     ports:
       - "8000:8000"
