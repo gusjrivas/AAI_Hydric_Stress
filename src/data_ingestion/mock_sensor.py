@@ -21,6 +21,7 @@ from data_ingestion.schema import (
     normalize_to_schema,
 )
 from data_ingestion.storage import DEFAULT_DATA_DIR, save_dataset
+from data_quality.reference_et import estimate_et0
 from data_quality.rules import get_range
 
 _STEP_FRACTION = 0.02  # tamaño del paso aleatorio, como fracción del ancho del rango físico
@@ -30,10 +31,12 @@ def generate_next_reading(
     previous: pd.Series | None, timestamp: pd.Timestamp, random_state: int | None = None
 ) -> dict[str, Any]:
     """Genera una lectura sintética para `timestamp`, columna
-    obligatoria por columna obligatoria (excepto `et0`, que se deriva
-    en preprocesamiento), dando un paso aleatorio chico desde
-    `previous` (o partiendo del punto medio del rango físico si no hay
-    lectura anterior), recortado a `data_quality.rules.get_range`.
+    obligatoria por columna obligatoria, dando un paso aleatorio chico
+    desde `previous` (o partiendo del punto medio del rango físico si
+    no hay lectura anterior), recortado a `data_quality.rules.get_range`.
+    `et0` se deriva del resto de la lectura por
+    `data_quality.reference_et.estimate_et0` en vez de generarse por
+    random walk.
     """
     rng = np.random.default_rng(random_state)
     reading: dict[str, Any] = {TIMESTAMP_COLUMN: timestamp}
@@ -50,6 +53,13 @@ def generate_next_reading(
         value = base + rng.normal(0.0, step)
         reading[column] = float(np.clip(value, low, high))
 
+    reading["et0"] = estimate_et0(
+        temperature=reading["temperature"],
+        relative_humidity=reading["relative_humidity"],
+        solar_radiation=reading["solar_radiation"],
+        wind_speed=reading["wind_speed"],
+        timestamp=timestamp,
+    )
     reading[PROVENANCE_COLUMN] = "sintetico"
     return reading
 
