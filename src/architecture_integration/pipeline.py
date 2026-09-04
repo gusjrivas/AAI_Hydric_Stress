@@ -3,12 +3,25 @@
 punta de las capacidades del núcleo de IA" y "Orden de etapas sin fuga
 temporal entre calidad y modelado").
 
-Encadena, en el orden correcto para evitar fuga temporal: imputación
-(`data-quality`) → etiquetado y variables predictoras
-(`predictive-modeling`, sobre la serie completa) → partición temporal
-(`data-quality`) → detección de anomalías opcional (`data-quality`,
-después de partir) → entrenamiento y alertas (`predictive-modeling`) →
-inicialización del registro de retroalimentación (`human-feedback`).
+Encadena, en el orden correcto para evitar fuga temporal: partición
+temporal sobre los datos crudos (`data-quality`) → imputación causal
+por partición, con la cola de entrenamiento como semilla del período de
+evaluación (`data-quality`) → umbral de estrés congelado sobre
+entrenamiento y etiquetado de ambas particiones (`predictive-modeling`)
+→ variables predictoras (`predictive-modeling`, retardos/ventanas
+móviles, causales por construcción) → partición temporal final sobre el
+resultado con variables → detección de anomalías opcional
+(`data-quality`, ajustada solo sobre entrenamiento) → entrenamiento y
+alertas (`predictive-modeling`) → inicialización del registro de
+retroalimentación (`human-feedback`).
+
+Auditoría metodológica (memoria técnica): el orden anterior imputaba y
+calculaba el umbral de estrés sobre el DataFrame completo, antes de
+partir train/test — la imputación bidireccional podía completar un
+hueco de entrenamiento con una observación de evaluación, y el umbral
+de estrés quedaba informado por la distribución completa (incluyendo
+evaluación). Ambos casos constituían fuga temporal. Este orden lo
+corrige sin cambiar el resto de la arquitectura.
 """
 
 from __future__ import annotations
@@ -21,13 +34,13 @@ from sklearn.base import clone
 
 from data_ingestion.schema import TIMESTAMP_COLUMN
 from data_quality.anomaly_detection import apply_anomaly_detector, fit_anomaly_detector
-from data_quality.imputation import interpolate_missing
+from data_quality.imputation import interpolate_missing_causal
 from data_quality.quality_report import quality_report
 from data_quality.splitting import temporal_train_test_split
 from human_feedback.schema import init_feedback_log
 from predictive_modeling.alerts import generate_alerts
 from predictive_modeling.feature_engineering import add_lag_features, add_rolling_features
-from predictive_modeling.labeling import add_stress_label
+from predictive_modeling.labeling import add_stress_label, fit_stress_threshold
 from predictive_modeling.model_selection import select_best_candidate
 
 
@@ -47,14 +60,15 @@ def run_end_to_end_pipeline(
     random_state: int = 42,
     skip_fit: bool = False,
 ) -> dict[str, Any]:
-    """Ejecuta el flujo completo sobre `df`: imputación, etiquetado,
-    variables predictoras, partición temporal, detección de anomalías
-    opcional, entrenamiento del modelo, alertas, y registro de
-    retroalimentación inicializado. Si `include_anomaly_detection` es `True`,
-    el detector se ajusta solo sobre el conjunto de entrenamiento y
-    `is_anomaly` se agrega como variable predictora. Si `skip_fit` es `True`,
-    usa `model` tal cual, ya entrenado, sin reentrenar. Si `model` es `None`,
-    selecciona automáticamente el mejor candidato
+    """Ejecuta el flujo completo sobre `df`: partición temporal,
+    imputación causal, etiquetado, variables predictoras, partición
+    temporal final, detección de anomalías opcional, entrenamiento del
+    modelo, alertas, y registro de retroalimentación inicializado. Si
+    `include_anomaly_detection` es `True`, el detector se ajusta solo
+    sobre el conjunto de entrenamiento y `is_anomaly` se agrega como
+    variable predictora. Si `skip_fit` es `True`, usa `model` tal cual,
+    ya entrenado, sin reentrenar. Si `model` es `None`, selecciona
+    automáticamente el mejor candidato
     (`predictive_modeling.model_selection.select_best_candidate`) en vez de
     usar un modelo fijo.
     """
@@ -63,9 +77,21 @@ def run_end_to_end_pipeline(
 
     report = quality_report(df)
 
-    imputed = interpolate_missing(df, columns=feature_columns)
+    train_raw, test_raw = temporal_train_test_split(df, split_date=split_date)
+
+    train_imputed = interpolate_missing_causal(train_raw, columns=feature_columns)
+    train_imputed = train_imputed.dropna(subset=feature_columns).reset_index(drop=True)
+
+    warm_start = train_imputed.iloc[-1] if len(train_imputed) else None
+    test_imputed = interpolate_missing_causal(
+        test_raw, columns=feature_columns, warm_start=warm_start
+    )
+
+    combined = pd.concat([train_imputed, test_imputed], ignore_index=True)
+
+    threshold = fit_stress_threshold(train_imputed, column=label_column, percentile=percentile)
     labeled = add_stress_label(
-        imputed, column=label_column, horizon_days=horizon_days, percentile=percentile
+        combined, column=label_column, horizon_days=horizon_days, threshold=threshold
     )
     featured = add_lag_features(labeled, columns=feature_columns, lags=lags)
     featured = add_rolling_features(featured, columns=feature_columns, windows=rolling_windows)

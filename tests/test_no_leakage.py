@@ -2,7 +2,7 @@ import pandas as pd
 
 from data_ingestion.schema import normalize_to_schema
 from predictive_modeling.feature_engineering import add_lag_features, add_rolling_features
-from predictive_modeling.labeling import add_stress_label
+from predictive_modeling.labeling import add_stress_label, fit_stress_threshold
 
 
 def _build_dataset(soil_moisture_values):
@@ -18,7 +18,8 @@ def _build_dataset(soil_moisture_values):
     )
     df = add_lag_features(df, columns=["soil_moisture"], lags=[1, 2])
     df = add_rolling_features(df, columns=["soil_moisture"], windows=[3])
-    df = add_stress_label(df, column="soil_moisture", horizon_days=3, percentile=20)
+    threshold = fit_stress_threshold(df, column="soil_moisture", percentile=20)
+    df = add_stress_label(df, column="soil_moisture", horizon_days=3, threshold=threshold)
     return df
 
 

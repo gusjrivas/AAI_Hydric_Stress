@@ -48,17 +48,31 @@ El sistema DEBE generar, para un dataset dado, un reporte que identifique el por
 
 Implementado en `src/data_quality/quality_report.py` (`quality_report`), testeado en `tests/test_quality_report.py`. Verificado sobre el dataset real consolidado: 24.04% de faltantes en humedad de suelo, 100% en ET0 (esperado, no se ingiere directamente), 0 timestamps duplicados, 0 valores fuera de rango en ninguna columna.
 
-### Requirement: Tratamiento de valores faltantes por interpolación temporal
+### Requirement: Tratamiento de valores faltantes por imputación causal, sin fuga temporal
 
-El sistema DEBE poder imputar valores faltantes en una serie temporal mediante interpolación lineal entre el valor anterior y posterior válidos, preservando de forma explícita qué filas fueron imputadas (no deben quedar indistinguibles de los valores originales).
+El sistema DEBE poder imputar valores faltantes en una serie temporal usando únicamente observaciones estrictamente anteriores (forward-fill), nunca un valor posterior — ni dentro del propio conjunto, ni a través del período de evaluación —, preservando de forma explícita qué filas fueron imputadas (no deben quedar indistinguibles de los valores originales). El período de evaluación puede recibir como semilla la última fila válida del período de entrenamiento, para poder completar sus propios valores faltantes iniciales sin recurrir a un valor posterior dentro de sí mismo.
 
-#### Scenario: Imputación de un valor faltante entre dos valores válidos
+**Actualización (2026-09-04):** reemplaza la versión anterior (interpolación lineal bidireccional, `limit_direction="both"`), que completaba un hueco del período de entrenamiento usando una observación posterior perteneciente al período de evaluación — fuga temporal confirmada en la auditoría metodológica de la memoria técnica (ver `docs/seguimiento-tareas.md`, fila "Corrección de fuga temporal en imputación y umbral de estrés").
 
-- **GIVEN** una serie temporal diaria con un valor faltante entre dos valores válidos consecutivos en el tiempo
-- **WHEN** se aplica la interpolación de valores faltantes
-- **THEN** el valor faltante se reemplaza por un valor interpolado linealmente entre los dos valores válidos, y la fila queda marcada como imputada
+#### Scenario: Imputación de un valor faltante con el último valor observado
 
-Implementado en `src/data_quality/imputation.py` (`interpolate_missing`), testeado en `tests/test_imputation.py`. Verificado sobre el dataset real: imputó 88 de 366 filas de humedad de suelo (los gaps del producto satelital ESA CCI), dejando 0 valores faltantes.
+- **GIVEN** una serie temporal diaria con un valor faltante posterior a un valor válido
+- **WHEN** se aplica la imputación causal
+- **THEN** el valor faltante se reemplaza por el último valor válido anterior (nunca por un promedio con un valor posterior), y la fila queda marcada como imputada
+
+#### Scenario: El período de evaluación puede arrancar con el último valor de entrenamiento
+
+- **GIVEN** el período de evaluación con un valor faltante al comienzo, y la última fila válida del período de entrenamiento
+- **WHEN** se aplica la imputación causal al período de evaluación usando esa fila como semilla
+- **THEN** el valor faltante se completa con el valor de la semilla, sin recurrir a ningún valor posterior dentro del propio período de evaluación
+
+#### Scenario: Sin semilla ni valor previo, la fila queda sin imputar
+
+- **GIVEN** un valor faltante al comienzo de una serie, sin ningún valor previo disponible ni semilla de un período anterior
+- **WHEN** se aplica la imputación causal
+- **THEN** la fila permanece en `NaN` — no se completa con un valor posterior (`bfill`)
+
+Implementado en `src/data_quality/imputation.py` (`interpolate_missing_causal`), testeado en `tests/test_imputation.py` (incluye pruebas específicas de causalidad: cambiar un valor futuro no altera una imputación anterior, y el período de evaluación puede arrancar con el último valor de entrenamiento). Consumido por `src/architecture_integration/pipeline.py` y `src/data_quality/pipeline.py`, ambos parten primero train/test y luego imputan cada partición por separado.
 
 ### Requirement: Estandarización numérica reversible para modelado
 
