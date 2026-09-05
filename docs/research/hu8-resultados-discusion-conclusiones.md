@@ -1,5 +1,7 @@
 # HU8 — Resultados, discusión y conclusiones
 
+> **Actualización (2026-09-04) — corrección de fuga temporal, ver sección 6.** Las secciones 1-5 describen los resultados y conclusiones **previos** a esta corrección (`fix: corrige fuga temporal en imputacion y umbral de estres`, PR #164) y se conservan sin modificar como evidencia histórica. La sección 6, al final, actualiza específicamente la contrastación de hipótesis (sección 2) y la discusión (sección 4) a la luz de los resultados corregidos — léela antes de citar cualquier conclusión de este documento en la memoria técnica.
+
 Épica 4, HU8 (sin capacidad de código, igual que HU1). Segundo y último sub-proyecto: contrastación con la hipótesis de investigación, limitaciones y amenazas a la validez, redacción de resultados/discusión/conclusiones, y consolidación final de evidencias. Se apoya en `docs/research/hu8-analisis-resultados.md` (primer sub-proyecto) y en las specs vigentes de `data-quality`, `predictive-modeling`, `human-feedback`, `architecture-integration` y `experiment-runner`.
 
 ## 1. Resultados experimentales
@@ -95,3 +97,21 @@ El tercer hallazgo, sobre los escenarios explícitos de la hipótesis (escasez, 
 | Hipótesis de investigación (texto citado) | `docs/adr/0001-arquitectura-modular-deteccion-estres-hidrico.md` |
 
 No se generaron figuras (gráficos) en este sub-proyecto: las tablas anteriores y las de `docs/research/hu8-analisis-resultados.md` consolidan la evidencia cuantitativa disponible. La generación de figuras específicas para el documento final de tesis queda como tarea de redacción del documento completo, fuera del alcance de este repositorio de código.
+
+## 6. Actualización tras corrección de fuga temporal (2026-09-04)
+
+Una auditoría metodológica detectó dos fugas temporales reales en `src/architecture_integration/pipeline.py`: la imputación de valores faltantes y el umbral de la variable objetivo (percentil 20) se calculaban sobre el dataset completo antes de partir train/test, permitiendo que ambas operaciones usaran información del período de evaluación. Corregido sin alterar la arquitectura (detalle completo, tabla de métricas antes/después y análisis de causa en `docs/research/hu8-analisis-resultados.md`, sección 11).
+
+**Re-lectura de la sección 2 (contrastación de hipótesis) a la luz de los resultados corregidos:**
+
+- La afirmación "ninguna configuración de la arquitectura propuesta superó al modelo de referencia en F1" (sección 1) **ya no es cierta en términos de F1** (con el pipeline corregido, las 4 configuraciones superan numéricamente a la persistencia: 0.71-0.74 vs. 0.6087), pero esa comparación de F1 quedó confundida por un cambio real en la proporción de casos de estrés en evaluación (de ~51% a ~65%), no por una mejora genuina del modelo. La lectura correcta usa ROC-AUC, insensible a ese desbalance: las 4 configuraciones (0.4432-0.4962) están en o por debajo de 0.5, el valor de un clasificador sin capacidad de discriminación. La conclusión correcta es **más débil** que la original, no más fuerte: ni el modelo entrenado ni la persistencia discriminan de forma confiable entre estrés y no-estrés en este dataset, una vez eliminada la fuga.
+- **Detección de anomalías**: el efecto relativo (`+Anomalías` mejor que `Base`, `Completa` mejor que `+Sintéticos`, en F1 y ROC-AUC) se mantiene igual de consistente que antes de la corrección. Esta sigue siendo la conclusión más sólida de las cuatro, aunque ahora dentro de un contexto donde ninguna configuración discrimina bien en términos absolutos.
+- **Datos sintéticos**: el efecto negativo se mantiene igual de consistente (`+Sintéticos` peor que `Base`, `Completa` peor que `+Anomalías`, en F1 y ROC-AUC). La conclusión de rechazo de la hipótesis para este componente no cambia.
+- **Retroalimentación humana**: sin cambios — el mecanismo no se re-evaluó a escala agregada, misma limitación que antes.
+- **Escenarios de escasez y ruido**: ambos direccionalmente iguales que antes (escasez mejora, ruido empeora, frente a su propia base recalculada), aunque con los mismos valores absolutos desplazados por el cambio de tasa base.
+
+**Re-lectura de la sección 4 (discusión) a la luz de los resultados corregidos:**
+
+El hallazgo más claro de la sección 4 original ("un modelo de referencia sin entrenamiento es al menos tan bueno como el modelo entrenado propuesto") queda **reemplazado por un hallazgo más severo**: ni el modelo entrenado ni la persistencia muestran capacidad de discriminación medible sobre este dataset, una vez corregida la fuga que inflaba artificialmente el F1 de ambos por igual (al balancear artificialmente la clase de estrés en evaluación). Esto no invalida el segundo hallazgo (datos sintéticos perjudican) ni el tercero (escasez/ruido), que se mantienen sin cambios cualitativos.
+
+**Recomendación adicional para trabajo futuro**, a agregar a la lista de la sección 4: dado que el ROC-AUC post-corrección sugiere que las variables predictoras actuales (retardos y ventanas móviles de humedad de suelo, radiación solar, humedad relativa) no alcanzan para discriminar el estrés futuro en este dataset, valdría la pena reconsiderar qué variables se usan como predictoras (por ejemplo, incorporar variables adicionales del conjunto consolidado, o revisar el horizonte de anticipación) antes de invertir en modelos más complejos — la limitación parece estar más en la señal disponible que en el algoritmo elegido.
