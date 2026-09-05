@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import RandomForestClassifier
 
@@ -60,7 +61,7 @@ def test_select_best_candidate_breaks_exact_ties_deterministically_not_by_name_p
     assert "empate" in result["selection_warning"].lower()
 
 
-def test_select_best_candidate_reports_folds_without_positive_validation_examples():
+def test_select_best_candidate_fails_when_fold_has_single_class():
     # un único positivo muy temprano (para que los folds de entrenamiento
     # siempre tengan al menos un caso de cada clase y los modelos puedan
     # ajustarse) y el resto de los positivos concentrados al final -> los
@@ -69,12 +70,8 @@ def test_select_best_candidate_reports_folds_without_positive_validation_example
     y = pd.Series([1] + [0] * 49 + [1] * 10)
     X = pd.DataFrame({"feature": range(n)})
 
-    result = select_best_candidate(X, y, n_splits=3)
-
-    assert "fold_diagnostics" in result
-    assert len(result["fold_diagnostics"]) == 3
-    assert result["selection_warning"] is not None
-    assert "positivo" in result["selection_warning"].lower()
+    with pytest.raises(ValueError, match="folds sin ambas clases"):
+        select_best_candidate(X, y, n_splits=3)
 
 
 def test_select_best_candidate_has_no_warning_when_folds_are_well_balanced_and_not_tied():

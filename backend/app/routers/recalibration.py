@@ -2,16 +2,20 @@
 
 from pathlib import Path
 
+import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
 from data_ingestion.sensor_naming import feedback_log_name_for
-from human_feedback.model_registry import register_recalibrated_model
+from human_feedback.model_registry import (
+    load_latest_recalibrated_model,
+    register_recalibrated_model,
+)
 from human_feedback.recalibration import recalibrate_predictor
 from human_feedback.registry import load_feedback_log
 
 from ..config import get_dataset_data_dir, get_feedback_data_dir
 from ..dependencies import get_valid_sensor_id
-from ..pipeline import execute_configured_pipeline, load_dataset_or_raise
+from ..pipeline import configured_contract, execute_configured_pipeline, load_dataset_or_raise
 from ..schemas import RecalibrationResponse
 
 router = APIRouter()
@@ -29,7 +33,24 @@ def recalibrate(
     except FileNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     try:
-        result = execute_configured_pipeline(df, sensor_id, fingerprint, data_dir=dataset_dir)
+        model_id = log["model_version"].dropna().iloc[0] if "model_version" in log else None
+        latest = load_latest_recalibrated_model(sensor_id, expected_contract=configured_contract())
+        applied = (
+            {str(pd.Timestamp(value)) for value in (latest.applied_feedback or {})}
+            if latest is not None
+            else set()
+        )
+        correction_dates = {
+            str(pd.Timestamp(value))
+            for value in log.loc[
+                (log.estado_validacion == "rechazada") & log.etiqueta_corregida.notna(), "fecha"
+            ]
+        }
+        already_applied = latest is not None and correction_dates.issubset(applied)
+        predictor_model_id = None if already_applied else model_id
+        result = execute_configured_pipeline(
+            df, sensor_id, fingerprint, data_dir=dataset_dir, predictor_model_id=predictor_model_id
+        )
         predictor, dates, count = recalibrate_predictor(result["predictor"], df, log)
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error

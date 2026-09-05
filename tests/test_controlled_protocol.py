@@ -16,6 +16,7 @@ from experiment_runner.scenarios import (
 from human_feedback.recalibration import recalibrate_predictor
 from human_feedback.schema import init_prediction_feedback, update_feedback
 from predictive_modeling.contract import ModelContractMismatch
+from predictive_modeling.model_selection import select_best_candidate
 
 
 def dataset(n=100):
@@ -218,3 +219,28 @@ def test_empty_and_single_class_evaluation_are_explicit():
     single = evaluate_classifier(pd.Series([0, 0]), pd.Series([0, 0]), pd.Series([0.1, 0.2]))
     assert np.isnan(single["roc_auc"])
     assert np.isnan(single["average_precision"])
+
+
+def test_automatic_selection_fails_when_any_common_fold_lacks_both_classes():
+    X = pd.DataFrame({"x": range(20)})
+    y = pd.Series([0] * 12 + [1] * 8)
+    with pytest.raises(ValueError, match="folds sin ambas clases"):
+        select_best_candidate(
+            X,
+            y,
+            candidates={"random_forest": RandomForestClassifier(n_estimators=2)},
+            param_grids={"random_forest": {"n_estimators": [2]}},
+            n_splits=4,
+            gap=3,
+        )
+
+
+def test_recalibration_rejects_history_missing_previous_correction():
+    df = dataset()
+    predictor = run(df)["predictor"]
+    predictor.applied_feedback = {str(df.timestamp.iloc[20]): 1}
+    forecasts = predict_available(df, predictor).tail(1).reset_index(drop=True)
+    log = init_prediction_feedback(forecasts, predictor.model_id, 3, predictor.threshold)
+    log = update_feedback(log, forecasts.timestamp.iloc[0], "rechazada", 0)
+    with pytest.raises(ValueError, match="reaplicar"):
+        recalibrate_predictor(predictor, df.iloc[30:], log)

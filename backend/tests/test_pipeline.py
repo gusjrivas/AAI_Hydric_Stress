@@ -108,7 +108,8 @@ def test_execute_configured_pipeline_reuses_cached_selection_when_dataset_unchan
     first = execute_configured_pipeline(df, "sensor-a", data_dir=tmp_path)
     second = execute_configured_pipeline(df, "sensor-a", data_dir=tmp_path)
 
-    assert received_models == [None, first["predictor"]]
+    assert received_models[0] is not None
+    assert received_models[1] is first["predictor"]
     assert second["model"] is first["model"]
     assert second["model_name"] == first["model_name"]
 
@@ -139,7 +140,8 @@ def test_execute_configured_pipeline_reselects_when_dataset_fingerprint_changes(
     execute_configured_pipeline(df, "sensor-a", data_dir=tmp_path)
     execute_configured_pipeline(df, "sensor-a", data_dir=tmp_path)
 
-    assert received_models == [None, None]
+    assert all(model is not None for model in received_models)
+    assert received_models[0] is not received_models[1]
 
 
 def test_execute_configured_pipeline_recalibrated_model_ignores_selection_cache(
@@ -208,5 +210,6 @@ def test_selection_cache_is_isolated_per_sensor(monkeypatch, tmp_path):
 
     # ambos entrenan desde cero (model=None): el caché de "sensor-a" no se
     # reutilizó para "sensor-b"
-    assert received_models == [None, None]
+    assert all(model is not None for model in received_models)
+    assert received_models[0] is not received_models[1]
     assert set(pipeline_module._selection_cache.keys()) == {"sensor-a", "sensor-b"}

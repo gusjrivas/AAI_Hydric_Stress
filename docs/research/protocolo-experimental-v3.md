@@ -4,6 +4,10 @@ Estado: implementación técnica aprobada por el autor el 2026-09-05. Versión
 `controlled_daily_v3`. Sustituye el protocolo operativo anterior, preservando
 las corridas `hu7-epica4`, `hu7-epica4-leakage-fix` y `hu7-epica4-purged-cv`.
 No modifica hipótesis, propósito, alcance, entregables ni los cuatro componentes.
+Las corridas locales `reference-v3-*` se conservan como evidencia histórica
+provisional: fueron generadas antes del cierre completo de este protocolo y
+contienen metadata de procedencia incompleta; no sustentan por sí solas nuevas
+conclusiones de HU8.
 
 ## Definición del experimento
 
@@ -28,6 +32,9 @@ calibración anterior a todos los folds; ese prefijo no participa como ejemplos 
 la selección. El detector de anomalías se ajusta dentro de cada fold mediante una
 transformación sklearn; el gap del horizonte y los diagnósticos se conservan.
 El umbral congelado y el detector final se serializan con el estimador.
+
+La selección automática falla como no evaluable si algún fold no contiene ambas
+clases para entrenamiento y validación; no se descartan folds por candidato.
 
 La evaluación es secuencial: las observaciones anteriores del período de test
 pueden alimentar los retardos de días posteriores, pero nunca un ajuste del modelo.
@@ -106,7 +113,9 @@ Validar requiere que el día objetivo haya terminado. Registros antiguos sin met
 son consultables, pero requieren una migración documentada antes de recalibrar.
 
 Recalibrar usa objetivos observados maduros y correcciones maduras, preserva las
-correcciones ya aplicadas y rechaza repeticiones sin nueva información. El período
+correcciones ya aplicadas y rechaza repeticiones sin nueva información. La frontera
+`trained_through` es monótona y la recalibración falla si no puede reaplicar alguna
+corrección histórica. El período
 usado pasa a entrenamiento; solo fechas posteriores a su última fecha objetivo
 pueden evaluarse fuera de muestra. El detector se mantiene congelado en este ciclo;
 recalibración no redefine el objetivo. Umbrales incompatibles de feedback se rechazan.

@@ -49,7 +49,24 @@ def select_best_candidate(
     param_grids = param_grids if param_grids is not None else DEFAULT_HYPERPARAMETER_GRIDS
 
     fold_diagnostics = diagnose_time_series_folds(y_train, n_splits=n_splits, gap=gap)
-    folds_without_val_positives = sum(1 for fold in fold_diagnostics if fold["val_positives"] == 0)
+    invalid_folds = [
+        fold
+        for fold in fold_diagnostics
+        if fold["train_positives"] == 0
+        or fold["train_negatives"] == 0
+        or fold["val_positives"] == 0
+        or fold["val_negatives"] == 0
+    ]
+    if invalid_folds:
+        details = "; ".join(
+            f"fold {fold['fold']}: train(+/-)={fold['train_positives']}/{fold['train_negatives']}, "
+            f"val(+/-)={fold['val_positives']}/{fold['val_negatives']}"
+            for fold in invalid_folds
+        )
+        raise ValueError(
+            "Selección automática no evaluable: folds sin ambas clases bajo la política común. "
+            + details
+        )
 
     results = {}
     for name, model in candidates.items():
@@ -88,12 +105,6 @@ def select_best_candidate(
     if len(results) != len(candidates):
         warnings.append(
             "Candidatos sin validación finita: " + str(sorted(set(candidates) - set(results)))
-        )
-    if folds_without_val_positives > 0:
-        warnings.append(
-            f"{folds_without_val_positives} de {n_splits} folds de validación no tienen "
-            "ningún ejemplo positivo — cv_mean_score puede no ser informativo para "
-            "distinguir candidatos."
         )
     if len(tied_names) > 1:
         warnings.append(

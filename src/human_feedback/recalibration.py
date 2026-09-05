@@ -74,6 +74,9 @@ def recalibrate_predictor(predictor, df, feedback_log):
         & (feedback_log.target_timestamp < now.normalize())
         & feedback_log.model_version.notna()
     ].copy()
+    model_ids = valid.model_version.dropna().astype(str).unique()
+    if len(model_ids) > 1:
+        raise ValueError("El feedback pendiente proviene de múltiples predictores.")
     if not valid.target_threshold.eq(predictor.threshold).all():
         raise ValueError("Las correcciones corresponden a otro umbral de referencia.")
     if not valid.target_timestamp.eq(valid.fecha + pd.Timedelta(days=horizon)).all():
@@ -94,6 +97,13 @@ def recalibrate_predictor(predictor, df, feedback_log):
         featured.loc[featured.timestamp == pd.Timestamp(fecha), "stress_label"] = corrected
     eligible = featured.dropna(subset=["stress_label"])
     eligible = eligible[eligible.target_timestamp < now.normalize()].reset_index(drop=True)
+    # Every correction retained in the predictor must be replayable from the
+    # supplied history; otherwise fail instead of silently dropping it.
+    all_correction_dates = pd.to_datetime(list(corrections))
+    if not pd.Series(all_correction_dates).isin(eligible.timestamp).all():
+        raise ValueError(
+            "Falta historial de features para reaplicar todas las correcciones aplicadas."
+        )
     pending_dates = pd.to_datetime(list(pending))
     if not pd.Series(pending_dates).isin(eligible.timestamp).all():
         raise ValueError(
@@ -107,7 +117,9 @@ def recalibrate_predictor(predictor, df, feedback_log):
         predictor,
         model=fitted,
         model_id=uuid4().hex,
-        trained_through=str(eligible.target_timestamp.max()),
+        trained_through=str(
+            max(pd.Timestamp(predictor.trained_through), eligible.target_timestamp.max())
+        ),
         applied_feedback=corrections,
         training_rows=len(eligible),
     )
