@@ -255,3 +255,18 @@ Su ejecución científica ampliada no se declara completada. HU1 sistemático si
 No se agregan tecnologías, infraestructura ni automatización de riego.
 
 La verificación y la nueva referencia reproducible se registran al cerrar el PR.
+
+**Actualización (2026-09-05):** cierre técnico verificado y primera corrida HU7 formal
+y reproducible ejecutada. Correcciones anteriores commiteadas (`be1d481` cierre técnico
+de `controlled_daily_v3`; `2a40ee6` preserva provenance del runtime sin `git`). Corrida
+formal ejecutada desde commit conocido `2a40ee68c52d2eb5e2040a36b1029f756f9c048a` con
+working tree limpio, dataset `melchor_romero_2024_consolidado` (SHA-256
+`121697dd5af202633f24adf4244a793477d34bf5e4cf4a1f10d7b2ca1b33ba8e`), registrada en un
+experimento MLflow nuevo (`hu7-controlled-daily-v3-formal`, 8 configuraciones × 5
+semillas `[0,1,2,3,4]` = 48 runs), exportada con `scripts/export_hu7_reference.py` a
+`docs/research/reference-v3-formal-results.json` y
+`docs/research/reference-v3-formal-table.md`, sin sobrescribir la evidencia histórica
+provisional (`reference-v3-results.json`/`reference-v3-table.md`/
+`reference-v3-source-manifest.json`). Suite completa en verde (`pytest -q` 177,
+`cd backend && pytest -q` 33, `frontend npm test` 5). Resultados todavía no
+interpretados científicamente; HU8 no se actualiza en este PR.
