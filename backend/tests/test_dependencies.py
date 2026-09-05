@@ -1,7 +1,6 @@
 import pytest
-from fastapi import HTTPException
-
 from app.dependencies import get_valid_sensor_id
+from fastapi import HTTPException
 
 
 def test_get_valid_sensor_id_returns_valid_id():

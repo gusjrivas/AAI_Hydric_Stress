@@ -37,6 +37,21 @@ def _find_date_or_404(log: pd.DataFrame, fecha: date_type) -> pd.Timestamp:
     return target
 
 
+def _require_mature_target(log, target):
+    row = log.loc[log["fecha"] == target].iloc[0]
+    if "target_timestamp" not in row or pd.isna(row.get("model_version")):
+        raise HTTPException(
+            status_code=409, detail="Feedback histórico sin trazabilidad del objetivo."
+        )
+    if (
+        pd.Timestamp(row["target_timestamp"])
+        >= pd.Timestamp.now(tz="UTC").tz_localize(None).normalize()
+    ):
+        raise HTTPException(
+            status_code=409, detail="El día objetivo aún no terminó; no puede validarse."
+        )
+
+
 def _row_to_schema(row: pd.Series) -> FeedbackRow:
     etiqueta = row["etiqueta_corregida"]
     observacion = row["observacion"]
@@ -46,6 +61,10 @@ def _row_to_schema(row: pd.Series) -> FeedbackRow:
         estado_validacion=row["estado_validacion"],
         etiqueta_corregida=None if pd.isna(etiqueta) else int(etiqueta),
         observacion=None if observacion is None else observacion,
+        y_proba=None if pd.isna(row.get("y_proba")) else float(row["y_proba"]),
+        fecha_objetivo=(
+            None if pd.isna(row.get("target_timestamp")) else row["target_timestamp"].date()
+        ),
     )
 
 
@@ -65,6 +84,7 @@ def confirm_feedback(
 ) -> FeedbackRow:
     log = _load_or_404(sensor_id, data_dir)
     target = _find_date_or_404(log, fecha)
+    _require_mature_target(log, target)
     updated = update_feedback(log, fecha=target, estado_validacion="confirmada")
     save_feedback_log(feedback_log_name_for(sensor_id), updated, data_dir=data_dir)
     row = updated.loc[updated["fecha"] == target].iloc[0]
@@ -80,6 +100,7 @@ def reject_feedback(
 ) -> FeedbackRow:
     log = _load_or_404(sensor_id, data_dir)
     target = _find_date_or_404(log, fecha)
+    _require_mature_target(log, target)
     updated = update_feedback(
         log,
         fecha=target,

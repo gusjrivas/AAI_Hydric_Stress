@@ -231,3 +231,27 @@ Tampoco corresponde a una tarea del backlog de tesis (HU1-HU8): es infraestructu
 **Actualización (2026-08-21):** esta conclusión quedó desactualizada — fue escrita cuando solo HU1/HU2 tenían avance real y describía correctamente ese momento del proyecto. El estado actual, según las secciones de arriba: HU3, HU4, HU5, HU6 y HU7 están **✅ completas**; HU8 está **🟡 parcial** (falta la redacción de la memoria técnica final, ver su sección); HU1 y HU2 siguen **🟡 parciales** (falta protocolo sistemático de búsqueda y una fuente de datos adicional, respectivamente). Además, `backend/`+`frontend/` (alerting-ui) exponen HU5+HU6 a través de una interfaz de usuario real, con recalibración manual disparada desde la UI. Ver el resumen equivalente en [`README.md`](../README.md#estado-del-proyecto).
 
 **Riesgo identificado (histórico, sigue vigente como práctica):** cada PR debe indicar explícitamente a qué tarea(s) de la sección 9 del plan corresponde y si la deja completa o parcial, para que este documento se mantenga preciso sin tener que re-auditar todo el historial cada vez.
+
+## Correcciones de tercera auditoría aprobadas — HU4/HU5/HU6/HU7/HU8
+
+Plan aprobado explícitamente por el autor el 2026-09-05. Changes:
+`fix-daily-model-contract`, `fix-controlled-experimental-targets`,
+`fix-feedback-temporal-lifecycle` y `fix-sensor-ui-routing`. ADR-0009.
+
+- Contrato completo raw/engineered y paquete de estado ajustado; validación antes de carga.
+- Calendario diario obligatorio; fechas objetivo y purga temporal explícitas.
+- Etiquetas observadas independientes de imputación/ruido; umbral común entre escenarios.
+- Escasez supervisada con cobertura preservada y ventana reciente con igual presupuesto.
+- Calibración inicial anterior a CV automática y anomalías ajustadas dentro de folds.
+- Inferencia sobre el último día sin exigir etiquetas futuras; feedback trazable y maduro;
+  reutilización de correcciones; exclusión del período recalibrado de evaluación posterior.
+- Interfaz alineada a rutas por sensor, fecha objetivo visible y corrección de no-alertas.
+- Artefactos por fecha y configuración efectiva, huella de datos y versiones del entorno.
+- Erratas y síntesis científica vigentes agregadas conservando evidencia histórica.
+
+El protocolo para nuevos datasets, validación externa, ablaciones (incluida ET0) y
+comparación del efecto humano está redactado en `docs/research/protocolo-experimental-v3.md`.
+Su ejecución científica ampliada no se declara completada. HU1 sistemático sigue pendiente.
+No se agregan tecnologías, infraestructura ni automatización de riego.
+
+La verificación y la nueva referencia reproducible se registran al cerrar el PR.

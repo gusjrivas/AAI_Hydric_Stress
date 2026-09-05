@@ -6,6 +6,7 @@ informada explícitamente").
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 import pandas as pd
@@ -52,9 +53,23 @@ def select_best_candidate(
 
     results = {}
     for name, model in candidates.items():
-        results[name] = tune_hyperparameters(
-            model, param_grids[name], X_train, y_train, n_splits=n_splits, scoring=scoring, gap=gap
-        )
+        try:
+            result = tune_hyperparameters(
+                model,
+                param_grids[name],
+                X_train,
+                y_train,
+                n_splits=n_splits,
+                scoring=scoring,
+                gap=gap,
+            )
+        except ValueError:
+            continue
+        if math.isfinite(result["cv_mean_score"]) and math.isfinite(result["cv_std_score"]):
+            results[name] = result
+
+    if not results:
+        raise ValueError("Ningún candidato tiene validación temporal evaluable; ampliar los datos.")
 
     best_name = max(
         results,
@@ -70,6 +85,10 @@ def select_best_candidate(
     )
 
     warnings: list[str] = []
+    if len(results) != len(candidates):
+        warnings.append(
+            "Candidatos sin validación finita: " + str(sorted(set(candidates) - set(results)))
+        )
     if folds_without_val_positives > 0:
         warnings.append(
             f"{folds_without_val_positives} de {n_splits} folds de validación no tienen "

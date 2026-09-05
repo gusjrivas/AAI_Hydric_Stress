@@ -1,23 +1,23 @@
-"""Procedimiento automatizado de experimentación con múltiples semillas
-(spec experiment-runner, requirement "Ejecución automatizada de una
-configuración experimental con múltiples semillas").
-
-Ejecuta el orquestador de punta a punta (`architecture_integration.pipeline`)
-una vez por semilla, agregando datos sintéticos sobre el espacio de
-variables ya construidas (`experiment_runner.synthetic_augmentation`)
-cuando la configuración lo pide.
-"""
+"""Paired experiments with a common observed target and daily input history."""
 
 from __future__ import annotations
 
 from datetime import date
 
+import numpy as np
 import pandas as pd
 
-from architecture_integration.pipeline import run_end_to_end_pipeline
-from experiment_runner.scenarios import inject_gaussian_noise, subsample_training_period
+from architecture_integration.pipeline import prepare_daily_features, run_end_to_end_pipeline
+from data_quality.temporal import validate_daily_series
+from experiment_runner.scenarios import (
+    fit_noise_scales,
+    inject_gaussian_noise,
+    select_training_dates,
+)
 from experiment_runner.synthetic_augmentation import add_synthetic_rows
+from predictive_modeling.contract import make_contract, positive_probability
 from predictive_modeling.evaluation import evaluate_classifier
+from predictive_modeling.labeling import add_stress_label, fit_stress_threshold
 from predictive_modeling.models import (
     build_candidate_models,
     predict_always_stress_baseline,
@@ -44,102 +44,132 @@ def run_configuration(
     lags: list[int] | None = None,
     rolling_windows: list[int] | None = None,
     contamination: float = 0.05,
+    scarcity_mode: str = "coverage",
+    noise_mode: str = "both",
+    include_current: bool = False,
 ) -> pd.DataFrame:
-    """Ejecuta la configuración experimental (`include_anomaly_detection`,
-    `include_synthetic`) sobre `df` una vez por cada semilla en `seeds`, y
-    devuelve una fila por semilla con sus métricas de desempeño.
-
-    `train_fraction` < 1.0 simula escasez de datos (conserva solo esa
-    fracción más reciente del período de entrenamiento). `noise_std_ratio`
-    > 0.0 simula ruido de sensor (agrega ruido gaussiano a `feature_columns`,
-    con una semilla de ruido distinta por repetición). `horizon_days`,
-    `percentile`, `lags`, `rolling_windows` y `contamination` se reenvían
-    tal cual a `run_end_to_end_pipeline` — expuestos acá (en vez de quedar
-    implícitos en sus valores por defecto) para que una corrida de
-    experimento pueda registrarlos explícitamente como configuración
-    reproducible (auditoría de reproducibilidad, ver
-    `docs/research/hu8-analisis-resultados.md`, sección 11).
-    """
-    rows = []
+    if noise_mode not in {"both", "test_only"}:
+        raise ValueError("noise_mode debe ser both o test_only.")
+    reference = validate_daily_series(df)
+    cutoff = pd.Timestamp(split_date)
+    clean_train = reference[reference.timestamp < cutoff]
+    threshold = fit_stress_threshold(clean_train, label_column, percentile)
+    scales = fit_noise_scales(clean_train, feature_columns)
+    contract = make_contract(
+        feature_columns,
+        label_column,
+        horizon_days,
+        lags,
+        rolling_windows,
+        include_current,
+        include_anomaly_detection,
+        contamination,
+        alert_threshold,
+        percentile,
+    )
+    clean_features = prepare_daily_features(reference, contract)
+    clean_labels = add_stress_label(reference, label_column, horizon_days, threshold)
+    base_names = [c for c in contract["model_features"] if c != "is_anomaly"]
+    eligible = (
+        clean_features[base_names + feature_columns].notna().all(axis=1)
+        & clean_labels.stress_label.notna()
+        & (reference.timestamp + pd.Timedelta(days=horizon_days) < cutoff)
+    )
+    rows, artifacts = [], []
     for seed in seeds:
-        model = build_candidate_models(random_state=seed)[model_name]
-
-        scenario_df = subsample_training_period(
-            df, split_date=split_date, train_fraction=train_fraction
+        # Independent, named random streams. Paired conditions share each stream.
+        selection_seed, noise_train_seed, noise_test_seed, synthetic_seed = [
+            int(x) for x in np.random.SeedSequence(seed).generate_state(4)
+        ]
+        selected_dates = select_training_dates(
+            reference.loc[eligible, "timestamp"], train_fraction, scarcity_mode, selection_seed
         )
-        if noise_std_ratio > 0.0:
-            scenario_df = inject_gaussian_noise(
-                scenario_df,
-                columns=feature_columns,
-                noise_std_ratio=noise_std_ratio,
-                random_state=seed,
-            )
-
+        observed = reference.copy()
+        if noise_std_ratio:
+            for is_train, noise_seed in [(True, noise_train_seed), (False, noise_test_seed)]:
+                if is_train and noise_mode == "test_only":
+                    continue
+                mask = reference.timestamp < cutoff if is_train else reference.timestamp >= cutoff
+                noisy = inject_gaussian_noise(
+                    reference.loc[mask], feature_columns, noise_std_ratio, noise_seed, scales=scales
+                )
+                observed.loc[mask, feature_columns] = noisy[feature_columns]
+        model = build_candidate_models(random_state=seed)[model_name]
         result = run_end_to_end_pipeline(
-            scenario_df,
+            observed,
             label_column=label_column,
             feature_columns=feature_columns,
             split_date=split_date,
             model=model,
-            alert_threshold=alert_threshold,
-            include_anomaly_detection=include_anomaly_detection,
-            random_state=seed,
             horizon_days=horizon_days,
             percentile=percentile,
             lags=lags,
             rolling_windows=rolling_windows,
+            alert_threshold=alert_threshold,
+            include_anomaly_detection=include_anomaly_detection,
             contamination=contamination,
+            random_state=seed,
+            reference_df=reference,
+            stress_threshold=threshold,
+            include_current=include_current,
+            training_dates=selected_dates,
         )
-
         if include_synthetic and n_synthetic_samples > 0:
-            augmented_train = add_synthetic_rows(
+            augmented = add_synthetic_rows(
                 result["train"],
-                feature_columns=result["feature_columns"],
-                target_column="stress_label",
-                n_samples=n_synthetic_samples,
-                random_state=seed,
+                result["feature_columns"],
+                "stress_label",
+                n_synthetic_samples,
+                synthetic_seed,
             )
-            model.fit(augmented_train[result["feature_columns"]], augmented_train["stress_label"])
-            y_proba = pd.Series(
-                model.predict_proba(result["test"][result["feature_columns"]])[:, 1]
-            )
+            model.fit(augmented[result["feature_columns"]], augmented.stress_label)
+            probabilities = positive_probability(model, result["test"][result["feature_columns"]])
         else:
-            y_proba = result["y_proba"]
-
-        y_pred = (y_proba >= alert_threshold).astype(int).reset_index(drop=True)
-        y_true = result["test"]["stress_label"].reset_index(drop=True)
-
-        metrics = evaluate_classifier(y_true, y_pred, y_proba.reset_index(drop=True))
-
-        baseline_metrics = {}
-        persistence_pred = predict_persistence_baseline(
-            result["test"], column=label_column, threshold=result["threshold"]
-        ).reset_index(drop=True)
-        baseline_metrics.update(
+            probabilities = result["y_proba"]
+        y_true = result["test"].stress_label.reset_index(drop=True)
+        y_pred = (probabilities >= alert_threshold).astype(int)
+        metrics = evaluate_classifier(y_true, y_pred, probabilities)
+        predictions = result["test"][["timestamp", "target_timestamp", "target_observed"]].copy()
+        predictions["y_true"] = y_true
+        predictions["y_proba"] = probabilities
+        predictions["y_pred"] = y_pred
+        baselines = {
+            "persistence": predict_persistence_baseline(result["test"], label_column, threshold),
+            "majority_class": predict_majority_class_baseline(
+                result["train"].stress_label, len(y_true)
+            ),
+            "always_stress": predict_always_stress_baseline(len(y_true)),
+        }
+        for name, prediction in baselines.items():
+            prediction = prediction.reset_index(drop=True)
+            metrics.update(
+                {f"{name}_{k}": v for k, v in evaluate_classifier(y_true, prediction).items()}
+            )
+            predictions[name] = prediction
+        rows.append(
             {
-                f"persistence_{k}": v
-                for k, v in evaluate_classifier(y_true, persistence_pred).items()
+                "seed": seed,
+                **metrics,
+                "threshold": threshold,
+                "train_rows": len(result["train"]),
+                "test_rows": len(y_true),
+                "test_positive_rate": float(y_true.mean()) if len(y_true) else float("nan"),
             }
         )
-
-        majority_pred = predict_majority_class_baseline(
-            result["train"]["stress_label"], n_predictions=len(y_true)
-        )
-        baseline_metrics.update(
+        artifacts.append(
             {
-                f"majority_class_{k}": v
-                for k, v in evaluate_classifier(y_true, majority_pred).items()
+                "seed": seed,
+                "predictions": predictions,
+                "training_dates": [str(x) for x in selected_dates],
+                "selection_seed": selection_seed,
+                "noise_train_seed": noise_train_seed,
+                "noise_test_seed": noise_test_seed,
+                "synthetic_seed": synthetic_seed,
+                "noise_scales": scales,
+                "contract": contract,
+                "model_parameters": model.get_params(),
             }
         )
-
-        always_stress_pred = predict_always_stress_baseline(n_predictions=len(y_true))
-        baseline_metrics.update(
-            {
-                f"always_stress_{k}": v
-                for k, v in evaluate_classifier(y_true, always_stress_pred).items()
-            }
-        )
-
-        rows.append({"seed": seed, **metrics, **baseline_metrics})
-
-    return pd.DataFrame(rows)
+    results = pd.DataFrame(rows)
+    results.attrs["artifacts"] = artifacts
+    return results

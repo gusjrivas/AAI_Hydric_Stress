@@ -10,6 +10,7 @@ from typing import Any
 
 import pandas as pd
 from sklearn.base import clone
+from sklearn.metrics import f1_score
 from sklearn.model_selection import GridSearchCV, TimeSeriesSplit
 
 
@@ -25,6 +26,11 @@ def train_models(
         trained.fit(X_train, y_train)
         fitted[name] = trained
     return fitted
+
+
+def _binary_f1(estimator, X, y):
+    """Explicit stress class even when a fold's fitted model only knows class 0."""
+    return f1_score(y, estimator.predict(X), pos_label=1, zero_division=0)
 
 
 def tune_hyperparameters(
@@ -51,7 +57,8 @@ def tune_hyperparameters(
     entre los folds de validación cruzada (indicador de estabilidad).
     """
     splitter = TimeSeriesSplit(n_splits=n_splits, gap=gap)
-    search = GridSearchCV(clone(model), param_grid=param_grid, cv=splitter, scoring=scoring)
+    scorer = _binary_f1 if scoring == "f1" else scoring
+    search = GridSearchCV(clone(model), param_grid=param_grid, cv=splitter, scoring=scorer)
     search.fit(X_train, y_train)
 
     best_index = search.best_index_

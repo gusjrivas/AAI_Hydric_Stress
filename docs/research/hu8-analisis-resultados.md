@@ -1,5 +1,9 @@
 # HU8 — Análisis de resultados experimentales
 
+> **Protocolo vigente: controlled_daily_v3 (2026-09-05).** Las mediciones y lecturas
+> anteriores se conservan como evidencia histórica. La actualización al final y
+> [el protocolo v3](protocolo-experimental-v3.md) delimitan su interpretación actual.
+
 > **Actualización (2026-09-04) — corrección de fuga temporal, ver sección 11.** Todas las secciones siguientes (1-10) describen los resultados **previos** a esta corrección, y se conservan sin modificar como evidencia histórica. La sección 11, al final de este documento, presenta la comparación completa antes/después y qué conclusiones se mantienen, cuáles cambian de magnitud, y cuál cambia de sentido.
 
 Épica 4, HU8 (sin capacidad de código, igual que HU1 — ver `openspec/project.md`). Primer sub-proyecto: consolidación y análisis de los resultados reales registrados en MLflow durante HU7 (`openspec/specs/experiment-runner/spec.md`).
@@ -177,3 +181,40 @@ Se confirmó que `estimate_et0`/`reference_et0` (`src/data_ingestion/mock_sensor
 - No se recalculó el análisis de falsos positivos/negativos (sección 7) ni el efecto de retroalimentación humana (sección 6) bajo este pipeline corregido — misma limitación heredada de la sección 11.
 - El hallazgo de la sección 12.3 (escasez con MCC muy negativo) no se investigó más allá de la hipótesis de corrimiento estacional agravado; no se descompuso el error por fecha dentro del período de evaluación.
 - Esta corrección, igual que la de la sección 11, usa el mismo dataset de un solo punto geográfico y un solo año — las conclusiones de las secciones 12.2 y 12.3 podrían no generalizar a otro dataset, aunque no hay razón para esperar que el mecanismo (fuga de frontera de horizonte, desbalance de clases bajo escasez) sea específico de este dataset.
+
+
+## Actualización de tercera auditoría: validez del objetivo y de los escenarios
+
+El protocolo v3 separa observaciones imputadas de objetivos observados y congela
+un objetivo común entre condiciones. Los valores históricos se conservan, pero
+ruido perturbaba simultáneamente entradas y etiquetas usando una escala informada
+por test. La escasez reciente también recalculaba el umbral: en la inspección del
+procedimiento anterior pasó de 0.322329 a 0.333346 y los positivos de test de 46/71
+a 55/71. Por ello no se puede atribuir aisladamente su resultado a cantidad de datos
+ni a recencia estacional. Cuatro de esas 71 etiquetas provenían de humedad imputada.
+
+Erratas explícitas, sin alterar las tablas históricas:
+
+- −0.1103 es mayor (menos negativo) que −0.1113: la escasez no tiene el peor MCC
+  si se incluye ese baseline. Además, los escenarios no compartían el mismo target.
+- Siempre estrés tiene recall=1, precision=prevalencia y F1=2p/(1+p). La frase
+  anterior que igualaba recall con prevalencia es incorrecta.
+- Diferencias de signo mixto entre cinco semillas no demuestran ausencia de efecto.
+  La conclusión defendible es ausencia de mejora consistente en la evidencia reunida.
+- La dispersión entre semillas no es incertidumbre entre datasets independientes.
+- Average precision (AP) es la métrica calculada; no equivale en general a integrar
+  trapezoidalmente la curva precision-recall.
+- ROC-AUC no depende del umbral de decisión, pero cambiar las etiquetas o las
+  distribuciones condicionales entre escenarios cambia la tarea; no vuelve comparables
+  por sí solo experimentos con distinto objetivo. Un valor puntual próximo a 0.5 no
+  demuestra equivalencia al azar sin cuantificar incertidumbre.
+
+La evidencia sigue sin sostener una mejora general consistente de la arquitectura.
+Los resultados negativos del generador actual no se ocultan ni se extrapolan a todo
+método sintético. «Completa» en HU7 cruza anomalías y síntesis; el cuarto componente,
+retroalimentación humana, requiere evaluación posterior independiente. Las correcciones
+mecánicas sobre entrenamiento no demuestran generalización.
+
+Se adopta como texto canónico la hipótesis aprobada del autor, reproducida en ADR-0001,
+sin reformularla como una garantía de mejora. La arquitectura sigue siendo apoyo a la
+decisión y no automatiza riego. ET0 no se incorpora al experimento de referencia.

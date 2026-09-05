@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from fastapi.testclient import TestClient
-
 from app.config import HISTORICAL_DATASET_NAME, get_dataset_data_dir, get_feedback_data_dir
 from app.main import app
+from fastapi.testclient import TestClient
+
 from data_ingestion.sensor_naming import dataset_name_for
 from data_ingestion.storage import DEFAULT_DATA_DIR, load_dataset, save_dataset
 
@@ -25,9 +25,11 @@ def test_run_forecast_returns_verdicts(tmp_path: Path):
     body = response.json()
     assert body["train_rows"] > 0
     assert body["test_rows"] > 0
-    assert len(body["verdicts"]) == body["test_rows"]
+    assert len(body["verdicts"]) == 1
     first = body["verdicts"][0]
-    assert set(first.keys()) == {"fecha", "alerta", "probabilidad"}
+    assert set(first.keys()) == {"fecha", "fecha_objetivo", "alerta", "probabilidad"}
+    assert first["fecha"] == "2024-12-31"
+    assert first["fecha_objetivo"] == "2025-01-03"
 
     app.dependency_overrides.clear()
 
@@ -61,4 +63,19 @@ def test_run_forecast_isolates_feedback_between_sensors(tmp_path: Path):
     assert len(feedback_a) > 0
     assert len(feedback_b) > 0
 
+    app.dependency_overrides.clear()
+
+
+def test_forecast_rejects_irregular_sensor_calendar(tmp_path, monkeypatch):
+    import app.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "load_latest_recalibrated_model", lambda *args, **kwargs: None)
+    _seed_sensor_dataset("sensor-a", tmp_path)
+    df = load_dataset(dataset_name_for("sensor-a"), data_dir=tmp_path)
+    save_dataset(dataset_name_for("sensor-a"), df.drop(index=30), data_dir=tmp_path)
+    app.dependency_overrides[get_dataset_data_dir] = lambda: tmp_path
+    app.dependency_overrides[get_feedback_data_dir] = lambda: tmp_path
+    response = TestClient(app).post("/forecast/sensor-a/run")
+    assert response.status_code == 422
+    assert "Calendario" in response.json()["detail"]
     app.dependency_overrides.clear()

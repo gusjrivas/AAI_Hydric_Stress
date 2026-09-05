@@ -1,5 +1,7 @@
 # Spec: human-feedback
 
+> **Actualización normativa 2026-09-05:** rige el protocolo [controlled_daily_v3](../../../docs/research/protocolo-experimental-v3.md) y ADR-0009. Los ejemplos cuantitativos anteriores son históricos; no deben confundirse con la nueva evaluación de objetivos observados ni con inferencia futura.
+
 Capacidad implementada (Épica 3, HU5 — completa, los tres sub-proyectos: casos de uso/estados de validación/modelo de datos/flujo de interacción, registro persistente/integración con predicciones, y recalibración supervisada). Orígenes: `openspec/changes/add-feedback-data-model/`, `openspec/changes/add-feedback-registry-integration/`, `openspec/changes/add-supervised-recalibration/`. Este documento es la fuente de verdad vigente de la capacidad; los *changes* que la originaron quedan como registro histórico de la decisión, no se actualizan en paralelo a este archivo.
 
 ## Requirements

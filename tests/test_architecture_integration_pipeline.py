@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from architecture_integration.pipeline import run_end_to_end_pipeline
+from predictive_modeling.contract import FittedPredictor, make_contract
 from predictive_modeling.models import build_candidate_models
 
 
@@ -62,6 +63,11 @@ def test_run_end_to_end_pipeline_with_skip_fit_true_does_not_refit_the_model():
     df = _synthetic_dataset()
 
     class _FitRaisesModel:
+        classes_ = np.array([0, 1])
+        feature_names_in_ = np.array(
+            make_contract(["soil_moisture", "solar_radiation"])["model_features"]
+        )
+
         def fit(self, X, y):
             raise AssertionError("fit no debería llamarse cuando skip_fit=True")
 
@@ -73,7 +79,12 @@ def test_run_end_to_end_pipeline_with_skip_fit_true_does_not_refit_the_model():
         label_column="soil_moisture",
         feature_columns=["soil_moisture", "solar_radiation"],
         split_date=df["timestamp"].iloc[45].date(),
-        model=_FitRaisesModel(),
+        model=FittedPredictor(
+            _FitRaisesModel(),
+            make_contract(["soil_moisture", "solar_radiation"]),
+            0.32,
+            "2024-02-14",
+        ),
         include_anomaly_detection=False,
         skip_fit=True,
     )

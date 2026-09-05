@@ -32,6 +32,11 @@ def evaluate_classifier(
     — auditoría metodológica de la memoria técnica, ver
     `docs/research/hu8-analisis-resultados.md`, sección 11.
     """
+    if len(y_true) == 0:
+        names = ["precision", "recall", "f1", "balanced_accuracy", "mcc"]
+        if y_proba is not None:
+            names += ["roc_auc", "average_precision"]
+        return dict.fromkeys(names, float("nan"))
     metrics = {
         "precision": precision_score(y_true, y_pred, zero_division=0),
         "recall": recall_score(y_true, y_pred, zero_division=0),
@@ -40,8 +45,12 @@ def evaluate_classifier(
         "mcc": matthews_corrcoef(y_true, y_pred),
     }
     if y_proba is not None:
-        metrics["roc_auc"] = roc_auc_score(y_true, y_proba)
-        metrics["average_precision"] = average_precision_score(y_true, y_proba)
+        metrics["roc_auc"] = (
+            roc_auc_score(y_true, y_proba) if y_true.nunique() == 2 else float("nan")
+        )
+        metrics["average_precision"] = (
+            average_precision_score(y_true, y_proba) if (y_true == 1).any() else float("nan")
+        )
     return metrics
 
 

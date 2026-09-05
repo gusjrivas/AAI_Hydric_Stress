@@ -1,10 +1,10 @@
 from pathlib import Path
 
 import mlflow
-from fastapi.testclient import TestClient
-
 from app.config import HISTORICAL_DATASET_NAME, get_dataset_data_dir, get_feedback_data_dir
 from app.main import app
+from fastapi.testclient import TestClient
+
 from data_ingestion.sensor_naming import dataset_name_for
 from data_ingestion.storage import DEFAULT_DATA_DIR, load_dataset, save_dataset
 
@@ -94,4 +94,33 @@ def test_recalibrating_one_sensor_does_not_affect_another(tmp_path):
 
     assert response_b.status_code == 400  # sensor-b nunca tuvo rechazos propios
 
+    app.dependency_overrides.clear()
+
+
+def test_recalibration_is_not_reapplied_and_old_test_is_not_reused(tmp_path):
+    from app.pipeline import execute_configured_pipeline, load_dataset_or_raise
+
+    _use_sqlite_tracking(tmp_path, "test-recalibration-boundary")
+    _seed_sensor_dataset("sensor-a", tmp_path)
+    app.dependency_overrides[get_dataset_data_dir] = lambda: tmp_path
+    app.dependency_overrides[get_feedback_data_dir] = lambda: tmp_path
+    client = TestClient(app)
+    forecast = client.post("/forecast/sensor-a/run")
+    assert forecast.status_code == 200, forecast.text
+    fecha = forecast.json()["verdicts"][0]["fecha"]
+    rejected = client.post(
+        f"/feedback/sensor-a/{fecha}/reject",
+        json={"etiqueta_corregida": 1, "observacion": "corrección verificada"},
+    )
+    assert rejected.status_code == 200, rejected.text
+    response = client.post("/recalibrate/sensor-a")
+    assert response.status_code == 200, response.text
+    repeat = client.post("/recalibrate/sensor-a")
+    assert repeat.status_code == 400
+    df, fingerprint = load_dataset_or_raise("sensor-a", tmp_path)
+    result = execute_configured_pipeline(df, "sensor-a", fingerprint, tmp_path)
+    assert result["test"].empty
+    assert result["forecast"].timestamp.iloc[0] == df.timestamp.max()
+    # A rerun returns the originally issued forecast, not a fitted response to its correction.
+    assert client.post("/forecast/sensor-a/run").json()["verdicts"] == forecast.json()["verdicts"]
     app.dependency_overrides.clear()

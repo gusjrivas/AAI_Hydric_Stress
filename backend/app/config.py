@@ -21,7 +21,7 @@ HORIZON_DAYS = 3
 # compatibilidad de `human_feedback.model_registry` — ver
 # docs/research/hu8-analisis-resultados.md, sección 11, y la auditoría de
 # validación cruzada purgada posterior.
-PIPELINE_VERSION = "purged_cv_v2"
+PIPELINE_VERSION = "controlled_daily_v3"
 
 
 def get_feedback_data_dir() -> Path:

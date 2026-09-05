@@ -10,6 +10,7 @@ import {
 import type { FeedbackRow, Verdict } from "./api";
 
 export function ForecastPage() {
+  const [sensorId, setSensorId] = useState("sensor-a");
   const [verdicts, setVerdicts] = useState<Verdict[]>([]);
   const [feedback, setFeedback] = useState<FeedbackRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -26,10 +27,16 @@ export function ForecastPage() {
     setError(null);
     setActionMessage(null);
     try {
-      const result = await runForecast();
+      const result = await runForecast(sensorId);
       setVerdicts(result.verdicts);
-      const feedbackResult = await listFeedback();
+      const feedbackResult = await listFeedback(sensorId);
       setFeedback(feedbackResult.rows);
+      setVerdicts([
+        ...feedbackResult.rows.filter((r) => r.y_proba != null && !result.verdicts.some((v) => v.fecha === r.fecha))
+          .map((r) => ({ fecha: r.fecha, alerta: Boolean(r.alerta_generada), probabilidad: r.y_proba!, fecha_objetivo: r.fecha_objetivo ?? undefined })),
+        ...result.verdicts,
+      ]);
+      if (result.selection_warning) setActionMessage(result.selection_warning);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -38,13 +45,13 @@ export function ForecastPage() {
   }
 
   async function handleConfirm(fecha: string) {
-    const updated = await confirmAlert(fecha);
+    const updated = await confirmAlert(sensorId, fecha);
     setFeedback((rows) => rows.map((row) => (row.fecha === fecha ? updated : row)));
     setActionMessage(`Guardada la validación del ${fecha} — el modelo no se actualizó.`);
   }
 
   async function handleReject(fecha: string) {
-    const updated = await rejectAlert(fecha, 0, "Rechazada desde la interfaz");
+    const updated = await rejectAlert(sensorId, fecha, verdicts.find((v) => v.fecha === fecha)?.alerta ? 0 : 1, "Rechazada desde la interfaz");
     setFeedback((rows) => rows.map((row) => (row.fecha === fecha ? updated : row)));
     setActionMessage(`Guardada la validación del ${fecha} — el modelo no se actualizó.`);
   }
@@ -53,7 +60,7 @@ export function ForecastPage() {
     setRecalibrating(true);
     setError(null);
     try {
-      const result = await recalibrate();
+      const result = await recalibrate(sensorId);
       setActionMessage(
         `Modelo recalibrado (versión ${result.version}) usando ${result.n_correcciones} corrección(es) — el próximo pronóstico usará este modelo.`,
       );
@@ -76,6 +83,8 @@ export function ForecastPage() {
           <p className="fp-subtitle">Validación humana de alertas sobre el dataset consolidado</p>
         </div>
         <div className="fp-header-actions">
+          <label>Sensor <input aria-label="Sensor" value={sensorId} disabled={loading || recalibrating}
+            onChange={(event) => { setSensorId(event.target.value); setVerdicts([]); setFeedback([]); setError(null); setActionMessage(null); }} /></label>
           {pendingCorrections > 0 && (
             <button
               className="fp-recalibrate-btn"
@@ -85,7 +94,7 @@ export function ForecastPage() {
               {recalibrating ? "Recalibrando..." : `Recalibrar modelo (${pendingCorrections})`}
             </button>
           )}
-          <button className="fp-run-btn" onClick={handleRunForecast} disabled={loading}>
+          <button className="fp-run-btn" onClick={handleRunForecast} disabled={loading || !/^[a-zA-Z0-9_-]{1,64}$/.test(sensorId)}>
             {loading ? "Corriendo..." : "Correr pronóstico"}
           </button>
         </div>
@@ -112,7 +121,7 @@ export function ForecastPage() {
             <li key={verdict.fecha} className={`fp-row fp-row--${severity}`}>
               <span className="fp-signal" aria-hidden="true" />
               <div className="fp-row-main">
-                <div className="fp-row-date">{verdict.fecha}</div>
+                <div className="fp-row-date">{verdict.fecha}</div>{verdict.fecha_objetivo && <div>Objetivo: {verdict.fecha_objetivo}</div>}
                 <div className="fp-row-verdict">{verdict.alerta ? "Alerta" : "Sin alerta"}</div>
               </div>
               <div className="fp-gauge">
@@ -126,8 +135,8 @@ export function ForecastPage() {
               </div>
               <span className={`fp-badge fp-badge--${estado}`}>{estado}</span>
               <div className="fp-actions">
-                <button onClick={() => handleConfirm(verdict.fecha)}>Confirmar</button>
-                <button onClick={() => handleReject(verdict.fecha)}>Rechazar</button>
+                <button onClick={() => handleConfirm(verdict.fecha).catch((err) => setError(err.message))}>Confirmar</button>
+                <button onClick={() => handleReject(verdict.fecha).catch((err) => setError(err.message))}>Rechazar</button>
               </div>
             </li>
           );

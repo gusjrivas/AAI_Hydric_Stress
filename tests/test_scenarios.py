@@ -46,7 +46,11 @@ def test_inject_gaussian_noise_changes_values_but_preserves_shape():
     df = _dataset(n=30)
 
     noisy = inject_gaussian_noise(
-        df, columns=["soil_moisture"], noise_std_ratio=0.5, random_state=42
+        df,
+        columns=["soil_moisture"],
+        noise_std_ratio=0.5,
+        random_state=42,
+        scales={"soil_moisture": df.iloc[:20].soil_moisture.std()},
     )
 
     assert noisy.shape == df.shape

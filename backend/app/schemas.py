@@ -12,12 +12,14 @@ class Verdict(BaseModel):
     fecha: date
     alerta: bool
     probabilidad: float
+    fecha_objetivo: date | None = None
 
 
 class ForecastRunResponse(BaseModel):
     verdicts: list[Verdict]
     train_rows: int
     test_rows: int
+    selection_warning: str | None = None
 
 
 class FeedbackRow(BaseModel):
@@ -26,6 +28,8 @@ class FeedbackRow(BaseModel):
     estado_validacion: str
     etiqueta_corregida: int | None = None
     observacion: str | None = None
+    y_proba: float | None = None
+    fecha_objetivo: date | None = None
 
 
 class FeedbackListResponse(BaseModel):
@@ -33,7 +37,7 @@ class FeedbackListResponse(BaseModel):
 
 
 class RejectRequest(BaseModel):
-    etiqueta_corregida: int
+    etiqueta_corregida: Literal[0, 1]
     observacion: str
 
 

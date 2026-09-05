@@ -51,13 +51,32 @@ def update_feedback(
             f"Debe ser uno de {VALIDATION_STATES}."
         )
 
+    if etiqueta_corregida is not None and etiqueta_corregida not in (0, 1):
+        raise ValueError("La etiqueta corregida debe ser 0 o 1.")
+
     result = log.copy()
     mask = result["fecha"] == fecha
 
     result.loc[mask, "estado_validacion"] = estado_validacion
+    if "validated_at" in result:
+        result.loc[mask, "validated_at"] = pd.Timestamp.now(tz="UTC").tz_localize(None)
+    if estado_validacion == "confirmada":
+        result.loc[mask, "etiqueta_corregida"] = pd.NA
     if etiqueta_corregida is not None:
         result.loc[mask, "etiqueta_corregida"] = etiqueta_corregida
     if observacion is not None:
         result.loc[mask, "observacion"] = observacion
 
     return result
+
+
+def init_prediction_feedback(predictions, model_version, horizon_days, threshold=None):
+    """Persist the original issued prediction, not a recomputed historical one."""
+    log = init_feedback_log(predictions.timestamp, predictions["alert"])
+    log["target_timestamp"] = predictions.timestamp + pd.Timedelta(days=horizon_days)
+    log["y_proba"] = predictions.y_proba.to_numpy()
+    log["model_version"] = model_version
+    log["target_threshold"] = threshold
+    log["issued_at"] = pd.Timestamp.now(tz="UTC").tz_localize(None)
+    log["validated_at"] = pd.NaT
+    return log
