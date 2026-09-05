@@ -26,8 +26,9 @@ from datetime import datetime, timezone
 
 import mlflow
 
-from data_ingestion.storage import load_dataset
+from data_ingestion.storage import DEFAULT_DATA_DIR, load_dataset
 from experiment_runner.mlflow_logging import log_configuration_results
+from experiment_runner.provenance import experiment_provenance
 from experiment_runner.runner import run_configuration
 from predictive_modeling.models import build_candidate_models
 
@@ -44,8 +45,8 @@ CONTAMINATION = 0.05
 MODEL_NAME = "random_forest"
 SEEDS = [0, 1, 2, 3, 4]
 N_SYNTHETIC_SAMPLES = 100
-PIPELINE_VERSION = "purged_cv_v2"
-EXPERIMENT_NAME = "hu7-epica4-purged-cv"
+PIPELINE_VERSION = "controlled_daily_v3"
+EXPERIMENT_NAME = "hu7-controlled-daily-v3"
 # ---------------------------------------------------------------------------
 
 CONFIGURATIONS = {
@@ -96,7 +97,7 @@ def main() -> None:
             **flags,
             "dataset": DATASET_NAME,
             "split_date": str(split_date),
-            "feature_columns": ",".join(FEATURE_COLUMNS),
+            "raw_input_features": ",".join(FEATURE_COLUMNS),
             "label_column": LABEL_COLUMN,
             "horizon_days": HORIZON_DAYS,
             "percentile": PERCENTILE,
@@ -111,6 +112,7 @@ def main() -> None:
             "pipeline_version": PIPELINE_VERSION,
             "commit_sha": commit_sha,
             "run_date": run_date,
+            **experiment_provenance(DEFAULT_DATA_DIR / f"{DATASET_NAME}.parquet"),
         }
 
         run_id = log_configuration_results(config_name, config_params, results)

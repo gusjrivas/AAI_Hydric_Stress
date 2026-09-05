@@ -1,10 +1,10 @@
 from pathlib import Path
 
 import pandas as pd
-from fastapi.testclient import TestClient
-
 from app.config import get_feedback_data_dir
 from app.main import app
+from fastapi.testclient import TestClient
+
 from data_ingestion.sensor_naming import feedback_log_name_for
 from human_feedback.registry import save_feedback_log
 from human_feedback.schema import init_feedback_log
@@ -14,6 +14,9 @@ def _seed_feedback_log(sensor_id: str, data_dir: Path) -> str:
     dates = pd.to_datetime(["2024-10-19", "2024-10-20"])
     alerts = pd.Series([1, 0])
     log = init_feedback_log(dates, alerts)
+    log["target_timestamp"] = dates + pd.Timedelta(days=3)
+    log["model_version"] = "test-model"
+    log["validated_at"] = pd.NaT
     save_feedback_log(feedback_log_name_for(sensor_id), log, data_dir=data_dir)
     return "2024-10-19"
 

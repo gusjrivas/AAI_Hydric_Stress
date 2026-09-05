@@ -1,5 +1,7 @@
 # Spec: predictive-modeling
 
+> **Actualización normativa 2026-09-05:** rige el protocolo [controlled_daily_v3](../../../docs/research/protocolo-experimental-v3.md) y ADR-0009. Los ejemplos cuantitativos anteriores son históricos; no deben confundirse con la nueva evaluación de objetivos observados ni con inferencia futura.
+
 Capacidad implementada (Épica 2, HU4 — completa, los tres sub-proyectos: definición del problema/ingeniería de variables, modelos base/candidatos, y alertas tempranas). Orígenes: `openspec/changes/add-feature-engineering/`, `openspec/changes/add-baseline-and-candidate-models/`, `openspec/changes/add-early-warning-alerts/`. Este documento es la fuente de verdad vigente de la capacidad; los *changes* que la originaron quedan como registro histórico de la decisión, no se actualizan en paralelo a este archivo.
 
 ## Requirements

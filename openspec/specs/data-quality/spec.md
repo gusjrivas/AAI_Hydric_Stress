@@ -1,5 +1,7 @@
 # Spec: data-quality
 
+> **Actualización normativa 2026-09-05:** rige el protocolo [controlled_daily_v3](../../../docs/research/protocolo-experimental-v3.md) y ADR-0009. Los ejemplos cuantitativos anteriores son históricos; no deben confundirse con la nueva evaluación de objetivos observados ni con inferencia futura.
+
 Capacidad implementada (Épica 2, HU3). Origen: `openspec/changes/add-data-quality-basics/` (calidad/limpieza básica), `openspec/changes/add-anomaly-detection/` (detección de anomalías), `openspec/changes/add-synthetic-data-generation/` (generación de datos sintéticos) y `openspec/changes/add-data-quality-integration/` (flujo integrado). Este documento es la fuente de verdad vigente de la capacidad; los *changes* que la originaron quedan como registro histórico de cada decisión, no se actualizan en paralelo a este archivo.
 
 **HU3 queda completa con este documento**: los tres sub-proyectos y su integración están implementados y verificados con datos reales. Este spec, junto con la sección "Limitaciones conocidas" al final, cumple también la tarea de cierre "Documentar decisiones, parámetros y limitaciones del componente".

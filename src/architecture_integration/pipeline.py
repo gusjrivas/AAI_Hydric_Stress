@@ -1,44 +1,4 @@
-"""Orquestador de punta a punta entre las capacidades del núcleo de IA
-(spec architecture-integration, requirements "Orquestación de punta a
-punta de las capacidades del núcleo de IA" y "Orden de etapas sin fuga
-temporal entre calidad y modelado").
-
-Encadena, en el orden correcto para evitar fuga temporal: partición
-temporal sobre los datos crudos (`data-quality`) → imputación causal
-por partición, con la cola de entrenamiento como semilla del período de
-evaluación (`data-quality`) → umbral de estrés congelado sobre
-entrenamiento y etiquetado de ambas particiones (`predictive-modeling`)
-→ variables predictoras (`predictive-modeling`, retardos/ventanas
-móviles, causales por construcción) → partición temporal final sobre el
-resultado con variables → purga de la frontera de horizonte
-(`data-quality`, últimas `horizon_days` filas de entrenamiento cuyo
-target cae en evaluación) → detección de anomalías opcional
-(`data-quality`, ajustada solo sobre entrenamiento) → entrenamiento y
-alertas (`predictive-modeling`) → inicialización del registro de
-retroalimentación (`human-feedback`).
-
-Auditoría metodológica (memoria técnica): el orden anterior imputaba y
-calculaba el umbral de estrés sobre el DataFrame completo, antes de
-partir train/test — la imputación bidireccional podía completar un
-hueco de entrenamiento con una observación de evaluación, y el umbral
-de estrés quedaba informado por la distribución completa (incluyendo
-evaluación). Ambos casos constituían fuga temporal. Este orden lo
-corrige sin cambiar el resto de la arquitectura.
-
-Segunda auditoría (frontera de horizonte): la variable objetivo de una
-fila se calcula `horizon_days` filas adelante (`add_stress_label`).
-Aun particionando por fecha, las últimas `horizon_days` filas de
-entrenamiento (antes de `split_date`) reciben un target que corresponde
-a una fecha ya perteneciente a evaluación — su etiqueta usaría
-información del futuro que en un escenario real todavía no existiría.
-`purge_target_horizon` elimina esas filas de entrenamiento antes de
-ajustar cualquier modelo o detector. Por el mismo motivo, la validación
-cruzada temporal usada para seleccionar hiperparámetros/modelo
-(`predictive_modeling.training.tune_hyperparameters`) usa
-`TimeSeriesSplit(gap=horizon_days)`, para que ningún fold de
-entrenamiento interno tenga un target que se solape con su propio fold
-de validación.
-"""
+"""Daily causal training, held-out evaluation and label-free future inference."""
 
 from __future__ import annotations
 
@@ -47,17 +7,53 @@ from typing import Any
 
 import pandas as pd
 from sklearn.base import clone
+from sklearn.pipeline import Pipeline
 
-from data_ingestion.schema import TIMESTAMP_COLUMN
 from data_quality.anomaly_detection import apply_anomaly_detector, fit_anomaly_detector
 from data_quality.imputation import interpolate_missing_causal
 from data_quality.quality_report import quality_report
-from data_quality.splitting import purge_target_horizon, temporal_train_test_split
+from data_quality.splitting import temporal_train_test_split
+from data_quality.temporal import validate_daily_series
 from human_feedback.schema import init_feedback_log
 from predictive_modeling.alerts import generate_alerts
+from predictive_modeling.anomaly_features import AnomalyFeatures
+from predictive_modeling.contract import FittedPredictor, make_contract, positive_probability
 from predictive_modeling.feature_engineering import add_lag_features, add_rolling_features
 from predictive_modeling.labeling import add_stress_label, fit_stress_threshold
 from predictive_modeling.model_selection import select_best_candidate
+from predictive_modeling.models import DEFAULT_HYPERPARAMETER_GRIDS, build_candidate_models
+
+
+def prepare_daily_features(df, contract):
+    ordered = validate_daily_series(df)
+    columns = contract["raw_input_features"]
+    ordered[columns] = ordered[columns].astype(float)
+    filled = interpolate_missing_causal(ordered, columns)
+    featured = add_lag_features(filled, columns, contract["lags"])
+    featured = add_rolling_features(featured, columns, contract["rolling_windows"])
+    return featured
+
+
+def predict_available(df, predictor: FittedPredictor):
+    """Predict available rows without needing their future targets; never fit."""
+    predictor.validate(predictor.contract)
+    contract = predictor.contract
+    featured = prepare_daily_features(df, contract)
+    names = [c for c in contract["model_features"] if c != "is_anomaly"]
+    featured = featured.dropna(subset=names + contract["raw_input_features"])
+    if predictor.detector is not None and not featured.empty:
+        featured = apply_anomaly_detector(
+            featured, contract["raw_input_features"], predictor.detector
+        )
+    elif predictor.detector is not None:
+        featured["is_anomaly"] = pd.Series(dtype=bool)
+    featured = featured.reset_index(drop=True)
+    featured["target_timestamp"] = featured.timestamp + pd.Timedelta(days=contract["horizon_days"])
+    probabilities = positive_probability(predictor.model, featured[contract["model_features"]])
+    featured["y_proba"] = probabilities
+    featured["alert"] = generate_alerts(probabilities, contract["alert_threshold"])
+    featured["out_of_sample"] = featured.timestamp > pd.Timestamp(predictor.trained_through)
+    return featured
 
 
 def run_end_to_end_pipeline(
@@ -75,89 +71,185 @@ def run_end_to_end_pipeline(
     contamination: float = 0.05,
     random_state: int = 42,
     skip_fit: bool = False,
+    reference_df: pd.DataFrame | None = None,
+    stress_threshold: float | None = None,
+    include_current: bool = False,
+    training_dates: list | None = None,
+    calibration_end: date | None = None,
 ) -> dict[str, Any]:
-    """Ejecuta el flujo completo sobre `df`: partición temporal,
-    imputación causal, etiquetado, variables predictoras, partición
-    temporal final, detección de anomalías opcional, entrenamiento del
-    modelo, alertas, y registro de retroalimentación inicializado. Si
-    `include_anomaly_detection` es `True`, el detector se ajusta solo
-    sobre el conjunto de entrenamiento y `is_anomaly` se agrega como
-    variable predictora. Si `skip_fit` es `True`, usa `model` tal cual,
-    ya entrenado, sin reentrenar. Si `model` es `None`, selecciona
-    automáticamente el mejor candidato
-    (`predictive_modeling.model_selection.select_best_candidate`) en vez de
-    usar un modelo fijo.
+    """Keep the daily calendar intact until features and observed targets exist.
+
+    Automatic selection reserves an initial calibration prefix before ALL folds.
+    Fixed-model experiments may supply a common threshold fitted on clean train.
+    Reuse requires a FittedPredictor; its threshold and detector remain frozen.
     """
-    lags = lags if lags is not None else [1, 2, 3]
-    rolling_windows = rolling_windows if rolling_windows is not None else [3, 7]
-
-    report = quality_report(df)
-
-    train_raw, test_raw = temporal_train_test_split(df, split_date=split_date)
-
-    train_imputed = interpolate_missing_causal(train_raw, columns=feature_columns)
-    train_imputed = train_imputed.dropna(subset=feature_columns).reset_index(drop=True)
-
-    warm_start = train_imputed.iloc[-1] if len(train_imputed) else None
-    test_imputed = interpolate_missing_causal(
-        test_raw, columns=feature_columns, warm_start=warm_start
+    contract = make_contract(
+        feature_columns,
+        label_column,
+        horizon_days,
+        lags,
+        rolling_windows,
+        include_current,
+        include_anomaly_detection,
+        contamination,
+        alert_threshold,
+        percentile,
     )
-
-    combined = pd.concat([train_imputed, test_imputed], ignore_index=True)
-
-    threshold = fit_stress_threshold(train_imputed, column=label_column, percentile=percentile)
-    labeled = add_stress_label(
-        combined, column=label_column, horizon_days=horizon_days, threshold=threshold
-    )
-    featured = add_lag_features(labeled, columns=feature_columns, lags=lags)
-    featured = add_rolling_features(featured, columns=feature_columns, windows=rolling_windows)
-
-    feature_cols = [c for c in featured.columns if ("_lag" in c or "_roll_mean" in c)]
-    featured = featured.dropna(subset=["stress_label"] + feature_cols).reset_index(drop=True)
-
-    train, test = temporal_train_test_split(featured, split_date=split_date)
-    train = purge_target_horizon(train, horizon_days=horizon_days)
-
-    if include_anomaly_detection:
-        detector = fit_anomaly_detector(
-            train, columns=feature_columns, contamination=contamination, random_state=random_state
-        )
-        train = apply_anomaly_detector(train, columns=feature_columns, detector=detector)
-        test = apply_anomaly_detector(test, columns=feature_columns, detector=detector)
-        feature_cols = feature_cols + ["is_anomaly"]
-
-    X_train, y_train = train[feature_cols], train["stress_label"]
-    X_test = test[feature_cols]
-
-    model_name = None
-    model_selection_warning = None
-    if model is None:
-        selection = select_best_candidate(
-            X_train, y_train, gap=horizon_days, random_state=random_state
-        )
-        fitted_model = selection["model"]
-        model_name = selection["model_name"]
-        model_selection_warning = selection["selection_warning"]
-    elif skip_fit:
-        fitted_model = model
+    ordered = validate_daily_series(df)
+    reference = validate_daily_series(reference_df if reference_df is not None else df)
+    if not ordered.timestamp.equals(reference.timestamp):
+        raise ValueError("Observaciones y referencia deben compartir exactamente el calendario.")
+    train_raw, _ = temporal_train_test_split(reference, split_date)
+    if train_raw.empty:
+        raise ValueError("Entrenamiento vacío antes del corte.")
+    cutoff = pd.Timestamp(split_date)
+    selection_start = None
+    if skip_fit:
+        if not isinstance(model, FittedPredictor):
+            raise ValueError("skip_fit requiere un FittedPredictor con contrato completo.")
+        model.validate(contract)
+        threshold = model.threshold
     else:
-        fitted_model = clone(model)
-        fitted_model.fit(X_train, y_train)
-
-    y_proba = pd.Series(fitted_model.predict_proba(X_test)[:, 1]).reset_index(drop=True)
-    alerts = generate_alerts(y_proba, threshold=alert_threshold)
-    feedback_log = init_feedback_log(test[TIMESTAMP_COLUMN].reset_index(drop=True), alerts)
-
+        calibration = train_raw
+        if model is None:
+            if stress_threshold is not None and calibration_end is None:
+                raise ValueError(
+                    "La selección automática exige el período de calibración del umbral."
+                )
+            end = (
+                pd.Timestamp(calibration_end)
+                if calibration_end is not None
+                else train_raw.timestamp.iloc[max(0, len(train_raw) // 5 - 1)]
+            )
+            if end >= cutoff:
+                raise ValueError("La calibración debe terminar antes del entrenamiento/validación.")
+            calibration = train_raw[train_raw.timestamp <= end]
+            selection_start = end
+            calibration_end = end.date()
+        threshold = (
+            stress_threshold
+            if stress_threshold is not None
+            else fit_stress_threshold(calibration, label_column, percentile)
+        )
+        if pd.isna(threshold):
+            raise ValueError("No hay observaciones para calibrar el umbral de estrés.")
+    featured = prepare_daily_features(ordered, contract)
+    labels = add_stress_label(reference, label_column, horizon_days, threshold)
+    featured["stress_label"] = labels["stress_label"]
+    featured["target_observed"] = reference[label_column].shift(-horizon_days).notna()
+    featured["target_timestamp"] = reference.timestamp + pd.Timedelta(days=horizon_days)
+    base_names = [c for c in contract["model_features"] if c != "is_anomaly"]
+    eligible = featured.dropna(subset=base_names + feature_columns + ["stress_label"])
+    # Purge by target date, not the number of retained rows after missing targets.
+    train = eligible[eligible.target_timestamp < cutoff].copy()
+    if selection_start is not None:
+        train = train[train.timestamp > selection_start]
+    if training_dates is not None:
+        train = train[train.timestamp.isin(pd.to_datetime(training_dates))]
+    test = eligible[eligible.timestamp >= cutoff].copy()
+    if skip_fit:
+        test = test[test.timestamp > pd.Timestamp(model.trained_through)]
+    train = train.reset_index(drop=True)
+    test = test.reset_index(drop=True)
+    names = contract["model_features"]
+    detector = None
+    model_name = None
+    warning = None
+    diagnostics = []
+    if skip_fit:
+        predictor = model
+        fitted = predictor.model
+        detector = predictor.detector
+        model_name = predictor.model_name
+        warning = predictor.selection_warning
+        diagnostics = predictor.fold_diagnostics
+    else:
+        if train.empty or train.stress_label.nunique() < 2:
+            raise ValueError("Se requieren ejemplos de ambas clases en entrenamiento.")
+        if model is None:
+            candidates = None
+            grids = None
+            selection_columns = base_names
+            if include_anomaly_detection:
+                candidates = {
+                    name: Pipeline(
+                        [
+                            (
+                                "features",
+                                AnomalyFeatures(
+                                    feature_columns, base_names, contamination, random_state
+                                ),
+                            ),
+                            ("classifier", candidate),
+                        ]
+                    )
+                    for name, candidate in build_candidate_models(random_state).items()
+                }
+                grids = {
+                    name: {f"classifier__{key}": value for key, value in grid.items()}
+                    for name, grid in DEFAULT_HYPERPARAMETER_GRIDS.items()
+                }
+                selection_columns = list(dict.fromkeys(base_names + feature_columns))
+            selection = select_best_candidate(
+                train[selection_columns],
+                train.stress_label,
+                candidates=candidates,
+                param_grids=grids,
+                gap=horizon_days,
+                random_state=random_state,
+            )
+            fitted = selection["model"]
+            model_name = selection["model_name"]
+            warning = selection["selection_warning"]
+            diagnostics = selection["fold_diagnostics"]
+            if include_anomaly_detection:
+                detector = fitted.named_steps["features"].detector_
+                fitted = fitted.named_steps["classifier"]
+        else:
+            if include_anomaly_detection:
+                detector = fit_anomaly_detector(train, feature_columns, contamination, random_state)
+                train = apply_anomaly_detector(train, feature_columns, detector)
+            fitted = clone(model).fit(train[names], train.stress_label)
+        predictor = FittedPredictor(
+            fitted,
+            contract,
+            float(threshold),
+            str(
+                max(
+                    train.target_timestamp.max(),
+                    pd.Timestamp(calibration_end or train_raw.timestamp.max()),
+                )
+            ),
+            detector,
+            model_name,
+            str(calibration_end or train_raw.timestamp.max().date()),
+        )
+        predictor.selection_warning = warning
+        predictor.fold_diagnostics = diagnostics
+        predictor.training_rows = len(train)
+        predictor.validate(contract)
+    if detector is not None:
+        train = apply_anomaly_detector(train, feature_columns, detector) if len(train) else train
+        if len(test):
+            test = apply_anomaly_detector(test, feature_columns, detector)
+        else:
+            test["is_anomaly"] = pd.Series(dtype=bool)
+    probabilities = positive_probability(fitted, test[names])
+    alerts = generate_alerts(probabilities, alert_threshold)
     return {
-        "quality_report": report,
+        "quality_report": quality_report(ordered),
         "train": train,
         "test": test,
-        "feature_columns": feature_cols,
-        "model": fitted_model,
+        "feature_columns": names,
+        "raw_input_features": feature_columns,
+        "model": fitted,
+        "predictor": predictor,
+        "contract": contract,
         "model_name": model_name,
-        "model_selection_warning": model_selection_warning,
+        "model_selection_warning": warning,
+        "fold_diagnostics": diagnostics,
         "threshold": threshold,
-        "y_proba": y_proba,
+        "y_proba": probabilities,
         "alerts": alerts,
-        "feedback_log": feedback_log,
+        "feedback_log": init_feedback_log(test.timestamp.reset_index(drop=True), alerts),
     }

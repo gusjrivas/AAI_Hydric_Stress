@@ -6,7 +6,7 @@ Aceptado (2026-08-06)
 
 ## Contexto
 
-Este proyecto corresponde al trabajo final de la Maestría en Inteligencia Artificial (FIUBA) *"Arquitectura de inteligencia artificial para detección temprana de estrés hídrico en cultivos hortícolas bajo escenarios de escasez y variabilidad de datos"*. La hipótesis de investigación sostiene que la combinación de generación de datos sintéticos, detección de anomalías, modelado predictivo y retroalimentación humana mejora la detección temprana de estrés hídrico frente a enfoques tradicionales, en contextos de disponibilidad limitada, ruido y alta variabilidad de datos.
+Este proyecto corresponde al trabajo final de la Maestría en Inteligencia Artificial (FIUBA) *"Arquitectura de inteligencia artificial para detección temprana de estrés hídrico en cultivos hortícolas bajo escenarios de escasez y variabilidad de datos"*. La hipótesis de investigación sostiene que la incorporación de técnicas de inteligencia artificial, particularmente generación de datos sintéticos, modelado predictivo, detección de anomalías y retroalimentación humana, puede mejorar la capacidad de detección temprana de condiciones de estrés hídrico en contextos caracterizados por disponibilidad limitada, ruido y alta variabilidad de datos, respecto de enfoques tradicionales basados principalmente en observación empírica o reglas de riego estáticas.
 
 El plan de proyecto (product backlog, HU1-HU8) exige que el sistema pueda evaluarse en configuraciones incrementales y comparables: arquitectura base, base + datos sintéticos, base + detección de anomalías, y arquitectura completa. Esto requiere que cada componente pueda activarse, desactivarse y evaluarse de forma independiente sin reescribir el resto del sistema.
 

@@ -17,8 +17,9 @@ from datetime import datetime, timezone
 
 import mlflow
 
-from data_ingestion.storage import load_dataset
+from data_ingestion.storage import DEFAULT_DATA_DIR, load_dataset
 from experiment_runner.mlflow_logging import log_configuration_results
+from experiment_runner.provenance import experiment_provenance
 from experiment_runner.runner import run_configuration
 from predictive_modeling.models import build_candidate_models
 
@@ -33,12 +34,14 @@ ALERT_THRESHOLD = 0.5
 CONTAMINATION = 0.05
 MODEL_NAME = "random_forest"
 SEEDS = [0, 1, 2, 3, 4]
-PIPELINE_VERSION = "purged_cv_v2"
-EXPERIMENT_NAME = "hu7-epica4-purged-cv"
+PIPELINE_VERSION = "controlled_daily_v3"
+EXPERIMENT_NAME = "hu7-controlled-daily-v3"
 
 SCENARIOS = {
-    "escasez_train_fraction_0.5": {"train_fraction": 0.5, "noise_std_ratio": 0.0},
-    "ruido_noise_std_ratio_0.3": {"train_fraction": 1.0, "noise_std_ratio": 0.3},
+    "coverage_fraction_0.5": {"train_fraction": 0.5, "scarcity_mode": "coverage"},
+    "recent_fraction_0.5": {"train_fraction": 0.5, "scarcity_mode": "recent"},
+    "noise_both_0.3": {"noise_std_ratio": 0.3, "noise_mode": "both"},
+    "noise_test_only_0.3": {"noise_std_ratio": 0.3, "noise_mode": "test_only"},
 }
 
 
@@ -81,7 +84,7 @@ def main() -> None:
             **scenario_kwargs,
             "dataset": DATASET_NAME,
             "split_date": str(split_date),
-            "feature_columns": ",".join(FEATURE_COLUMNS),
+            "raw_input_features": ",".join(FEATURE_COLUMNS),
             "label_column": LABEL_COLUMN,
             "horizon_days": HORIZON_DAYS,
             "percentile": PERCENTILE,
@@ -95,6 +98,7 @@ def main() -> None:
             "pipeline_version": PIPELINE_VERSION,
             "commit_sha": commit_sha,
             "run_date": run_date,
+            **experiment_provenance(DEFAULT_DATA_DIR / f"{DATASET_NAME}.parquet"),
         }
 
         run_id = log_configuration_results(scenario_name, config_params, results)

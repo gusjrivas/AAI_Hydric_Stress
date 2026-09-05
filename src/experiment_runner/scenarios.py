@@ -1,7 +1,4 @@
-"""Escenarios de escasez y ruido de datos (spec experiment-runner,
-requirements "Escenario de escasez de datos" y "Escenario de ruido de
-datos").
-"""
+"""Controlled observational noise and separately identified scarcity mechanisms."""
 
 from __future__ import annotations
 
@@ -10,48 +7,60 @@ from datetime import date
 import numpy as np
 import pandas as pd
 
-TIMESTAMP_COLUMN = "timestamp"
+
+def subsample_training_period(df, split_date: date, train_fraction: float):
+    """Historical recent-window helper; never use to construct positional targets."""
+    if not 0 < train_fraction <= 1:
+        raise ValueError("train_fraction debe estar en (0, 1].")
+    ordered = df.sort_values("timestamp").reset_index(drop=True)
+    train = ordered[ordered.timestamp < pd.Timestamp(split_date)]
+    test = ordered[ordered.timestamp >= pd.Timestamp(split_date)]
+    return pd.concat(
+        [train.tail(max(1, int(len(train) * train_fraction))), test], ignore_index=True
+    )
 
 
-def subsample_training_period(
-    df: pd.DataFrame, split_date: date, train_fraction: float
-) -> pd.DataFrame:
-    """Simula escasez de datos: conserva solo la fracción `train_fraction`
-    más reciente del período de entrenamiento (fechas antes de
-    `split_date`), sin tocar el período de evaluación (fechas iguales o
-    posteriores). `train_fraction=1.0` devuelve `df` sin cambios.
+def select_training_dates(dates, train_fraction=1.0, mode="coverage", random_state=42):
+    """Select supervised examples AFTER engineering, preserving the input calendar.
+
+    Coverage: one random example per equal chronological stratum. Recent: an
+    equally sized suffix. Both use exactly the same eligible population/budget.
     """
-    if train_fraction >= 1.0:
-        return df
+    if not 0 < train_fraction <= 1 or mode not in {"coverage", "recent"}:
+        raise ValueError("Fracción o modalidad de escasez inválida.")
+    ordered = pd.Series(dates).sort_values().reset_index(drop=True)
+    if ordered.empty:
+        raise ValueError("No hay ejemplos elegibles de entrenamiento.")
+    n = max(1, int(len(ordered) * train_fraction))
+    if mode == "recent":
+        return ordered.tail(n).tolist()
+    rng = np.random.default_rng(random_state)
+    return [
+        ordered.iloc[int(rng.choice(block))] for block in np.array_split(np.arange(len(ordered)), n)
+    ]
 
-    ordered = df.sort_values(TIMESTAMP_COLUMN).reset_index(drop=True)
-    cutoff = pd.Timestamp(split_date)
 
-    train_rows = ordered[ordered[TIMESTAMP_COLUMN] < cutoff]
-    test_rows = ordered[ordered[TIMESTAMP_COLUMN] >= cutoff]
-
-    n_keep = max(1, int(len(train_rows) * train_fraction))
-    reduced_train = train_rows.tail(n_keep)
-
-    return pd.concat([reduced_train, test_rows], ignore_index=True)
+def fit_noise_scales(train, columns):
+    scales = train[columns].astype(float).std().fillna(0.0)
+    if not np.isfinite(scales).all():
+        raise ValueError("Escala de ruido no finita.")
+    return scales.to_dict()
 
 
-def inject_gaussian_noise(
-    df: pd.DataFrame, columns: list[str], noise_std_ratio: float, random_state: int = 42
-) -> pd.DataFrame:
-    """Simula ruido de sensor: agrega a una copia de `df` ruido gaussiano
-    de media cero sobre `columns`, con desvío proporcional
-    (`noise_std_ratio`) al desvío observado de cada columna.
-    `noise_std_ratio=0.0` devuelve los valores sin cambios.
-    """
+def inject_gaussian_noise(df, columns, noise_std_ratio, random_state=42, *, scales=None):
+    """Apply externally fitted CLEAN TRAIN scales; never estimate from evaluation."""
+    if noise_std_ratio < 0 or not np.isfinite(noise_std_ratio):
+        raise ValueError("noise_std_ratio debe ser finito y no negativo.")
     result = df.copy()
-    if noise_std_ratio == 0.0:
+    if noise_std_ratio == 0:
         return result
-
+    if scales is None or any(c not in scales for c in columns):
+        raise ValueError("Proveer escalas calculadas exclusivamente sobre entrenamiento limpio.")
     rng = np.random.default_rng(random_state)
     for column in columns:
-        column_std = result[column].std()
-        noise = rng.normal(0, column_std * noise_std_ratio, size=len(result))
-        result[column] = result[column] + noise
-
+        if not np.isfinite(scales[column]) or scales[column] < 0:
+            raise ValueError("Escala de ruido inválida.")
+        result[column] = result[column].astype(float) + rng.normal(
+            0, scales[column] * noise_std_ratio, size=len(result)
+        )
     return result

@@ -1,5 +1,7 @@
 # Spec: architecture-integration
 
+> **Actualización normativa 2026-09-05:** rige el protocolo [controlled_daily_v3](../../../docs/research/protocolo-experimental-v3.md) y ADR-0009. Los ejemplos cuantitativos anteriores son históricos; no deben confundirse con la nueva evaluación de objetivos observados ni con inferencia futura.
+
 Capacidad implementada (Épica 3, HU6 — completa, los dos sub-proyectos: contratos entre componentes/orquestador de punta a punta, y configuración de la ejecución completa/pruebas funcionales/ajustes de integración). Orígenes: `openspec/changes/add-architecture-integration-pipeline/`, `openspec/changes/add-architecture-integration-execution/`. Este documento es la fuente de verdad vigente de la capacidad; los *changes* que la originaron quedan como registro histórico de la decisión, no se actualizan en paralelo a este archivo.
 
 ## Requirements

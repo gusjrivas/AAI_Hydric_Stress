@@ -6,11 +6,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
 from data_ingestion.sensor_naming import feedback_log_name_for
-from human_feedback.registry import load_feedback_log, save_feedback_log, upsert_feedback_log
-from human_feedback.schema import init_feedback_log
+from human_feedback.registry import load_feedback_log, save_feedback_log
+from human_feedback.schema import init_prediction_feedback
 
 from ..config import get_dataset_data_dir, get_feedback_data_dir
 from ..dependencies import get_valid_sensor_id
@@ -31,26 +32,51 @@ def run_forecast(
     except FileNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 
-    result = execute_configured_pipeline(df, sensor_id, fingerprint, data_dir=dataset_dir)
+    try:
+        result = execute_configured_pipeline(df, sensor_id, fingerprint, data_dir=dataset_dir)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
-    dates = result["test"]["timestamp"].reset_index(drop=True)
-    alerts = result["alerts"].reset_index(drop=True)
-    y_proba = result["y_proba"].reset_index(drop=True)
+    forecast = result["forecast"]
+    if forecast.empty:
+        raise HTTPException(status_code=422, detail="No hay historial suficiente para pronosticar.")
+    fresh = init_prediction_feedback(
+        forecast,
+        result["predictor"].model_id,
+        result["contract"]["horizon_days"],
+        result["threshold"],
+    )
 
     feedback_log_name = feedback_log_name_for(sensor_id)
     try:
         existing_feedback = load_feedback_log(feedback_log_name, data_dir=feedback_dir)
-        merged_feedback = upsert_feedback_log(existing_feedback, dates, alerts)
+        merged_feedback = pd.concat(
+            [existing_feedback, fresh[~fresh.fecha.isin(existing_feedback.fecha)]],
+            ignore_index=True,
+        )
     except FileNotFoundError:
-        merged_feedback = init_feedback_log(dates, alerts)
+        merged_feedback = fresh
     save_feedback_log(feedback_log_name, merged_feedback, data_dir=feedback_dir)
 
+    # One immutable issued forecast per sensor/day. Re-running does not replace
+    # the prediction a human has already reviewed with another model's output.
+    issued = merged_feedback[merged_feedback.fecha.isin(fresh.fecha)]
+    if issued[["y_proba", "target_timestamp"]].isna().any().any():
+        raise HTTPException(
+            status_code=409, detail="Existe una alerta histórica sin contrato temporal completo."
+        )
     verdicts = [
-        Verdict(fecha=d.date(), alerta=bool(a), probabilidad=float(p))
-        for d, a, p in zip(dates, alerts, y_proba)
+        Verdict(
+            fecha=row.fecha.date(),
+            alerta=bool(row.alerta_generada),
+            probabilidad=float(row.y_proba),
+            fecha_objetivo=row.target_timestamp.date(),
+        )
+        for row in issued.itertuples()
     ]
     return ForecastRunResponse(
         verdicts=verdicts,
-        train_rows=len(result["train"]),
+        train_rows=result["predictor"].training_rows,
         test_rows=len(result["test"]),
+        selection_warning=result["model_selection_warning"],
     )

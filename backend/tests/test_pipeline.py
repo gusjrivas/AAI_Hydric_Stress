@@ -1,10 +1,10 @@
 from pathlib import Path
 
-import numpy as np
-
 import app.pipeline as pipeline_module
+import numpy as np
 from app.config import HISTORICAL_DATASET_NAME
 from app.pipeline import execute_configured_pipeline, load_dataset_or_raise
+
 from data_ingestion.sensor_naming import dataset_name_for
 from data_ingestion.storage import (
     DEFAULT_DATA_DIR,
@@ -12,6 +12,14 @@ from data_ingestion.storage import (
     load_dataset,
     save_dataset,
 )
+from predictive_modeling.contract import FittedPredictor, make_contract
+
+
+def _fake_bundle(model):
+    contract = make_contract(["soil_moisture", "solar_radiation", "relative_humidity"])
+    model.classes_ = np.array([0, 1])
+    model.feature_names_in_ = np.array(contract["model_features"])
+    return FittedPredictor(model, contract, 0.32, "2024-10-18")
 
 
 def _seed_sensor_dataset(sensor_id: str, data_dir: Path) -> None:
@@ -46,7 +54,8 @@ def test_execute_configured_pipeline_reuses_recalibrated_model_without_refitting
 
     fake_model = _FitRaisesModel()
     monkeypatch.setattr(
-        "app.pipeline.load_latest_recalibrated_model", lambda sensor_id, **kwargs: fake_model
+        "app.pipeline.load_latest_recalibrated_model",
+        lambda sensor_id, **kwargs: _fake_bundle(fake_model),
     )
     _seed_sensor_dataset("sensor-a", tmp_path)
     df, _ = load_dataset_or_raise("sensor-a", data_dir=tmp_path)
@@ -99,7 +108,7 @@ def test_execute_configured_pipeline_reuses_cached_selection_when_dataset_unchan
     first = execute_configured_pipeline(df, "sensor-a", data_dir=tmp_path)
     second = execute_configured_pipeline(df, "sensor-a", data_dir=tmp_path)
 
-    assert received_models == [None, first["model"]]
+    assert received_models == [None, first["predictor"]]
     assert second["model"] is first["model"]
     assert second["model_name"] == first["model_name"]
 
@@ -156,7 +165,8 @@ def test_execute_configured_pipeline_recalibrated_model_ignores_selection_cache(
     )
     fake_recalibrated = _FitRaisesModel()
     monkeypatch.setattr(
-        "app.pipeline.load_latest_recalibrated_model", lambda sensor_id, **kwargs: fake_recalibrated
+        "app.pipeline.load_latest_recalibrated_model",
+        lambda sensor_id, **kwargs: _fake_bundle(fake_recalibrated),
     )
     _seed_sensor_dataset("sensor-a", tmp_path)
     df, _ = load_dataset_or_raise("sensor-a", data_dir=tmp_path)

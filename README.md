@@ -76,3 +76,13 @@ cd frontend
 npm install
 npm run test
 ```
+
+## Protocolo experimental vigente
+
+La tercera auditoría introduce `controlled_daily_v3`: objetivo observado separado
+ de entradas imputadas/ruidosas, calendario diario obligatorio, contratos completos
+ de modelos y evaluación temporal del ciclo de recalibración. Ver
+[protocolo y próxima fase científica](docs/research/protocolo-experimental-v3.md).
+Las corridas previas permanecen como evidencia histórica. ET0 no integra HU7/HU8.
+La UI requiere un identificador de sensor y muestra el último pronóstico emitido,
+con su fecha objetivo; solo permite validar resultados cuyo día objetivo terminó.
