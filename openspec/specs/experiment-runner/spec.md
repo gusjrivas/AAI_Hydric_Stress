@@ -91,6 +91,21 @@ Ejecutado y registrado contra el servidor real (`http://localhost:5000`, Postgre
 
 **Actualización (2026-09-04) — corrección de fuga temporal:** los valores de esta tabla quedaron obsoletos tras corregir una fuga temporal real en la imputación y en el cálculo del umbral de estrés (`openspec/specs/data-quality/spec.md` y `openspec/specs/predictive-modeling/spec.md`, ambos actualizados el mismo día; detalle completo en `docs/research/hu8-analisis-resultados.md`, sección 11). Re-ejecutado con el pipeline corregido, mismas semillas `[0,1,2,3,4]` para las 4 configuraciones (`scripts/run_hu7_experiments.py`), registrado en un experimento MLflow nuevo (`hu7-epica4-leakage-fix`) sin sobrescribir esta tabla ni el experimento histórico (`hu7-epica4`): `Base` F1=0.7354±0.0094/ROC-AUC=0.4664; `+Sintéticos` F1=0.7098±0.0379/ROC-AUC=0.4432; `+Anomalías` F1=0.7368±0.0123/ROC-AUC=0.4962; `Completa` F1=0.7075±0.0401/ROC-AUC=0.4544. El orden relativo entre configuraciones no cambia (anomalías sigue ayudando modestamente, sintéticos sigue perjudicando), pero el ROC-AUC de las 4 configuraciones cae a valores en o por debajo de 0.5 — el umbral de estrés corregido reveló que entrenamiento y evaluación tienen distribuciones de humedad de suelo distintas (evaluación es la época más seca del año), lo que el umbral anterior ocultaba parcialmente al calibrarse en parte con la propia evaluación. La lectura correcta ya no es "el modelo aporta poco pero algo aporta" sino "ninguna configuración discrimina mejor que el azar una vez eliminada la fuga" — ver `docs/research/hu8-resultados-discusion-conclusiones.md`, sección 6, para la re-lectura completa de las conclusiones de HU8.
 
+**Actualización (2026-09-05) — purga de frontera de horizonte, consistencia del detector de anomalías y baselines/MCC:** una segunda auditoría corrigió una fuga residual (la etiqueta objetivo filtraba a las últimas filas de train una fecha ya perteneciente a evaluación, ver `openspec/specs/data-quality/spec.md`) y el ajuste del detector de anomalías sobre la propia distribución de evaluación en `run_quality_pipeline` (no afectaba a este *runner*, que ya usaba `architecture_integration.pipeline`, pero sí a la consistencia general del componente `data-quality`). Re-ejecutado (`scripts/run_hu7_experiments.py`, mismas semillas `[0,1,2,3,4]`), registrado en un experimento MLflow nuevo (`hu7-epica4-purged-cv`), sin sobrescribir `hu7-epica4-leakage-fix` ni `hu7-epica4`:
+
+| Configuración | F1 (media ± desvío) | ROC-AUC (media) | MCC (media ± desvío) | Balanced accuracy (media) |
+|---|---|---|---|---|
+| Base | 0.7309 ± 0.0215 | 0.4447 | 0.0743 ± 0.0889 | 0.5323 |
+| +Sintéticos | 0.6960 ± 0.0304 | 0.4105 | -0.0463 ± 0.0753 | 0.4808 |
+| +Anomalías | 0.7278 ± 0.0190 | 0.4630 | 0.0571 ± 0.0583 | 0.5243 |
+| Completa | 0.6949 ± 0.0404 | 0.4179 | -0.0235 ± 0.0881 | 0.4884 |
+
+Baselines registrados junto a cada configuración (idénticos entre las 4, porque no dependen del modelo entrenado): persistencia F1=0.6087/MCC=-0.1113, clase mayoritaria F1=0.0/MCC=0.0 (predice siempre "no estrés" — confirma que la clase mayoritaria de entrenamiento ya no coincide con la de evaluación, mismo corrimiento estacional de la sección 11), siempre-estrés F1=0.7863/MCC=0.0.
+
+**Hallazgo principal**: el orden `+Anomalías` (0.7368) > `Base` (0.7354) reportado en la corrección anterior **se invierte** (`Base` 0.7309/MCC 0.0743 > `+Anomalías` 0.7278/MCC 0.0571); un diagnóstico por semilla (`[+0.0122, +0.0158, -0.0396, +0.0210, -0.0250]`) confirma que es ruido, no un efecto real — la conclusión "anomalías ayuda modestamente" ya no se sostiene. El orden sintéticos/completa se mantiene (siguen perjudicando). Ver `docs/research/hu8-analisis-resultados.md`, sección 12, y `docs/research/hu8-resultados-discusion-conclusiones.md`, sección 7.
+
+Además, esta ejecución centraliza como constantes nombradas (registradas como parámetros MLflow) el contrato de reproducibilidad completo: dataset, columnas de variables, columna objetivo, `horizon_days=3`, `percentile=20.0`, `lags=[1,2,3]`, `rolling_windows=[3,7]`, `alert_threshold=0.5`, `contamination=0.05`, modelo e hiperparámetros, semillas, `n_synthetic_samples=100`, y `pipeline_version="purged_cv_v2"` (`scripts/run_hu7_experiments.py`, `scripts/run_hu7_scenarios.py`, `src/experiment_runner/runner.py::run_configuration`).
+
 ### Requirement: Reproducibilidad verificada entre corridas
 
 El sistema DEBE producir métricas idénticas al re-ejecutar la misma configuración con las mismas semillas.
@@ -117,6 +132,8 @@ Implementado en `src/experiment_runner/scenarios.py` (`subsample_training_period
 
 **Actualización (2026-09-04):** re-ejecutado con el pipeline corregido de fuga temporal (`scripts/run_hu7_scenarios.py`): F1 medio **0.8430 ± 0.0139**, sigue superior a la base recalculada (0.7354 ± 0.0094) — misma dirección que antes de la corrección. Ver `docs/research/hu8-analisis-resultados.md`, sección 11.
 
+**Actualización (2026-09-05) — MCC revierte esta conclusión:** re-ejecutado con la purga de frontera de horizonte (`scripts/run_hu7_scenarios.py`): F1 medio **0.8374 ± 0.0047** (consistente con el valor anterior), pero **MCC medio -0.1103** — el más negativo de todo el estudio, peor incluso que persistencia (-0.1113). El F1 alto ya no se puede leer como una mejora de desempeño: agregar MCC muestra que este escenario tiene la peor capacidad de discriminación real del estudio, no la mejor — el F1 alto se explica por un desbalance de clases agravado por tener menos datos de entrenamiento para corregir el corrimiento estacional (sección 11.1). **La conclusión "la escasez de datos mejora el desempeño" queda revertida.** Ver `docs/research/hu8-analisis-resultados.md`, sección 12.3.
+
 ### Requirement: Escenario de ruido de datos
 
 El sistema DEBE poder simular ruido de sensor agregando ruido gaussiano de media cero a las variables predictoras, con desvío proporcional al desvío observado de cada variable.
@@ -130,6 +147,8 @@ El sistema DEBE poder simular ruido de sensor agregando ruido gaussiano de media
 Implementado en `src/experiment_runner/scenarios.py` (`inject_gaussian_noise`), integrado en `run_configuration` vía el parámetro `noise_std_ratio` (semilla de ruido distinta por repetición), testeado en `tests/test_scenarios.py` y `tests/test_experiment_runner.py`. Verificado sobre el dataset real (configuración base, `noise_std_ratio=0.3`, 5 semillas): F1 medio **0.3188 ± 0.1130**, inferior al F1 medio de la configuración base sin ruido (0.4585 ± 0.0423) — el ruido inyectado degrada el desempeño, como se esperaba, y además aumenta notablemente la variabilidad entre semillas (desvío de F1 casi triplicado).
 
 **Actualización (2026-09-04):** re-ejecutado con el pipeline corregido de fuga temporal (`scripts/run_hu7_scenarios.py`): F1 medio **0.6467 ± 0.0520**, sigue inferior a la base recalculada (0.7354 ± 0.0094) — misma dirección que antes de la corrección. Ver `docs/research/hu8-analisis-resultados.md`, sección 11.
+
+**Actualización (2026-09-05):** re-ejecutado con la purga de frontera de horizonte (`scripts/run_hu7_scenarios.py`): F1 medio **0.6690 ± 0.0481**, MCC medio **0.0221** (positivo, sin la contradicción del escenario de escasez — ver requirement anterior). Misma dirección de degradación que antes de esta corrección.
 
 ## Limitaciones conocidas
 

@@ -1,17 +1,19 @@
 """Re-ejecuta las 4 configuraciones experimentales de la Épica 4 (HU7)
-sobre el pipeline corregido (auditoría de fuga temporal: imputación
-causal + umbral de estrés congelado en entrenamiento), y las registra
-en MLflow bajo un experimento nuevo, separado de las corridas
-históricas (`hu7-epica4`), para poder comparar antes/después sin
-sobrescribir la evidencia histórica.
+sobre el pipeline corregido (auditoría de fuga temporal en imputación y
+umbral de estrés, más la auditoría posterior de validación cruzada
+purgada y consistencia de detección de anomalías), y las registra en
+MLflow bajo un experimento nuevo, separado de las corridas históricas
+(`hu7-epica4`) y de la ronda anterior (`hu7-epica4-leakage-fix`), para
+poder comparar sin sobrescribir evidencia previa.
 
-Parámetros reconstruidos a partir de lo documentado en
-`docs/research/hu8-analisis-resultados.md` y `backend/app/config.py`,
-dado que la ejecución original de HU7 fue ad hoc y nunca quedó
-committeada como script (`openspec/changes/add-experiment-execution/
-proposal.md`, "Código afectado: ninguno nuevo") — ver el informe final
-de esta auditoría para el detalle de qué está verificado literalmente
-contra el historial y qué es una reconstrucción razonable.
+Toda la configuración de una corrida (dataset, partición, columnas,
+horizonte, percentil, retardos/ventanas, umbral de alerta,
+contaminación, modelo e hiperparámetros, semillas, cantidad de datos
+sintéticos, commit y versión del pipeline) se declara explícitamente
+acá y se registra como parámetro de MLflow — auditoría de
+reproducibilidad, ver `docs/research/hu8-analisis-resultados.md`,
+sección 11. Nada de esto depende de un valor por defecto implícito de
+`run_end_to_end_pipeline`.
 
 Uso:
     python scripts/run_hu7_experiments.py
@@ -27,13 +29,24 @@ import mlflow
 from data_ingestion.storage import load_dataset
 from experiment_runner.mlflow_logging import log_configuration_results
 from experiment_runner.runner import run_configuration
+from predictive_modeling.models import build_candidate_models
 
+# --- Configuración reproducible de esta corrida ---------------------------
 DATASET_NAME = "melchor_romero_2024_consolidado"
 FEATURE_COLUMNS = ["soil_moisture", "solar_radiation", "relative_humidity"]
 LABEL_COLUMN = "soil_moisture"
+HORIZON_DAYS = 3
+PERCENTILE = 20.0
+LAGS = [1, 2, 3]
+ROLLING_WINDOWS = [3, 7]
+ALERT_THRESHOLD = 0.5
+CONTAMINATION = 0.05
+MODEL_NAME = "random_forest"
 SEEDS = [0, 1, 2, 3, 4]
 N_SYNTHETIC_SAMPLES = 100
-EXPERIMENT_NAME = "hu7-epica4-leakage-fix"
+PIPELINE_VERSION = "purged_cv_v2"
+EXPERIMENT_NAME = "hu7-epica4-purged-cv"
+# ---------------------------------------------------------------------------
 
 CONFIGURATIONS = {
     "base": {"include_anomaly_detection": False, "include_synthetic": False},
@@ -57,25 +70,45 @@ def main() -> None:
     mlflow.set_experiment(EXPERIMENT_NAME)
     commit_sha = _commit_sha()
     run_date = datetime.now(timezone.utc).isoformat()
+    model_hyperparameters = build_candidate_models(random_state=SEEDS[0])[MODEL_NAME].get_params()
 
     for config_name, flags in CONFIGURATIONS.items():
+        n_synthetic_samples = N_SYNTHETIC_SAMPLES if flags["include_synthetic"] else 0
+
         results = run_configuration(
             df,
             label_column=LABEL_COLUMN,
             feature_columns=FEATURE_COLUMNS,
             split_date=split_date,
-            model_name="random_forest",
+            model_name=MODEL_NAME,
             seeds=SEEDS,
-            n_synthetic_samples=N_SYNTHETIC_SAMPLES if flags["include_synthetic"] else 0,
+            n_synthetic_samples=n_synthetic_samples,
+            alert_threshold=ALERT_THRESHOLD,
+            horizon_days=HORIZON_DAYS,
+            percentile=PERCENTILE,
+            lags=LAGS,
+            rolling_windows=ROLLING_WINDOWS,
+            contamination=CONTAMINATION,
             **flags,
         )
 
         config_params = {
             **flags,
-            "model_name": "random_forest",
-            "n_synthetic_samples": N_SYNTHETIC_SAMPLES if flags["include_synthetic"] else 0,
+            "dataset": DATASET_NAME,
+            "split_date": str(split_date),
+            "feature_columns": ",".join(FEATURE_COLUMNS),
+            "label_column": LABEL_COLUMN,
+            "horizon_days": HORIZON_DAYS,
+            "percentile": PERCENTILE,
+            "lags": str(LAGS),
+            "rolling_windows": str(ROLLING_WINDOWS),
+            "alert_threshold": ALERT_THRESHOLD,
+            "contamination": CONTAMINATION,
+            "model_name": MODEL_NAME,
+            "model_hyperparameters": str(model_hyperparameters),
             "seeds": str(SEEDS),
-            "pipeline_version": "leakage_fix",
+            "n_synthetic_samples": n_synthetic_samples,
+            "pipeline_version": PIPELINE_VERSION,
             "commit_sha": commit_sha,
             "run_date": run_date,
         }
@@ -84,7 +117,9 @@ def main() -> None:
         print(
             f"[{config_name}] run_id={run_id} "
             f"f1_mean={results['f1'].mean():.4f} f1_std={results['f1'].std():.4f} "
-            f"roc_auc_mean={results['roc_auc'].mean():.4f}"
+            f"roc_auc_mean={results['roc_auc'].mean():.4f} "
+            f"mcc_mean={results['mcc'].mean():.4f} "
+            f"always_stress_f1_mean={results['always_stress_f1'].mean():.4f}"
         )
 
 

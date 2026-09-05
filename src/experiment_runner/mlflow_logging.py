@@ -13,21 +13,27 @@ from __future__ import annotations
 import mlflow
 import pandas as pd
 
-METRIC_COLUMNS = ["precision", "recall", "f1", "roc_auc"]
-
 
 def log_configuration_results(config_name: str, config_params: dict, results: pd.DataFrame) -> str:
-    """Registra `results` (una fila por semilla, con columnas `seed` y
-    las métricas de `METRIC_COLUMNS`) en MLflow: un run padre con
+    """Registra `results` (una fila por semilla, con columna `seed` y
+    una columna por cada métrica presente) en MLflow: un run padre con
     `config_params` y las métricas agregadas, y un run hijo anidado por
-    cada semilla. Devuelve el `run_id` del run padre.
+    cada semilla. Cualquier columna de `results` distinta de `seed` se
+    registra como métrica — no hay una lista fija de nombres de métrica,
+    para no tener que editar este módulo cada vez que se agrega una
+    métrica o un baseline nuevo (ver
+    `docs/research/hu8-analisis-resultados.md`, sección 11, MCC/balanced
+    accuracy/average precision/baselines agregados en la misma
+    auditoría). Devuelve el `run_id` del run padre.
     """
+    metric_columns = [column for column in results.columns if column != "seed"]
+
     with mlflow.start_run(run_name=config_name) as parent_run:
         mlflow.log_param("config_name", config_name)
         for key, value in config_params.items():
             mlflow.log_param(key, value)
 
-        for metric in METRIC_COLUMNS:
+        for metric in metric_columns:
             mlflow.log_metric(f"{metric}_mean", float(results[metric].mean()))
             mlflow.log_metric(f"{metric}_std", float(results[metric].std()))
 
@@ -35,7 +41,7 @@ def log_configuration_results(config_name: str, config_params: dict, results: pd
             with mlflow.start_run(run_name=f"{config_name}-seed{int(row['seed'])}", nested=True):
                 mlflow.log_param("config_name", config_name)
                 mlflow.log_param("seed", int(row["seed"]))
-                for metric in METRIC_COLUMNS:
+                for metric in metric_columns:
                     mlflow.log_metric(metric, float(row[metric]))
 
         return parent_run.info.run_id

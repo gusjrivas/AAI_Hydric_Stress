@@ -19,7 +19,7 @@ from typing import Any
 
 import pandas as pd
 
-from data_quality.anomaly_detection import detect_anomalies
+from data_quality.anomaly_detection import apply_anomaly_detector, fit_anomaly_detector
 from data_quality.imputation import interpolate_missing_causal
 from data_quality.quality_report import quality_report
 from data_quality.scaling import apply_standardization, standardize
@@ -56,12 +56,11 @@ def run_quality_pipeline(
     test = interpolate_missing_causal(test_raw, columns=numeric_columns, warm_start=warm_start)
 
     if include_anomaly_detection:
-        train = detect_anomalies(
+        detector = fit_anomaly_detector(
             train, columns=numeric_columns, contamination=contamination, random_state=random_state
         )
-        test = detect_anomalies(
-            test, columns=numeric_columns, contamination=contamination, random_state=random_state
-        )
+        train = apply_anomaly_detector(train, columns=numeric_columns, detector=detector)
+        test = apply_anomaly_detector(test, columns=numeric_columns, detector=detector)
 
     train_scaled, scaling_params = standardize(train, columns=numeric_columns)
     test_scaled = apply_standardization(test, params=scaling_params)

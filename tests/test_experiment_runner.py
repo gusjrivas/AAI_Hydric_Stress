@@ -18,6 +18,66 @@ def _synthetic_dataset(n=80, seed=0):
     )
 
 
+def test_run_configuration_forwards_pipeline_config_params(monkeypatch):
+    df = _synthetic_dataset()
+    split_date = df["timestamp"].iloc[60].date()
+    captured = {}
+
+    import experiment_runner.runner as runner_module
+
+    real_run_end_to_end_pipeline = runner_module.run_end_to_end_pipeline
+
+    def _spy(*args, **kwargs):
+        captured.update(kwargs)
+        return real_run_end_to_end_pipeline(*args, **kwargs)
+
+    monkeypatch.setattr(runner_module, "run_end_to_end_pipeline", _spy)
+
+    run_configuration(
+        df,
+        label_column="soil_moisture",
+        feature_columns=["soil_moisture", "solar_radiation"],
+        split_date=split_date,
+        model_name="logistic_regression",
+        include_anomaly_detection=False,
+        include_synthetic=False,
+        seeds=[1],
+        horizon_days=5,
+        percentile=15.0,
+        lags=[1, 2],
+        rolling_windows=[4],
+        contamination=0.1,
+    )
+
+    assert captured["horizon_days"] == 5
+    assert captured["percentile"] == 15.0
+    assert captured["lags"] == [1, 2]
+    assert captured["rolling_windows"] == [4]
+    assert captured["contamination"] == 0.1
+
+
+def test_run_configuration_includes_baseline_metrics_alongside_the_model():
+    df = _synthetic_dataset()
+    split_date = df["timestamp"].iloc[60].date()
+
+    results = run_configuration(
+        df,
+        label_column="soil_moisture",
+        feature_columns=["soil_moisture", "solar_radiation"],
+        split_date=split_date,
+        model_name="logistic_regression",
+        include_anomaly_detection=False,
+        include_synthetic=False,
+        seeds=[1],
+    )
+
+    for baseline in ("persistence", "majority_class", "always_stress"):
+        for metric in ("precision", "recall", "f1", "mcc", "balanced_accuracy"):
+            column = f"{baseline}_{metric}"
+            assert column in results.columns, f"falta columna {column}"
+            assert results[column].notna().all()
+
+
 def test_run_configuration_produces_one_row_per_seed():
     df = _synthetic_dataset()
     split_date = df["timestamp"].iloc[60].date()

@@ -10,7 +10,9 @@ evaluación (`data-quality`) → umbral de estrés congelado sobre
 entrenamiento y etiquetado de ambas particiones (`predictive-modeling`)
 → variables predictoras (`predictive-modeling`, retardos/ventanas
 móviles, causales por construcción) → partición temporal final sobre el
-resultado con variables → detección de anomalías opcional
+resultado con variables → purga de la frontera de horizonte
+(`data-quality`, últimas `horizon_days` filas de entrenamiento cuyo
+target cae en evaluación) → detección de anomalías opcional
 (`data-quality`, ajustada solo sobre entrenamiento) → entrenamiento y
 alertas (`predictive-modeling`) → inicialización del registro de
 retroalimentación (`human-feedback`).
@@ -22,6 +24,20 @@ hueco de entrenamiento con una observación de evaluación, y el umbral
 de estrés quedaba informado por la distribución completa (incluyendo
 evaluación). Ambos casos constituían fuga temporal. Este orden lo
 corrige sin cambiar el resto de la arquitectura.
+
+Segunda auditoría (frontera de horizonte): la variable objetivo de una
+fila se calcula `horizon_days` filas adelante (`add_stress_label`).
+Aun particionando por fecha, las últimas `horizon_days` filas de
+entrenamiento (antes de `split_date`) reciben un target que corresponde
+a una fecha ya perteneciente a evaluación — su etiqueta usaría
+información del futuro que en un escenario real todavía no existiría.
+`purge_target_horizon` elimina esas filas de entrenamiento antes de
+ajustar cualquier modelo o detector. Por el mismo motivo, la validación
+cruzada temporal usada para seleccionar hiperparámetros/modelo
+(`predictive_modeling.training.tune_hyperparameters`) usa
+`TimeSeriesSplit(gap=horizon_days)`, para que ningún fold de
+entrenamiento interno tenga un target que se solape con su propio fold
+de validación.
 """
 
 from __future__ import annotations
@@ -36,7 +52,7 @@ from data_ingestion.schema import TIMESTAMP_COLUMN
 from data_quality.anomaly_detection import apply_anomaly_detector, fit_anomaly_detector
 from data_quality.imputation import interpolate_missing_causal
 from data_quality.quality_report import quality_report
-from data_quality.splitting import temporal_train_test_split
+from data_quality.splitting import purge_target_horizon, temporal_train_test_split
 from human_feedback.schema import init_feedback_log
 from predictive_modeling.alerts import generate_alerts
 from predictive_modeling.feature_engineering import add_lag_features, add_rolling_features
@@ -100,6 +116,7 @@ def run_end_to_end_pipeline(
     featured = featured.dropna(subset=["stress_label"] + feature_cols).reset_index(drop=True)
 
     train, test = temporal_train_test_split(featured, split_date=split_date)
+    train = purge_target_horizon(train, horizon_days=horizon_days)
 
     if include_anomaly_detection:
         detector = fit_anomaly_detector(
@@ -113,10 +130,14 @@ def run_end_to_end_pipeline(
     X_test = test[feature_cols]
 
     model_name = None
+    model_selection_warning = None
     if model is None:
-        selection = select_best_candidate(X_train, y_train, random_state=random_state)
+        selection = select_best_candidate(
+            X_train, y_train, gap=horizon_days, random_state=random_state
+        )
         fitted_model = selection["model"]
         model_name = selection["model_name"]
+        model_selection_warning = selection["selection_warning"]
     elif skip_fit:
         fitted_model = model
     else:
@@ -134,6 +155,8 @@ def run_end_to_end_pipeline(
         "feature_columns": feature_cols,
         "model": fitted_model,
         "model_name": model_name,
+        "model_selection_warning": model_selection_warning,
+        "threshold": threshold,
         "y_proba": y_proba,
         "alerts": alerts,
         "feedback_log": feedback_log,

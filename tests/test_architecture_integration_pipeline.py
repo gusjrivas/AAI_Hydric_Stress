@@ -132,6 +132,61 @@ def test_run_end_to_end_pipeline_selects_a_model_automatically_when_none_given()
     assert len(result["y_proba"]) == len(result["test"])
 
 
+def test_run_end_to_end_pipeline_purges_train_rows_whose_target_crosses_into_test():
+    df = _synthetic_dataset(n=60)
+    model = build_candidate_models(random_state=0)["logistic_regression"]
+    split_date = df["timestamp"].iloc[45].date()
+    horizon_days = 3
+
+    result = run_end_to_end_pipeline(
+        df,
+        label_column="soil_moisture",
+        feature_columns=["soil_moisture", "solar_radiation"],
+        split_date=split_date,
+        model=model,
+        horizon_days=horizon_days,
+        include_anomaly_detection=False,
+    )
+
+    # las últimas `horizon_days` fechas antes de split_date tendrían un
+    # target (soil_moisture horizon_days filas adelante) que cae dentro de
+    # test -- no deben aparecer en train.
+    cutoff = pd.Timestamp(split_date)
+    purged_dates = pd.date_range(end=cutoff, periods=horizon_days + 1, freq="D")[:-1]
+    assert not result["train"]["timestamp"].isin(purged_dates).any()
+    assert result["train"]["timestamp"].max() < purged_dates.min()
+
+
+def test_changing_a_test_period_value_does_not_change_the_selected_model_or_its_training_data():
+    baseline_df = _synthetic_dataset(n=150, seed=2)
+    modified_df = baseline_df.copy()
+    # cambia radicalmente un valor bien adentro de lo que será test
+    modified_df.loc[140, "soil_moisture"] = 999.0
+    split_date = baseline_df["timestamp"].iloc[110].date()
+
+    baseline_result = run_end_to_end_pipeline(
+        baseline_df,
+        label_column="soil_moisture",
+        feature_columns=["soil_moisture", "solar_radiation"],
+        split_date=split_date,
+        model=None,
+        include_anomaly_detection=False,
+    )
+    modified_result = run_end_to_end_pipeline(
+        modified_df,
+        label_column="soil_moisture",
+        feature_columns=["soil_moisture", "solar_radiation"],
+        split_date=split_date,
+        model=None,
+        include_anomaly_detection=False,
+    )
+
+    pd.testing.assert_frame_equal(
+        baseline_result["train"].drop(columns=["soil_moisture_imputado"], errors="ignore"),
+        modified_result["train"].drop(columns=["soil_moisture_imputado"], errors="ignore"),
+    )
+
+
 def test_run_end_to_end_pipeline_leaves_model_name_none_when_model_is_given():
     df = _synthetic_dataset()
     model = build_candidate_models(random_state=0)["logistic_regression"]

@@ -15,7 +15,13 @@ from human_feedback.model_registry import register_recalibrated_model
 from human_feedback.recalibration import recalibrate_model, select_recalibration_observations
 from human_feedback.registry import integrate_feedback_with_predictions, load_feedback_log
 
-from ..config import get_dataset_data_dir, get_feedback_data_dir
+from ..config import (
+    FEATURE_COLUMNS,
+    HORIZON_DAYS,
+    PIPELINE_VERSION,
+    get_dataset_data_dir,
+    get_feedback_data_dir,
+)
 from ..dependencies import get_valid_sensor_id
 from ..pipeline import execute_configured_pipeline, load_dataset_or_raise
 from ..schemas import RecalibrationResponse
@@ -75,6 +81,10 @@ def recalibrate(
             "model_name_previo": result["model_name"] or "modelo_recalibrado_previo",
         },
         metrics={"n_filas_entrenamiento": len(X_recal)},
+        feature_columns=FEATURE_COLUMNS,
+        horizon_days=HORIZON_DAYS,
+        threshold=result["threshold"],
+        pipeline_version=PIPELINE_VERSION,
     )
 
     return RecalibrationResponse(
