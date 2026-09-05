@@ -70,3 +70,20 @@ Las decisiones técnicas deben poder justificarse en:
 - Capítulo 3: arquitectura e implementación.
 
 Evitar funcionalidad que no aporte a estos objetivos.
+
+## Uso eficiente del contexto
+
+No releer todo el repositorio para tareas acotadas.
+
+Usar, en este orden:
+
+1. `AGENTS.md`;
+2. la spec de la capacidad afectada en `openspec/specs/`;
+3. el ADR correspondiente;
+4. los archivos directamente relacionados con la tarea.
+
+Ampliar el contexto solo si aparece una dependencia, inconsistencia o impacto metodológico relevante.
+
+Para tareas localizadas, evitar recorrer módulos, documentación o resultados históricos que no estén relacionados con el cambio.
+
+Objetivo: reducir consumo innecesario de contexto y tokens en Codex y otros agentes, manteniendo la trazabilidad metodológica.
