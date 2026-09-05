@@ -22,6 +22,7 @@ Uso:
 from __future__ import annotations
 
 import subprocess
+import os
 from datetime import datetime, timezone
 
 import mlflow
@@ -46,7 +47,7 @@ MODEL_NAME = "random_forest"
 SEEDS = [0, 1, 2, 3, 4]
 N_SYNTHETIC_SAMPLES = 100
 PIPELINE_VERSION = "controlled_daily_v3"
-EXPERIMENT_NAME = "hu7-controlled-daily-v3"
+EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME", "hu7-controlled-daily-v3")
 # ---------------------------------------------------------------------------
 
 CONFIGURATIONS = {
@@ -112,7 +113,10 @@ def main() -> None:
             "pipeline_version": PIPELINE_VERSION,
             "commit_sha": commit_sha,
             "run_date": run_date,
-            **experiment_provenance(DEFAULT_DATA_DIR / f"{DATASET_NAME}.parquet"),
+            **experiment_provenance(
+                DEFAULT_DATA_DIR / f"{DATASET_NAME}.parquet",
+                pipeline_version=PIPELINE_VERSION,
+            ),
         }
 
         run_id = log_configuration_results(config_name, config_params, results)

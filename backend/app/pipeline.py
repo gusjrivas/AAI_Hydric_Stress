@@ -11,8 +11,9 @@ import pandas as pd
 from architecture_integration.pipeline import predict_available, run_end_to_end_pipeline
 from data_ingestion.sensor_naming import dataset_name_for
 from data_ingestion.storage import DEFAULT_DATA_DIR, get_dataset_fingerprint, load_dataset
-from human_feedback.model_registry import load_latest_recalibrated_model
+from human_feedback.model_registry import load_latest_recalibrated_model, load_predictor_by_id
 from predictive_modeling.contract import make_contract
+from predictive_modeling.models import build_candidate_models
 
 from .config import FEATURE_COLUMNS, HORIZON_DAYS, LABEL_COLUMN, RANDOM_STATE
 
@@ -34,9 +35,15 @@ def load_dataset_or_raise(sensor_id: str, data_dir: Path = DEFAULT_DATA_DIR):
     return df, after
 
 
-def execute_configured_pipeline(df, sensor_id, fingerprint=None, data_dir=DEFAULT_DATA_DIR):
+def execute_configured_pipeline(
+    df, sensor_id, fingerprint=None, data_dir=DEFAULT_DATA_DIR, predictor_model_id=None
+):
     contract = configured_contract()
-    predictor = load_latest_recalibrated_model(sensor_id, expected_contract=contract)
+    predictor = (
+        load_predictor_by_id(sensor_id, predictor_model_id, contract)
+        if predictor_model_id
+        else load_latest_recalibrated_model(sensor_id, expected_contract=contract)
+    )
     fingerprint = fingerprint or get_dataset_fingerprint(dataset_name_for(sensor_id), data_dir)
     with _selection_cache_lock:
         cached = _selection_cache.get(sensor_id)
@@ -51,12 +58,17 @@ def execute_configured_pipeline(df, sensor_id, fingerprint=None, data_dir=DEFAUL
         label_column=LABEL_COLUMN,
         feature_columns=FEATURE_COLUMNS,
         split_date=split_date,
-        model=predictor,
+        # The UI uses the fixed Random Forest contract; automatic CV selection
+        # remains available in the experimental core and fails explicitly when
+        # its folds are not eligible.
+        model=predictor or build_candidate_models(RANDOM_STATE)["random_forest"],
         skip_fit=predictor is not None,
         include_anomaly_detection=False,
         horizon_days=HORIZON_DAYS,
         random_state=RANDOM_STATE,
     )
+    if result["model_name"] is None:
+        result["model_name"] = "random_forest"
     if predictor is None:
         with _selection_cache_lock:
             _selection_cache[sensor_id] = {

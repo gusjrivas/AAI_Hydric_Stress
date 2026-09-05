@@ -3,7 +3,7 @@
 (auditoría de fuga temporal + auditoría de validación cruzada purgada y
 consistencia de detección de anomalías), y los registra en MLflow bajo
 el mismo experimento nuevo que `scripts/run_hu7_experiments.py`
-(`hu7-epica4-purged-cv`), separado de las corridas históricas y de la
+(`hu7-controlled-daily-v3`), separado de las corridas históricas y de la
 ronda anterior (`hu7-epica4-leakage-fix`).
 
 Uso:
@@ -13,6 +13,7 @@ Uso:
 from __future__ import annotations
 
 import subprocess
+import os
 from datetime import datetime, timezone
 
 import mlflow
@@ -35,7 +36,7 @@ CONTAMINATION = 0.05
 MODEL_NAME = "random_forest"
 SEEDS = [0, 1, 2, 3, 4]
 PIPELINE_VERSION = "controlled_daily_v3"
-EXPERIMENT_NAME = "hu7-controlled-daily-v3"
+EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME", "hu7-controlled-daily-v3")
 
 SCENARIOS = {
     "coverage_fraction_0.5": {"train_fraction": 0.5, "scarcity_mode": "coverage"},
@@ -98,7 +99,10 @@ def main() -> None:
             "pipeline_version": PIPELINE_VERSION,
             "commit_sha": commit_sha,
             "run_date": run_date,
-            **experiment_provenance(DEFAULT_DATA_DIR / f"{DATASET_NAME}.parquet"),
+            **experiment_provenance(
+                DEFAULT_DATA_DIR / f"{DATASET_NAME}.parquet",
+                pipeline_version=PIPELINE_VERSION,
+            ),
         }
 
         run_id = log_configuration_results(scenario_name, config_params, results)

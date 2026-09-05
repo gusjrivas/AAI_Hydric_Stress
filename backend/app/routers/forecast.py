@@ -10,6 +10,7 @@ import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
 from data_ingestion.sensor_naming import feedback_log_name_for
+from human_feedback.model_registry import load_predictor_by_id, register_predictor
 from human_feedback.registry import load_feedback_log, save_feedback_log
 from human_feedback.schema import init_prediction_feedback
 
@@ -40,6 +41,8 @@ def run_forecast(
     forecast = result["forecast"]
     if forecast.empty:
         raise HTTPException(status_code=422, detail="No hay historial suficiente para pronosticar.")
+    if load_predictor_by_id(sensor_id, result["predictor"].model_id, result["contract"]) is None:
+        register_predictor(sensor_id, result["predictor"])
     fresh = init_prediction_feedback(
         forecast,
         result["predictor"].model_id,
