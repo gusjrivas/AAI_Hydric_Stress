@@ -46,7 +46,8 @@ def recalibrate(
                 (log.estado_validacion == "rechazada") & log.etiqueta_corregida.notna(), "fecha"
             ]
         }
-        predictor_model_id = None if latest is not None and correction_dates.issubset(applied) else model_id
+        already_applied = latest is not None and correction_dates.issubset(applied)
+        predictor_model_id = None if already_applied else model_id
         result = execute_configured_pipeline(
             df, sensor_id, fingerprint, data_dir=dataset_dir, predictor_model_id=predictor_model_id
         )
