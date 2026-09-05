@@ -4,14 +4,16 @@ Capacidad implementada (Épica 2, HU4 — completa, los tres sub-proyectos: defi
 
 ## Requirements
 
-### Requirement: Variable objetivo de estrés hídrico por umbral relativo
+### Requirement: Variable objetivo de estrés hídrico por umbral relativo, congelado en entrenamiento
 
-El sistema DEBE poder etiquetar cada fila de un dataset con una variable objetivo binaria: si la humedad de suelo cae por debajo de un umbral (percentil de la distribución histórica observada de esa misma variable) dentro de un horizonte de anticipación dado, medido en días.
+El sistema DEBE poder etiquetar cada fila de un dataset con una variable objetivo binaria: si la humedad de suelo cae por debajo de un umbral (percentil de la distribución histórica observada de esa misma variable) dentro de un horizonte de anticipación dado, medido en días. El umbral DEBE calcularse únicamente sobre el conjunto de entrenamiento y reutilizarse, congelado, para etiquetar también el conjunto de evaluación — nunca recalcularse sobre un conjunto que incluya datos de evaluación.
+
+**Actualización (2026-09-04):** el requirement original calculaba el percentil sobre el DataFrame completo (antes de la partición temporal), lo que dejaba el umbral informado por la distribución del período de evaluación — fuga temporal confirmada en la auditoría metodológica de la memoria técnica (ver `docs/seguimiento-tareas.md`, fila "Corrección de fuga temporal en imputación y umbral de estrés"). El umbral corregido, calculado solo sobre entrenamiento, resultó más alto que el umbral anterior (0.3223 vs. 0.3115 en el dataset real), y el período de evaluación (última porción del año, con humedad de suelo sistemáticamente menor que el resto del año) pasó de ~51% a ~65% de filas etiquetadas como estrés — un desplazamiento de distribución real entre entrenamiento y evaluación que el umbral anterior ocultaba al calibrarse parcialmente con el propio período de evaluación. Ver `docs/research/hu8-analisis-resultados.md` para el análisis completo del impacto sobre los resultados experimentales.
 
 #### Scenario: Etiquetado de una serie con un evento de estrés futuro
 
-- **GIVEN** una serie temporal de humedad de suelo donde el valor de un día, `horizonte` días después del día actual, cae por debajo del percentil de umbral configurado
-- **WHEN** se etiqueta esa serie con el horizonte y percentil configurados
+- **GIVEN** una serie temporal de humedad de suelo donde el valor de un día, `horizonte` días después del día actual, cae por debajo del umbral configurado
+- **WHEN** se etiqueta esa serie con el horizonte y el umbral configurados
 - **THEN** el día actual queda etiquetado como estrés (1)
 
 #### Scenario: Días sin información futura suficiente no se etiquetan
@@ -20,7 +22,13 @@ El sistema DEBE poder etiquetar cada fila de un dataset con una variable objetiv
 - **WHEN** se etiqueta esa serie
 - **THEN** esos últimos días quedan sin etiqueta (no se inventa un valor)
 
-Implementado en `src/predictive_modeling/labeling.py` (`add_stress_label`), testeado en `tests/test_labeling.py`. Parámetros elegidos: horizonte de 3 días, percentil 20 (justificación en el *change* de origen: sin datos de capacidad de campo/punto de marchitez calibrados, un umbral agronómico absoluto no es calculable con rigor todavía — este es un proxy relativo, no una validación agronómica definitiva). Verificado sobre el dataset real: 363 de 366 filas etiquetadas (292 sin estrés, 71 con estrés, ~19.6%).
+#### Scenario: El umbral se calcula solo sobre entrenamiento y se reutiliza en evaluación
+
+- **GIVEN** un conjunto de entrenamiento y un conjunto de evaluación con distribuciones distintas de humedad de suelo
+- **WHEN** se calcula el umbral sobre el conjunto de entrenamiento y se etiquetan ambos conjuntos con ese mismo umbral
+- **THEN** el umbral usado para etiquetar evaluación es idéntico al calculado sobre entrenamiento, nunca uno recalculado sobre la distribución de evaluación
+
+Implementado en `src/predictive_modeling/labeling.py` (`fit_stress_threshold` + `add_stress_label`), testeado en `tests/test_labeling.py` (incluye una prueba específica de que el umbral se reutiliza congelado y nunca se recalcula sobre el segundo conjunto). Parámetros elegidos: horizonte de 3 días, percentil 20 (justificación en el *change* de origen: sin datos de capacidad de campo/punto de marchitez calibrados, un umbral agronómico absoluto no es calculable con rigor todavía — este es un proxy relativo, no una validación agronómica definitiva, y sigue sin serlo tras esta corrección). Verificado sobre el dataset real, con el pipeline corregido: umbral de entrenamiento 0.3223, ~20.5% de filas de entrenamiento etiquetadas como estrés, ~64.8% de filas de evaluación etiquetadas como estrés (71 filas con horizonte completo).
 
 ### Requirement: Variables predictoras con retardos y ventanas móviles sin fuga temporal
 
@@ -59,6 +67,8 @@ El sistema DEBE poder predecir la variable objetivo mediante un modelo de refere
 - **THEN** la predicción es estrés (1)
 
 Implementado en `src/predictive_modeling/models.py` (`predict_persistence_baseline`), testeado en `tests/test_models.py`. Verificado sobre el dataset real (72 filas de test, umbral 0.3126): precisión 0.500, recall 0.474, F1 0.486.
+
+**Actualización (2026-09-04):** re-verificado tras la corrección de fuga temporal del umbral (ver "Variable objetivo de estrés hídrico por umbral relativo, congelado en entrenamiento" más arriba). Con el umbral corregido (0.3223, calculado solo sobre entrenamiento) y las 71 filas de evaluación con horizonte completo: precisión 0.6087, recall 0.6087, F1 0.6087 — más alto que el valor anterior, pero por el mismo motivo que el resto de las configuraciones (ver `docs/research/hu8-analisis-resultados.md`): la tasa base de estrés en evaluación subió de ~51% a ~65%, por lo que F1 ya no es comparable directamente entre el antes y el después sin tener en cuenta ese desplazamiento de la clase base.
 
 ### Requirement: Entrenamiento de modelos candidatos
 

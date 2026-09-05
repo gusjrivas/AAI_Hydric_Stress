@@ -20,7 +20,7 @@ from typing import Any
 import pandas as pd
 
 from data_quality.anomaly_detection import detect_anomalies
-from data_quality.imputation import interpolate_missing
+from data_quality.imputation import interpolate_missing_causal
 from data_quality.quality_report import quality_report
 from data_quality.scaling import apply_standardization, standardize
 from data_quality.splitting import temporal_train_test_split
@@ -47,9 +47,13 @@ def run_quality_pipeline(
     """
     report = quality_report(df)
 
-    imputed = interpolate_missing(df, columns=numeric_columns)
+    train_raw, test_raw = temporal_train_test_split(df, split_date=split_date)
 
-    train, test = temporal_train_test_split(imputed, split_date=split_date)
+    train = interpolate_missing_causal(train_raw, columns=numeric_columns)
+    train = train.dropna(subset=numeric_columns).reset_index(drop=True)
+
+    warm_start = train.iloc[-1] if len(train) else None
+    test = interpolate_missing_causal(test_raw, columns=numeric_columns, warm_start=warm_start)
 
     if include_anomaly_detection:
         train = detect_anomalies(

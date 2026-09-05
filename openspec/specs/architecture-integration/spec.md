@@ -16,17 +16,25 @@ El sistema DEBE poder ejecutar, con una única función, el flujo completo desde
 
 ### Requirement: Orden de etapas sin fuga temporal entre calidad y modelado
 
-El sistema DEBE calcular las variables de retardo y ventana móvil sobre la serie completa imputada, antes de partir en entrenamiento/evaluación, para que los primeros días de la partición de evaluación tengan historia disponible.
+El sistema DEBE partir el dataset crudo en entrenamiento/evaluación antes de imputar y antes de calcular el umbral de la variable objetivo — ninguna de las dos operaciones puede usar información del período de evaluación. Las variables de retardo y ventana móvil, en cambio, SÍ pueden calcularse sobre la concatenación de ambas particiones ya imputadas (nunca sobre datos crudos sin partir): por construcción, solo miran hacia atrás en el tiempo (`shift`/`rolling` con ventana retrospectiva), así que los primeros días de evaluación pueden apoyarse legítimamente en la historia real de entrenamiento sin que eso constituya fuga.
+
+**Actualización (2026-09-04):** este requirement describía, hasta esta corrección, un orden que en realidad contenía fuga temporal: la imputación (interpolación lineal bidireccional) y el umbral de la variable objetivo (percentil) se calculaban sobre el dataset completo *antes* de partir, permitiendo que ambas operaciones usaran observaciones del período de evaluación. Confirmado por auditoría metodológica de la memoria técnica y corregido sin alterar el resto de la arquitectura (ver `docs/seguimiento-tareas.md`, fila "Corrección de fuga temporal en imputación y umbral de estrés", y `docs/research/hu8-analisis-resultados.md` para el impacto sobre los resultados ya reportados en HU7/HU8).
 
 #### Scenario: Las variables de los primeros días de evaluación no quedan vacías por la partición
 
 - **GIVEN** un dataset consolidado cuya partición de evaluación comienza inmediatamente después de la de entrenamiento
 - **WHEN** se ejecuta el orquestador de punta a punta
-- **THEN** las variables de retardo y ventana móvil de los primeros días de la partición de evaluación se calculan con datos de la partición de entrenamiento, sin quedar en NaN por la partición
+- **THEN** las variables de retardo y ventana móvil de los primeros días de la partición de evaluación se calculan con datos (ya imputados) de la partición de entrenamiento, sin quedar en NaN por la partición
 
-Implementado en `src/architecture_integration/pipeline.py` (`run_end_to_end_pipeline`), testeado en `tests/test_architecture_integration_pipeline.py`. Encadena: `data_quality.imputation.interpolate_missing` → `predictive_modeling.labeling.add_stress_label` + `feature_engineering` (sobre la serie completa) → `data_quality.splitting.temporal_train_test_split` → `data_quality.anomaly_detection.detect_anomalies` (opcional, después de partir) → entrenamiento del modelo candidato → `predictive_modeling.alerts.generate_alerts` → `human_feedback.schema.init_feedback_log`.
+#### Scenario: La imputación y el umbral de entrenamiento nunca usan datos de evaluación
 
-Verificado sobre el dataset real (Melchor Romero 2024, modelo Random Forest, umbral 0.5, corte 2024-10-19): 286 filas de entrenamiento, 71 de test, 0 valores NaN en las variables predictoras del conjunto de test, 22 alertas generadas, registro de retroalimentación inicializado con 71 filas en estado `pendiente`, 15 filas marcadas `is_anomaly` en el conjunto de entrenamiento. Desde `openspec/changes/fix-anomaly-feature-integration/`, esa columna `is_anomaly` también forma parte de las variables predictoras que recibe el modelo cuando la detección de anomalías está habilitada.
+- **GIVEN** un dataset consolidado con valores faltantes cerca del borde entre entrenamiento y evaluación
+- **WHEN** se ejecuta el orquestador de punta a punta
+- **THEN** la imputación del período de entrenamiento se completa únicamente con observaciones estrictamente anteriores dentro de entrenamiento, y el umbral de la variable objetivo se calcula únicamente sobre el período de entrenamiento ya imputado, antes de etiquetar evaluación con ese mismo umbral congelado
+
+Implementado en `src/architecture_integration/pipeline.py` (`run_end_to_end_pipeline`), testeado en `tests/test_architecture_integration_pipeline.py` y `tests/test_architecture_integration_functional.py`. Encadena: `data_quality.splitting.temporal_train_test_split` (sobre el dataset crudo) → `data_quality.imputation.interpolate_missing_causal` por partición (evaluación recibe la cola de entrenamiento como semilla) → `predictive_modeling.labeling.fit_stress_threshold` (solo sobre entrenamiento) + `add_stress_label` (sobre la concatenación, con el umbral congelado) → `feature_engineering` (sobre la concatenación) → `data_quality.splitting.temporal_train_test_split` (partición final, mismo corte) → `data_quality.anomaly_detection.fit_anomaly_detector`/`apply_anomaly_detector` (opcional, ajustado solo sobre entrenamiento) → entrenamiento del modelo candidato → `predictive_modeling.alerts.generate_alerts` → `human_feedback.schema.init_feedback_log`.
+
+Verificado sobre el dataset real (Melchor Romero 2024, modelo Random Forest, corte 2024-10-19), con el pipeline ya corregido: 292 filas de entrenamiento crudas, 74 de evaluación crudas (0 filas de entrenamiento descartadas por falta de valor previo — no hubo huecos al comienzo de la serie), umbral de estrés 0.3223 (calculado solo sobre entrenamiento), 0 valores NaN en las variables predictoras del conjunto de evaluación tras la ingeniería de variables. Ver `docs/research/hu8-analisis-resultados.md` para las métricas de desempeño completas bajo el pipeline corregido, sustancialmente distintas de las reportadas antes de esta corrección por un cambio real en la proporción de filas etiquetadas como estrés en evaluación (de ~51% a ~65%).
 
 ### Requirement: Ejecución configurable del orquestador desde línea de comandos
 
@@ -38,7 +46,9 @@ El sistema DEBE poder ejecutar el orquestador de punta a punta desde línea de c
 - **WHEN** se ejecuta el script de línea de comandos con los parámetros de ese dataset
 - **THEN** se reporta un resumen con al menos: filas de entrenamiento, filas de evaluación, cantidad de alertas generadas, y estados del registro de retroalimentación
 
-Implementado en `scripts/run_end_to_end_pipeline.py`, siguiendo la misma convención que `scripts/run_data_quality_pipeline.py`. Verificado sobre el dataset real (Melchor Romero 2024, Random Forest, corte 2024-10-19): 286 filas de entrenamiento, 71 de evaluación, 22 alertas generadas, 71 filas de retroalimentación `pendiente`, 15 filas anómalas en entrenamiento — coincide exactamente con la verificación por función directa del *change* anterior.
+Implementado en `scripts/run_end_to_end_pipeline.py`, siguiendo la misma convención que `scripts/run_data_quality_pipeline.py`. Verificado sobre el dataset real (Melchor Romero 2024, Random Forest, corte 2024-10-19), antes de la corrección de fuga temporal: 286 filas de entrenamiento, 71 de evaluación, 22 alertas generadas, 71 filas de retroalimentación `pendiente`, 15 filas anómalas en entrenamiento.
+
+**Nota (2026-09-04):** tras la corrección de fuga temporal (ver el requirement anterior), estos números concretos del script de línea de comandos no se re-verificaron directamente — sí se re-verificó el resultado equivalente vía `run_end_to_end_pipeline` (función directa, ver requirement anterior) y vía `scripts/run_hu7_experiments.py`. Queda pendiente correr `scripts/run_end_to_end_pipeline.py` una vez más para confirmar que reporta los nuevos números (292 filas de entrenamiento crudas, umbral 0.3223, proporción de alertas más alta por el cambio de tasa base de estrés en evaluación).
 
 ### Requirement: Comportamiento correcto ante valores faltantes intercalados
 
