@@ -38,3 +38,26 @@ def test_log_configuration_results_creates_parent_and_nested_child_runs(tmp_path
     assert len(child_runs) == 2
     child_seeds = sorted(int(run.data.params["seed"]) for run in child_runs)
     assert child_seeds == [1, 2]
+
+
+def test_log_configuration_results_logs_any_metric_column_present_not_a_fixed_list(tmp_path):
+    tracking_uri = f"file:///{tmp_path.as_posix()}/mlruns"
+    mlflow.set_tracking_uri(tracking_uri)
+    mlflow.set_experiment("test-experiment-extra-metrics")
+
+    results = pd.DataFrame(
+        {
+            "seed": [1, 2],
+            "f1": [0.55, 0.65],
+            "mcc": [0.10, 0.20],
+            "always_stress_f1": [0.30, 0.30],
+        }
+    )
+
+    parent_run_id = log_configuration_results(config_name="base", config_params={}, results=results)
+
+    client = mlflow.tracking.MlflowClient(tracking_uri=tracking_uri)
+    parent_run = client.get_run(parent_run_id)
+
+    assert parent_run.data.metrics["mcc_mean"] == results["mcc"].mean()
+    assert parent_run.data.metrics["always_stress_f1_mean"] == results["always_stress_f1"].mean()

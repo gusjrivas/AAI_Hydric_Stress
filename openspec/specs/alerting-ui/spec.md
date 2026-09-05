@@ -54,6 +54,8 @@ El sistema DEBE poder recalibrar el modelo usado para pronosticar a partir de la
 
 Implementado en `backend/app/routers/recalibration.py` (`POST /recalibrate`) y `src/human_feedback/model_registry.py`. Testeado en `backend/tests/test_recalibration.py` y `tests/test_model_registry.py`. Verificado sobre datos reales: ver `docs/seguimiento-tareas.md`.
 
+**Actualización (2026-09-05) — contrato de esquema obligatorio al registrar y validado al cargar:** una auditoría de reproducibilidad encontró que `register_recalibrated_model` guardaba metadatos de esquema (columnas de variables, horizonte, umbral, versión de pipeline) de forma opcional, y `load_latest_recalibrated_model` no verificaba compatibilidad antes de cargar — un modelo registrado con un esquema de variables distinto podía cargarse silenciosamente. Corregido: `register_recalibrated_model` ahora requiere `feature_columns`, `horizon_days`, `threshold` y `pipeline_version` (registrados como parámetros MLflow), y `load_latest_recalibrated_model(sensor_id, expected_feature_columns=None)` valida esas columnas contra las del modelo registrado antes de cargarlo, lanzando `ModelContractMismatch` (en vez de cargar silenciosamente) si no coinciden. `backend/app/routers/recalibration.py` y `backend/app/pipeline.py` ya pasan estos valores (`backend/app/config.py::HORIZON_DAYS`, `PIPELINE_VERSION`). Testeado en `tests/test_model_registry.py` (`test_load_latest_recalibrated_model_raises_on_feature_columns_mismatch`, entre otros).
+
 ### Requirement: Uso del modelo recalibrado en el próximo pronóstico
 
 El sistema DEBE usar la versión más reciente del modelo recalibrado (si existe alguna) al ejecutar un nuevo pronóstico, en vez de entrenar un modelo nuevo desde cero.

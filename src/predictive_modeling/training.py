@@ -34,16 +34,23 @@ def tune_hyperparameters(
     y_train: pd.Series,
     n_splits: int = 5,
     scoring: str = "f1",
+    gap: int = 0,
 ) -> dict[str, Any]:
     """Ajusta los hiperparámetros de `model` con `GridSearchCV` usando
     `TimeSeriesSplit` (respeta el orden temporal: cada fold de
     validación es posterior a su fold de entrenamiento correspondiente,
     sin mezclar ni recortar el conjunto de entrenamiento original).
-    Devuelve el mejor estimador ya entrenado, sus mejores parámetros, y
-    la media/desvío de `scoring` entre los folds de validación cruzada
-    (indicador de estabilidad).
+    `gap` (por defecto 0, sin cambio de comportamiento previo) excluye
+    las últimas `gap` filas de cada fold de entrenamiento interno:
+    necesario cuando el target de una fila depende de una fila
+    `horizon_days` adelante (`predictive_modeling.labeling
+    .add_stress_label`), para que ningún target de entrenamiento se
+    solape temporalmente con su propio fold de validación — pasar
+    `gap=horizon_days` en ese caso. Devuelve el mejor estimador ya
+    entrenado, sus mejores parámetros, y la media/desvío de `scoring`
+    entre los folds de validación cruzada (indicador de estabilidad).
     """
-    splitter = TimeSeriesSplit(n_splits=n_splits)
+    splitter = TimeSeriesSplit(n_splits=n_splits, gap=gap)
     search = GridSearchCV(clone(model), param_grid=param_grid, cv=splitter, scoring=scoring)
     search.fit(X_train, y_train)
 
@@ -56,3 +63,32 @@ def tune_hyperparameters(
         "cv_mean_score": float(cv_results["mean_test_score"][best_index]),
         "cv_std_score": float(cv_results["std_test_score"][best_index]),
     }
+
+
+def diagnose_time_series_folds(
+    y: pd.Series, n_splits: int = 5, gap: int = 0
+) -> list[dict[str, int]]:
+    """Diagnostica cada fold de `TimeSeriesSplit(n_splits, gap)` sobre
+    `y`: cantidad de positivos y negativos en el fold de entrenamiento y
+    en el de validación. Un fold de validación sin ningún positivo hace
+    que una métrica como F1 (con `zero_division=0`) sea 0 por
+    construcción, no porque el modelo evaluado sea malo — sin este
+    diagnóstico, ese 0 es indistinguible de una evaluación genuina.
+    """
+    splitter = TimeSeriesSplit(n_splits=n_splits, gap=gap)
+    y_array = y.to_numpy()
+
+    diagnostics = []
+    for fold_index, (train_idx, val_idx) in enumerate(splitter.split(y_array)):
+        train_positives = int(y_array[train_idx].sum())
+        val_positives = int(y_array[val_idx].sum())
+        diagnostics.append(
+            {
+                "fold": fold_index,
+                "train_positives": train_positives,
+                "train_negatives": len(train_idx) - train_positives,
+                "val_positives": val_positives,
+                "val_negatives": len(val_idx) - val_positives,
+            }
+        )
+    return diagnostics

@@ -98,6 +98,26 @@ El sistema DEBE poder particionar un dataset en un conjunto de entrenamiento y u
 
 Implementado en `src/data_quality/splitting.py` (`temporal_train_test_split`), testeado en `tests/test_splitting.py`. Verificado sobre el dataset real: corte en 2024-10-01 produce 274 filas de entrenamiento (hasta 2024-09-30) y 92 de evaluación (desde 2024-10-01), sin fechas mezcladas.
 
+### Requirement: Purga de filas de entrenamiento cuya etiqueta cruza la frontera de evaluación
+
+El sistema DEBE poder eliminar, de un conjunto de entrenamiento ya ordenado por tiempo, las últimas `horizon_days` filas — dado que su etiqueta objetivo (calculada con desplazamiento hacia adelante de `horizon_days`) puede corresponder a una fecha que ya cae dentro del período de evaluación, incluso cuando la partición train/test en sí ya se hizo antes de calcular la etiqueta.
+
+**Contexto (2026-09-05):** una segunda auditoría metodológica encontró que, aun partiendo train/test antes de imputar y de calcular el umbral (corrección de 2026-09-04), la etiqueta objetivo se calculaba con `shift(-horizon_days)` sobre la concatenación de train y test ya imputados — dejando a las últimas `horizon_days` filas de train con una etiqueta derivada de una fecha de evaluación. Ver `docs/research/hu8-analisis-resultados.md`, sección 12.
+
+#### Scenario: Las últimas `horizon_days` filas de entrenamiento se purgan
+
+- **GIVEN** un conjunto de entrenamiento ordenado por fecha y un horizonte de `H` días
+- **WHEN** se purga el conjunto de entrenamiento por frontera de horizonte
+- **THEN** el resultado no contiene las últimas `H` fechas del conjunto original
+
+#### Scenario: Horizonte cero no purga ninguna fila
+
+- **GIVEN** un conjunto de entrenamiento y `horizon_days=0`
+- **WHEN** se purga el conjunto de entrenamiento por frontera de horizonte
+- **THEN** el resultado es idéntico al conjunto original
+
+Implementado en `src/data_quality/splitting.py` (`purge_target_horizon`), testeado en `tests/test_splitting.py`. Consumido por `src/architecture_integration/pipeline.py::run_end_to_end_pipeline`, inmediatamente después de la partición final train/test (ver `openspec/specs/architecture-integration/spec.md`). Verificado con una prueba de integración de punta a punta (`tests/test_architecture_integration_pipeline.py`) que confirma que modificar un valor de test no cambia ni el conjunto de entrenamiento resultante ni el modelo seleccionado.
+
 ### Requirement: Detección de anomalías no supervisada
 
 El sistema DEBE poder marcar filas anómalas en un dataset sin requerir etiquetas de anomalía previas, usando un método no supervisado (Isolation Forest) sobre las columnas numéricas del esquema.
@@ -109,6 +129,8 @@ El sistema DEBE poder marcar filas anómalas en un dataset sin requerir etiqueta
 - **THEN** el dataset resultante incluye una columna que marca cada fila como anómala o no, sin haber requerido ninguna etiqueta previa
 
 Implementado en `src/data_quality/anomaly_detection.py` (`detect_anomalies`), testeado en `tests/test_anomaly_detection.py`. Verificado sobre el dataset real: marcó 19 de 366 filas (~5.2%, consistente con `contamination=0.05`), correspondientes a una ola de calor (fines de enero/inicio de febrero de 2024) y eventos de lluvia intensa (febrero-marzo de 2024) — ninguna de esas filas violaba el rango físico de `data_quality.rules`, lo que confirma que este requirement detecta un tipo de anomalía distinto y complementario al del reporte de calidad basado en reglas. Desde `openspec/changes/fix-anomaly-feature-integration/`, también existen `fit_anomaly_detector`/`apply_anomaly_detector` (fit/transform separados) para el caso donde `is_anomaly` se usa como variable predictora de un modelo (`architecture-integration`, HU6) y hace falta evitar que el conjunto de evaluación influya en su propia marca de anomalía.
+
+**Actualización (2026-09-05):** una segunda auditoría metodológica encontró que `data_quality.pipeline.run_quality_pipeline` (a diferencia de `architecture_integration.pipeline`, que ya usaba el patrón correcto) seguía ajustando el detector de anomalías por separado sobre entrenamiento y sobre evaluación — el `IsolationForest` de evaluación se ajustaba con la propia distribución de evaluación. Corregido: ahora usa `fit_anomaly_detector(train)` → `apply_anomaly_detector(train, detector)`/`apply_anomaly_detector(test, detector)`, el mismo patrón de `architecture-integration`. Ver `tests/test_pipeline.py::test_pipeline_anomaly_detector_for_test_is_fit_on_train_not_on_itself` y `docs/research/hu8-analisis-resultados.md`, sección 12.
 
 ### Requirement: Evaluación del detector mediante anomalías sintéticas inyectadas
 
@@ -187,7 +209,7 @@ Implementado en `src/data_quality/pipeline.py` (`run_quality_pipeline`) y `scrip
 - Verificado con un único dataset real (Melchor Romero 2024, consolidado de NASA POWER + ESA CCI). No se validó con datos de otros puntos geográficos o años.
 - Los rangos agronómicos son genéricos (físicos/climáticos plausibles), no específicos de un cultivo hortícola en particular — una iteración futura podría acotarlos por cultivo si se justifica.
 - La detección de atípicos basada en reglas de rango (`quality_report`) y la detección de anomalías no supervisada (`anomaly_detection`) son complementarias, no intercambiables: la primera detecta valores físicamente imposibles, la segunda detecta valores estadísticamente atípicos aunque sean físicamente plausibles (confirmado en la práctica: los eventos marcados por Isolation Forest en el dataset real no violaban ningún rango físico).
-- El detector de anomalías se evaluó únicamente con anomalías sintéticas inyectadas (no hay anomalías reales etiquetadas en este dominio); no hay evidencia de su desempeño sobre fallas de sensor reales no evidentes a simple vista. En `run_quality_pipeline`, la detección de anomalías se ajusta por separado sobre entrenamiento y evaluación (cada partición fitea su propio Isolation Forest); a diferencia de la estandarización, esto no se corrigió para evitar fuga, porque el flag de anomalía no es un parámetro que se filtre hacia un modelo de la misma manera — queda documentado como simplificación deliberada, no como descuido.
+- El detector de anomalías se evaluó únicamente con anomalías sintéticas inyectadas (no hay anomalías reales etiquetadas en este dominio); no hay evidencia de su desempeño sobre fallas de sensor reales no evidentes a simple vista. ~~En `run_quality_pipeline`, la detección de anomalías se ajusta por separado sobre entrenamiento y evaluación...~~ **Actualización (2026-09-05):** corregido — ver "Detección de anomalías no supervisada" más arriba; `run_quality_pipeline` ahora ajusta el detector únicamente sobre entrenamiento.
 - La generación de datos sintéticos asume una distribución normal multivariada; variables con distribuciones marcadamente distintas a la normal (ej. precipitación, con muchos ceros y cola derecha larga) se modelan de forma aproximada, no exacta. Un modelo generativo profundo (GAN/VAE) queda como candidato a evaluar cuando haya más datos reales disponibles (ver `openspec/changes/add-synthetic-data-generation/proposal.md`, "Alternativas consideradas").
 - La utilidad predictiva se evaluó con un modelo de regresión lineal simple, no con el modelo que finalmente se use en `predictive-modeling` (HU4, no iniciada); el resultado (MAE similar entre real y sintético) es una señal favorable para este prototipo, no una garantía de que se sostenga con un modelo más complejo.
 - El flujo integrado se verificó con una única semilla/corrida por configuración; la ejecución sistemática con múltiples repeticiones/semillas corresponde a `experiment-runner` (HU7, no iniciada).

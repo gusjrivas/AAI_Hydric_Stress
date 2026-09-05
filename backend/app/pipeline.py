@@ -62,7 +62,9 @@ def execute_configured_pipeline(
 
     split_date = df["timestamp"].sort_values().iloc[int(len(df) * 0.8)].date()
 
-    recalibrated_model = load_latest_recalibrated_model(sensor_id)
+    recalibrated_model = load_latest_recalibrated_model(
+        sensor_id, expected_feature_columns=FEATURE_COLUMNS
+    )
     if recalibrated_model is not None:
         return run_end_to_end_pipeline(
             df,
