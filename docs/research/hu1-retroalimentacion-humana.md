@@ -2,7 +2,7 @@
 
 Tarea de origen: "Analizar trabajos sobre retroalimentación humana y recalibración" (HU1, sección 9 del plan de tesis).
 
-Este documento cubre el tercer eje de HU1, el único que hasta ahora no tenía ninguna referencia relevada (ver `docs/seguimiento-tareas.md`). Se documenta por separado de `docs/research/hu1-variables-y-antecedentes.md` porque ese documento está acotado a lo estrictamente necesario para desbloquear el esquema de datos de HU2, mientras que este eje es insumo para el diseño de HU5 (generación de alertas) y HU6 (retroalimentación y recalibración).
+Este documento cubre el cuarto eje de HU1 (retroalimentación humana y recalibración, independiente de detección de anomalías y de datos sintéticos — ver `docs/research/hu1-protocolo-revision-bibliografica.md`, sección 1), el último de los cuatro en incorporar una primera referencia relevada (ver `docs/seguimiento-tareas.md`). Se documenta por separado de `docs/research/hu1-variables-y-antecedentes.md` porque ese documento está acotado a lo estrictamente necesario para desbloquear el esquema de datos de HU2, mientras que este eje es insumo para el diseño de HU5 (generación de alertas) y HU6 (retroalimentación y recalibración).
 
 > **Nota de alcance metodológico.** Igual que los otros dos ejes, esta sección se completó con una búsqueda dirigida acotada (motores generales / arXiv / Scopus vía buscador web), siguiendo los términos y cadenas definidos en `docs/research/hu1-protocolo-revision-bibliografica.md`, pero **no** ejecutando todavía el protocolo sistemático completo en Scopus/Web of Science/IEEE Xplore (bloqueado por falta de acceso institucional). Debe validarse y ampliarse antes de cerrar el estado del arte final de HU1.
 

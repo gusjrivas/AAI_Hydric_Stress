@@ -2,13 +2,13 @@
 
 Tarea de origen: "Redactar el estado del arte y el marco conceptual" (HU1, sección 9 del plan de tesis).
 
-Este documento consolida, en un único entregable, los insumos relevados en `docs/research/hu1-variables-y-antecedentes.md` y `docs/research/hu1-retroalimentacion-humana.md`. Constituye el estado del arte disponible a la fecha para los tres ejes de HU1: modelado predictivo de estrés hídrico, detección de anomalías y datos sintéticos, y retroalimentación humana con recalibración de modelos.
+Este documento consolida, en un único entregable, los insumos relevados en `docs/research/hu1-variables-y-antecedentes.md` y `docs/research/hu1-retroalimentacion-humana.md`. Constituye el estado del arte disponible a la fecha para los cuatro ejes de HU1 (ver `docs/research/hu1-protocolo-revision-bibliografica.md`, sección 1): modelado predictivo de estrés hídrico, detección de anomalías, generación de datos sintéticos, y retroalimentación humana con recalibración de modelos.
 
 > **Nota de alcance metodológico.** El corpus que sustenta este documento proviene de una búsqueda dirigida acotada, no de la ejecución del protocolo sistemático definido en `docs/research/hu1-protocolo-revision-bibliografica.md`. Las búsquedas en Scopus, Web of Science e IEEE Xplore permanecen bloqueadas por falta de acceso institucional. Por este motivo, el presente documento se considera una versión preliminar del estado del arte, sujeta a validación y ampliación una vez ejecutado el protocolo completo.
 
 ## 1. Introducción y alcance
 
-El estrés hídrico en cultivos hortícolas de pequeña y mediana escala constituye el fenómeno central de este trabajo de tesis. El objetivo de esta revisión consiste en la caracterización del estado actual del conocimiento respecto de tres problemas interrelacionados: la predicción del estrés hídrico a partir de variables agronómicas y climáticas, la detección de anomalías en datos de sensores con el consecuente uso de datos sintéticos ante su escasez, y la incorporación de retroalimentación humana para la recalibración de modelos predictivos. La delimitación temporal del corpus corresponde al período 2019-2026, con la excepción de referencias seminales de vigencia metodológica sostenida (sección 5 del protocolo de revisión).
+El estrés hídrico en cultivos hortícolas de pequeña y mediana escala constituye el fenómeno central de este trabajo de tesis. El objetivo de esta revisión consiste en la caracterización del estado actual del conocimiento respecto de cuatro problemas interrelacionados: la predicción del estrés hídrico a partir de variables agronómicas y climáticas, la detección de anomalías en datos de sensores, la generación de datos sintéticos ante la escasez de datos, y la incorporación de retroalimentación humana para la recalibración de modelos predictivos. La delimitación temporal del corpus corresponde al período 2019-2026, con la excepción de referencias seminales de vigencia metodológica sostenida (sección 5 del protocolo de revisión).
 
 ## 2. Marco conceptual
 
@@ -36,13 +36,15 @@ Las variables climáticas estándar (temperatura, humedad relativa, precipitaci�
 
 El detalle de justificación por variable, con enlaces a cada referencia, se encuentra en `docs/research/hu1-variables-y-antecedentes.md`, sección 1.
 
-### 2.2. Detección de anomalías y datos sintéticos
+### 2.2. Detección de anomalías
 
 La literatura sobre detección de anomalías en sensores de humedad de suelo distingue dos enfoques predominantes: el control de calidad automático orientado a la identificación de fallas de sensor (DeepQC), y la detección autosupervisada que prescinde de etiquetas previas de anomalía. Este segundo enfoque resulta pertinente para el escenario de esta tesis, en el cual no existe un corpus etiquetado de anomalías disponible de antemano.
 
-En paralelo, la generación de datos sintéticos surge como estrategia frente a la escasez de datos históricos, con dos líneas metodológicas principales: la generación condicionada por tarea y los modelos generativos (VAE, GAN) revisados en el ámbito de la agricultura de precisión. Ninguna de las referencias relevadas aborda de manera específica la generación de datos sintéticos para series temporales cortas de estrés hídrico en horticultura, lo cual constituye una vacancia de la literatura (sección 4).
+### 2.3. Generación de datos sintéticos
 
-### 2.3. Retroalimentación humana y recalibración
+La generación de datos sintéticos surge como estrategia frente a la escasez de datos históricos, con dos líneas metodológicas principales: la generación condicionada por tarea y los modelos generativos (VAE, GAN) revisados en el ámbito de la agricultura de precisión. Ninguna de las referencias relevadas aborda de manera específica la generación de datos sintéticos para series temporales cortas de estrés hídrico en horticultura, lo cual constituye una vacancia de la literatura (sección 4).
+
+### 2.4. Retroalimentación humana y recalibración
 
 El concepto de *human-in-the-loop* (HITL) refiere, según la revisión sistemática de Entropy (2026), a la intervención humana en distintos puntos del ciclo de vida de un modelo de inteligencia artificial: el etiquetado de datos, la validación de salidas, la corrección de errores y la decisión de re-entrenamiento. La revisión de alcance sobre agricultura de precisión (Basnayake y Gajendrasinghe, 2026) concluye que los sistemas HITL presentan mayor robustez que los sistemas completamente automatizados en entornos de agricultura inteligente, aun cuando estos últimos alcancen mayor precisión en condiciones simuladas.
 
@@ -54,7 +56,7 @@ La matriz comparativa completa (catorce trabajos, con técnica de IA, fuente de 
 
 De la síntesis se desprenden tres observaciones transversales:
 
-1. La mayoría de los trabajos aborda cada uno de los tres ejes (predicción, anomalías/datos sintéticos, retroalimentación humana) de forma aislada. Ningún trabajo relevado integra los tres componentes en una arquitectura única aplicada a estrés hídrico en horticultura.
+1. La mayoría de los trabajos aborda cada uno de los cuatro ejes (predicción, detección de anomalías, datos sintéticos, retroalimentación humana) de forma aislada. Ningún trabajo relevado integra los cuatro componentes en una arquitectura única aplicada a estrés hídrico en horticultura.
 2. Los trabajos de detección de anomalías que prescinden de etiquetas previas (DeepQC, detección autosupervisada) resultan compatibles con el escenario de datos sin etiquetar de esta tesis, a diferencia de enfoques supervisados que exigen un corpus previamente validado.
 3. Los antecedentes de retroalimentación humana provienen, en su mayoría, de dominios distintos al agrícola (series temporales genéricas, sistemas de recomendación de manejo agrícola general). Su aporte es de tipo metodológico y conceptual, no de dominio.
 
