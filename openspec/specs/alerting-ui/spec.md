@@ -6,19 +6,23 @@ Capacidad implementada (Épica 3, HU5+HU6 — primera exposición de retroalimen
 
 ## Requirements
 
-### Requirement: Ejecución de pronóstico desde la interfaz
+### Requirement: Ejecución de pronóstico desde la interfaz, por sensor
 
-El sistema DEBE poder ejecutar el pipeline completo (calidad, modelado, alertas) sobre el dataset consolidado configurado, y devolver un veredicto por fecha (alerta sí/no, probabilidad) sin exponer qué modelo lo generó.
+El sistema DEBE poder ejecutar el pipeline completo (calidad, modelado, alertas) sobre el dataset consolidado de un sensor dado, y devolver un veredicto para el último día observable disponible (alerta sí/no, probabilidad, fecha objetivo) sin exponer qué modelo lo generó.
 
-#### Scenario: Correr un pronóstico produce alertas y persiste el feedback inicial
+#### Scenario: Correr un pronóstico produce un veredicto y persiste el feedback inicial
 
-- **GIVEN** un dataset consolidado disponible bajo el nombre configurado por variable de entorno
-- **WHEN** se invoca el endpoint de ejecución de pronóstico
-- **THEN** se devuelve una lista de veredictos por fecha (fecha, alerta, probabilidad), y el registro de retroalimentación queda persistido con esas fechas en estado `pendiente` (o conservando su estado previo si ya existían)
+- **GIVEN** un dataset consolidado disponible para un `sensor_id` dado
+- **WHEN** se invoca el endpoint de ejecución de pronóstico para ese sensor
+- **THEN** se devuelve el veredicto correspondiente al último día observable (fecha, alerta, probabilidad, fecha objetivo), y el registro de retroalimentación de ese sensor queda persistido con esa fecha en estado `pendiente` (o conservando su estado previo si ya existía)
 
-Implementado en `backend/app/routers/forecast.py` (`POST /forecast/run`), testeado en `backend/tests/test_forecast.py`. Verificado manualmente contra el dataset real (`data/melchor_romero_2024_consolidado.parquet`) y el frontend real: el backend (`uvicorn app.main:app --port 8000`) y el frontend (`npm run dev`, `http://localhost:5173`) corriendo juntos produjeron `train_rows=286`, `test_rows=71`, con 22 de las 71 fechas marcadas como alerta (`alerta: true`) — por ejemplo 2024-10-31 (probabilidad 0.51), 2024-11-16 (0.67), 2024-12-13 (0.68). La tabla renderizada en el navegador mostró las 71 fechas reales (2024-10-19 a 2024-12-28) con probabilidades reales. Verificación cruzada vía `curl -X POST http://localhost:8000/forecast/run`: mismos `train_rows`/`test_rows`/cantidad de alertas, coincidiendo con los números ya conocidos de la verificación previa de HU4/HU7 sobre este mismo dataset/modelo.
+Implementado en `backend/app/routers/forecast.py` (`POST /forecast/{sensor_id}/run`), testeado en `backend/tests/test_forecast.py`.
 
-**Actualización (2026-08-22):** desde `openspec/changes/add-model-selection-engine/`, el modelo usado ya no es un Random Forest fijo — se selecciona automáticamente entre candidatos. Verificado sobre el mismo dataset real: `logistic_regression` y `random_forest` empataron en `cv_mean_score=0.0000` (el tamaño de muestra actual deja folds tempranos sin ejemplos de la clase de estrés, ver "Limitaciones conocidas" de `openspec/specs/predictive-modeling/spec.md`); se endureció el desempate en `select_best_candidate` para preferir `random_forest` en caso de empate, y con ese fix el pronóstico sobre este dataset elige `random_forest`.
+**Comportamiento vigente:** `backend/app/pipeline.py::execute_configured_pipeline` construye la inferencia futura vía `predictive_modeling`/`architecture_integration.pipeline.predict_available` y filtra el resultado al último `timestamp` observable del dataset (`available[available.timestamp == latest]`) — no requiere que exista todavía el target futuro para emitir ese veredicto, y la respuesta incluye `fecha_objetivo` (`target_timestamp`) además de `fecha`/`alerta`/`probabilidad`. `POST /forecast/{sensor_id}/run` devuelve por lo tanto un único veredicto por corrida (el del día más reciente disponible para ese sensor), no una lista de veredictos sobre todo un holdout.
+
+**Verificación histórica previa a la evolución hacia inferencia futura por sensor.** La verificación original (`train_rows=286`, `test_rows=71`, 22 de 71 fechas marcadas como alerta, dataset real de Melchor Romero 2024, sin `sensor_id`) corresponde a una versión anterior del endpoint, cuando devolvía la lista completa de veredictos sobre el holdout de evaluación en vez del último día observable. No debe usarse como evidencia del comportamiento actual; el contrato de respuesta (`ForecastRunResponse`) cambió de forma para reflejar el veredicto único.
+
+**Modelo utilizado:** el backend operativo usa actualmente un contrato Random Forest explícito (`build_candidate_models(RANDOM_STATE)["random_forest"]`) cuando no existe un predictor recalibrado o cacheado reutilizable — ver la sección "Modelo operativo vs. selección automática experimental" al final de este documento. Esto reemplaza la actualización histórica de 2026-08-22 que documentaba selección automática entre candidatos como comportamiento vigente de esta capacidad; esa actualización describía correctamente su momento, pero ya no describe el código actual.
 
 ### Requirement: Consulta y validación humana de alertas
 
@@ -36,7 +40,9 @@ El sistema DEBE poder listar el registro de retroalimentación persistido, y per
 - **WHEN** se invoca el endpoint de rechazo para esa fecha, con una etiqueta corregida y una observación
 - **THEN** el registro persistido queda con esa fecha en estado `rechazada`, con la corrección y la observación guardadas
 
-Implementado en `backend/app/routers/feedback.py` (`GET /feedback`, `POST /feedback/{fecha}/confirm`, `POST /feedback/{fecha}/reject`), testeado en `backend/tests/test_feedback.py`. Verificado manualmente end-to-end con el frontend real: se hizo clic en "Confirmar" sobre la fila 2024-10-19 (su columna "Estado" pasó a "confirmada" inmediatamente) y en "Rechazar" sobre la fila 2024-10-20 (pasó a "rechazada" inmediatamente). Al volver a correr el pronóstico desde la interfaz, ambas fechas conservaron su estado validado (`confirmada`/`rechazada`) mientras las 69 fechas restantes se regeneraron en estado `pendiente` — esto confirma el comportamiento de `upsert_feedback_log` (preservar la retroalimentación humana entre corridas) de punta a punta a través de la interfaz real, no solo a nivel de unidad.
+Implementado en `backend/app/routers/feedback.py` (`GET /feedback/{sensor_id}`, `POST /feedback/{sensor_id}/{fecha}/confirm`, `POST /feedback/{sensor_id}/{fecha}/reject`), testeado en `backend/tests/test_feedback.py`.
+
+**Verificación histórica previa a la introducción obligatoria de `sensor_id` en las rutas** (ver ADR-0008): se hizo clic en "Confirmar" sobre la fila 2024-10-19 (su columna "Estado" pasó a "confirmada" inmediatamente) y en "Rechazar" sobre la fila 2024-10-20 (pasó a "rechazada" inmediatamente), contra un frontend y unas rutas anteriores al breaking change de PR #163. Al volver a correr el pronóstico desde la interfaz, ambas fechas conservaron su estado validado mientras las restantes se regeneraron en estado `pendiente` — esto confirmó el comportamiento de `upsert_feedback_log` de punta a punta a través de la interfaz de ese momento. El mecanismo de preservación (`upsert_feedback_log`) no cambió; las rutas y el frontend que lo ejercitan sí (ver la sección de multi-sensor).
 
 ### Requirement: Disparo manual de recalibración desde la interfaz
 
@@ -54,7 +60,9 @@ El sistema DEBE poder recalibrar el modelo usado para pronosticar a partir de la
 - **WHEN** se invoca el endpoint de recalibración
 - **THEN** se devuelve un error explícito indicando que no hay correcciones pendientes de aplicar, sin registrar ninguna versión nueva
 
-Implementado en `backend/app/routers/recalibration.py` (`POST /recalibrate`) y `src/human_feedback/model_registry.py`. Testeado en `backend/tests/test_recalibration.py` y `tests/test_model_registry.py`. Verificado sobre datos reales: ver `docs/seguimiento-tareas.md`.
+Implementado en `backend/app/routers/recalibration.py` (`POST /recalibrate/{sensor_id}`) y `src/human_feedback/model_registry.py`. Testeado en `backend/tests/test_recalibration.py` y `tests/test_model_registry.py`. Verificado sobre datos reales: ver `docs/seguimiento-tareas.md`.
+
+El mecanismo de recalibración invocado por este endpoint es `recalibrate_predictor` (`src/human_feedback/recalibration.py`), con las garantías temporales documentadas en `openspec/specs/human-feedback/spec.md` (requirement "Recalibración temporalmente controlada con retroalimentación madura"): solo incorpora correcciones cuyo target ya maduró y cuya validación humana ocurrió después de esa maduración.
 
 **Actualización (2026-09-05) — contrato de esquema obligatorio al registrar y validado al cargar:** una auditoría de reproducibilidad encontró que `register_recalibrated_model` guardaba metadatos de esquema (columnas de variables, horizonte, umbral, versión de pipeline) de forma opcional, y `load_latest_recalibrated_model` no verificaba compatibilidad antes de cargar — un modelo registrado con un esquema de variables distinto podía cargarse silenciosamente. Corregido: `register_recalibrated_model` ahora requiere `feature_columns`, `horizon_days`, `threshold` y `pipeline_version` (registrados como parámetros MLflow), y `load_latest_recalibrated_model(sensor_id, expected_feature_columns=None)` valida esas columnas contra las del modelo registrado antes de cargarlo, lanzando `ModelContractMismatch` (en vez de cargar silenciosamente) si no coinciden. `backend/app/routers/recalibration.py` y `backend/app/pipeline.py` ya pasan estos valores (`backend/app/config.py::HORIZON_DAYS`, `PIPELINE_VERSION`). Testeado en `tests/test_model_registry.py` (`test_load_latest_recalibrated_model_raises_on_feature_columns_mismatch`, entre otros).
 
@@ -76,34 +84,49 @@ El sistema DEBE usar la versión más reciente del modelo recalibrado (si existe
 
 Implementado en `backend/app/pipeline.py` (`execute_configured_pipeline`) y `src/architecture_integration/pipeline.py` (`skip_fit`). Testeado en `backend/tests/test_pipeline.py` y `tests/test_architecture_integration_pipeline.py`. Verificado sobre datos reales: ver `docs/seguimiento-tareas.md`.
 
-### Requirement: Reutilización del modelo auto-seleccionado mientras el dataset no cambie
+### Requirement: Reutilización del modelo cacheado por sensor mientras el dataset no cambie
 
-El sistema DEBE reutilizar, sin volver a seleccionar, el último modelo auto-seleccionado mientras el dataset consolidado no haya cambiado; DEBE volver a seleccionar cuando el dataset cambie o cuando todavía no exista un modelo cacheado. Este comportamiento solo aplica cuando no hay un modelo recalibrado registrado — la prioridad de un modelo recalibrado sobre la selección automática no cambia.
+El sistema DEBE reutilizar, sin volver a entrenar, el último modelo ajustado para un sensor dado mientras el dataset consolidado de ese sensor no haya cambiado (según su huella/fingerprint); DEBE volver a ajustar cuando el dataset cambie o cuando todavía no exista un modelo cacheado para ese sensor. Este comportamiento solo aplica cuando no hay un modelo recalibrado registrado para ese sensor — la prioridad de un modelo recalibrado sobre el caché no cambia.
 
 #### Scenario: El dataset no cambió entre dos corridas
 
-- **GIVEN** un modelo ya auto-seleccionado en una corrida anterior, sin modelo recalibrado registrado, y el dataset consolidado sin cambios
-- **WHEN** se ejecuta una nueva corrida
-- **THEN** se reutiliza el mismo modelo cacheado sin volver a seleccionar
+- **GIVEN** un modelo ya cacheado para un sensor en una corrida anterior, sin modelo recalibrado registrado para ese sensor, y el dataset consolidado de ese sensor sin cambios
+- **WHEN** se ejecuta una nueva corrida para ese mismo sensor
+- **THEN** se reutiliza el mismo modelo cacheado sin volver a ajustarlo
 
 #### Scenario: El dataset cambió entre dos corridas
 
-- **GIVEN** un modelo ya auto-seleccionado en una corrida anterior, sin modelo recalibrado registrado, y el dataset consolidado modificado desde esa corrida
-- **WHEN** se ejecuta una nueva corrida
-- **THEN** se vuelve a seleccionar el mejor candidato, y el resultado reemplaza al modelo cacheado
+- **GIVEN** un modelo ya cacheado para un sensor en una corrida anterior, sin modelo recalibrado registrado para ese sensor, y el dataset consolidado de ese sensor modificado desde esa corrida
+- **WHEN** se ejecuta una nueva corrida para ese mismo sensor
+- **THEN** se vuelve a ajustar el modelo, y el resultado reemplaza al modelo cacheado para ese sensor
 
 #### Scenario: Un modelo recalibrado sigue teniendo prioridad sobre el caché
 
-- **GIVEN** un modelo recalibrado registrado en MLflow y, además, un modelo auto-seleccionado ya cacheado
-- **WHEN** se ejecuta una nueva corrida
-- **THEN** se usa el modelo recalibrado, ignorando el caché de selección automática
+- **GIVEN** un modelo recalibrado registrado en MLflow para un sensor y, además, un modelo ya cacheado para ese mismo sensor
+- **WHEN** se ejecuta una nueva corrida para ese sensor
+- **THEN** se usa el modelo recalibrado, ignorando el caché
 
-Implementado en `backend/app/pipeline.py` (`execute_configured_pipeline`), testeado en `backend/tests/test_pipeline.py`.
+Implementado en `backend/app/pipeline.py` (`execute_configured_pipeline`, `_selection_cache` indexado por `sensor_id`), testeado en `backend/tests/test_pipeline.py`.
+
+**Precisión sobre la semántica del caché:** este requirement se originó cuando el backend usaba selección automática entre candidatos (de ahí el nombre histórico "modelo auto-seleccionado"). El backend operativo vigente usa un contrato Random Forest explícito cuando no hay predictor recalibrado o cacheado (ver la sección "Modelo operativo vs. selección automática experimental" más abajo); el mecanismo de caché por huella de dataset y por sensor sigue vigente y sigue evitando reentrenar innecesariamente en cada corrida, independientemente de si el modelo subyacente es fijo o auto-seleccionado.
 
 ## Limitaciones conocidas
 
-- ~~Un único modelo fijo (Random Forest, configuración base) genera el veredicto; el motor de selección/ensamble entre varios modelos queda para una iteración futura (`openspec/changes/add-alerting-ui/proposal.md`, "Fuera de alcance").~~ **Actualización (2026-08-22):** resuelto — ver el requirement "Selección automática del mejor modelo candidato" en `openspec/specs/predictive-modeling/spec.md` y "Uso del motor de selección automática..." en `openspec/specs/architecture-integration/spec.md`.
-- No hay ingesta de datos de sensores en vivo; el dataset es el mismo consolidado histórico de HU2, configurable por nombre pero no por fuente en tiempo real.
+- ~~Un único modelo fijo (Random Forest, configuración base) genera el veredicto; el motor de selección/ensamble entre varios modelos queda para una iteración futura (`openspec/changes/add-alerting-ui/proposal.md`, "Fuera de alcance").~~ **Actualización (2026-08-22):** por un tiempo resuelto mediante selección automática entre candidatos (`openspec/specs/predictive-modeling/spec.md`, requirement "Selección automática del mejor modelo candidato"). **Actualización posterior (ver "Modelo operativo vs. selección automática experimental" más abajo):** el backend operativo volvió a usar un contrato Random Forest explícito, por una decisión deliberada distinta del motivo original de esta limitación — no es un regreso a la limitación original, sino una decisión operativa para evitar que la UI falle ante folds de validación degenerados.
+- ~~No hay ingesta de datos de sensores en vivo; el dataset es el mismo consolidado histórico de HU2, configurable por nombre pero no por fuente en tiempo real.~~ **Actualización:** resuelto mediante ingesta de sensores mock/en vivo (`POST /sensors/{sensor_id}/readings`, ADR-0007) y ruteo/aislamiento multi-sensor (ADR-0008) — ver la sección "Multi-sensor" más abajo. El dataset consumido por esta capacidad para un `sensor_id` dado puede ser el generado por ese flujo de ingesta mock, separado por construcción del dataset histórico formal de HU7/HU8 (`melchor_romero_2024_consolidado`, sin prefijo `sensor__`). La ingesta de sensores sigue siendo una fuente de datos y contexto experimental, no la contribución central del proyecto (que permanece siendo la arquitectura de IA).
 - ~~El disparo de recalibración supervisada (HU5) no está conectado a la UI todavía.~~ **Actualización (2026-08-19):** resuelto — ver el requirement "Disparo manual de recalibración desde la interfaz" más arriba.
-- El registro de retroalimentación asume un único pronóstico por fecha calendario — no distingue entre pronósticos recalculados en momentos distintos para la misma fecha objetivo. Esto no se expone con el dataset histórico estático actual, pero deberá resolverse antes de soportar datos de sensores en vivo con recálculo continuo.
-- ~~El backend entrena el modelo en cada corrida (sin cachear) cuando no hay un modelo recalibrado registrado; aceptable con el tamaño de dataset actual (~357 filas), a revisar si el dataset crece significativamente~~ **Actualización (2026-08-23):** resuelto — ver el requirement "Reutilización del modelo auto-seleccionado mientras el dataset no cambie" más arriba (`openspec/changes/add-selection-caching/`). Sigue siendo cierto que, desde `openspec/changes/add-model-selection-engine/`, la corrida en caso de *cache miss* es una búsqueda de hiperparámetros con validación cruzada sobre ambos candidatos (más costosa que un único `.fit()`), aceptada como tradeoff deliberado (ver "Alternativas consideradas" de ese *change*).
+- El registro de retroalimentación asume un único pronóstico por fecha calendario — no distingue entre pronósticos recalculados en momentos distintos para la misma fecha objetivo. Esto no se expone con el dataset histórico estático actual, pero deberá resolverse antes de soportar datos de sensores en vivo con recálculo continuo a mayor frecuencia.
+- ~~El backend entrena el modelo en cada corrida (sin cachear) cuando no hay un modelo recalibrado registrado; aceptable con el tamaño de dataset actual (~357 filas), a revisar si el dataset crece significativamente~~ **Actualización (2026-08-23):** resuelto — ver el requirement "Reutilización del modelo cacheado por sensor mientras el dataset no cambie" más arriba (`openspec/changes/add-selection-caching/`).
+- El campo `model_version` persistido en el registro de retroalimentación (`src/human_feedback/schema.py`) conserva ese nombre por compatibilidad histórica, pero en el flujo operativo vigente contiene `FittedPredictor.model_id` (un identificador lógico e inmutable del predictor), no un número de versión del Model Registry de MLflow — ver `openspec/specs/human-feedback/spec.md` para el detalle completo de esta distinción.
+
+## Multi-sensor
+
+Todas las rutas de esta capacidad exigen un `sensor_id` explícito (`POST /forecast/{sensor_id}/run`, `GET /feedback/{sensor_id}`, `POST /feedback/{sensor_id}/{fecha}/confirm`, `POST /feedback/{sensor_id}/{fecha}/reject`, `POST /recalibrate/{sensor_id}`, `POST /sensors/{sensor_id}/readings`; ver ADR-0008). Por cada sensor: el dataset consolidado, el registro de retroalimentación, el modelo recalibrado en el Model Registry de MLflow y el caché de modelo (`_selection_cache`) están aislados entre sí mediante la convención de nombres de `data_ingestion.sensor_naming`, sin estado global compartido entre sensores.
+
+El frontend (`frontend/src/features/forecast/ForecastPage.tsx`) consume actualmente estas rutas con `sensor_id`, tras el breaking change deliberado introducido por PR #163 (que exigió `sensor_id` en todos los endpoints) y su resolución posterior, que incorporó el selector/input de sensor en la interfaz. No queda ninguna llamada del frontend a una ruta sin `sensor_id`.
+
+## Modelo operativo vs. selección automática experimental
+
+El backend operativo (`backend/app/pipeline.py::execute_configured_pipeline`) usa actualmente un contrato Random Forest explícito (`build_candidate_models(...)["random_forest"]`) cuando no existe un predictor recalibrado o cacheado reutilizable para el sensor, en vez de invocar la selección automática entre candidatos. Esta es una decisión operativa deliberada, documentada inline en el código: la selección automática (`select_best_candidate`, `openspec/specs/predictive-modeling/spec.md`) falla explícitamente cuando algún fold de validación temporal carece de ambas clases, y la UI necesita poder producir un pronóstico incluso en esa situación.
+
+La selección automática entre candidatos permanece disponible y vigente en el núcleo experimental (`predictive-modeling`, `architecture-integration`) y es la que efectivamente usa el protocolo experimental formal (`controlled_daily_v3`) cuando no se fija un modelo explícito para una comparación controlada. Esta divergencia entre el backend operativo y el núcleo experimental es intencional y no debe interpretarse como que `alerting-ui` usa selección automática de modelos: no la usa actualmente.

@@ -15,7 +15,7 @@ Ver [`docs/seguimiento-tareas.md`](docs/seguimiento-tareas.md) para la auditorí
 | HU3 | `data-quality` — calidad, anomalías y datos sintéticos | ✅ Cerrada (revalidada sobre el pipeline causal vigente) |
 | HU4 | `predictive-modeling` — modelado predictivo y alertas tempranas | ✅ Cerrada (revalidada sobre el esquema temporal y de selección vigente) |
 | HU5 | `human-feedback` — retroalimentación humana y recalibración | ✅ Cerrada (revalidada con recalibración temporalmente controlada) |
-| HU6 | `architecture-integration` — integración de la arquitectura | ✅ Completa |
+| HU6 | `architecture-integration` — integración de la arquitectura | ✅ Cerrada (revalidada sobre la integración end-to-end vigente) |
 | HU7 | `experiment-runner` — diseño y ejecución del plan experimental | ✅ Completa |
 | HU8 | Análisis de resultados y contrastación de la hipótesis | 🟡 Parcial (análisis, discusión y conclusiones redactados; falta la memoria técnica final) |
 
