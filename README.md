@@ -14,7 +14,7 @@ Ver [`docs/seguimiento-tareas.md`](docs/seguimiento-tareas.md) para la auditorí
 | HU2 | `data-ingestion` — preparación del conjunto experimental de datos | ✅ Cerrada (conjunto experimental real y reproducible NASA POWER + ESA CCI Soil Moisture, Melchor Romero 2024) |
 | HU3 | `data-quality` — calidad, anomalías y datos sintéticos | ✅ Cerrada (revalidada sobre el pipeline causal vigente) |
 | HU4 | `predictive-modeling` — modelado predictivo y alertas tempranas | ✅ Cerrada (revalidada sobre el esquema temporal y de selección vigente) |
-| HU5 | `human-feedback` — retroalimentación humana y recalibración | ✅ Completa |
+| HU5 | `human-feedback` — retroalimentación humana y recalibración | ✅ Cerrada (revalidada con recalibración temporalmente controlada) |
 | HU6 | `architecture-integration` — integración de la arquitectura | ✅ Completa |
 | HU7 | `experiment-runner` — diseño y ejecución del plan experimental | ✅ Completa |
 | HU8 | Análisis de resultados y contrastación de la hipótesis | 🟡 Parcial (análisis, discusión y conclusiones redactados; falta la memoria técnica final) |
