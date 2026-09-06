@@ -101,6 +101,21 @@ Auditoría técnica final detectó dos brechas de auditabilidad en el linaje, am
 
 Documentado formalmente en `openspec/specs/human-feedback/spec.md`, mismo requirement, escenarios agregados.
 
+## Actualización 2026-09-06 — microajuste: detección de declaraciones parciales de linaje
+
+> **Corrige la sección anterior:** el párrafo "Lectura fail-closed" de la actualización T-01 de más arriba describe el marcador de declaración como "los cuatro parámetros (`recalibration_id`, `source_model_id`, `successor_model_id`, `dataset_fingerprint`) presentes en conjunto" — equivalente a `all(...)`. Esa formulación quedó superada por este microajuste y ya no describe el comportamiento vigente (ver más abajo). Tampoco debe leerse como que loguear esos parámetros desde el mismo bloque de código de `register_recalibrated_model` sea una operación atómica: MLflow no lo garantiza.
+
+`_run_declares_lineage` usaba `all(...)` sobre los cuatro parámetros para decidir si una versión declaraba linaje. Eso dejaba sin cubrir el caso intermedio: un run con **algunos** de esos parámetros (p. ej. una interrupción a mitad del bloque que los loguea) se clasificaba como "histórico sin linaje" y devolvía `None`, en vez de fallar explícitamente por estar incompleto — exactamente el escenario *fail-open* que T-01 buscaba cerrar.
+
+Corregido separando dos conjuntos con roles distintos:
+
+- **Marcadores de declaración** (`_LINEAGE_DECLARATION_MARKERS`: `recalibration_id`, `source_model_id`, `successor_model_id`, `lineage_version`) — la presencia de **cualquiera** de ellos (`any(...)`, no `all(...)`) ya clasifica el run como "declara linaje". `dataset_fingerprint` se excluye deliberadamente de este conjunto: por sí solo no es específico de una recalibración HITL (nada impide, en principio, que otro tipo de run lo loguee) y no debe bastar para inferir una declaración de linaje.
+- **Parámetros obligatorios** (`_LINEAGE_REQUIRED_PARAMS`: los cuatro originales, incluyendo `dataset_fingerprint`) — una vez que un run ya se clasificó como "declara linaje", debe tener **todos** estos parámetros; si falta alguno, `_require_complete_lineage_declaration` levanta `LineageValidationError` indicando cuáles faltan, junto con la versión y el `run_id`.
+
+`register_recalibrated_model` ahora también loguea `lineage_version` como parámetro MLflow indexable (antes solo vivía dentro del artefacto JSON), precisamente para que sirva como marcador de declaración adicional. Un evento `LINEAGE_VERSION_1` persistido por la implementación anterior a este microajuste (sin ese parámetro) sigue detectándose correctamente por los otros tres marcadores.
+
+Documentado formalmente en `openspec/specs/human-feedback/spec.md`, mismo requirement, párrafo "Lectura fail-closed" reescrito.
+
 ## Referencias
 
 - [ADR-0003: Stack web (backend/frontend) y ciclo de vida de desarrollo automatizado con IA](0003-stack-web-y-ciclo-de-vida-automatizado.md)

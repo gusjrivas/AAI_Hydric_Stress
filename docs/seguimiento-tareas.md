@@ -471,3 +471,32 @@ contenido real del dataset en cada ciclo). Suite completa en verde: `pytest
 cantidad), `frontend npm test` 5. `ruff check`/`black --check` sobre
 `src`/`backend`/`tests` y `npm run lint` (oxlint) en verde. PR no creada
 todavía (pendiente de revisión dirigida).
+
+**Microajuste (2026-09-06), sobre la misma rama:** se detectó que
+`_run_declares_lineage` usaba `all(...)` sobre los cuatro parámetros
+canónicos para decidir si una versión "declaraba" linaje — dejando sin
+cubrir el caso de una persistencia **parcial** (algunos parámetros, no
+todos), que se clasificaba incorrectamente como "histórico sin linaje"
+(`None`) en vez de fallar explícitamente. Corregido separando dos
+conjuntos: marcadores de declaración (`recalibration_id`, `source_model_id`,
+`successor_model_id`, `lineage_version` — presencia de **cualquiera**, no de
+todos; `dataset_fingerprint` excluido deliberadamente por no ser específico
+de una recalibración HITL) y parámetros obligatorios (los cuatro
+originales, exigidos en conjunto una vez que ya se decidió que el run
+declara linaje). `register_recalibrated_model` ahora también loguea
+`lineage_version` como parámetro MLflow indexable. Detalle en
+`openspec/specs/human-feedback/spec.md` (párrafo "Lectura fail-closed"
+reescrito) y `docs/adr/0006-recalibracion-disparada-desde-la-ui.md`
+("microajuste: detección de declaraciones parciales de linaje").
+
+Tests agregados en `tests/test_model_registry.py`: ningún marcador → `None`;
+solo `dataset_fingerprint` → `None`; solo `recalibration_id` → error; solo
+`source_model_id`/`successor_model_id` (parametrizado) → error; combinación
+parcial de marcadores → error; evento V1 legítimo sin el parámetro
+`lineage_version` (simulando la implementación anterior) → se recupera
+correctamente; `list_recalibration_lineage` propaga el error ante
+declaración parcial. Suite completa en verde: `pytest -q`
+(`tests/test_model_registry.py` 41, previo 33 + 8 nuevos; el resto sin
+cambios), `cd backend && pytest -q` 35, `frontend npm test` 5. `ruff
+check`/`black --check` sobre `src`/`backend`/`tests` y `npm run lint`
+(oxlint) en verde. PR sigue sin crearse.

@@ -121,6 +121,23 @@ def _lineage(
     )
 
 
+def _register_raw_version(
+    sensor_id, model, params: dict, lineage: RecalibrationLineage | None = None
+):
+    """Registra una versión directamente vía MLflow (sin pasar por
+    `register_recalibrated_model`, que siempre escribe los 4 parámetros
+    requeridos juntos), con exactamente los `params` dados — simula
+    persistencias parciales, corruptas o ajenas a esta capacidad.
+    """
+    name = registered_model_name_for(sensor_id)
+    with mlflow.start_run(run_name="raw"):
+        for key, value in params.items():
+            mlflow.log_param(key, value)
+        if lineage is not None:
+            mlflow.log_dict(lineage.to_dict(), "recalibration_lineage.json")
+        mlflow.sklearn.log_model(model.model, artifact_path="model", registered_model_name=name)
+
+
 def test_register_persists_lineage_as_artifact_of_the_same_run(tmp_path):
     _tracking(tmp_path)
     bundle, _ = _bundle()
@@ -333,6 +350,101 @@ def test_load_recalibration_lineage_returns_none_for_a_version_that_never_declar
 
     assert load_recalibration_lineage("a", bundle.model_id) is None
     assert list_recalibration_lineage("a") == []
+
+
+def test_declares_lineage_returns_none_without_any_declaration_marker(tmp_path):
+    """Microajuste (1): ningún marcador específico de linaje presente →
+    `None`, igual que una recalibración anterior a esta capacidad."""
+    _tracking(tmp_path)
+    bundle, _ = _bundle()
+    _register_raw_version("a", bundle, {"threshold": 0.5})
+
+    assert load_recalibration_lineage("a", "anything") is None
+    assert list_recalibration_lineage("a") == []
+
+
+def test_declares_lineage_returns_none_with_only_dataset_fingerprint(tmp_path):
+    """Microajuste (2): `dataset_fingerprint` por sí solo no es un marcador
+    suficiente de declaración de linaje (no es específico de una
+    recalibración HITL) → `None`, no `LineageValidationError`."""
+    _tracking(tmp_path)
+    bundle, _ = _bundle()
+    _register_raw_version("a", bundle, {"dataset_fingerprint": "abc123"})
+
+    assert load_recalibration_lineage("a", "anything") is None
+    assert list_recalibration_lineage("a") == []
+
+
+def test_declares_lineage_raises_with_only_recalibration_id(tmp_path):
+    """Microajuste (3): `recalibration_id` solo, sin el resto de los
+    parámetros obligatorios, es una declaración parcial → falla
+    explícitamente en vez de degradar a `None`."""
+    _tracking(tmp_path)
+    bundle, _ = _bundle()
+    _register_raw_version("a", bundle, {"recalibration_id": "r1"})
+
+    with pytest.raises(LineageValidationError, match="source_model_id.*successor_model_id"):
+        load_recalibration_lineage("a", "anything")
+
+
+@pytest.mark.parametrize("param", ["source_model_id", "successor_model_id"])
+def test_declares_lineage_raises_with_only_one_model_id_param(tmp_path, param):
+    """Microajuste (4): `source_model_id` o `successor_model_id` solos son
+    declaración parcial → falla explícitamente."""
+    _tracking(tmp_path)
+    bundle, _ = _bundle()
+    _register_raw_version("a", bundle, {param: "model-x"})
+
+    with pytest.raises(LineageValidationError):
+        load_recalibration_lineage("a", "anything")
+
+
+def test_declares_lineage_raises_with_partial_marker_combination(tmp_path):
+    """Microajuste (5): una combinación parcial de marcadores (ni completa
+    ni vacía) también es declaración parcial → falla explícitamente."""
+    _tracking(tmp_path)
+    bundle, _ = _bundle()
+    _register_raw_version("a", bundle, {"recalibration_id": "r1", "source_model_id": "model-a"})
+
+    with pytest.raises(LineageValidationError, match="successor_model_id.*dataset_fingerprint"):
+        load_recalibration_lineage("a", "anything")
+
+
+def test_declares_lineage_accepts_legacy_v1_event_without_lineage_version_param(tmp_path):
+    """Microajuste (6): un evento V1 válido, persistido sin el parámetro
+    `lineage_version` (como lo haría la implementación anterior a este
+    microajuste), sigue reconstruyéndose correctamente: la detección de
+    declaración no depende de `lineage_version` en solitario."""
+    _tracking(tmp_path)
+    bundle, _ = _bundle()
+    lineage = _lineage("a", "model-a", bundle)  # LINEAGE_VERSION_1, sin dataset_sha256
+    _register_raw_version(
+        "a",
+        bundle,
+        {
+            "recalibration_id": lineage.recalibration_id,
+            "source_model_id": lineage.source_model_id,
+            "successor_model_id": lineage.successor_model_id,
+            "dataset_fingerprint": lineage.dataset_fingerprint,
+        },
+        lineage=lineage,
+    )
+
+    resolved = load_recalibration_lineage("a", bundle.model_id)
+    assert resolved is not None
+    assert resolved.lineage_version == LINEAGE_VERSION_1
+    assert resolved.dataset_sha256 is None
+
+
+def test_list_recalibration_lineage_propagates_error_on_partial_declaration(tmp_path):
+    """Microajuste (8): `list_recalibration_lineage` no debe ocultar una
+    declaración parcial detrás de un listado vacío o incompleto."""
+    _tracking(tmp_path)
+    bundle, _ = _bundle()
+    _register_raw_version("a", bundle, {"recalibration_id": "r1"})
+
+    with pytest.raises(LineageValidationError):
+        list_recalibration_lineage("a")
 
 
 def test_load_recalibration_lineage_fails_closed_when_artifact_download_raises_mlflow_error(

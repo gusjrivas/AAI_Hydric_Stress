@@ -69,11 +69,19 @@ def register_recalibrated_model(
             # dinámicamente al leer el linaje (`load_recalibration_lineage`/
             # `list_recalibration_lineage`), sin reescribir este artefacto
             # después.
+            #
+            # Estas líneas escriben varios parámetros por separado: MLflow no
+            # garantiza que un fallo a mitad de este bloque (proceso
+            # interrumpido, error de red) sea todo-o-nada. La detección de
+            # declaraciones parciales (`_run_declares_lineage` /
+            # `_load_lineage_for_version`) existe justamente para ese caso —
+            # no depende de que este bloque sea atómico.
             mlflow.log_dict(lineage.to_dict(), "recalibration_lineage.json")
             mlflow.log_param("recalibration_id", lineage.recalibration_id)
             mlflow.log_param("source_model_id", lineage.source_model_id)
             mlflow.log_param("successor_model_id", lineage.successor_model_id)
             mlflow.log_param("dataset_fingerprint", lineage.dataset_fingerprint)
+            mlflow.log_param("lineage_version", lineage.lineage_version)
         # The sklearn flavor uses cloudpickle and preserves the fitted bundle.
         mlflow.sklearn.log_model(model, artifact_path="model", registered_model_name=name)
         run_id = run.info.run_id
@@ -114,39 +122,79 @@ def load_latest_recalibrated_model(sensor_id, expected_contract: dict) -> Fitted
     return _load_registered_version(latest, expected_contract)
 
 
-_LINEAGE_MARKER_PARAMS = (
+# Parámetros que una recalibración con linaje completo debe tener TODOS.
+# `dataset_fingerprint` está incluido aquí (se exige una vez que se decidió
+# que el run declara linaje) pero deliberadamente NO en
+# `_LINEAGE_DECLARATION_MARKERS` más abajo: por sí solo no es específico de
+# una recalibración HITL (nada impide que otro tipo de run futuro también lo
+# loguee), así que no alcanza para decidir si un run "declara linaje".
+_LINEAGE_REQUIRED_PARAMS = (
     "recalibration_id",
     "source_model_id",
     "successor_model_id",
     "dataset_fingerprint",
 )
 
+# Parámetros específicos de una recalibración HITL: la presencia de
+# CUALQUIERA de ellos ya indica que el run intenta declarar linaje (aunque
+# el registro se haya interrumpido a mitad de camino y falten otros). No se
+# usa `all(...)` para esta detección — un run con una persistencia parcial
+# (algunos de estos parámetros, pero no todos los de
+# `_LINEAGE_REQUIRED_PARAMS`) igual debe detectarse como "declara linaje" y
+# fallar explícitamente, no clasificarse como histórico sin linaje.
+_LINEAGE_DECLARATION_MARKERS = (
+    "recalibration_id",
+    "source_model_id",
+    "successor_model_id",
+    "lineage_version",
+)
+
 
 def _run_declares_lineage(run_params: dict) -> bool:
-    """El marcador canónico de que una versión *declara* linaje son los
-    parámetros indexables que `register_recalibrated_model` persiste
-    junto con el artefacto (`recalibration_id`, `source_model_id`,
-    `successor_model_id`, `dataset_fingerprint`) — no la mera presencia
-    descargable del artefacto opcional. Una versión histórica anterior a
-    esta capacidad simplemente no tiene estos parámetros; eso, y solo
-    eso, es lo que la distingue de un linaje declarado pero corrupto.
+    """Un run se considera que declara (o intentó declarar) linaje si tiene
+    presente CUALQUIERA de los marcadores específicos de una recalibración
+    HITL (`_LINEAGE_DECLARATION_MARKERS`). Que un run tenga TODOS los
+    parámetros de `_LINEAGE_REQUIRED_PARAMS` no se verifica acá — eso lo
+    hace `_require_complete_lineage_declaration`, una vez que ya se decidió
+    que el run declara linaje.
+
+    MLflow no garantiza que loguear varios parámetros desde el mismo bloque
+    de código sea atómico (un fallo a mitad de camino, un proceso
+    interrumpido, pueden dejar un subconjunto persistido); esta detección
+    existe justamente para ese caso, no asume atomicidad transaccional.
     """
-    return all(run_params.get(param) for param in _LINEAGE_MARKER_PARAMS)
+    return any(param in run_params for param in _LINEAGE_DECLARATION_MARKERS)
+
+
+def _require_complete_lineage_declaration(run_params: dict, context: str) -> None:
+    """Un run que declara linaje (`_run_declares_lineage` dio `True`) debe
+    tener TODOS los parámetros de `_LINEAGE_REQUIRED_PARAMS`. Si falta
+    alguno, es una persistencia parcial/corrupta — nunca se degrada a
+    `None` ni se completa con valores por defecto.
+    """
+    missing = [param for param in _LINEAGE_REQUIRED_PARAMS if param not in run_params]
+    if missing:
+        raise LineageValidationError(
+            f"El run declara linaje pero le faltan parámetros obligatorios "
+            f"({context}): {', '.join(missing)}."
+        )
 
 
 def _load_lineage_for_version(client, version) -> RecalibrationLineage | None:
     """Recuperación *fail-closed* del linaje de una versión ya registrada.
 
-    - Si la versión nunca declaró linaje (no tiene los parámetros
-      canónicos), devuelve `None` — comportamiento retrocompatible con
-      versiones históricas anteriores a esta capacidad.
-    - Si la versión declara linaje, cualquier problema para reconstruirlo
-      (artefacto ausente, fallo de descarga, contenido ilegible, JSON
+    - Si la versión nunca declaró linaje (no tiene ninguno de los
+      marcadores específicos, `_LINEAGE_DECLARATION_MARKERS`), devuelve
+      `None` — comportamiento retrocompatible con versiones históricas
+      anteriores a esta capacidad. `dataset_fingerprint` por sí solo, sin
+      ningún otro marcador, tampoco cuenta como declaración: no es
+      específico de una recalibración HITL.
+    - Si la versión declara linaje (aunque sea de forma parcial), debe
+      poder reconstruirse por completo: faltan parámetros obligatorios,
+      artefacto ausente, fallo de descarga, contenido ilegible, JSON
       inválido, semántica inválida, o inconsistencia entre el artefacto y
-      los parámetros ya persistidos) levanta `LineageValidationError` en
-      vez de degradar silenciosamente a `None`: una versión que declaró
-      linaje y no puede reconstruirse es un evento corrupto, no un
-      historial legítimamente ausente.
+      los parámetros ya persistidos levantan `LineageValidationError` en
+      vez de degradar silenciosamente a `None`.
 
     `mlflow_model_version` se resuelve aquí desde la versión efectivamente
     asociada a ese `run_id` (nunca desde lo que quedó grabado en el
@@ -157,6 +205,7 @@ def _load_lineage_for_version(client, version) -> RecalibrationLineage | None:
         return None
 
     context = f"sensor version={version.version} run_id={version.run_id}"
+    _require_complete_lineage_declaration(run_params, context)
     try:
         artifact_path = client.download_artifacts(version.run_id, "recalibration_lineage.json")
     except (OSError, mlflow.exceptions.MlflowException) as error:
@@ -179,7 +228,7 @@ def _load_lineage_for_version(client, version) -> RecalibrationLineage | None:
 
     mismatches = [
         param
-        for param in _LINEAGE_MARKER_PARAMS
+        for param in _LINEAGE_REQUIRED_PARAMS
         if run_params.get(param) != getattr(lineage, param)
     ]
     if mismatches:
