@@ -1,6 +1,6 @@
 # HU2 — Auditoría de cierre
 
-Este documento mapea los criterios de aceptación de la Épica 1 · HU2 (issue #11) y el estado de los issues hijos (#34 a #43) contra la evidencia documental y técnica disponible. No cierra ningún issue: deja la evidencia formal previa al cierre.
+Este documento mapea los criterios de aceptación de la Épica 1 · HU2 (issue #11) y el estado de los issues hijos (#34 a #43) contra la evidencia documental y técnica disponible. Los issues #35, #36, #37 y #11 fueron cerrados en GitHub con el comentario de trazabilidad correspondiente, referenciando este documento y el PR #174; el detalle queda registrado a continuación.
 
 ## 1. Alcance
 
@@ -81,33 +81,36 @@ Se preservan explícitamente, aunque HU2 se cierre:
 
 ## 6. Auditoría de issues hijos
 
-| Issue | Estado GitHub | Disposición propuesta |
-|---|---|---|
-| #34 — Definir variables agronómicas, climáticas y temporales requeridas | CLOSED / completed | Ratificado |
-| #35 — Identificar conjuntos de datos asociados a publicaciones científicas | OPEN | NOT_PLANNED |
-| #36 — Relevar datos disponibles en SMN, NASA POWER y Copernicus | OPEN | COMPLETADO con limitación documentada |
-| #37 — Evaluar metadatos, licencias, procedencia y restricciones de uso | OPEN | COMPLETADO |
-| #38 — Descargar y organizar muestras representativas de las fuentes candidatas | CLOSED / completed | Ratificado |
-| #39 — Homogeneizar formatos, unidades, frecuencias y zonas horarias | CLOSED / completed | Ratificado |
-| #40 — Analizar cobertura temporal, granularidad e integridad de las fuentes | CLOSED / completed | Ratificado |
-| #41 — Definir criterios de selección y descarte de fuentes de datos | CLOSED / completed | Ratificado |
-| #42 — Implementar el procedimiento reproducible de ingestión y consolidación | CLOSED / completed | Ratificado |
-| #43 — Documentar el diccionario de datos, procedencia y limitaciones | CLOSED / completed | Ratificado |
+| Issue | Estado final |
+|---|---|
+| #34 — Definir variables agronómicas, climáticas y temporales requeridas | CLOSED / completed |
+| #35 — Identificar conjuntos de datos asociados a publicaciones científicas | CLOSED / not_planned |
+| #36 — Relevar datos disponibles en SMN, NASA POWER y Copernicus | CLOSED / completed, con limitación documentada |
+| #37 — Evaluar metadatos, licencias, procedencia y restricciones de uso | CLOSED / completed |
+| #38 — Descargar y organizar muestras representativas de las fuentes candidatas | CLOSED / completed |
+| #39 — Homogeneizar formatos, unidades, frecuencias y zonas horarias | CLOSED / completed |
+| #40 — Analizar cobertura temporal, granularidad e integridad de las fuentes | CLOSED / completed |
+| #41 — Definir criterios de selección y descarte de fuentes de datos | CLOSED / completed |
+| #42 — Implementar el procedimiento reproducible de ingestión y consolidación | CLOSED / completed |
+| #43 — Documentar el diccionario de datos, procedencia y limitaciones | CLOSED / completed |
+| #11 — Épica 1 · HU2: Preparación del conjunto experimental de datos | CLOSED / completed |
 
 ### #35 — Identificar conjuntos de datos asociados a publicaciones científicas
 
-La identificación de datasets asociados a publicaciones científicas era una estrategia posible para obtener datos, pero no constituye un criterio de aceptación independiente de HU2. HU2 obtuvo un conjunto experimental real, reproducible y utilizado por las HUs posteriores mediante fuentes públicas alternativas (NASA POWER, ESA CCI). Por ello no se justifica ejecutar una nueva búsqueda únicamente para completar esta tarea.
+La identificación de datasets asociados a publicaciones científicas era una estrategia posible para obtener datos, pero no constituía un criterio de aceptación independiente de HU2. HU2 obtuvo un conjunto experimental real, reproducible y utilizado por las HUs posteriores mediante fuentes públicas alternativas (NASA POWER, ESA CCI). Por ello no se justificó ejecutar una nueva búsqueda únicamente para completar esta tarea, y el issue fue cerrado como `not_planned`.
 
 ### #36 — Relevar datos disponibles en SMN, NASA POWER y Copernicus
 
-NASA POWER fue relevado e incorporado. SMN fue relevado y su bloqueo técnico documentado con fecha y motivo concreto. Copernicus fue relevado y quedó fuera por requerimiento de registro/cuenta personal gratuita no gestionada (cuenta, token personal y aceptación de licencia del dataset), no por descarte definitivo. "Relevar" no implica incorporar obligatoriamente las tres fuentes: las tres fueron investigadas con evidencia concreta y disposición clara.
+NASA POWER fue relevado e incorporado. SMN fue relevado y su bloqueo técnico documentado con fecha y motivo concreto. Copernicus fue relevado y quedó fuera por requerimiento de registro/cuenta personal gratuita no gestionada (cuenta, token personal y aceptación de licencia del dataset), no por descarte definitivo. "Relevar" no implica incorporar obligatoriamente las tres fuentes: las tres fueron investigadas con evidencia concreta y disposición clara, por lo que el issue fue cerrado como `completed` con esta limitación documentada.
 
 ### #37 — Evaluar metadatos, licencias, procedencia y restricciones de uso
 
-Metadatos, licencias, procedencia, restricciones y limitaciones están documentados con el nivel necesario para las fuentes finalmente seleccionadas (NASA POWER, ESA CCI), mediante diccionarios de datos reales versionados. No se exige el mismo nivel de documentación para fuentes descartadas o bloqueadas (SMN, Copernicus), ya que el criterio de aceptación no lo requiere.
+Metadatos, licencias, procedencia, restricciones y limitaciones están documentados con el nivel necesario para las fuentes finalmente seleccionadas (NASA POWER, ESA CCI), mediante diccionarios de datos reales versionados. No se exige el mismo nivel de documentación para fuentes descartadas o bloqueadas (SMN, Copernicus), ya que el criterio de aceptación no lo requiere. El issue fue cerrado como `completed`.
 
 ## 7. Conclusión de auditoría
 
-HU2 cumple sus cuatro criterios de aceptación (CA1-CA4: CUMPLE). El cierre de HU2 y de sus issues hijos no modifica hipótesis, propósito, alcance, arquitectura, HU3-HU8 ni resultados experimentales: solo formaliza documentalmente un estado que HU3-HU8 ya asumen como dado, dado que el conjunto experimental ya fue consumido y experimentado extensamente por esas historias de usuario.
+HU2 cumple sus cuatro criterios de aceptación (CA1-CA4: CUMPLE). El cierre de HU2 y de sus issues hijos no modificó hipótesis, propósito, alcance, arquitectura, HU3-HU8 ni resultados experimentales: solo formalizó documentalmente un estado que HU3-HU8 ya asumían como dado, dado que el conjunto experimental ya había sido consumido y experimentado extensamente por esas historias de usuario.
 
-No se cierra todavía el issue #11 mediante este documento.
+## 8. Estado administrativo final
+
+HU2 quedó formalmente cerrada en GitHub luego del merge del PR #174 y del cierre trazable de los issues #35, #36 y #37. Los issues #34 y #38-#43 ya se encontraban cerrados previamente. Una vez verificado el cierre de todos los issues hijos, el issue principal #11 fue cerrado como `completed`. Los cuatro criterios de aceptación permanecen en estado CUMPLE.
