@@ -17,7 +17,7 @@ Ver [`docs/seguimiento-tareas.md`](docs/seguimiento-tareas.md) para la auditorí
 | HU5 | `human-feedback` — retroalimentación humana y recalibración | ✅ Cerrada (revalidada con recalibración temporalmente controlada) |
 | HU6 | `architecture-integration` — integración de la arquitectura | ✅ Cerrada (revalidada sobre la integración end-to-end vigente) |
 | HU7 | `experiment-runner` — diseño y ejecución del plan experimental | ✅ Completa |
-| HU8 | Análisis de resultados y contrastación de la hipótesis | 🟡 Parcial (análisis, discusión y conclusiones redactados; falta la memoria técnica final) |
+| HU8 | Análisis de resultados y contrastación de la hipótesis | ✅ Cerrada y revalidada científicamente sobre controlled_daily_v3 (falta la memoria técnica final) |
 
 Además de las HU del backlog de tesis, el repo incluye una interfaz de usuario (`backend/` + `frontend/`, ver sección siguiente) que expone HU5+HU6 y cierra el loop de recalibración manual disparada desde la UI (ver `docs/adr/0006-recalibracion-disparada-desde-la-ui.md`).
 

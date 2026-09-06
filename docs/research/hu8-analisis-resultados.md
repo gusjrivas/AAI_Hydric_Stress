@@ -1,5 +1,7 @@
 # HU8 — Análisis de resultados experimentales
 
+> **Para la interpretación científica vigente utilizar exclusivamente la sección 13 ("controlled_daily_v3 — evidencia formal vigente"), al final de este documento, y `docs/research/hu8-auditoria-revalidacion.md`.** Todas las secciones anteriores (1-12) describen protocolos superados (`hu7-epica4`, `leakage-fix`, `purged_cv_v2`) y se conservan únicamente como trazabilidad metodológica — no gobiernan la interpretación actual.
+
 > **Protocolo vigente: controlled_daily_v3 (2026-09-05).** Las mediciones y lecturas
 > anteriores se conservan como evidencia histórica. La actualización al final y
 > [el protocolo v3](protocolo-experimental-v3.md) delimitan su interpretación actual.
@@ -218,3 +220,70 @@ mecánicas sobre entrenamiento no demuestran generalización.
 Se adopta como texto canónico la hipótesis aprobada del autor, reproducida en ADR-0001,
 sin reformularla como una garantía de mejora. La arquitectura sigue siendo apoyo a la
 decisión y no automatiza riego. ET0 no se incorpora al experimento de referencia.
+
+## 13. controlled_daily_v3 — evidencia formal vigente (2026-09-06)
+
+Esta sección presenta la evidencia cuantitativa **formal y vigente**, exclusivamente a partir de `docs/research/reference-v3-formal-results.json`/`reference-v3-formal-table.md` (experimento MLflow `hu7-controlled-daily-v3-formal`, 8 configuraciones × 5 semillas `[0,1,2,3,4]` = 40 child runs + 8 parent runs = 48 runs totales). Ninguna de las secciones anteriores (1-12) fue recalculada ni reinterpretada; se mantienen como evidencia histórica de la evolución metodológica.
+
+### 13.1. Tabla de las 8 configuraciones formales
+
+| Configuración | F1 media ± desvío | MCC media | AP media |
+|---|---:|---:|---:|
+| base | 0.5592 ± 0.0287 | -0.0135 | 0.5816 |
+| recent_fraction_0.5 | 0.6891 ± 0.0407 | 0.1417 | 0.6546 |
+| sinteticos | 0.5450 ± 0.0986 | 0.0582 | 0.6029 |
+| noise_test_only_0.3 | 0.5605 ± 0.0346 | 0.0100 | 0.5755 |
+| completa | 0.5052 ± 0.0374 | -0.0706 | 0.5493 |
+| noise_both_0.3 | 0.5041 ± 0.0719 | -0.0058 | 0.5804 |
+| anomalias | 0.5689 ± 0.0395 | 0.0110 | 0.5672 |
+| coverage_fraction_0.5 | 0.5238 ± 0.0631 | -0.0376 | 0.5913 |
+
+Valores verificados directamente contra el JSON formal, con recálculo manual desde los registros individuales para varias configuraciones. `base` es una configuración experimental de la arquitectura (Random Forest fijo, sin anomalías ni sintéticos) — no un "enfoque tradicional"; el único baseline formal disponible que se aproxima a esa noción es persistencia (embebido en cada child run), sin representar plenamente "reglas de riego estáticas" en sentido agronómico.
+
+### 13.2. Comparaciones pareadas (delta = configuración − base, por semilla)
+
+| Contraste | ΔF1 | ΔMCC | ΔAP | Conclusión descriptiva |
+|---|---:|---:|---:|---|
+| anomalias | +0.0097 | +0.0245 | -0.0143 (5/5 seeds negativo) | EVIDENCIA MIXTA — AP empeora consistentemente |
+| sinteticos | -0.0141 | +0.0717 | +0.0213 | EVIDENCIA MIXTA — F1 con outlier, MCC/AP mayormente positivos |
+| completa | -0.0538 | -0.0570 | -0.0325 (5/5 seeds negativo) | NO SUPERA A BASE — peor en las 3 métricas |
+| coverage_fraction_0.5 | -0.0353 | -0.0242 | +0.0097 | EVIDENCIA MIXTA, sin dirección clara |
+| recent_fraction_0.5 | +0.1300 | +0.1552 | +0.0730 (5/5 seeds positivo) | MEJORA DESCRIPTIVA CONSISTENTE |
+| noise_both_0.3 | -0.0551 | +0.0077 | -0.0012 | CASI NULO / MIXTO |
+| noise_test_only_0.3 | +0.0013 | +0.0234 | -0.0061 | CASI NULO / MIXTO |
+| sinteticos → completa | -0.0398 | -0.1288 | -0.0535 | completa consistentemente peor que sinteticos |
+| anomalias → completa | -0.0637 | -0.0815 | -0.0179 | completa consistentemente peor que anomalias |
+
+Sin inferencia estadística nueva no preespecificada: son estadísticos descriptivos sobre 5 observaciones pareadas por semilla, que miden sensibilidad del procedimiento a la aleatoriedad algorítmica, no incertidumbre poblacional externa.
+
+### 13.3. Reemplazo de conclusiones por componente
+
+- **Detección de anomalías**: la sección 5/12.2 concluía "efecto positivo pero modesto" (luego "sin evidencia de efecto real" en 12.2). Bajo v3: **EVIDENCIA MIXTA** — F1/MCC mejoran en 3 de 5 semillas, pero AP empeora en las 5/5 semillas sin excepción. No hay mejora consistente.
+- **Datos sintéticos**: la narrativa histórica ("empeora consistentemente") **no se replica con la misma fuerza** bajo v3: MCC y AP son predominantemente positivos (4/5 semillas), F1 es inconsistente por un outlier extremo. Evidencia mixta, restringida a este generador (normal multivariada) y este dataset.
+- **Completa**: consistentemente peor que `base` en las 3 métricas (AP 5/5 semillas). No incluye HITL cuantitativo; no debe describirse como "arquitectura completa de los cuatro componentes".
+- **Escasez por cobertura** (`coverage_fraction_0.5`): evidencia mixta, sin dirección clara.
+- **Escasez por recencia** (`recent_fraction_0.5`): el único efecto consistente de todo el estudio (5/5 semillas positivas en F1/MCC/AP). No permite afirmar "menos datos mejora el desempeño": representa entrenamiento con el 50% más reciente, y una explicación por corrimiento de distribución estacional es una interpretación plausible, no demostrada causalmente.
+- **Ruido** (`noise_both_0.3`, `noise_test_only_0.3`): ambos con patrón casi nulo/mixto. No hay evidencia de degradación uniforme ni de robustez general al ruido.
+
+### 13.4. Falsos positivos y falsos negativos consolidados desde el JSON formal (configuración `base`)
+
+Consolidados leyendo directamente `predictions.rows` de cada child run (sin ejecutar ningún modelo):
+
+| Semilla | TP | TN | FP | FN |
+|---|---:|---:|---:|---:|
+| 0 | 22 | 13 | 15 | 17 |
+| 1 | 19 | 12 | 16 | 20 |
+| 2 | 22 | 14 | 14 | 17 |
+| 3 | 22 | 11 | 17 | 17 |
+| 4 | 21 | 12 | 16 | 18 |
+| **Total (5 semillas)** | **106** | **62** | **78** | **89** |
+
+Verificación de consistencia: precisión agregada 106/(106+78)=0.576 y recall agregado 106/(106+89)=0.544 coinciden con `precision_mean`/`recall_mean` del JSON formal para `base` hasta el redondeo. Esta evidencia reemplaza, para la interpretación vigente, a los conteos de la sección 7 (partición única de HU4, previa a todas las correcciones de fuga temporal).
+
+### 13.5. Retroalimentación humana (HITL)
+
+Evidencia funcional: SI. Evidencia cuantitativa formal de mejora: NO — diseñada pero no ejecutada dentro de `controlled_daily_v3` (`protocolo-experimental-v3.md`, ADR-0009). No se afirma que las correcciones funcionales de HU5 constituyan evidencia de mejora predictiva.
+
+### 13.6. Ver también
+
+`docs/research/hu8-auditoria-revalidacion.md` para la matriz de contrastación completa de la hipótesis, las amenazas a la validez actualizadas y la clasificación issue por issue de #97-#111.

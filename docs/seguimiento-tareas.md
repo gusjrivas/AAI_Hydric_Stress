@@ -182,6 +182,8 @@ HU8 no tiene capacidad de código (igual que HU1) — se dividió en tres sub-pr
 
 **Balance HU8:** de 16 tareas, 15 completas, 0 parciales, 1 no iniciada (la memoria técnica final). HU8 parcial.
 
+**Revalidación posterior al cierre de HU8 (2026-09-06):** auditoría científica integral realizada contra la evidencia formal `controlled_daily_v3` (`docs/research/reference-v3-formal-results.json`/`reference-v3-formal-table.md`, 8 configuraciones × 5 semillas). El issue #17 y sus 15 issues hijos (#97-#111) continúan CLOSED / completed; CA1-CA4 permanecen CUMPLE CON LIMITACIÓN (evidencia formal válida, pero los documentos de análisis no la incorporaban todavía — sincronizado en esta iteración). Conclusión científica: la evidencia es parcial y mixta, no permite sostener una mejora general de la arquitectura; `recent_fraction_0.5` es el único efecto consistente (sin corresponder a un componente de la hipótesis); anomalías y sintéticos muestran evidencia mixta, no la narrativa histórica de "modesto positivo"/"empeora consistentemente"; la retroalimentación humana tiene evidencia funcional pero no cuantitativa (diseñada, no ejecutada). No se requiere reejecutar HU7 ni HU8, ni reabrir ninguno de los dos. Ver `docs/research/hu8-auditoria-revalidacion.md`.
+
 ## Interfaz de usuario (alerting-ui, HU5+HU6)
 
 Primer scaffolding real de `backend/` y `frontend/` (ADR-0003), anticipado desde HU5 y construido después de completar HU1-HU8. Expone el pipeline completo (HU6) y el mecanismo de retroalimentación humana (HU5) a través de una interfaz de usuario.
