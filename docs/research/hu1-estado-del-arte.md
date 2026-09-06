@@ -2,13 +2,13 @@
 
 Tarea de origen: "Redactar el estado del arte y el marco conceptual" (HU1, sección 9 del plan de tesis).
 
-Este documento consolida, en un único entregable, los insumos relevados en `docs/research/hu1-variables-y-antecedentes.md` y `docs/research/hu1-retroalimentacion-humana.md`. Constituye el estado del arte disponible a la fecha para los tres ejes de HU1: modelado predictivo de estrés hídrico, detección de anomalías y datos sintéticos, y retroalimentación humana con recalibración de modelos.
+Este documento consolida, en un único entregable, los insumos relevados en `docs/research/hu1-variables-y-antecedentes.md` y `docs/research/hu1-retroalimentacion-humana.md`. Constituye el estado del arte disponible a la fecha para los cuatro ejes de HU1 (ver `docs/research/hu1-protocolo-revision-bibliografica.md`, sección 1): modelado predictivo de estrés hídrico, detección de anomalías, generación de datos sintéticos, y retroalimentación humana con recalibración de modelos.
 
-> **Nota de alcance metodológico.** El corpus que sustenta este documento proviene de una búsqueda dirigida acotada, no de la ejecución del protocolo sistemático definido en `docs/research/hu1-protocolo-revision-bibliografica.md`. Las búsquedas en Scopus, Web of Science e IEEE Xplore permanecen bloqueadas por falta de acceso institucional. Por este motivo, el presente documento se considera una versión preliminar del estado del arte, sujeta a validación y ampliación una vez ejecutado el protocolo completo.
+> **Nota de alcance metodológico (actualizada 2026-09-06).** El texto de este documento todavía se redactó sobre la base de la búsqueda dirigida acotada original, previa a la consolidación real del corpus. Desde entonces, ya se ejecutaron búsquedas reales en Scopus e IEEE Xplore para los 4 ejes (`docs/research/exports/scopus/`, `docs/research/exports/ieee/`) y se incorporaron fuentes abiertas complementarias (Crossref, OpenAlex, DOAJ), consolidadas y deduplicadas en `docs/research/hu1-corpus-final.csv` (450 registros). Web of Science no pudo ejecutarse: la cuenta institucional disponible permite búsqueda de perfiles de investigadores, pero no Document Search/Core Collection (ver `docs/research/hu1-protocolo-revision-bibliografica.md`, sección 3). El corpus consolidado se encuentra en fase de revisión científica final (cribado semántico título+abstract ya aplicado; cola de 71 registros pendiente de confirmación humana en `docs/research/hu1-cola-revision-humana.csv`). Este documento **continúa siendo una versión preliminar**: no incorpora todavía las conclusiones derivadas de la selección representativa de 25 referencias, la matriz comparativa ni la revalidación de vacancias, pendientes de validación antes de redactar la versión definitiva.
 
 ## 1. Introducción y alcance
 
-El estrés hídrico en cultivos hortícolas de pequeña y mediana escala constituye el fenómeno central de este trabajo de tesis. El objetivo de esta revisión consiste en la caracterización del estado actual del conocimiento respecto de tres problemas interrelacionados: la predicción del estrés hídrico a partir de variables agronómicas y climáticas, la detección de anomalías en datos de sensores con el consecuente uso de datos sintéticos ante su escasez, y la incorporación de retroalimentación humana para la recalibración de modelos predictivos. La delimitación temporal del corpus corresponde al período 2019-2026, con la excepción de referencias seminales de vigencia metodológica sostenida (sección 5 del protocolo de revisión).
+El estrés hídrico en cultivos hortícolas de pequeña y mediana escala constituye el fenómeno central de este trabajo de tesis. El objetivo de esta revisión consiste en la caracterización del estado actual del conocimiento respecto de cuatro problemas interrelacionados: la predicción del estrés hídrico a partir de variables agronómicas y climáticas, la detección de anomalías en datos de sensores, la generación de datos sintéticos ante la escasez de datos, y la incorporación de retroalimentación humana para la recalibración de modelos predictivos. La delimitación temporal del corpus corresponde al período 2019-2026, con la excepción de referencias seminales de vigencia metodológica sostenida (sección 5 del protocolo de revisión).
 
 ## 2. Marco conceptual
 
@@ -36,13 +36,15 @@ Las variables climáticas estándar (temperatura, humedad relativa, precipitaci�
 
 El detalle de justificación por variable, con enlaces a cada referencia, se encuentra en `docs/research/hu1-variables-y-antecedentes.md`, sección 1.
 
-### 2.2. Detección de anomalías y datos sintéticos
+### 2.2. Detección de anomalías
 
 La literatura sobre detección de anomalías en sensores de humedad de suelo distingue dos enfoques predominantes: el control de calidad automático orientado a la identificación de fallas de sensor (DeepQC), y la detección autosupervisada que prescinde de etiquetas previas de anomalía. Este segundo enfoque resulta pertinente para el escenario de esta tesis, en el cual no existe un corpus etiquetado de anomalías disponible de antemano.
 
-En paralelo, la generación de datos sintéticos surge como estrategia frente a la escasez de datos históricos, con dos líneas metodológicas principales: la generación condicionada por tarea y los modelos generativos (VAE, GAN) revisados en el ámbito de la agricultura de precisión. Ninguna de las referencias relevadas aborda de manera específica la generación de datos sintéticos para series temporales cortas de estrés hídrico en horticultura, lo cual constituye una vacancia de la literatura (sección 4).
+### 2.3. Generación de datos sintéticos
 
-### 2.3. Retroalimentación humana y recalibración
+La generación de datos sintéticos surge como estrategia frente a la escasez de datos históricos, con dos líneas metodológicas principales: la generación condicionada por tarea y los modelos generativos (VAE, GAN) revisados en el ámbito de la agricultura de precisión. Ninguna de las referencias relevadas aborda de manera específica la generación de datos sintéticos para series temporales cortas de estrés hídrico en horticultura, lo cual constituye una vacancia de la literatura (sección 4).
+
+### 2.4. Retroalimentación humana y recalibración
 
 El concepto de *human-in-the-loop* (HITL) refiere, según la revisión sistemática de Entropy (2026), a la intervención humana en distintos puntos del ciclo de vida de un modelo de inteligencia artificial: el etiquetado de datos, la validación de salidas, la corrección de errores y la decisión de re-entrenamiento. La revisión de alcance sobre agricultura de precisión (Basnayake y Gajendrasinghe, 2026) concluye que los sistemas HITL presentan mayor robustez que los sistemas completamente automatizados en entornos de agricultura inteligente, aun cuando estos últimos alcancen mayor precisión en condiciones simuladas.
 
@@ -54,7 +56,7 @@ La matriz comparativa completa (catorce trabajos, con técnica de IA, fuente de 
 
 De la síntesis se desprenden tres observaciones transversales:
 
-1. La mayoría de los trabajos aborda cada uno de los tres ejes (predicción, anomalías/datos sintéticos, retroalimentación humana) de forma aislada. Ningún trabajo relevado integra los tres componentes en una arquitectura única aplicada a estrés hídrico en horticultura.
+1. La mayoría de los trabajos aborda cada uno de los cuatro ejes (predicción, detección de anomalías, datos sintéticos, retroalimentación humana) de forma aislada. Ningún trabajo relevado integra los cuatro componentes en una arquitectura única aplicada a estrés hídrico en horticultura.
 2. Los trabajos de detección de anomalías que prescinden de etiquetas previas (DeepQC, detección autosupervisada) resultan compatibles con el escenario de datos sin etiquetar de esta tesis, a diferencia de enfoques supervisados que exigen un corpus previamente validado.
 3. Los antecedentes de retroalimentación humana provienen, en su mayoría, de dominios distintos al agrícola (series temporales genéricas, sistemas de recomendación de manejo agrícola general). Su aporte es de tipo metodológico y conceptual, no de dominio.
 
@@ -82,4 +84,4 @@ El corpus relevado presenta tres limitaciones que condicionan el alcance de las 
 
 ## 6. Conclusión
 
-El estado del arte disponible confirma la existencia de una vacancia de integración entre predicción de estrés hídrico, gestión de anomalías y datos sintéticos, y retroalimentación humana, aplicada específicamente a horticultura de pequeña y mediana escala. Dicha vacancia sustenta la pertinencia del problema de investigación planteado en el plan de tesis. La validación definitiva de esta conclusión requiere la ejecución del protocolo sistemático de revisión bibliográfica, pendiente de acceso institucional a Scopus y Web of Science, y la incorporación de fuentes agronómicas regionales todavía no consultadas.
+El estado del arte disponible confirma la existencia de una vacancia de integración entre predicción de estrés hídrico, gestión de anomalías y datos sintéticos, y retroalimentación humana, aplicada específicamente a horticultura de pequeña y mediana escala. Dicha vacancia sustenta la pertinencia del problema de investigación planteado en el plan de tesis. La validación definitiva de esta conclusión requiere completar la revisión científica final del corpus ya consolidado (Scopus e IEEE Xplore ejecutadas; Web of Science pendiente de acceso institucional a Document Search/Core Collection — ver nota de alcance metodológico), y ampliar y validar la cobertura de antecedentes agronómicos regionales: ya existe un relevamiento dirigido y parcial en SciELO Argentina, Horticultura Argentina e INTA (`docs/research/hu1-antecedentes-argentina.md`), pero queda pendiente incorporar, cuando sea posible, la consulta de AGRIS bajo el protocolo previsto.
