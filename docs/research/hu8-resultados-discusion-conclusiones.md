@@ -1,5 +1,7 @@
 # HU8 — Resultados, discusión y conclusiones
 
+> **Para la interpretación científica vigente utilizar exclusivamente la sección 8 ("controlled_daily_v3 — contrastación vigente de la hipótesis"), al final de este documento, y `docs/research/hu8-auditoria-revalidacion.md`.** Todas las secciones anteriores (1-7) describen protocolos superados y se conservan únicamente como trazabilidad metodológica — no gobiernan la interpretación actual.
+
 > **Protocolo vigente: controlled_daily_v3 (2026-09-05).** Las mediciones y lecturas
 > anteriores se conservan como evidencia histórica. La actualización al final y
 > [el protocolo v3](protocolo-experimental-v3.md) delimitan su interpretación actual.
@@ -35,6 +37,8 @@ Adicionalmente, se ejecutaron los escenarios de escasez y ruido de datos explíc
 El escenario de ruido degradó el desempeño y aumentó la variabilidad, como se esperaba. El escenario de escasez, en cambio, **mejoró** el desempeño — un hallazgo contraintuitivo explicado en la sección 4.
 
 ## 2. Contrastación con la hipótesis de investigación
+
+**Nota (2026-09-06):** el párrafo siguiente citaba una reformulación de la hipótesis distinta de la aprobada (afirmaba "mejora" en vez de "puede mejorar"). Se preserva sin alterar como registro histórico del análisis original; el texto canónico exacto de la hipótesis, y la contrastación vigente contra `controlled_daily_v3`, están en la sección 8, al final de este documento.
 
 La hipótesis de investigación (ADR-0001, plan de tesis) sostiene que *"la combinación de generación de datos sintéticos, detección de anomalías, modelado predictivo y retroalimentación humana mejora la detección temprana de estrés hídrico frente a enfoques tradicionales, en contextos de disponibilidad limitada, ruido y alta variabilidad de datos"*.
 
@@ -170,3 +174,52 @@ mecánicas sobre entrenamiento no demuestran generalización.
 Se adopta como texto canónico la hipótesis aprobada del autor, reproducida en ADR-0001,
 sin reformularla como una garantía de mejora. La arquitectura sigue siendo apoyo a la
 decisión y no automatiza riego. ET0 no se incorpora al experimento de referencia.
+
+## 8. controlled_daily_v3 — contrastación vigente de la hipótesis (2026-09-06)
+
+Esta sección reemplaza, para la interpretación científica vigente, la contrastación de la sección 2 y la discusión de la sección 4 — ambas redactadas sobre evidencia pre-formal (`purged_cv_v2` y anteriores). Ninguna sección anterior fue alterada; se conservan como trazabilidad metodológica.
+
+### 8.1. Hipótesis canónica
+
+> "La hipótesis de investigación sostiene que la incorporación de técnicas de inteligencia artificial, particularmente generación de datos sintéticos, modelado predictivo, detección de anomalías y retroalimentación humana, puede mejorar la capacidad de detección temprana de condiciones de estrés hídrico en contextos caracterizados por disponibilidad limitada, ruido y alta variabilidad de datos, respecto de enfoques tradicionales basados principalmente en observación empírica o reglas de riego estáticas." (ADR-0001)
+
+Contrastar no equivale a confirmar ni a rechazar por completo: la conclusión debe reflejar el patrón observado, incluida evidencia mixta, parcial o insuficiente.
+
+### 8.2. Matriz de contrastación
+
+| Dimensión | Evidencia (controlled_daily_v3) | Resultado | Alcance | Limitación |
+|---|---|---|---|---|
+| Modelado predictivo | 8 configuraciones formales, baselines embebidos | MCC cercano a 0 en `base` (discriminación débil) | Un sitio/año | Sin comparación con reglas agronómicas reales |
+| Datos sintéticos | base → sinteticos | Evidencia mixta (MCC/AP mayormente positivos, F1 con outlier) | Este generador (normal multivariada), este dataset | No generalizable a otros métodos sintéticos |
+| Detección de anomalías | base → anomalias | Evidencia mixta (F1/MCC débil-positivo, AP negativo en 5/5 semillas) | Este dataset | Compromiso entre métricas sin resolver |
+| Retroalimentación humana | Mecanismo + prueba funcional (HU5) | Sin evaluación cuantitativa | Diseñada, no ejecutada | No exigido por los criterios de aceptación de HU7/HU8 |
+| Comparación con enfoques tradicionales | Baseline de persistencia | Cobertura parcial | — | No representa "reglas de riego estáticas" en sentido agronómico |
+| Disponibilidad limitada | coverage_fraction_0.5 (mixta) / recent_fraction_0.5 (mejora consistente) | Mixto: depende del mecanismo | Una fracción (0.5) por mecanismo | Explicación causal de `recent` no demostrada |
+| Ruido/variabilidad | noise_both_0.3 / noise_test_only_0.3 | Ambos casi nulos/mixtos | Ruido gaussiano no calibrado, intensidad 0.3 | No representativo de ruido real de sensor |
+
+### 8.3. Conclusión científica
+
+La evidencia formal obtenida es **parcial y mixta**. Dentro del alcance experimental evaluado, no permite sostener una mejora general de la arquitectura para la detección temprana de estrés hídrico. Algunos escenarios y componentes presentan efectos favorables en determinadas métricas, otros muestran compromisos o resultados desfavorables, y el aporte cuantitativo de la retroalimentación humana permanece sin evaluar.
+
+El único efecto consistente y de mayor magnitud (`recent_fraction_0.5`, entrenamiento restringido al 50% más reciente) no corresponde a un componente arquitectónico de la hipótesis, y su explicación causal (corrimiento de distribución estacional) es una interpretación plausible, no demostrada por este diseño. No se afirma "hipótesis comprobada", "hipótesis confirmada" ni "hipótesis rechazada"; tampoco se afirma que la arquitectura mejore de manera general la detección temprana.
+
+### 8.4. Amenazas a la validez (actualizadas)
+
+- **Interna:** diseño pareado con seeds compartidas; correcciones de fuga temporal ya incorporadas en `controlled_daily_v3`; generador sintético simple; ruido no calibrado; HITL no cuantitativo dentro del diseño experimental.
+- **Externa:** un único sitio (Melchor Romero) y un único año (2024) como referencia de desarrollo, **no validación externa** (`protocolo-experimental-v3.md`); sin validación multisitio ni multianual.
+- **De constructo:** percentil 20 como proxy relativo de estrés (no validado agronómicamente); horizonte de 3 días razonado, no comparado contra alternativas; coverage/recent como proxies de escasez no equivalentes entre sí; F1/MCC/AP analizados conjuntamente, sin elegir retrospectivamente la métrica más favorable.
+- **De conclusión:** 5 semillas miden sensibilidad algorítmica del procedimiento, no son réplicas agronómicas independientes; resultados mixtos preservados sin armonización forzada.
+
+### 8.5. Recomendaciones de trabajo futuro (vigentes, complementan la sección 4)
+
+1. Evaluar cuantitativamente el aporte de la retroalimentación humana (comparación diseñada en `protocolo-experimental-v3.md`: modelo congelado vs. reentrenamiento sin corrección vs. con corrección), todavía no ejecutada.
+2. Ejecutar las fracciones adicionales de escasez (0.75, 0.25) ya previstas en el protocolo, para distinguir si el efecto de `recent_fraction_0.5` depende de la fracción evaluada.
+3. Investigar el mecanismo causal detrás del efecto de `recent_fraction_0.5` (corrimiento estacional vs. otra explicación).
+4. Ampliar a más sitios/años para validación externa.
+5. Calibrar el escenario de ruido contra una caracterización real de ruido de sensor.
+
+Ninguna de estas acciones es necesaria para sostener el cierre de HU8: la evidencia formal ya existente es válida y suficiente para los criterios de aceptación reales.
+
+### 8.6. Fuente de evidencia primaria vigente
+
+`docs/research/reference-v3-formal-results.json` y `docs/research/reference-v3-formal-table.md` (experimento MLflow `hu7-controlled-daily-v3-formal`), reemplazando para la interpretación vigente la referencia de la sección 5 de este documento al experimento `hu7-epica4`. Ver `docs/research/hu8-auditoria-revalidacion.md` para el detalle completo de la auditoría, la matriz de las 8 configuraciones, las comparaciones pareadas y la clasificación issue por issue de #97-#111.
