@@ -96,6 +96,8 @@ HU4 se dividió en tres *changes* de OpenSpec independientes (definición del pr
 
 **Balance HU4:** de 14 tareas, 14 completas, 0 parciales, 0 no iniciadas. HU4 completa.
 
+**Revalidación posterior al cierre (2026-09-06):** el issue #13 y sus 14 issues hijos (#58-#71) continúan CLOSED / completed. CA1-CA4 permanecen en estado CUMPLE. No existen gaps técnicos bloqueantes ni se detectó selección post hoc (Random Forest, umbral de estrés, `alert_threshold`, horizonte, features, folds o hiperparámetros elegidos por desempeño de test). Target, umbral, validación temporal y selección automática de modelo fueron revalidados contra el código vigente. Los ejemplos cuantitativos históricos de `openspec/specs/predictive-modeling/spec.md` (285/72 filas, hiperparámetros `C=0.1`/`max_depth=5`/`n_estimators=100`, tabla comparativa, y la descripción de la selección de Random Forest) fueron distinguidos explícitamente del mecanismo formal vigente (`select_best_candidate`, `controlled_daily_v3`), sin modificar ningún requirement. Las limitaciones (dataset de un único sitio/año, umbral relativo no calibrado agronómicamente, muestra reducida, correlación lineal simple para relevancia, umbral de alerta no calibrado) permanecen documentadas. Ver `docs/research/hu4-auditoria-revalidacion.md`.
+
 ## HU5 — Mecanismo de retroalimentación humana
 
 HU5 se dividió en tres *changes* de OpenSpec independientes (modelo de datos, registro persistente e integración con predicciones, recalibración supervisada), mismo criterio que HU3/HU4. Los tres ya están implementados — HU5 completa.

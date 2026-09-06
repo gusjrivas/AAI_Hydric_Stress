@@ -84,6 +84,8 @@ El sistema DEBE poder entrenar modelos candidatos (regresión logística y Rando
 
 Implementado en `src/predictive_modeling/models.py` (`build_candidate_models`) y `src/predictive_modeling/training.py` (`train_models`), testeado en `tests/test_models.py` y `tests/test_training.py`. Verificado sobre el dataset real: 285 filas de entrenamiento, 72 de test (split cronológico 80/20 tras ingeniería de variables e interpolación).
 
+**Verificación histórica previa a las correcciones metodológicas posteriores.** La capacidad vigente se evalúa mediante el pipeline y el protocolo formal actuales (`controlled_daily_v3`, ver la nota normativa al inicio de este documento); estas cantidades no representan el estado normativo vigente. Ver `docs/research/hu8-analisis-resultados.md` para las cifras recalculadas tras las correcciones de fuga temporal.
+
 ### Requirement: Ajuste de hiperparámetros con validación temporal
 
 El sistema DEBE poder ajustar los hiperparámetros de un modelo candidato usando validación cruzada que respete el orden temporal (cada fold de validación posterior a su fold de entrenamiento correspondiente).
@@ -95,6 +97,8 @@ El sistema DEBE poder ajustar los hiperparámetros de un modelo candidato usando
 - **THEN** en cada fold de validación cruzada, todas las fechas del fold de validación son posteriores a todas las fechas del fold de entrenamiento correspondiente
 
 Implementado en `src/predictive_modeling/training.py` (`tune_hyperparameters`, con `sklearn.model_selection.TimeSeriesSplit` + `GridSearchCV`), testeado en `tests/test_training.py`. Verificado sobre el dataset real (5 folds, conjunto de entrenamiento de 285 filas): mejores parámetros `C=0.1` (regresión logística) y `max_depth=5, n_estimators=100` (Random Forest).
+
+**Verificación histórica previa a las correcciones metodológicas posteriores.** Estos parámetros concretos (`C=0.1`, `max_depth=5`, `n_estimators=100`) fueron obtenidos en una evaluación anterior a la corrección de fuga temporal y no deben presentarse como la configuración universal actual. El comportamiento normativo vigente es: `TimeSeriesSplit` con `gap` parametrizable, usando `gap=horizon_days` en el pipeline formal cuando corresponde (ver la actualización siguiente); el tuning ocurre exclusivamente sobre el conjunto de entrenamiento, y en ningún punto del código se utiliza el conjunto de evaluación para elegir hiperparámetros.
 
 **Actualización (2026-09-05):** `tune_hyperparameters` ahora acepta `gap: int = 0`, reenviado a `TimeSeriesSplit(n_splits=n_splits, gap=gap)`, para dejar un margen entre cada fold de entrenamiento y su fold de validación correspondiente — sin este margen, el objetivo de una fila de entrenamiento (calculado con horizonte hacia adelante) podía solaparse temporalmente con el fold de validación. Se agregó también `diagnose_time_series_folds(y, n_splits, gap)`, que reporta positivos/negativos por fold sin necesidad de entrenar ningún modelo, usado para el diagnóstico empírico de la sección 12.4 de `docs/research/hu8-analisis-resultados.md`.
 
@@ -138,6 +142,8 @@ Implementado en `src/predictive_modeling/evaluation.py` (`evaluate_classifier`, 
 
 En este dataset, ninguno de los dos candidatos supera al modelo de referencia en F1; el Random Forest tiene mejor precisión y ROC-AUC. Ver "Limitaciones conocidas".
 
+**EVIDENCIA HISTÓRICA PREVIA A LAS CORRECCIONES METODOLÓGICAS.** La tabla anterior (72 filas de test, tasa positiva 52.8%) corresponde a una evaluación previa a la corrección de fuga temporal del umbral de estrés y a la incorporación del motor de selección automática. No debe utilizarse para determinar qué modelo queda seleccionado actualmente: la elección de modelo, cuando no se especifica uno explícito, se realiza mediante `select_best_candidate` (ver el requirement de "Selección automática del mejor modelo candidato"), por validación cruzada temporal y sin usar el conjunto de evaluación final. Ver `docs/research/hu8-analisis-resultados.md` para la evidencia formal vigente de comparación de configuraciones bajo `controlled_daily_v3`.
+
 **Actualización (2026-09-05):** el protocolo de evaluación se amplió con dos baselines triviales adicionales — clase mayoritaria (`predict_majority_class_baseline`) y "siempre estrés" (`predict_always_stress_baseline`), junto al ya existente de persistencia — y con tres métricas robustas al desbalance de clases: balanced accuracy, MCC (`matthews_corrcoef`) y average precision/PR-AUC (`average_precision_score` cuando hay probabilidades disponibles), sin reemplazar precisión/recall/F1/ROC-AUC ya existentes. Implementado en `src/predictive_modeling/models.py` y `src/predictive_modeling/evaluation.py` (`evaluate_classifier`), testeado en `tests/test_models.py`/`tests/test_evaluation.py`. Estos baselines y métricas se registran automáticamente en MLflow para cada configuración experimental (ver `openspec/specs/experiment-runner/spec.md`). Motivación concreta: sobre el dataset real, un F1 alto de una configuración experimental resultó explicado por desbalance de clases y no por capacidad de discriminación real — un MCC cercano a 0 o negativo lo revela donde F1 no lo hace (ver `docs/research/hu8-analisis-resultados.md`, sección 12.3).
 
 ### Requirement: Generación de alertas tempranas por umbral de probabilidad
@@ -150,7 +156,9 @@ El sistema DEBE poder convertir la probabilidad predicha de estrés de un modelo
 - **WHEN** se generan alertas con un umbral de decisión configurado
 - **THEN** cada fila con probabilidad de estrés mayor o igual al umbral queda marcada con alerta (1), y el resto sin alerta (0)
 
-Implementado en `src/predictive_modeling/alerts.py` (`generate_alerts`), testeado en `tests/test_alerts.py`. Configuración final: modelo Random Forest (mejor precisión y ROC-AUC de los tres modelos comparados), umbral 0.5 (no calibrado contra el propio conjunto de validación, ver "Limitaciones conocidas"). Verificado sobre el dataset real: 21 alertas de 72 filas de test (29.2%).
+Implementado en `src/predictive_modeling/alerts.py` (`generate_alerts`), testeado en `tests/test_alerts.py`. Umbral de alerta 0.5, fijo, no calibrado contra el propio conjunto de validación ni con test (ver "Limitaciones conocidas"). Verificado sobre el dataset real: 21 alertas de 72 filas de test (29.2%), con el modelo Random Forest utilizado inicialmente tras una comparación sobre el conjunto disponible en ese momento (evidencia histórica, ver el requirement de "Comparación de desempeño, estabilidad y complejidad").
+
+**Precisión sobre el mecanismo vigente de selección de modelo:** cuando no se provee un modelo explícito, la elección no se realiza por "mejor precisión y ROC-AUC" observados sobre el conjunto de evaluación, sino mediante `select_best_candidate` (ver el requirement de "Selección automática del mejor modelo candidato"), por validación cruzada temporal previa a la evaluación final. Cuando el protocolo experimental (`controlled_daily_v3`) fija explícitamente un modelo para una comparación controlada, esa fijación es una decisión del protocolo, no una selección basada posteriormente en métricas de test.
 
 ### Requirement: Análisis de errores de predicción por fecha
 
