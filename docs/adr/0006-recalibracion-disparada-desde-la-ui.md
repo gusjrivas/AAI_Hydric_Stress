@@ -54,7 +54,7 @@ Reentrena sobre `train ∪ test` (con las etiquetas reales, corregidas donde el 
 
 ## Consecuencias
 
-- Docker Desktop (o un daemon Docker equivalente) con el stack completo (`mlflow`, `postgres`, `minio`) corriendo pasa a ser un prerequisito para que `/recalibrate` funcione y para que `/forecast/run` recupere el modelo recalibrado más reciente. Si `mlflow` no está corriendo, `load_latest_recalibrated_model()` debe fallar de forma explícita (no silenciosa) para que quede claro por qué `/forecast/run` volvió a entrenar desde cero.
+- Docker Desktop (o un daemon Docker equivalente) con el stack completo (`mlflow`, `postgres`, `minio`) corriendo pasa a ser un prerequisito para que `/recalibrate` funcione y para que `/forecast/run` recupere el modelo recalibrado más reciente. Si MLflow no está disponible, `load_latest_recalibrated_model()` debe fallar de forma explícita, de modo que el problema de infraestructura sea visible y `/forecast/run` no continúe silenciosamente mediante un reentrenamiento desde cero.
 - `/forecast/run` deja de ser puramente idempotente respecto del dataset: su resultado ahora también depende de si existe un modelo recalibrado registrado, y de cuál sea.
 - Si el dataset consolidado cambia de esquema (nuevas columnas, otro `feature_columns`), un modelo recalibrado viejo podría fallar al predecir sobre features nuevas. Este ADR no resuelve ese caso — se documenta como limitación conocida, no como escenario soportado en esta iteración.
 - La opción (B) queda pendiente como mejora explícita para una iteración futura de despliegue más productivo; no debe perderse de vista ni tratarse como descartada permanentemente.
