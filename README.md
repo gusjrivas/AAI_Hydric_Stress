@@ -12,7 +12,7 @@ Ver [`docs/seguimiento-tareas.md`](docs/seguimiento-tareas.md) para la auditorí
 |----|-----------|--------|
 | HU1 | Estado del arte y comprensión del dominio | ✅ Cerrada (estado del arte definitivo y auditoría de cierre completos) |
 | HU2 | `data-ingestion` — preparación del conjunto experimental de datos | ✅ Cerrada (conjunto experimental real y reproducible NASA POWER + ESA CCI Soil Moisture, Melchor Romero 2024) |
-| HU3 | `data-quality` — calidad, anomalías y datos sintéticos | ✅ Completa |
+| HU3 | `data-quality` — calidad, anomalías y datos sintéticos | ✅ Cerrada (revalidada sobre el pipeline causal vigente) |
 | HU4 | `predictive-modeling` — modelado predictivo y alertas tempranas | ✅ Completa |
 | HU5 | `human-feedback` — retroalimentación humana y recalibración | ✅ Completa |
 | HU6 | `architecture-integration` — integración de la arquitectura | ✅ Completa |

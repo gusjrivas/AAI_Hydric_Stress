@@ -71,6 +71,8 @@ HU3 se dividió en tres *changes* de OpenSpec independientes (calidad/limpieza b
 
 **Balance HU3:** de 14 tareas, 14 completas, 0 parciales, 0 no iniciadas. **HU3 queda completa**: los tres sub-proyectos (calidad básica, detección de anomalías, datos sintéticos) y su integración en un flujo reproducible y parametrizable por configuración experimental están implementados y verificados sobre datos reales.
 
+**Revalidación posterior al cierre (2026-09-06):** HU3 permanece formalmente cerrada (issue #12 y sus 14 issues hijos, #44-#57, CLOSED / completed). El cierre fue revalidado contra el código y las specs vigentes, no solo contra la evidencia histórica de los PR originales, dado que hubo correcciones metodológicas posteriores al cierre (imputación causal, integración real de `is_anomaly`, separación fit/apply del detector de anomalías ajustado solo sobre entrenamiento, prevención de fuga temporal, purga de frontera de horizonte). Los cuatro criterios de aceptación (CA1-CA4) permanecen en estado CUMPLE y no se detectaron gaps técnicos bloqueantes. Las limitaciones del detector de anomalías (evaluado solo con anomalías sintéticas extremas, sin etiquetas reales) y del generador sintético (sin restricciones físicas posteriores al muestreo) permanecen explícitamente documentadas, sin convertirse en trabajo pendiente. Ver `docs/research/hu3-auditoria-revalidacion.md`.
+
 ## HU4 — Componente de modelado predictivo
 
 HU4 se dividió en tres *changes* de OpenSpec independientes (definición del problema/ingeniería de variables, modelos base/candidatos, alertas tempranas), mismo criterio que HU3. Los tres ya están implementados — HU4 completa.
