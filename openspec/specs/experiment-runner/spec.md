@@ -4,6 +4,26 @@
 
 Capacidad implementada (Épica 4, HU7 completa — diseño experimental, procedimiento automatizado con registro en MLflow, y ejecución real —, más los escenarios de escasez/ruido cerrados durante HU8). Orígenes: `openspec/changes/add-experiment-design/`, `openspec/changes/add-experiment-automation/`, `openspec/changes/add-experiment-execution/`, `openspec/changes/add-experiment-scenarios/`. Este documento es la fuente de verdad vigente de la capacidad; los *changes* que la originaron quedan como registro histórico de la decisión, no se actualizan en paralelo a este archivo.
 
+## Protocolo formal vigente: controlled_daily_v3
+
+El protocolo formal actualmente normativo es `controlled_daily_v3` (`docs/research/protocolo-experimental-v3.md`, ADR-0009), implementado por `src/experiment_runner/runner.py::run_configuration` y ejecutado por `scripts/run_hu7_experiments.py` (4 configuraciones de factores) y `scripts/run_hu7_scenarios.py` (4 escenarios de escasez/ruido).
+
+- **Dataset formal:** `melchor_romero_2024_consolidado`, con SHA-256 `121697dd5af202633f24adf4244a793477d34bf5e4cf4a1f10d7b2ca1b33ba8e`, embebido en el provenance de cada corrida.
+- **Calendario:** diario, UTC sin zona horaria (`day_convention: UTC_naive_midnight`), sin huecos.
+- **Target:** `soil_moisture(t+3 días) < umbral_congelado` (`target_rule: observed_value_at_t_plus_h_less_than_frozen_threshold`), calculado sobre la observación de referencia limpia, nunca sobre una versión perturbada por ruido o escasez.
+- **Umbral:** percentil 20, ajustado sobre el entrenamiento limpio completo (`clean_train`, antes de aplicar cualquier perturbación experimental) y compartido entre condiciones pareadas.
+- **Horizonte:** 3 días. **Features:** lags `[1,2,3]` y ventanas móviles `[3,7]` sobre `soil_moisture`, `solar_radiation`, `relative_humidity`.
+- **Modelo:** Random Forest fijo (comparación pareada controlada, sin selección automática entre candidatos en estas configuraciones formales). **Umbral de alerta:** 0.5.
+- **Semillas formales:** `[0, 1, 2, 3, 4]`, idénticas en las 8 configuraciones.
+- **Experimento MLflow:** `hu7-controlled-daily-v3-formal`.
+- **Artefactos formales vigentes (no modificar):** `docs/research/reference-v3-formal-results.json` y `docs/research/reference-v3-formal-table.md`, exportados por `scripts/export_hu7_reference.py`. Los artefactos `docs/research/reference-v3-results.json`, `reference-v3-table.md` y `reference-v3-source-manifest.json` son evidencia histórica/provisional anterior al cierre de este protocolo, con metadata de procedencia incompleta (ver `docs/research/protocolo-experimental-v3.md`); no deben usarse como fuente de verdad vigente.
+
+**Semántica de las corridas registradas en MLflow:** son **8 configuraciones × 5 semillas = 40 *child runs* experimentales, anidados bajo 8 *parent runs* de agregación (uno por configuración) = 48 *runs* totales**. No debe describirse esto como "48 seeds" ni como "48 ejecuciones independientes equivalentes": las métricas por semilla viven en los *child runs*; las métricas agregadas (media/desvío) viven en los *parent runs*, y estos últimos no se incluyen como observaciones adicionales al calcular esa agregación.
+
+**Rol del período de evaluación 2024:** constituye una **referencia de desarrollo experimental**, no una validación externa independiente sobre otro sitio o período — así lo declara explícitamente el protocolo formal (`protocolo-experimental-v3.md`, sección "Métricas y evidencia"). Esta limitación se preserva y no debe presentarse como generalización externa.
+
+**Retroalimentación humana (HU5) dentro del plan experimental formal:** el mecanismo de recalibración madura de HU5 está implementado e integrado (ver `openspec/specs/human-feedback/spec.md`), pero la evaluación cuantitativa formal de su aporte al desempeño predictivo (comparar un modelo congelado contra un reentrenamiento sin correcciones y contra un reentrenamiento con correcciones, sobre los mismos datos) está **diseñada pero todavía no ejecutada** dentro de HU7 (`protocolo-experimental-v3.md`, sección "Próxima fase científica"; ADR-0009: *"HU7 «completa» sigue significando anomalías+sintéticos sobre modelado predictivo; no constituye evidencia experimental de mejora por retroalimentación humana"*). Esto no constituye un incumplimiento de los criterios de aceptación de HU7, pero es una limitación relevante para la contrastación de la hipótesis en HU8.
+
 ## Requirements
 
 ### Requirement: Aumento sintético del conjunto de entrenamiento sobre variables ya construidas
@@ -30,7 +50,7 @@ El sistema DEBE poder identificar las 4 configuraciones experimentales resultant
 - **WHEN** se documentan las configuraciones comparativas
 - **THEN** existen exactamente 4 configuraciones, cada una con una combinación distinta de ambos factores
 
-Documentado en `proposal.md`. Las 4 configuraciones:
+Documentado en `proposal.md`. Las 4 configuraciones originales (histórico, `pipeline_version` anterior a `controlled_daily_v3`):
 
 | Configuración | Detección de anomalías | Aumento sintético |
 |---|---|---|
@@ -38,6 +58,21 @@ Documentado en `proposal.md`. Las 4 configuraciones:
 | +Sintéticos | No | Sí |
 | +Anomalías | Sí | No |
 | Completa | Sí | Sí |
+
+**Actualización — 8 configuraciones formales bajo `controlled_daily_v3`:** el protocolo formal vigente (ver sección "Protocolo formal vigente" arriba) ejecuta estas 4 configuraciones de factores (renombradas en minúscula: `base`, `sinteticos`, `anomalias`, `completa`, `scripts/run_hu7_experiments.py::CONFIGURATIONS`) más 4 configuraciones de escenario (`coverage_fraction_0.5`, `recent_fraction_0.5`, `noise_both_0.3`, `noise_test_only_0.3`, `scripts/run_hu7_scenarios.py::SCENARIOS`), todas registradas en el mismo experimento formal (`hu7-controlled-daily-v3-formal`) con las mismas 5 semillas, el mismo dataset y el mismo modelo fijo:
+
+| Configuración | Factor experimental | Train afectado | Test afectado | Target afectado | Propósito |
+|---|---|---|---|---|---|
+| `base` | ninguno | no | no | no | referencia de comparación |
+| `sinteticos` | aumento sintético (solo train) | sí | no | no | ¿aportan datos sintéticos valor predictivo? |
+| `anomalias` | detección de anomalías (fit train, apply train+test) | sí | sí | no | ¿aporta `is_anomaly` como predictor? |
+| `completa` | anomalías + sintéticos | sí | sí | no | efecto combinado |
+| `coverage_fraction_0.5` | escasez por cobertura estratificada (`scarcity_mode="coverage"`, `train_fraction=0.5`) | sí | no | no | disponibilidad limitada de ejemplos supervisados, preservando el calendario |
+| `recent_fraction_0.5` | escasez por recencia (`scarcity_mode="recent"`, `train_fraction=0.5`) | sí | no | no | entrenamiento restringido a los datos más recientes |
+| `noise_both_0.3` | ruido gaussiano (`noise_mode="both"`, `noise_std_ratio=0.3`) | sí | sí | no | robustez ante ruido de sensor en entrenamiento y despliegue |
+| `noise_test_only_0.3` | ruido gaussiano (`noise_mode="test_only"`, `noise_std_ratio=0.3`) | no | sí | no | robustez ante degradación de calidad solo en despliegue |
+
+En ninguna de las 8 configuraciones se perturba el target/ground truth: el umbral se calibra sobre entrenamiento limpio y el objetivo se calcula sobre la observación de referencia, no sobre la versión con ruido o con escasez aplicada (ver `run_configuration` en `src/experiment_runner/runner.py`).
 
 ## Diseño experimental
 
@@ -108,6 +143,8 @@ Baselines registrados junto a cada configuración (idénticos entre las 4, porqu
 
 Además, esta ejecución centraliza como constantes nombradas (registradas como parámetros MLflow) el contrato de reproducibilidad completo: dataset, columnas de variables, columna objetivo, `horizon_days=3`, `percentile=20.0`, `lags=[1,2,3]`, `rolling_windows=[3,7]`, `alert_threshold=0.5`, `contamination=0.05`, modelo e hiperparámetros, semillas, `n_synthetic_samples=100`, y `pipeline_version="purged_cv_v2"` (`scripts/run_hu7_experiments.py`, `scripts/run_hu7_scenarios.py`, `src/experiment_runner/runner.py::run_configuration`).
 
+**Nota de vigencia:** las tablas de esta sección (`hu7-epica4`, `hu7-epica4-leakage-fix`, `hu7-epica4-purged-cv`) documentan la evolución metodológica bajo `pipeline_version="purged_cv_v2"`, con 4 configuraciones y 20 corridas (4×5 semillas). El experimento formal vigente, ejecutado con `pipeline_version="controlled_daily_v3"` sobre las 8 configuraciones (ver "Protocolo formal vigente" al inicio de este documento), es posterior a estas correcciones y las incorpora todas (purga de frontera de horizonte, consistencia del detector de anomalías, baselines/MCC); sus resultados están en `docs/research/reference-v3-formal-results.json`/`reference-v3-formal-table.md`, no en las tablas de esta sección. Estas tablas se conservan como registro histórico de la evolución metodológica, no como evidencia formal vigente.
+
 ### Requirement: Reproducibilidad verificada entre corridas
 
 El sistema DEBE producir métricas idénticas al re-ejecutar la misma configuración con las mismas semillas.
@@ -136,6 +173,8 @@ Implementado en `src/experiment_runner/scenarios.py` (`subsample_training_period
 
 **Actualización (2026-09-05) — MCC revierte esta conclusión:** re-ejecutado con la purga de frontera de horizonte (`scripts/run_hu7_scenarios.py`): F1 medio **0.8374 ± 0.0047** (consistente con el valor anterior), pero **MCC medio -0.1103** — el más negativo de todo el estudio, peor incluso que persistencia (-0.1113). El F1 alto ya no se puede leer como una mejora de desempeño: agregar MCC muestra que este escenario tiene la peor capacidad de discriminación real del estudio, no la mejor — el F1 alto se explica por un desbalance de clases agravado por tener menos datos de entrenamiento para corregir el corrimiento estacional (sección 11.1). **La conclusión "la escasez de datos mejora el desempeño" queda revertida.** Ver `docs/research/hu8-analisis-resultados.md`, sección 12.3.
 
+**Nota de vigencia:** las cifras de este requirement corresponden a `pipeline_version="purged_cv_v2"` con `subsample_training_period`/recorte cronológico simple. El protocolo formal `controlled_daily_v3` distingue explícitamente dos mecanismos de escasez (`select_training_dates`, `scarcity_mode="coverage"` vs. `"recent"`, ver "Protocolo formal vigente" al inicio de este documento) y los ejecuta como `coverage_fraction_0.5`/`recent_fraction_0.5` en el experimento formal, cuyos resultados vigentes están en `docs/research/reference-v3-formal-table.md`.
+
 ### Requirement: Escenario de ruido de datos
 
 El sistema DEBE poder simular ruido de sensor agregando ruido gaussiano de media cero a las variables predictoras, con desvío proporcional al desvío observado de cada variable.
@@ -152,6 +191,8 @@ Implementado en `src/experiment_runner/scenarios.py` (`inject_gaussian_noise`), 
 
 **Actualización (2026-09-05):** re-ejecutado con la purga de frontera de horizonte (`scripts/run_hu7_scenarios.py`): F1 medio **0.6690 ± 0.0481**, MCC medio **0.0221** (positivo, sin la contradicción del escenario de escasez — ver requirement anterior). Misma dirección de degradación que antes de esta corrección.
 
+**Nota de vigencia:** las cifras de este requirement corresponden a `pipeline_version="purged_cv_v2"`, con ruido aplicado únicamente a train+test (`both`). El protocolo formal `controlled_daily_v3` distingue explícitamente `noise_mode="both"` de `noise_mode="test_only"` (ver "Protocolo formal vigente" al inicio de este documento) y los ejecuta como `noise_both_0.3`/`noise_test_only_0.3` en el experimento formal, cuyos resultados vigentes están en `docs/research/reference-v3-formal-table.md`. En ambos casos, el ground truth observado nunca se perturba: solo las variables predictoras de entrada reciben ruido.
+
 ## Limitaciones conocidas
 
 - ~~La detección de anomalías no afecta actualmente el desempeño del modelo...~~ **Actualización (2026-08-21):** resuelto en `openspec/changes/fix-anomaly-feature-integration/`. `is_anomaly` ahora es una variable predictora real (detector ajustado solo sobre `train`, aplicado sin reajustar sobre `test`); ver la tabla de resultados actualizada arriba.
@@ -160,3 +201,5 @@ Implementado en `src/experiment_runner/scenarios.py` (`inject_gaussian_noise`), 
 - El escenario de ruido (`inject_gaussian_noise`) es una aproximación deliberadamente simple, no calibrada contra ninguna caracterización real de ruido de sensor — se eligió `noise_std_ratio=0.3` como un valor razonable de ejemplo, no como un valor validado empíricamente.
 - El hallazgo de que la escasez mejora el desempeño es específico de este dataset (un año, un punto geográfico) y de esta forma de reducir el entrenamiento (recorte por las fechas más recientes); no se probaron otras fracciones ni otras formas de subselección (ej. muestreo aleatorio en vez de recorte cronológico), que podrían dar un resultado distinto.
 - No se ejecutó un escenario combinado de escasez + ruido simultáneos.
+- La evaluación cuantitativa formal del aporte de la retroalimentación humana (HU5) al desempeño predictivo permanece diseñada pero no ejecutada dentro de HU7 — ver "Protocolo formal vigente" al inicio de este documento.
+- El período de evaluación 2024 usado por `controlled_daily_v3` es una referencia de desarrollo experimental, no una validación externa independiente sobre otro sitio o período.
