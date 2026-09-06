@@ -278,7 +278,9 @@ Consolidados leyendo directamente `predictions.rows` de cada child run (sin ejec
 | 4 | 21 | 12 | 16 | 18 |
 | **Total (5 semillas)** | **106** | **62** | **78** | **89** |
 
-Verificación de consistencia: precisión agregada 106/(106+78)=0.576 y recall agregado 106/(106+89)=0.544 coinciden con `precision_mean`/`recall_mean` del JSON formal para `base` hasta el redondeo. Esta evidencia reemplaza, para la interpretación vigente, a los conteos de la sección 7 (partición única de HU4, previa a todas las correcciones de fuga temporal).
+Los totales agrupan las cinco ejecuciones sobre el mismo conjunto temporal de evaluación. Por lo tanto, no representan observaciones independientes adicionales: cada fecha aparece una vez por semilla. La tabla se utiliza como resumen descriptivo de los errores acumulados entre ejecuciones y no como una única matriz de confusión correspondiente a un conjunto de 335 casos independientes. Para interpretar la variabilidad entre ejecuciones deben conservarse también los valores por semilla (fila por fila, arriba).
+
+Como control descriptivo, los conteos agrupados producen una precisión (106/(106+78)=0.576) y un recall (106/(106+89)=0.544) muy próximos a los promedios registrados entre semillas (`precision_mean`/`recall_mean` del JSON formal para `base`). Esta proximidad no implica equivalencia matemática general entre el promedio de métricas por ejecución y la métrica calculada después de agrupar matrices de confusión. Esta evidencia reemplaza, para la interpretación vigente, a los conteos de la sección 7 (partición única de HU4, previa a todas las correcciones de fuga temporal).
 
 ### 13.5. Retroalimentación humana (HITL)
 

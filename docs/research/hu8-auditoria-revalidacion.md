@@ -132,7 +132,9 @@ El JSON formal **sí contiene predicciones por fecha** (`predictions.rows`, con 
 | 4 | 21 | 12 | 16 | 18 |
 | **Total (5 semillas)** | **106** | **62** | **78** | **89** |
 
-Verificación de consistencia: precisión agregada = 106/(106+78) = 0.576, recall agregado = 106/(106+89) = 0.544 — coinciden con `precision_mean`/`recall_mean` del JSON formal para `base` (0.5760/0.5436) hasta el redondeo. Esta evidencia reemplaza, para efectos de HU8 vigente, a los conteos de FP/FN de la partición única de HU4 (7 FP/24 FN sobre 72 filas) citados en `hu8-analisis-resultados.md` sección 7, que corresponden a un pipeline anterior a todas las correcciones de fuga temporal.
+Los totales agrupan las cinco ejecuciones sobre el mismo conjunto temporal de evaluación. Por lo tanto, no representan observaciones independientes adicionales: cada fecha aparece una vez por semilla. La tabla se utiliza como resumen descriptivo de los errores acumulados entre ejecuciones y no como una única matriz de confusión correspondiente a un conjunto de 335 casos independientes. Para interpretar la variabilidad entre ejecuciones deben conservarse también los valores por semilla.
+
+Como control descriptivo, los conteos agrupados producen una precisión (106/(106+78)=0.576) y un recall (106/(106+89)=0.544) muy próximos a los promedios registrados entre semillas (`precision_mean`/`recall_mean` del JSON formal para `base`: 0.5760/0.5436). Esta proximidad no implica equivalencia matemática general entre el promedio de métricas por ejecución y la métrica calculada después de agrupar matrices de confusión. Esta evidencia reemplaza, para efectos de HU8 vigente, a los conteos de FP/FN de la partición única de HU4 (7 FP/24 FN sobre 72 filas) citados en `hu8-analisis-resultados.md` sección 7, que corresponden a un pipeline anterior a todas las correcciones de fuga temporal.
 
 ## 10. Retroalimentación humana (HITL)
 
@@ -181,7 +183,7 @@ No se afirma "hipótesis comprobada", "hipótesis confirmada" ni "hipótesis rec
 
 ## 14. Material para la memoria técnica
 
-- **Capítulo 4 (ensayos y resultados):** tabla formal de 8 configuraciones (sección 4 de este documento), comparaciones pareadas (sección 5), resultados por componente (sección 6), FP/FN consolidados (sección 9).
+- **Capítulo 4 (ensayos y resultados):** tabla formal de 8 configuraciones (sección 4 de este documento), comparaciones pareadas (sección 5), resultados por componente (sección 6), FP/FN consolidados (sección 9). Para la presentación de errores (FP/FN), se recomienda mostrar las métricas medias y su dispersión entre semillas como evidencia principal, junto con las matrices de confusión por semilla (o un resumen descriptivo de ellas) — no usar el total agrupado de las cinco semillas como si correspondiera a un conjunto de observaciones independientes.
 - **Capítulo 5 (conclusiones):** contrastación de la hipótesis (sección 13), limitaciones y amenazas a la validez (sección 12), HITL pendiente (sección 10), 2024 como referencia de desarrollo (no validación externa), trabajo futuro (más fracciones de escasez, evaluación HITL cuantitativa ya diseñada en el protocolo, validación externa multisitio/multianual).
 
 ## 15. Conclusión de la auditoría
