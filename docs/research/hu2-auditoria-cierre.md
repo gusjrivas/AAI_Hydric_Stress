@@ -20,7 +20,7 @@ SMN y Copernicus fueron relevados y documentados en el mismo checklist, pero su 
 
 **Estado: CUMPLE**
 
-**Evidencia:** `openspec/specs/data-ingestion/spec.md` define 7 requirements formales (contrato de acceso a datos, esquema obligatorio/opcional, flag de procedencia, resolución temporal nativa + vista diaria, reporte de cobertura, diccionario de datos versionado, consolidación multi-fuente, huella de dataset), cada uno con implementación real en `src/data_ingestion/` y test asociado (`tests/test_storage.py`, `test_schema.py`, `test_aggregation.py`, `test_coverage.py`, `test_dictionary.py`, `test_consolidate.py`).
+**Evidencia:** `openspec/specs/data-ingestion/spec.md` define 8 requirements formales (contrato de acceso a datos, esquema obligatorio/opcional, flag de procedencia, resolución temporal nativa + vista diaria, reporte de cobertura, diccionario de datos versionado, consolidación multi-fuente, huella de dataset/fingerprint), cada uno con implementación real en `src/data_ingestion/` y test asociado (`tests/test_storage.py`, `test_schema.py`, `test_aggregation.py`, `test_coverage.py`, `test_dictionary.py`, `test_consolidate.py`).
 
 ### CA3 — Conjunto experimental apto para desarrollo y evaluación
 
@@ -33,7 +33,7 @@ SMN y Copernicus fueron relevados y documentados en el mismo checklist, pero su 
 - Fuentes: NASA POWER para variables climáticas (temperatura, humedad relativa, precipitación, radiación solar, viento); ESA CCI Soil Moisture para humedad de suelo.
 - Cobertura: 100% en las variables climáticas obligatorias; 75.96% en humedad de suelo (gap real del producto satelital, cuantificado en `data/melchor_romero_2024_consolidado_coverage.csv`); 0% en ET0 (ver sección 4).
 - Procedencia: `origen: real` en ambas fuentes, fijado desde la ingesta.
-- Utilización posterior efectiva: el dataset fue consumido real y extensamente por HU3 (calidad, anomalías, datos sintéticos), HU4 (modelado predictivo), HU5 (retroalimentación humana), HU6 (integración de arquitectura) y HU7/HU8 (experimentación con 4 configuraciones × 5 semillas, incluida la re-ejecución posterior a la corrección de fuga temporal).
+- Utilización posterior efectiva: el dataset fue consumido real y extensamente por HU3 (calidad, anomalías, datos sintéticos), HU4 (modelado predictivo), HU5 (retroalimentación humana), HU6 (integración de arquitectura) y HU7/HU8 (experimentación, incluido el protocolo experimental formal vigente de HU7/HU8, con la re-ejecución posterior a la corrección de fuga temporal).
 
 **Aclaración explícita:** "apto para desarrollo y evaluación del prototipo experimental" no equivale a "suficiente para generalización científica externa". Esta segunda afirmación no es un requisito de HU2 y la limitación de un único sitio/año ya está documentada como amenaza a la validez externa en HU8, no como un incumplimiento de HU2.
 
@@ -41,7 +41,7 @@ SMN y Copernicus fueron relevados y documentados en el mismo checklist, pero su 
 
 **Estado: CUMPLE**
 
-**Evidencia:** scripts parametrizados por ubicación/período (`scripts/ingest_nasa_power.py`, `scripts/ingest_esa_cci_soil_moisture.py`, `scripts/consolidate_datasets.py`), conectores (`src/data_ingestion/sources/`), normalización al esquema (`schema.py`), persistencia (`storage.py`), consolidación (`consolidate.py`), cobertura (`coverage.py`) y diccionarios (`dictionary.py`), todos con tests asociados. Datasets y diccionarios quedan versionados en git. Ninguna de las dos fuentes seleccionadas (NASA POWER, ESA CCI) requiere credenciales, cuenta o API key, por lo que el procedimiento es reproducible de punta a punta sin prerrequisito externo.
+**Evidencia:** scripts parametrizados por ubicación/período (`scripts/ingest_nasa_power.py`, `scripts/ingest_esa_cci_soil_moisture.py`, `scripts/consolidate_datasets.py`), conectores (`src/data_ingestion/sources/`), normalización al esquema (`schema.py`), persistencia (`storage.py`), consolidación (`consolidate.py`), cobertura (`coverage.py`) y diccionarios (`dictionary.py`), todos con tests asociados. Datasets y diccionarios quedan versionados en git. El procedimiento es reproducible mediante los scripts versionados sin requerir credenciales ni cuentas para las dos fuentes seleccionadas (NASA POWER, ESA CCI), sujeto a la disponibilidad de los servicios y productos públicos externos correspondientes.
 
 ## 3. Fuentes seleccionadas
 
@@ -53,7 +53,7 @@ SMN y Copernicus fueron relevados y documentados en el mismo checklist, pero su 
 **Fuentes candidatas relevadas pero no incorporadas** (no descriptas como trabajo pendiente obligatorio):
 
 - SMN: bloqueo técnico documentado (dataset de `datos.gob.ar` removido, `smn.gob.ar` con protección anti-bot).
-- Copernicus CDS: requiere registro institucional del responsable del proyecto, no gestionado; estado "pendiente", no descarte definitivo.
+- Copernicus CDS: requiere registro/cuenta personal gratuita no gestionada (registro, token personal y aceptación de licencia del dataset); estado "pendiente", no descarte definitivo.
 - NASA SMAP, ISMN, INTA RIAN, MAGyP y otras fuentes del checklist: relevadas, sin necesidad de incorporación adicional dado que ESA CCI ya cubre humedad de suelo con completitud suficiente y NASA POWER ya cubre las variables climáticas obligatorias.
 
 ## 4. Estado de ET0
@@ -75,7 +75,7 @@ Se preservan explícitamente, aunque HU2 se cierre:
 - Un único año (2024).
 - Humedad de suelo con 75.96% de cobertura (el tratamiento de este faltante corresponde a HU3, no a HU2).
 - SMN no incorporado por bloqueo técnico documentado.
-- Copernicus no incorporado por requerimiento de registro institucional pendiente.
+- Copernicus no incorporado por requerimiento de registro/cuenta personal gratuita no gestionada.
 - ET0 histórica no poblada, no utilizada como predictor de HU7/HU8.
 - Generalización científica externa no demostrada (fuera de alcance de HU2).
 
@@ -100,7 +100,7 @@ La identificación de datasets asociados a publicaciones científicas era una es
 
 ### #36 — Relevar datos disponibles en SMN, NASA POWER y Copernicus
 
-NASA POWER fue relevado e incorporado. SMN fue relevado y su bloqueo técnico documentado con fecha y motivo concreto. Copernicus fue relevado y quedó fuera por requerimiento de registro institucional, no por descarte definitivo. "Relevar" no implica incorporar obligatoriamente las tres fuentes: las tres fueron investigadas con evidencia concreta y disposición clara.
+NASA POWER fue relevado e incorporado. SMN fue relevado y su bloqueo técnico documentado con fecha y motivo concreto. Copernicus fue relevado y quedó fuera por requerimiento de registro/cuenta personal gratuita no gestionada (cuenta, token personal y aceptación de licencia del dataset), no por descarte definitivo. "Relevar" no implica incorporar obligatoriamente las tres fuentes: las tres fueron investigadas con evidencia concreta y disposición clara.
 
 ### #37 — Evaluar metadatos, licencias, procedencia y restricciones de uso
 
