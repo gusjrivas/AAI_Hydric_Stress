@@ -73,6 +73,16 @@ El mecanismo vigente:
 
 Documentado formalmente en `openspec/specs/human-feedback/spec.md`, requirement "Recalibración temporalmente controlada con retroalimentación madura".
 
+## Actualización 2026-09-06 — linaje explícito de recalibraciones (mejora técnica post-H-01)
+
+H-01 (`fix/hitl-multiversion-recalibration`, PR #182) corrigió que `recalibrate_predictor` rechazara ciclos HITL sucesivos por acumular `model_version` de más de un predictor en el `feedback_log`. Esta actualización complementa esa corrección con trazabilidad explícita: no cambia el mecanismo de recalibración ni el Model Registry adoptado en este ADR, agrega un registro auxiliar sobre la infraestructura ya decidida.
+
+`register_recalibrated_model` (`src/human_feedback/model_registry.py`) acepta ahora un `lineage: RecalibrationLineage | None` opcional. Cuando se provee, persiste un artefacto JSON (`recalibration_lineage.json`) dentro del mismo run de MLflow que registra al predictor sucesor, junto con parámetros indexables (`recalibration_id`, `source_model_id`, `successor_model_id`, `dataset_fingerprint`). Se descartó deliberadamente introducir un almacén de linaje separado (tabla propia, archivo paralelo): el Model Registry de MLflow ya es la fuente de verdad versionada de cada predictor recalibrado (ver más arriba), y cada evento de linaje corresponde exactamente 1:1 con la versión que registra — anexarlo al mismo run evita una segunda fuente de verdad que pudiera desincronizarse.
+
+`POST /recalibrate/{sensor_id}` construye el evento (`RecalibrationLineage`) con `source_model_id` = `model_id` del predictor vigente antes de recalibrar, `successor_model_id` = el nuevo `model_id`, y `feedback_references` construidas únicamente a partir de las fechas nuevas/pendientes que devuelve `recalibrate_predictor` (nunca de todo el `feedback_log`). `RecalibrationResponse` gana un campo opcional `recalibration_id` (retrocompatible, `None` por defecto) para correlacionar la respuesta HTTP con el evento persistido.
+
+Documentado formalmente en `openspec/specs/human-feedback/spec.md`, requirement "Linaje explícito de recalibraciones HITL".
+
 ## Referencias
 
 - [ADR-0003: Stack web (backend/frontend) y ciclo de vida de desarrollo automatizado con IA](0003-stack-web-y-ciclo-de-vida-automatizado.md)

@@ -130,6 +130,30 @@ Implementado en `src/human_feedback/recalibration.py` (`recalibrate_predictor`).
 
 **Nota sobre la nomenclatura de `model_version`:** el campo persistido `model_version` en el registro de retroalimentación (`src/human_feedback/schema.py`) conserva ese nombre por compatibilidad histórica, pero en el flujo operativo vigente contiene `FittedPredictor.model_id` — el identificador lógico e inmutable del predictor que emitió la alerta — y no un número de versión del Model Registry de MLflow, que es una noción distinta. El comportamiento es correcto: esta diferencia es justamente lo que permite que `load_predictor_by_id(...)` recupere el predictor exacto que originó el feedback, independientemente de cuántas veces se haya registrado una nueva versión en MLflow desde entonces. No se renombra la columna ni se modifica el esquema en esta iteración.
 
+### Requirement: Linaje explícito de recalibraciones HITL
+
+El sistema DEBE registrar, por cada recalibración exitosa, un evento inmutable que permita reconstruir la relación entre el feedback nuevo que la disparó, el predictor que originó ese feedback (`source_model_id`) y el predictor sucesor producido (`successor_model_id`), sin modificar retrospectivamente el `feedback_log` histórico.
+
+#### Scenario: Un ciclo de recalibración exitoso registra su linaje
+
+- **GIVEN** una recalibración que incorpora correcciones nuevas y maduras del predictor vigente
+- **WHEN** la recalibración se completa
+- **THEN** queda persistido un evento con `source_model_id` (el predictor vigente antes de recalibrar), `successor_model_id` (el nuevo `model_id`) y las referencias exactas al feedback nuevo que lo disparó
+
+#### Scenario: El evento de linaje solo referencia el feedback nuevo, no el histórico reaplicado
+
+- **GIVEN** un segundo ciclo de recalibración que reaplica correcciones ya incorporadas en un ciclo anterior además de incorporar una corrección nueva
+- **WHEN** se registra el evento de linaje de ese segundo ciclo
+- **THEN** las referencias de feedback del evento incluyen únicamente la corrección nueva, no las ya reflejadas en `applied_feedback`
+
+#### Scenario: Una recalibración fallida no deja un evento de linaje
+
+- **GIVEN** una recalibración que falla por procedencia incompatible, contrato incompatible o ausencia de correcciones nuevas y maduras
+- **WHEN** se solicita esa recalibración
+- **THEN** no se registra ningún evento de linaje
+
+Implementado en `src/human_feedback/lineage.py` (`FeedbackReference`, `RecalibrationLineage`, `build_feedback_references`) y `src/human_feedback/model_registry.py` (`register_recalibrated_model` acepta un `lineage` opcional; `load_recalibration_lineage`/`list_recalibration_lineage` lo recuperan). La clave compuesta que identifica sin ambigüedad una fila de `feedback_log` referenciada es `sensor_id` + `fecha` + `model_version` + `target_timestamp` — bajo el contrato operativo vigente de una única alerta emitida por sensor y fecha (`fecha` ya es una clave primaria efectiva dentro de un sensor), las columnas adicionales (`model_version`, `target_timestamp`) se conservan como procedencia verificable, replicando exactamente las mismas columnas que `recalibrate_predictor` exige como procedencia temporal completa. El linaje se persiste como artefacto JSON (`recalibration_lineage.json`) dentro del mismo run de MLflow que registra el predictor sucesor (reutiliza el Model Registry existente, ver ADR-0006; no introduce un sistema de persistencia paralelo), junto con parámetros indexables (`recalibration_id`, `source_model_id`, `successor_model_id`, `dataset_fingerprint`). `POST /recalibrate/{sensor_id}` (`openspec/specs/alerting-ui/spec.md`) construye el evento únicamente con las correcciones nuevas devueltas por `recalibrate_predictor` (`dates`), nunca con todo `feedback_log`, y no registra ningún evento cuando `recalibrate_predictor` lanza `ValueError` (la respuesta HTTP 400 se produce antes de llegar al registro). Testeado en `tests/test_recalibration_lineage.py`, `tests/test_model_registry.py` y `backend/tests/test_recalibration.py` (ciclo completo A→B→C con forecast real avanzando el dataset entre ciclos).
+
 ## Limitaciones conocidas
 
 - Estos estados se definen como funciones de Python en esta capacidad; la interfaz de usuario que los consume (`GET /feedback/{sensor_id}`, confirmar/rechazar) se especifica en `alerting-ui` (ver más abajo).

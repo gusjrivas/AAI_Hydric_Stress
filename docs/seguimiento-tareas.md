@@ -299,3 +299,56 @@ vigente (`latest`). Detalle en `openspec/specs/human-feedback/spec.md`
 (requirement "Recalibración temporalmente controlada con retroalimentación
 madura", nota "H-01, 2026-09-06"). Test de regresión de dos ciclos agregado en
 `tests/test_controlled_protocol.py`.
+
+**Microajustes de robustez (2026-09-06):** sobre PR #182 (mergeado en `main`,
+merge commit `387f64be1701d5fb9fbf17f453ccd3bfbf49ab17`), se reforzó la
+verificación de procedencia: además de exigir que las correcciones pendientes
+provengan de un único predictor, ahora se exige que ese predictor sea
+efectivamente el `predictor.model_id` vigente (una corrección pendiente
+homogénea pero originada por otro predictor también falla explícitamente, con
+"otro predictor"). Test de incompatibilidad agregado
+(`test_recalibration_rejects_pending_feedback_from_a_different_predictor`); el
+test E2E de dos ciclos se corrigió para usar `predict_available(df,
+predictor_b)` real en el segundo ciclo en vez de reutilizar filas del forecast
+de A.
+
+## Trazabilidad explícita de recalibraciones HITL (HU5, `human-feedback`)
+
+Mejora técnica acotada, posterior a H-01 (PR #182, merge commit
+`387f64be1701d5fb9fbf17f453ccd3bfbf49ab17`), rama `feat/hitl-recalibration-lineage`.
+Fase CRISP-DM: despliegue e integración experimental. No afecta
+`controlled_daily_v3`, evidencia formal, datasets, hipótesis, propósito, alcance
+ni arquitectura conceptual; sin impacto sobre HU7/HU8.
+
+H-01 permitió ciclos HITL sucesivos (A→B→C), pero no dejaba un registro
+explícito, recuperable, de qué feedback disparó cada recalibración ni qué
+predictor originó ese feedback. Se agrega `src/human_feedback/lineage.py`
+(`FeedbackReference`, `RecalibrationLineage`, `build_feedback_references`,
+tipado y agnóstico de MLflow) y se extiende
+`src/human_feedback/model_registry.py`: `register_recalibrated_model` acepta un
+`lineage` opcional y lo persiste como artefacto JSON
+(`recalibration_lineage.json`) dentro del mismo run de MLflow que registra al
+predictor sucesor (reutiliza el Model Registry existente, ADR-0006, sin
+persistencia paralela); `load_recalibration_lineage`/`list_recalibration_lineage`
+lo recuperan y permiten reconstruir la cadena completa. `POST
+/recalibrate/{sensor_id}` construye el evento únicamente con las correcciones
+nuevas devueltas por `recalibrate_predictor` (nunca con todo el
+`feedback_log`), preservando `feedback_log.model_version` sin sobrescribir el
+predictor de origen. `RecalibrationResponse` gana un campo opcional
+`recalibration_id` (retrocompatible). Detalle en
+`openspec/specs/human-feedback/spec.md` (requirement "Linaje explícito de
+recalibraciones HITL") y `docs/adr/0006-recalibracion-disparada-desde-la-ui.md`.
+
+Tests agregados: `tests/test_recalibration_lineage.py` (unitario, sin MLflow),
+`tests/test_model_registry.py` (registro/recuperación de linaje vía MLflow
+sqlite) y `backend/tests/test_recalibration.py`
+(`test_recalibration_lineage_reconstructs_full_a_to_b_to_c_chain`, ciclo
+completo A→B→C vía HTTP con un forecast real y nuevo emitido por B —
+avanzando el dataset del sensor con una fecha nueva vía `POST
+/sensors/{sensor_id}/readings`, no reutilizando artificialmente el forecast de
+A — y `test_no_lineage_event_recorded_on_failed_or_noop_recalibration`, que
+verifica que una recalibración fallida o sin correcciones nuevas no registra
+ningún evento). Suite completa en verde: `pytest -q` 184 (previo: 177 + 7
+nuevos), `cd backend && pytest -q` 35 (previo: 33 + 2 nuevos), `frontend npm
+test` 5. `ruff check`/`black --check` sobre `src`/`backend`/`tests` y `npm run
+lint` (oxlint) en verde.

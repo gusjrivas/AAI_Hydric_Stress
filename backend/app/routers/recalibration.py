@@ -1,11 +1,13 @@
 """Manual, temporally auditable recalibration through the HU5 core."""
 
 from pathlib import Path
+from uuid import uuid4
 
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
 from data_ingestion.sensor_naming import feedback_log_name_for
+from human_feedback.lineage import RecalibrationLineage, build_feedback_references
 from human_feedback.model_registry import (
     load_latest_recalibrated_model,
     register_recalibrated_model,
@@ -58,15 +60,33 @@ def recalibrate(
         result = execute_configured_pipeline(
             df, sensor_id, fingerprint, data_dir=dataset_dir, predictor_model_id=predictor_model_id
         )
-        predictor, dates, count = recalibrate_predictor(result["predictor"], df, log)
+        source_predictor = result["predictor"]
+        predictor, dates, count = recalibrate_predictor(source_predictor, df, log)
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
+    lineage = RecalibrationLineage(
+        recalibration_id=uuid4().hex,
+        sensor_id=sensor_id,
+        source_model_id=source_predictor.model_id,
+        successor_model_id=predictor.model_id,
+        feedback_references=build_feedback_references(sensor_id, log, dates),
+        recalibrated_at=str(pd.Timestamp.now(tz="UTC").tz_localize(None)),
+        source_trained_through=source_predictor.trained_through,
+        successor_trained_through=predictor.trained_through,
+        dataset_fingerprint=fingerprint,
+        contract_version=predictor.contract["contract_version"],
+        pipeline_version=predictor.contract["pipeline_version"],
+    )
     version = register_recalibrated_model(
         sensor_id,
         predictor,
         params={"n_correcciones": len(dates)},
         metrics={"n_filas_entrenamiento": count},
+        lineage=lineage,
     )
     return RecalibrationResponse(
-        version=version, n_correcciones=len(dates), fechas_corregidas=[d.date() for d in dates]
+        version=version,
+        n_correcciones=len(dates),
+        fechas_corregidas=[d.date() for d in dates],
+        recalibration_id=lineage.recalibration_id,
     )
