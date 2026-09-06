@@ -74,7 +74,7 @@ El sistema DEBE producir, para cada fuente ingerida, un diccionario de datos que
 - **WHEN** se ejecuta el procedimiento de ingesta para esa fuente
 - **THEN** se genera un diccionario de datos versionado que documenta su procedencia, licencia y limitaciones, reproducible a partir de esa documentación
 
-Implementado en `src/data_ingestion/dictionary.py` (`write_data_dictionary`), testeado en `tests/test_dictionary.py`. Diccionarios reales generados para NASA POWER y ESA CCI Soil Moisture (`data/dictionaries/`, gitignorado por diseño — ver ADR-0002).
+Implementado en `src/data_ingestion/dictionary.py` (`write_data_dictionary`), testeado en `tests/test_dictionary.py`. Diccionarios reales generados para NASA POWER y ESA CCI Soil Moisture (`data/dictionaries/`), versionados en el repositorio junto con los datasets desde la corrección del `.gitignore` (ver ADR-0002, corrección 2026-08-17).
 
 ### Requirement: Consolidación multi-fuente por timestamp
 
@@ -109,6 +109,6 @@ Implementado en `src/data_ingestion/storage.py` (`get_dataset_fingerprint`), tes
 ## Limitaciones conocidas
 
 - Ejecutado y verificado con datos reales para dos fuentes (NASA POWER, ESA CCI Soil Moisture), un único punto geográfico (Melchor Romero, Partido de La Plata) y un único año (2024). No se validó con múltiples ubicaciones ni múltiples años.
-- SMN (bloqueado por acceso técnico) y Copernicus (bloqueado por falta de registro) no están incorporados como fuentes reales — ver `docs/research/hu2-fuentes-datos-acceso.md`.
-- No hay criterios explícitos de calidad/relevancia agronómica para seleccionar o descartar fuentes candidatas (tarea de HU2 aparte, todavía sin cerrar — ver `docs/seguimiento-tareas.md`).
-- ET0 (evapotranspiración de referencia) es una columna obligatoria del esquema pero se deriva en preprocesamiento, no se ingiere directamente de ninguna fuente todavía.
+- SMN (bloqueado por acceso técnico) y Copernicus (bloqueado por falta de registro) no están incorporados como fuentes reales — ver `docs/research/hu2-fuentes-datos-acceso.md`. Su incorporación no es requisito de HU2 (ver `docs/research/hu2-auditoria-cierre.md`).
+- Los criterios explícitos de calidad/relevancia agronómica para seleccionar o descartar fuentes candidatas ya están definidos en `docs/research/hu2-fuentes-datos-acceso.md` (sección "Criterios de selección y descarte de fuentes de datos", issue #41).
+- ET0 (evapotranspiración de referencia) es una columna obligatoria del esquema. No está poblada en el conjunto experimental histórico (`data/melchor_romero_2024_consolidado.parquet`, 0% de cobertura): ninguna de las fuentes incorporadas (NASA POWER, ESA CCI) la provee, y ningún paso de preprocesamiento real la deriva para ese dataset. Existe un cálculo de referencia (`src/data_quality/reference_et.py::estimate_et0`) usado únicamente por el flujo de sensor mock/en vivo (`alerting-ui`), sin efecto retroactivo sobre el dataset histórico. `predictive-modeling` no utiliza ET0 como predictor en HU7/HU8.
