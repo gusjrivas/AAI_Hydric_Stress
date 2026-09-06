@@ -280,3 +280,22 @@ provisional (`reference-v3-results.json`/`reference-v3-table.md`/
 `reference-v3-source-manifest.json`). Suite completa en verde (`pytest -q` 177,
 `cd backend && pytest -q` 33, `frontend npm test` 5). Resultados todavía no
 interpretados científicamente; HU8 no se actualiza en este PR.
+
+## H-01: recalibraciones HITL sucesivas (HU5, `human-feedback`)
+
+Auditoría transversal técnica (2026-09-06) detectó que `recalibrate_predictor`
+rechazaba una segunda recalibración por detectar `model_version` de más de un
+predictor en el `feedback_log` acumulado, rompiendo la repetibilidad del ciclo
+operativo HITL (forecast → feedback → recalibración → nuevo forecast → nuevo
+feedback → nueva recalibración). No afecta `controlled_daily_v3` ni evidencia
+formal HU7/HU8.
+
+Corregido en rama `fix/hitl-multiversion-recalibration`: la verificación de
+"múltiples predictores" ahora se aplica solo a las correcciones nuevas/pendientes
+de la solicitud de recalibración, no al historial completo del log (que
+legítimamente mezcla `model_version` de predictores sucesivos); el router deja de
+elegir arbitrariamente el primer `model_version` del log y usa el predictor
+vigente (`latest`). Detalle en `openspec/specs/human-feedback/spec.md`
+(requirement "Recalibración temporalmente controlada con retroalimentación
+madura", nota "H-01, 2026-09-06"). Test de regresión de dos ciclos agregado en
+`tests/test_controlled_protocol.py`.

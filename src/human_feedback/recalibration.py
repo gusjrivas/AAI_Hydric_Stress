@@ -74,19 +74,28 @@ def recalibrate_predictor(predictor, df, feedback_log):
         & (feedback_log.target_timestamp < now.normalize())
         & feedback_log.model_version.notna()
     ].copy()
-    model_ids = valid.model_version.dropna().astype(str).unique()
-    if len(model_ids) > 1:
-        raise ValueError("El feedback pendiente proviene de múltiples predictores.")
     if not valid.target_threshold.eq(predictor.threshold).all():
         raise ValueError("Las correcciones corresponden a otro umbral de referencia.")
     if not valid.target_timestamp.eq(valid.fecha + pd.Timedelta(days=horizon)).all():
         raise ValueError("Horizonte de feedback incompatible con el modelo.")
     previous = dict(predictor.applied_feedback or {})
     corrections = dict(previous)
+    # Correcciones ya presentes en `applied_feedback` legítimamente provienen de
+    # un predictor anterior (fueron su feedback en un ciclo HITL previo); solo
+    # las correcciones nuevas deben provenir todas del mismo predictor.
+    pending_model_ids: set[str] = set()
     for row in valid.itertuples():
         if row.etiqueta_corregida not in (0, 1):
             raise ValueError("Etiqueta corregida inválida.")
-        corrections[str(pd.Timestamp(row.fecha))] = int(row.etiqueta_corregida)
+        key = str(pd.Timestamp(row.fecha))
+        value = int(row.etiqueta_corregida)
+        if previous.get(key) != value:
+            pending_model_ids.add(str(row.model_version))
+        corrections[key] = value
+    if len(pending_model_ids) > 1:
+        raise ValueError("El feedback pendiente proviene de múltiples predictores.")
+    if pending_model_ids and next(iter(pending_model_ids)) != predictor.model_id:
+        raise ValueError("El feedback pendiente corresponde a otro predictor.")
     pending = {k: v for k, v in corrections.items() if previous.get(k) != v}
     if not pending:
         raise ValueError("No hay correcciones nuevas y maduras pendientes de aplicar.")
