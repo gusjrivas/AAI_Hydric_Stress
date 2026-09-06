@@ -1,12 +1,12 @@
 # HU1 — Protocolo de revisión bibliográfica
 
-Este documento cubre 3 tareas de HU1 (Estado del arte y comprensión del dominio) que hoy están sin iniciar según `docs/seguimiento-tareas.md`:
+Este documento define originalmente 3 tareas de HU1 (Estado del arte y comprensión del dominio), ya completas según `docs/seguimiento-tareas.md`:
 
 - Definir el protocolo de revisión bibliográfica.
 - Definir términos, sinónimos y cadenas de búsqueda (ES/EN).
 - Definir criterios de inclusión, exclusión y período de análisis.
 
-No incluye la ejecución de las búsquedas (esa tarea requiere acceso institucional a Scopus y Web of Science, que aún no está disponible) ni el análisis de los resultados. Este documento deja el protocolo listo para que, cuando haya acceso, la ejecución sea mecánica y trazable.
+**Estado de ejecución (actualizado 2026-09-06):** las búsquedas en Scopus e IEEE Xplore ya se ejecutaron para los 4 ejes y están registradas en `docs/research/hu1-registro-busquedas.csv`, con exports reales en `docs/research/exports/scopus/` y `docs/research/exports/ieee/`, consolidados en `docs/research/hu1-corpus-final.csv`. Web of Science no pudo ejecutarse (acceso institucional sin Document Search/Core Collection, ver nota más abajo). Se incorporaron además fuentes abiertas complementarias (Crossref, OpenAlex, DOAJ). Este trabajo se caracteriza como una **revisión bibliográfica estructurada y dirigida, con criterios explícitos de búsqueda, inclusión, exclusión, trazabilidad y verificación** — no como una revisión sistemática exhaustiva: quedan pendientes Web of Science, AGRIS/SciELO/Horticultura Argentina de forma automatizada, y la resolución de la cola de revisión humana (`docs/research/hu1-cola-revision-humana.csv`).
 
 ## 1. Objetivo y alcance
 
@@ -89,7 +89,7 @@ Excepción: se admiten trabajos seminales anteriores a 2019 si son citados recur
 
 ## 6. Procedimiento de registro
 
-Para cuando se ejecuten las búsquedas (tarea siguiente, pendiente de acceso institucional a Scopus/WoS), cada búsqueda se registra en una tabla con estas columnas, una fila por resultado antes de la etapa de cribado:
+Cada búsqueda ejecutada se registra en una tabla con estas columnas, una fila por resultado antes de la etapa de cribado:
 
 | Base | Cadena de búsqueda usada | Fecha de ejecución | Título | Año | Autores | Eje | Duplicado de (si aplica) | Decisión (incluir/excluir) | Motivo de exclusión (si aplica) |
 |---|---|---|---|---|---|---|---|---|---|
@@ -101,6 +101,15 @@ Esta tabla conceptual se implementa en dos artefactos de trabajo separados:
 - `docs/research/hu1-registro-busquedas.csv` (columnas: `base,cadena,fecha_ejecucion,eje,cantidad_resultados,observaciones`): una fila por cada ejecución de una cadena de búsqueda en una base, antes de revisar resultados individuales.
 - `docs/research/hu1-corpus-final.csv` (columnas: `id,titulo,autores,anio,doi,url,base,eje,tipo_publicacion,incluido,motivo_exclusion,duplicado_de,referencia_seminal`): una fila por referencia individual evaluada, tras el cribado de títulos/resúmenes.
 
-En ambos archivos, `eje` admite un único valor (`1`, `2`, `3` o `4`, según la numeración de la sección 1) o varios separados por `;` (p. ej. `2;3`) cuando el trabajo aborda más de un eje. `referencia_seminal` en `hu1-corpus-final.csv` se completa solo para trabajos admitidos por la excepción de la sección 5 (referencia seminal fuera de período). Ambos archivos existen hoy únicamente con sus encabezados: ninguna búsqueda fue ejecutada todavía, pendiente de acceso institucional a Scopus/Web of Science/IEEE Xplore.
+En ambos archivos, `eje` admite un único valor (`1`, `2`, `3` o `4`, según la numeración de la sección 1) o varios separados por `;` (p. ej. `2;3`) cuando el trabajo aborda más de un eje. `referencia_seminal` en `hu1-corpus-final.csv` se completa solo para trabajos admitidos por la excepción de la sección 5 (referencia seminal fuera de período).
 
-Los 4 ejes cuentan ya con un borrador preliminar de búsqueda dirigida (ejes 1, 2 y 3 —modelado predictivo, detección de anomalías y datos sintéticos— en `docs/research/hu1-variables-y-antecedentes.md`; eje 4 —retroalimentación humana— en `docs/research/hu1-retroalimentacion-humana.md`); ninguno reemplaza la ejecución sistemática de este protocolo, pendiente de acceso institucional a Scopus/Web of Science/IEEE Xplore.
+**Estado real (actualizado 2026-09-06):** ambos archivos ya contienen datos reales, no solo encabezados. `hu1-registro-busquedas.csv` tiene 27 filas: 4 ejecuciones de Scopus, 4 de IEEE Xplore, 1 fila de Web of Science (no ejecutada), 12 filas de Crossref/OpenAlex/DOAJ (ejecutadas como descubrimiento complementario), 5 filas de fuentes no ejecutadas o bloqueadas (Semantic Scholar, CORE, AGRIS, SciELO, Horticultura Argentina) y 1 fila de referencia a FAO/INTA como fuente de verificación. `hu1-corpus-final.csv` tiene 450 registros consolidados y deduplicados (224 incluidos tras cribado semántico, 71 de ellos aún en la cola de revisión humana — ver `docs/research/hu1-cola-revision-humana.csv`).
+
+Distinción de estado por fuente:
+
+a) **Protocolo planificado** (esta sección y la 3): cadenas y criterios definidos para las 5 bases originales (Scopus, WoS, IEEE Xplore, AGRIS, SciELO/Horticultura Argentina).
+b) **Búsquedas efectivamente ejecutadas**: Scopus (4 ejes), IEEE Xplore (4 ejes) — exports reales en `docs/research/exports/`; la cadena literalmente tipeada en cada interfaz no quedó preservada como log/captura, por lo que `hu1-registro-busquedas.csv` la documenta como "cadena exacta ejecutada no preservada", sin asumir identidad con la cadena de referencia de esta sección.
+c) **Fuentes no ejecutadas o bloqueadas**: Web of Science (Document Search/Core Collection sin acceso institucional), AGRIS (bloqueo de herramienta, SPA/JS), SciELO y Horticultura Argentina (sin API de búsqueda libre automatizable), Semantic Scholar y CORE (requieren API key no disponible en este entorno).
+d) **Fuentes complementarias utilizadas**: Crossref, OpenAlex y DOAJ, consultadas vía API pública como descubrimiento adicional (no sustituyen la ejecución sistemática en Scopus/WoS/IEEE Xplore para las bases donde falta).
+
+Los ejes 1, 2 y 3 contaban además con un borrador preliminar de búsqueda dirigida previo a esta ejecución (en `docs/research/hu1-variables-y-antecedentes.md`) y el eje 4 en `docs/research/hu1-retroalimentacion-humana.md`; ese borrador quedó incorporado/superado por la consolidación real descrita arriba, no reemplaza por sí solo la verificación científica final pendiente (cola de revisión humana, matriz comparativa, revalidación de vacancias).

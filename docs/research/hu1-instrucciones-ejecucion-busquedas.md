@@ -7,7 +7,7 @@ Este documento empaqueta, en formato listo para copiar y pegar, las cadenas de b
 3. Generación de datos sintéticos
 4. Retroalimentación humana y recalibración
 
-**No se ejecutó ninguna búsqueda todavía.** Scopus, Web of Science e IEEE Xplore siguen bloqueadas por falta de acceso institucional; AGRIS sigue bloqueada por herramienta (ver nota en el protocolo, sección 3). Este documento no reemplaza el protocolo — solo lo empaqueta para ejecución mecánica el día que haya acceso.
+**Estado (actualizado 2026-09-06):** Scopus e IEEE Xplore ya se ejecutaron para los 4 ejes (ver `docs/research/hu1-registro-busquedas.csv` y exports reales en `docs/research/exports/scopus/` e `docs/research/exports/ieee/`); la cadena literalmente tipeada en cada interfaz no quedó preservada como log/captura, por lo que no se asume identidad exacta con las cadenas documentadas en este archivo. Web of Science no pudo ejecutarse (acceso institucional sin Document Search/Core Collection); AGRIS sigue bloqueada por herramienta (ver nota en el protocolo, sección 3). Este documento no reemplaza el protocolo — lo empaqueta para ejecución mecánica, y sigue siendo la referencia para las fuentes todavía pendientes (Web of Science, AGRIS, SciELO, Horticultura Argentina de forma automatizada).
 
 ## Cómo usar este documento
 
@@ -218,4 +218,4 @@ human-in-the-loop agriculture
 
 ## Estado de ejecución
 
-Ninguna de las cadenas anteriores fue ejecutada. Este documento queda listo para que, en cuanto haya acceso institucional a Scopus/Web of Science/IEEE Xplore (y/o navegación manual disponible para AGRIS), la ejecución y el registro en `docs/research/hu1-registro-busquedas.csv` y `docs/research/hu1-corpus-final.csv` sean mecánicos y trazables por eje.
+Las cadenas de Scopus e IEEE Xplore ya se ejecutaron para los 4 ejes (registro real en `docs/research/hu1-registro-busquedas.csv`, exports en `docs/research/exports/`, consolidado en `docs/research/hu1-corpus-final.csv`). Web of Science, AGRIS, SciELO y Horticultura Argentina siguen sin ejecutarse (bloqueos de acceso/herramienta documentados en `docs/research/hu1-registro-busquedas.csv`); este documento queda listo para que, en cuanto haya acceso institucional a Web of Science (y/o navegación manual disponible para AGRIS), esa ejecución y registro sean mecánicos y trazables por eje.
