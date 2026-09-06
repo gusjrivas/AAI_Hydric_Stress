@@ -46,6 +46,8 @@ Sintaxis booleana estándar (`AND`/`OR`), con comillas para frases exactas. Estr
 - **Eje 4 — Retroalimentación humana:**
   `TITLE-ABS-KEY(("human feedback" OR "human-in-the-loop" OR "active learning" OR "model recalibration") AND ("machine learning" OR "predictive model") AND ("agricultur*" OR "environmental monitoring" OR "sensor"))`
 
+> **Bloqueo de acceso institucional — Web of Science (2026-09-05):** se intentó ejecutar estas cadenas en Web of Science Core Collection y no fue posible: la cuenta institucional disponible permite búsqueda de perfiles de investigadores, pero no Document Search/Core Collection (que es el módulo que ejecuta estas cadenas). A diferencia del bloqueo de AGRIS (limitación de herramienta), esto es una limitación de nivel de suscripción/acceso institucional. Estado: no ejecutada.
+
 ### IEEE Xplore (sintaxis de "Command Search")
 
 Misma lógica, adaptada al operador de campo de IEEE Xplore (`"Full Text & Metadata"`):
