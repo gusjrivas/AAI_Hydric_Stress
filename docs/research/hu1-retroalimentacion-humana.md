@@ -27,4 +27,6 @@ Este documento cubre el cuarto eje de HU1 (retroalimentación humana y recalibra
 
 ## Uso de este documento
 
-Este documento es insumo para el diseño de HU5 (generación de alertas) y HU6 (retroalimentación y recalibración), que todavía no tienen ningún change de OpenSpec iniciado. No bloquea trabajo en curso de HU2. Antes de cerrar el estado del arte final de HU1, debe validarse y ampliarse ejecutando el protocolo sistemático de `docs/research/hu1-protocolo-revision-bibliografica.md`.
+Este documento es insumo para el diseño de HU5 (generación de alertas) y HU6 (retroalimentación y recalibración). No bloquea trabajo en curso de HU2.
+
+**Nota (2026-09-06):** el estado del arte definitivo de HU1 ya fue redactado a partir del corpus consolidado y validado, no de este borrador. Los entregables consolidados definitivos de HU1 son `docs/research/hu1-matriz-comparativa-final.md` (eje 4) y `docs/research/hu1-estado-del-arte.md`. Este documento se conserva como registro histórico de las 6 referencias relevadas por búsqueda dirigida antes de esa consolidación, no como entregable final de HU1.

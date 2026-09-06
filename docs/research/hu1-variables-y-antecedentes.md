@@ -69,4 +69,6 @@ Estado: borrador preliminar (a validar con el protocolo sistemático de HU1).
 
 ## Uso de este documento
 
-Este borrador ya es suficiente para redactar el `proposal.md` del primer *change* de OpenSpec para HU2 (`data-ingestion`), que debe referenciarlo como justificación del esquema de datos propuesto. Antes de cerrar el entregable final de HU1 (estado del arte completo), este borrador debe validarse y ampliarse ejecutando el protocolo sistemático de búsqueda (Scopus, Web of Science, IEEE Xplore) definido en las tareas restantes de HU1, dado que las referencias aquí provienen de una búsqueda acotada y no de ese protocolo.
+Este borrador ya es suficiente para redactar el `proposal.md` del primer *change* de OpenSpec para HU2 (`data-ingestion`), que debe referenciarlo como justificación del esquema de datos propuesto.
+
+**Nota (2026-09-06):** el estado del arte definitivo de HU1 ya fue redactado a partir del corpus consolidado y validado, no de este borrador. Los entregables consolidados definitivos de HU1 son `docs/research/hu1-matriz-comparativa-final.md` y `docs/research/hu1-estado-del-arte.md`. Este documento se conserva como registro histórico del borrador que desbloqueó el esquema de datos de HU2, no como entregable final de HU1.

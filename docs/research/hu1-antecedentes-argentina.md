@@ -23,4 +23,4 @@ Este documento releva antecedentes de estrés hídrico en cultivos con foco en A
 
 ## Uso de este documento
 
-Este documento constituye el aporte regional al estado del arte de HU1 (`docs/research/hu1-estado-del-arte.md`), cuya sección 5 señala como limitación la ausencia de consulta a fuentes agronómicas regionales al momento de su redacción inicial. La incorporación definitiva de este aporte a dicho documento queda pendiente de una revisión conjunta, junto con la ejecución del protocolo sistemático completo en AGRIS.
+Este documento constituye el aporte regional al estado del arte de HU1. La versión definitiva de `docs/research/hu1-estado-del-arte.md` (sección 6, "Antecedentes regionales y contexto argentino") ya integra esta evidencia, distinguiendo antecedentes territoriales/agronómicos, fuentes instrumentales de datos y antecedentes de inteligencia artificial. AGRIS sigue sin poder ejecutarse bajo el protocolo sistemático previsto (limitación de herramienta, ver `docs/research/hu1-registro-busquedas.csv`); de completarse en el futuro, corresponde ampliar este documento sin descartar el relevamiento aquí registrado.
