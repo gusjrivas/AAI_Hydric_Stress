@@ -352,3 +352,54 @@ ningún evento). Suite completa en verde: `pytest -q` 184 (previo: 177 + 7
 nuevos), `cd backend && pytest -q` 35 (previo: 33 + 2 nuevos), `frontend npm
 test` 5. `ruff check`/`black --check` sobre `src`/`backend`/`tests` y `npm run
 lint` (oxlint) en verde.
+
+**Microajustes de robustez (2026-09-06), sobre la misma rama, PR #183 sin
+mergear:** se detectó que `RecalibrationLineage` podía construirse y
+registrarse sin ninguna validación semántica (sensor inconsistente,
+`source_model_id == successor_model_id`, referencias de otro predictor,
+duplicadas o ausentes, `trained_through` retrocedido), y que el orden de
+escritura dentro del run de MLflow permitía, en teoría, que quedara una
+versión registrada sin su artefacto de linaje. Corregido:
+
+- `RecalibrationLineage.__post_init__` valida siempre la semántica mínima
+  (identificadores no vacíos, `source_model_id != successor_model_id`, al
+  menos una referencia, todas del mismo sensor y del mismo `source_model_id`,
+  sin duplicados, fechas/timestamps válidos, `successor_trained_through >=
+  source_trained_through`, `contract_version` válido) — tanto al crear el
+  evento como al reconstruirlo con `from_dict`; `LineageValidationError`
+  (subclase de `ValueError`) en caso de incumplimiento.
+- `feedback_references` pasó de lista a tupla (inmutable) tras
+  `__post_init__`.
+- `register_recalibrated_model` agrega una segunda validación cruzada
+  (`sensor_id`, `successor_model_id`, `successor_trained_through`,
+  `contract_version`, `pipeline_version` deben coincidir con el predictor que
+  se registra), antes de abrir el run de MLflow.
+- Se corrigió el orden de persistencia dentro del run: el artefacto y los
+  parámetros de linaje se escriben antes de `mlflow.sklearn.log_model(...,
+  registered_model_name=...)` (el paso que registra la versión), no después
+  — así una versión registrada nunca queda sin su artefacto de linaje.
+  `mlflow_model_version` ya no se calcula ni se graba al escribir el
+  artefacto (la versión todavía no existe en ese punto): se resuelve
+  dinámicamente en cada lectura (`load_recalibration_lineage`/
+  `list_recalibration_lineage`) desde la versión de MLflow efectivamente
+  asociada al `run_id`.
+- Se corrigió además `backend/app/routers/recalibration.py`: el
+  `dataset_fingerprint` del linaje debe ser texto (`str(fingerprint)`);
+  `get_dataset_fingerprint` devuelve una tupla `(mtime, size)`, no un string,
+  y la nueva validación de identificadores no vacíos lo detectó (el endpoint
+  devolvía 400 con "dataset_fingerprint no puede estar vacío" en el flujo
+  normal).
+
+Detalle en `openspec/specs/human-feedback/spec.md` (mismo requirement,
+escenarios de validación agregados) y
+`docs/adr/0006-recalibracion-disparada-desde-la-ui.md` ("Microajustes
+2026-09-06"). Tests agregados: 18 en `tests/test_recalibration_lineage.py`
+(rechazo de cada violación semántica, inmutabilidad de `feedback_references`,
+revalidación en `from_dict`), 6 nuevos en `tests/test_model_registry.py`
+(persistencia/recuperación de linaje, validación cruzada contra el modelo,
+ausencia de versión registrada cuando la validación falla). Suite completa en
+verde: `pytest -q` 205 (previo: 184 + 21 nuevos), `cd backend && pytest -q` 35
+(sin cambio de cantidad; 2 tests existentes requirieron el fix del
+`dataset_fingerprint` para volver a pasar), `frontend npm test` 5. `ruff
+check`/`black --check` sobre `src`/`backend`/`tests` y `npm run lint`
+(oxlint) en verde.

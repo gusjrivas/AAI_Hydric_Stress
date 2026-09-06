@@ -6,7 +6,8 @@ import pytest
 from mlflow.exceptions import MlflowException
 from sklearn.linear_model import LogisticRegression
 
-from human_feedback.lineage import FeedbackReference, RecalibrationLineage
+from data_ingestion.sensor_naming import registered_model_name_for
+from human_feedback.lineage import FeedbackReference, LineageValidationError, RecalibrationLineage
 from human_feedback.model_registry import (
     ModelContractMismatch,
     list_recalibration_lineage,
@@ -75,12 +76,15 @@ def test_registration_rejects_metadata_that_disagrees_with_estimator(tmp_path):
         register_recalibrated_model("a", bad, {}, {})
 
 
-def _lineage(sensor_id, source_model_id, successor_model_id, recalibration_id="r1"):
+def _lineage(sensor_id, source_model_id, model, recalibration_id="r1"):
+    """Linaje consistente con `model` (el predictor que efectivamente se
+    va a registrar), como lo exige `_validate_lineage_matches_model`.
+    """
     return RecalibrationLineage(
         recalibration_id=recalibration_id,
         sensor_id=sensor_id,
         source_model_id=source_model_id,
-        successor_model_id=successor_model_id,
+        successor_model_id=model.model_id,
         feedback_references=[
             FeedbackReference(
                 sensor_id=sensor_id,
@@ -90,18 +94,18 @@ def _lineage(sensor_id, source_model_id, successor_model_id, recalibration_id="r
             )
         ],
         recalibrated_at="2026-09-06 00:00:00",
-        source_trained_through="2024-01-04",
-        successor_trained_through="2024-01-05",
+        source_trained_through="2024-01-01",
+        successor_trained_through=model.trained_through,
         dataset_fingerprint="abc123",
-        contract_version=1,
-        pipeline_version="controlled_daily_v3",
+        contract_version=model.contract["contract_version"],
+        pipeline_version=model.contract["pipeline_version"],
     )
 
 
 def test_register_persists_lineage_as_artifact_of_the_same_run(tmp_path):
     _tracking(tmp_path)
     bundle, _ = _bundle()
-    lineage = _lineage("a", "model-a", bundle.model_id)
+    lineage = _lineage("a", "model-a", bundle)
 
     version = register_recalibrated_model("a", bundle, {}, {}, lineage=lineage)
 
@@ -119,8 +123,8 @@ def test_list_recalibration_lineage_reconstructs_chronological_chain(tmp_path):
     bundle, _ = _bundle()
     successor = replace(bundle, model_id="model-c")
 
-    lineage_a_b = _lineage("a", "model-a", bundle.model_id)
-    lineage_b_c = _lineage("a", bundle.model_id, "model-c", recalibration_id="r2")
+    lineage_a_b = _lineage("a", "model-a", bundle)
+    lineage_b_c = _lineage("a", bundle.model_id, successor, recalibration_id="r2")
     register_recalibrated_model("a", bundle, {}, {}, lineage=lineage_a_b)
     register_recalibrated_model("a", successor, {}, {}, lineage=lineage_b_c)
 
@@ -141,6 +145,36 @@ def test_register_without_lineage_does_not_create_a_lineage_event(tmp_path):
 
     assert load_recalibration_lineage("a", bundle.model_id) is None
     assert list_recalibration_lineage("a") == []
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"sensor_id": "b"},
+        {"successor_model_id": "not-the-model-being-registered"},
+        {"successor_trained_through": "2099-01-01"},
+        {"contract_version": 999},
+        {"pipeline_version": "otro_pipeline"},
+    ],
+)
+def test_register_rejects_lineage_inconsistent_with_the_model_and_registers_nothing(
+    tmp_path, override
+):
+    """Requirement H-01 (microajustes): la validación cruzada entre el
+    linaje y el predictor debe ejecutarse antes de escribir nada en
+    MLflow — una versión registrada nunca debe quedar sin su linaje, y
+    un linaje inconsistente tampoco debe dejar una versión huérfana.
+    """
+    _tracking(tmp_path)
+    bundle, _ = _bundle()
+
+    with pytest.raises(LineageValidationError):
+        lineage = replace(_lineage("a", "model-a", bundle), **override)
+        register_recalibrated_model("a", bundle, {}, {}, lineage=lineage)
+
+    assert load_latest_recalibrated_model("a", bundle.contract) is None
+    name = registered_model_name_for("a")
+    assert mlflow.MlflowClient().search_model_versions(f"name='{name}'") == []
 
 
 def test_loading_requires_expected_contract():
