@@ -45,6 +45,7 @@ class RecalibrationResponse(BaseModel):
     version: str
     n_correcciones: int
     fechas_corregidas: list[date]
+    recalibration_id: str | None = None
 
 
 class SensorReadingRequest(BaseModel):

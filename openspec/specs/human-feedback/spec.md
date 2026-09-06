@@ -130,6 +130,54 @@ Implementado en `src/human_feedback/recalibration.py` (`recalibrate_predictor`).
 
 **Nota sobre la nomenclatura de `model_version`:** el campo persistido `model_version` en el registro de retroalimentación (`src/human_feedback/schema.py`) conserva ese nombre por compatibilidad histórica, pero en el flujo operativo vigente contiene `FittedPredictor.model_id` — el identificador lógico e inmutable del predictor que emitió la alerta — y no un número de versión del Model Registry de MLflow, que es una noción distinta. El comportamiento es correcto: esta diferencia es justamente lo que permite que `load_predictor_by_id(...)` recupere el predictor exacto que originó el feedback, independientemente de cuántas veces se haya registrado una nueva versión en MLflow desde entonces. No se renombra la columna ni se modifica el esquema en esta iteración.
 
+### Requirement: Linaje explícito de recalibraciones HITL
+
+El sistema DEBE registrar, por cada recalibración exitosa, un evento inmutable que permita reconstruir la relación entre el feedback nuevo que la disparó, el predictor que originó ese feedback (`source_model_id`) y el predictor sucesor producido (`successor_model_id`), sin modificar retrospectivamente el `feedback_log` histórico.
+
+#### Scenario: Un ciclo de recalibración exitoso registra su linaje
+
+- **GIVEN** una recalibración que incorpora correcciones nuevas y maduras del predictor vigente
+- **WHEN** la recalibración se completa
+- **THEN** queda persistido un evento con `source_model_id` (el predictor vigente antes de recalibrar), `successor_model_id` (el nuevo `model_id`) y las referencias exactas al feedback nuevo que lo disparó
+
+#### Scenario: El evento de linaje solo referencia el feedback nuevo, no el histórico reaplicado
+
+- **GIVEN** un segundo ciclo de recalibración que reaplica correcciones ya incorporadas en un ciclo anterior además de incorporar una corrección nueva
+- **WHEN** se registra el evento de linaje de ese segundo ciclo
+- **THEN** las referencias de feedback del evento incluyen únicamente la corrección nueva, no las ya reflejadas en `applied_feedback`
+
+#### Scenario: Una recalibración fallida no deja un evento de linaje
+
+- **GIVEN** una recalibración que falla por procedencia incompatible, contrato incompatible o ausencia de correcciones nuevas y maduras
+- **WHEN** se solicita esa recalibración
+- **THEN** no se registra ningún evento de linaje
+
+#### Scenario: El evento de linaje se valida semánticamente, tanto al crearlo como al recuperarlo
+
+- **GIVEN** un evento cuyos campos no cumplen la semántica mínima exigida (identificadores vacíos, `source_model_id == successor_model_id`, ninguna referencia de feedback, una referencia perteneciente a otro sensor o a otro predictor, referencias duplicadas, fechas/timestamps inválidos, `successor_trained_through` anterior a `source_trained_through`, o `contract_version` inválido)
+- **WHEN** se construye el evento (en memoria) o se reconstruye desde un artefacto persistido
+- **THEN** falla explícitamente (`LineageValidationError`, subclase de `ValueError`) en ambos casos, sin excepción
+
+#### Scenario: El linaje se valida contra el predictor antes de registrar nada en MLflow
+
+- **GIVEN** un evento de linaje cuyo `sensor_id`, `successor_model_id`, `successor_trained_through`, `contract_version` o `pipeline_version` no coincide con el predictor que se está registrando
+- **WHEN** se invoca `register_recalibrated_model` con ese linaje
+- **THEN** falla explícitamente antes de abrir el run de MLflow, y no queda ninguna versión registrada para ese predictor
+
+#### Scenario: Las referencias de feedback de un evento son inmutables
+
+- **GIVEN** un evento de linaje ya construido
+- **WHEN** se intenta modificar, agregar o quitar elementos de `feedback_references`, o reasignar el atributo completo
+- **THEN** la operación falla (tupla inmutable + dataclass congelado), sin dejar el evento en un estado inconsistente
+
+Implementado en `src/human_feedback/lineage.py` (`FeedbackReference`, `RecalibrationLineage`, `LineageValidationError`, `build_feedback_references`) y `src/human_feedback/model_registry.py` (`register_recalibrated_model` acepta un `lineage` opcional; `load_recalibration_lineage`/`list_recalibration_lineage` lo recuperan). La clave compuesta que identifica sin ambigüedad una fila de `feedback_log` referenciada es `sensor_id` + `fecha` + `model_version` + `target_timestamp` — bajo el contrato operativo vigente de una única alerta emitida por sensor y fecha (`fecha` ya es una clave primaria efectiva dentro de un sensor), las columnas adicionales (`model_version`, `target_timestamp`) se conservan como procedencia verificable, replicando exactamente las mismas columnas que `recalibrate_predictor` exige como procedencia temporal completa.
+
+`RecalibrationLineage.__post_init__` normaliza `feedback_references` a una tupla (inmutable independientemente de si se construyó con una lista o ya con una tupla) y ejecuta siempre la validación semántica mínima — tanto al crear el evento como al reconstruirlo con `from_dict`, nunca de forma opcional o diferida. `register_recalibrated_model` aplica además una segunda validación cruzada (`sensor_id`, `successor_model_id`, `successor_trained_through`, `contract_version`, `pipeline_version` deben coincidir con el predictor que efectivamente se registra) **antes** de abrir el run de MLflow — así una validación fallida nunca deja una versión registrada sin su linaje.
+
+El linaje se persiste como artefacto JSON (`recalibration_lineage.json`) dentro del mismo run de MLflow que registra el predictor sucesor (reutiliza el Model Registry existente, ver ADR-0006; no introduce un sistema de persistencia paralelo), junto con parámetros indexables (`recalibration_id`, `source_model_id`, `successor_model_id`, `dataset_fingerprint`). Dentro de ese run, el artefacto y los parámetros de linaje se escriben **antes** de `mlflow.sklearn.log_model(..., registered_model_name=...)` (el paso que efectivamente registra la versión): así una versión registrada nunca puede quedar sin su artefacto de linaje — a lo sumo, un run interrumpido entre ambos pasos queda huérfano (con linaje pero sin versión registrada), y ese caso queda deliberadamente fuera de `load_recalibration_lineage`/`list_recalibration_lineage`, que solo recorren versiones efectivamente registradas. `mlflow_model_version` no se conoce todavía cuando se escribe el artefacto (la versión se asigna recién al registrar) y por eso nunca se persiste como definitivo en el artefacto ni se reescribe después: `load_recalibration_lineage`/`list_recalibration_lineage` lo resuelven dinámicamente, en cada lectura, a partir de la versión de MLflow efectivamente asociada a ese `run_id`.
+
+`POST /recalibrate/{sensor_id}` (`openspec/specs/alerting-ui/spec.md`) construye el evento únicamente con las correcciones nuevas devueltas por `recalibrate_predictor` (`dates`), nunca con todo `feedback_log`, y no registra ningún evento cuando `recalibrate_predictor` o la validación del linaje lanzan `ValueError`/`LineageValidationError` (la respuesta HTTP 400 se produce antes de llegar al registro). Testeado en `tests/test_recalibration_lineage.py`, `tests/test_model_registry.py` y `backend/tests/test_recalibration.py` (ciclo completo A→B→C con forecast real avanzando el dataset entre ciclos).
+
 ## Limitaciones conocidas
 
 - Estos estados se definen como funciones de Python en esta capacidad; la interfaz de usuario que los consume (`GET /feedback/{sensor_id}`, confirmar/rechazar) se especifica en `alerting-ui` (ver más abajo).

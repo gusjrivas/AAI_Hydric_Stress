@@ -73,6 +73,24 @@ El mecanismo vigente:
 
 Documentado formalmente en `openspec/specs/human-feedback/spec.md`, requirement "Recalibración temporalmente controlada con retroalimentación madura".
 
+## Actualización 2026-09-06 — linaje explícito de recalibraciones (mejora técnica post-H-01)
+
+H-01 (`fix/hitl-multiversion-recalibration`, PR #182) corrigió que `recalibrate_predictor` rechazara ciclos HITL sucesivos por acumular `model_version` de más de un predictor en el `feedback_log`. Esta actualización complementa esa corrección con trazabilidad explícita: no cambia el mecanismo de recalibración ni el Model Registry adoptado en este ADR, agrega un registro auxiliar sobre la infraestructura ya decidida.
+
+`register_recalibrated_model` (`src/human_feedback/model_registry.py`) acepta ahora un `lineage: RecalibrationLineage | None` opcional. Cuando se provee, persiste un artefacto JSON (`recalibration_lineage.json`) dentro del mismo run de MLflow que registra al predictor sucesor, junto con parámetros indexables (`recalibration_id`, `source_model_id`, `successor_model_id`, `dataset_fingerprint`). Se descartó deliberadamente introducir un almacén de linaje separado (tabla propia, archivo paralelo): el Model Registry de MLflow ya es la fuente de verdad versionada de cada predictor recalibrado (ver más arriba), y cada evento de linaje corresponde exactamente 1:1 con la versión que registra — anexarlo al mismo run evita una segunda fuente de verdad que pudiera desincronizarse.
+
+`POST /recalibrate/{sensor_id}` construye el evento (`RecalibrationLineage`) con `source_model_id` = `model_id` del predictor vigente antes de recalibrar, `successor_model_id` = el nuevo `model_id`, y `feedback_references` construidas únicamente a partir de las fechas nuevas/pendientes que devuelve `recalibrate_predictor` (nunca de todo el `feedback_log`). `RecalibrationResponse` gana un campo opcional `recalibration_id` (retrocompatible, `None` por defecto) para correlacionar la respuesta HTTP con el evento persistido.
+
+Documentado formalmente en `openspec/specs/human-feedback/spec.md`, requirement "Linaje explícito de recalibraciones HITL".
+
+### Microajustes 2026-09-06 — validación semántica y orden de persistencia
+
+Sobre la misma rama (`feat/hitl-recalibration-lineage`, previo al merge de la PR): se detectó que un `RecalibrationLineage` mal formado (sensor inconsistente, `source_model_id == successor_model_id`, referencias de otro predictor, duplicadas o ausentes, `trained_through` retrocedido) podía construirse y registrarse sin ningún control. Se agregó validación semántica obligatoria (`RecalibrationLineage.__post_init__`, ejecutada tanto al crear el evento como al reconstruirlo con `from_dict`) y una segunda validación cruzada en `register_recalibrated_model` (`sensor_id`, `successor_model_id`, `successor_trained_through`, `contract_version`, `pipeline_version` deben coincidir con el predictor que efectivamente se registra), ambas antes de escribir nada en MLflow. `feedback_references` pasó de lista a tupla (inmutable) tras `__post_init__`.
+
+Se corrigió también el orden de escritura dentro del run de MLflow: el artefacto y los parámetros de linaje se persisten **antes** de `mlflow.sklearn.log_model(..., registered_model_name=...)` (el paso que registra la versión), no después. Antes de este cambio, era posible que el registro del predictor (y por lo tanto una versión visible en el Model Registry) se completara sin que el linaje llegara a persistirse si algo fallaba entre medio — una versión "sin memoria" de qué la originó. Con el nuevo orden, una versión registrada nunca queda sin su artefacto de linaje; el caso inverso (un run con linaje pero sin versión registrada, si la interrupción ocurre entre ambos pasos) es un run huérfano aceptado explícitamente, y `load_recalibration_lineage`/`list_recalibration_lineage` lo excluyen por construcción al recorrer solo versiones ya registradas. Como consecuencia, `mlflow_model_version` ya no se calcula ni se graba en el artefacto en el momento de escribirlo (la versión todavía no existe en ese punto): se resuelve dinámicamente en cada lectura, a partir de la versión de MLflow efectivamente asociada al `run_id`, en vez de depender de una reescritura posterior del artefacto.
+
+No cambia el mecanismo de recalibración, el Model Registry adoptado, ni el contrato de `POST /recalibrate/{sensor_id}` frente a un uso correcto — es endurecimiento de robustez y trazabilidad sobre el mismo diseño.
+
 ## Referencias
 
 - [ADR-0003: Stack web (backend/frontend) y ciclo de vida de desarrollo automatizado con IA](0003-stack-web-y-ciclo-de-vida-automatizado.md)
