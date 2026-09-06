@@ -153,6 +153,9 @@ def test_recalibration_replays_corrections_and_excludes_used_dates_from_evaluati
     reused = run(df, model=updated, skip_fit=True)
     assert reused["test"].empty
     log = update_feedback(log, forecasts.timestamp.iloc[1], "rechazada", 0)
+    # La corrección pendiente debe provenir del predictor vigente (`updated`),
+    # no del predictor original ya superado.
+    log.loc[log.fecha == forecasts.timestamp.iloc[1], "model_version"] = updated.model_id
     again, _, _ = recalibrate_predictor(updated, df, log)
     assert len(again.applied_feedback) == 2
     assert again.model_id != updated.model_id
@@ -165,19 +168,21 @@ def test_recalibration_supports_two_successive_hitl_cycles_across_model_versions
     """
     df = dataset()
     predictor_a = run(df)["predictor"]
-    all_forecasts = predict_available(df, predictor_a)
 
-    # Ciclo 1: forecast con A, feedback rechazado + corregido, recalibración -> B.
-    cycle1 = all_forecasts.tail(4).head(2).reset_index(drop=True)
+    # Ciclo 1: forecast real con A, feedback rechazado + corregido, recalibración -> B.
+    forecast_a = predict_available(df, predictor_a)
+    cycle1 = forecast_a.tail(4).head(2).reset_index(drop=True)
     log = init_prediction_feedback(cycle1, predictor_a.model_id, 3, predictor_a.threshold)
     log = update_feedback(log, cycle1.timestamp.iloc[0], "rechazada", 1)
     predictor_b, dates_1, _ = recalibrate_predictor(predictor_a, df, log)
     assert predictor_b.model_id != predictor_a.model_id
 
-    # Ciclo 2: nuevo forecast con B sobre fechas distintas, nuevo feedback
-    # rechazado + corregido. El log ahora mezcla `model_version` de A (ya
-    # aplicado) y de B (pendiente).
-    cycle2 = all_forecasts.tail(2).reset_index(drop=True)
+    # Ciclo 2: nuevo forecast real con B (predict_available vuelve a
+    # ejecutarse con el predictor recalibrado) sobre fechas distintas del
+    # ciclo 1, nuevo feedback rechazado + corregido. El log ahora mezcla
+    # `model_version` de A (ya aplicado) y de B (pendiente).
+    forecast_b = predict_available(df, predictor_b)
+    cycle2 = forecast_b.tail(2).reset_index(drop=True)
     assert not cycle2.timestamp.isin(cycle1.timestamp).any()
     fresh_b = init_prediction_feedback(cycle2, predictor_b.model_id, 3, predictor_b.threshold)
     log = pd.concat([log, fresh_b[~fresh_b.fecha.isin(log.fecha)]], ignore_index=True)
@@ -225,6 +230,28 @@ def test_recalibration_supports_two_successive_hitl_cycles_across_model_versions
     # El feedback inmaduro no se incorpora.
     assert str(future_fecha) not in predictor_c.applied_feedback
     assert future_fecha not in dates_2
+
+
+def test_recalibration_rejects_pending_feedback_from_a_different_predictor():
+    """Regresión H-01 (microajuste): una corrección pendiente homogénea, pero
+    originada por un predictor distinto al que se recalibra, debe fallar
+    explícitamente en vez de aceptarse.
+    """
+    df = dataset()
+    predictor_a = run(df)["predictor"]
+
+    forecast_a = predict_available(df, predictor_a)
+    cycle1 = forecast_a.tail(2).reset_index(drop=True)
+    log = init_prediction_feedback(cycle1, predictor_a.model_id, 3, predictor_a.threshold)
+    log = update_feedback(log, cycle1.timestamp.iloc[0], "rechazada", 1)
+    predictor_b, _, _ = recalibrate_predictor(predictor_a, df, log)
+
+    # Nueva corrección, pendiente, pero con `model_version` = A (no B),
+    # sin corresponder al predictor que efectivamente se está recalibrando.
+    log = update_feedback(log, cycle1.timestamp.iloc[1], "rechazada", 0)
+
+    with pytest.raises(ValueError, match="otro predictor"):
+        recalibrate_predictor(predictor_b, df, log)
 
 
 def test_contract_rejects_metadata_only_feature_change():

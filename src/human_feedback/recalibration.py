@@ -94,6 +94,8 @@ def recalibrate_predictor(predictor, df, feedback_log):
         corrections[key] = value
     if len(pending_model_ids) > 1:
         raise ValueError("El feedback pendiente proviene de múltiples predictores.")
+    if pending_model_ids and next(iter(pending_model_ids)) != predictor.model_id:
+        raise ValueError("El feedback pendiente corresponde a otro predictor.")
     pending = {k: v for k, v in corrections.items() if previous.get(k) != v}
     if not pending:
         raise ValueError("No hay correcciones nuevas y maduras pendientes de aplicar.")
