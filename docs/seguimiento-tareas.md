@@ -115,6 +115,8 @@ HU5 se dividió en tres *changes* de OpenSpec independientes (modelo de datos, r
 
 **Balance HU5:** de 8 tareas, 8 completas, 0 parciales, 0 no iniciadas. HU5 completa.
 
+**Revalidación posterior al cierre (2026-09-06):** el issue #14 y sus 8 issues hijos (#72-#79) continúan CLOSED / completed. CA1-CA4 permanecen en estado CUMPLE. No hay gaps técnicos bloqueantes ni se detectó contaminación del holdout. `recalibrate_predictor` agrega garantías temporales (maduración del target, validación posterior a esa maduración, avance monótono de `trained_through`) al mecanismo original (`recalibrate_model`), sin reemplazarlo. `openspec/specs/human-feedback/spec.md` y ADR-0006 fueron sincronizados para documentar formalmente ese mecanismo ya implementado. La prueba de recalibración existente (correcciones sintéticas inyectadas) es evidencia funcional/de integración, no evidencia de mejora predictiva real; la evaluación cuantitativa formal del aporte de la retroalimentación humana (Human-in-the-Loop) continúa diseñada pero no ejecutada, separada de este cierre. Ver `docs/research/hu5-auditoria-revalidacion.md`.
+
 ## HU6 — Integración de la arquitectura experimental
 
 HU6 se dividió en dos *changes* de OpenSpec independientes (contratos entre componentes y orquestador de punta a punta; configuración de ejecución completa, pruebas funcionales y ajustes de integración). Los dos ya están implementados — HU6 completa.

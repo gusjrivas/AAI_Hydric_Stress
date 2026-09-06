@@ -96,6 +96,36 @@ El sistema DEBE poder reentrenar un modelo candidato sobre un conjunto de entren
 
 Implementado en `src/human_feedback/recalibration.py` (`recalibrate_model`), testeado en `tests/test_recalibration.py`. Verificado sobre el dataset real (modelo Random Forest de HU4) con 3 correcciones sintéticas inyectadas — la retroalimentación humana real acumulada todavía es insuficiente en volumen (1-2 casos) para una prueba con múltiples correcciones simultáneas: las 3 observaciones fueron seleccionadas correctamente, las etiquetas de entrenamiento quedaron reemplazadas, y el modelo recalibrado predice distinto exactamente en esas 3 fechas respecto del modelo original (predicciones 1,1,0 pasan a 0,0,1, coincidiendo con la corrección inyectada).
 
+### Requirement: Recalibración temporalmente controlada con retroalimentación madura
+
+El sistema DEBE poder generar una nueva versión del predictor mediante correcciones humanas cuyo objetivo temporal ya se encuentre disponible, preservando las correcciones aplicadas previamente y avanzando monótonamente la frontera temporal de entrenamiento (`trained_through`).
+
+#### Scenario: Feedback aún no maduro no puede incorporarse
+
+- **GIVEN** una corrección cuya fecha objetivo (`target_timestamp`) todavía no ha madurado
+- **WHEN** se intenta recalibrar el predictor
+- **THEN** esa corrección no puede utilizarse para reentrenar el predictor
+
+#### Scenario: Corrección madura puede incorporarse a una versión posterior
+
+- **GIVEN** una corrección rechazada, con etiqueta corregida, procedencia temporal completa (`validated_at`, `target_timestamp`, `model_version`, `target_threshold`) y target ya maduro
+- **WHEN** se recalibra el predictor
+- **THEN** la corrección se incorpora a una nueva versión del predictor y `trained_through` avanza sin retroceder
+
+#### Scenario: Correcciones previamente aplicadas se preservan
+
+- **GIVEN** un predictor que ya contiene correcciones humanas aplicadas (`applied_feedback`)
+- **WHEN** se incorpora una nueva corrección válida
+- **THEN** las correcciones anteriores se reaplican sobre el historial disponible y no se pierden
+
+#### Scenario: Feedback incompatible falla explícitamente
+
+- **GIVEN** feedback con horizonte, umbral de referencia (`target_threshold`) o procedencia temporal incompatible con el predictor, o correcciones provenientes de más de un predictor
+- **WHEN** se solicita recalibración
+- **THEN** el sistema falla explícitamente (`ValueError`) en lugar de incorporar esa corrección silenciosamente
+
+Implementado en `src/human_feedback/recalibration.py` (`recalibrate_predictor`). Este mecanismo es distinto y más completo que `recalibrate_model` (requirement anterior): en vez de recibir directamente `X_train`/`y_train`, opera sobre el `FittedPredictor` versionado (`predictive_modeling.contract`) y su historial de feedback (`feedback_log`), exigiendo que cada corrección tenga procedencia temporal verificable. Solo incorpora observaciones cuyo `target_timestamp` ya maduró (`target_timestamp < now`) y cuya validación humana ocurrió después de esa maduración (`validated_at >= target_timestamp + 1 día`); una observación incorporada de este modo deja de poder evaluarse fuera de muestra para ese mismo predictor, ya que `trained_through` avanza para cubrirla. Falla explícitamente si falta historial de features para reaplicar una corrección ya aplicada, si las clases resultantes no incluyen ambas categorías, o si no hay correcciones nuevas y maduras pendientes de aplicar. Genera un nuevo `model_id` y valida el contrato resultante antes de devolver el predictor actualizado. Es el mecanismo utilizado por `POST /recalibrate` (`openspec/specs/alerting-ui/spec.md`); no reemplaza a `recalibrate_model`, que permanece como mecanismo funcional base para verificar, de forma aislada, que una corrección reemplaza una etiqueta y provoca un reentrenamiento.
+
 ## Limitaciones conocidas
 
 - Estos estados se definen como funciones de Python en esta capacidad; la interfaz de usuario que los consume (`GET /feedback`, confirmar/rechazar) se especifica en `alerting-ui` (ver más abajo).
