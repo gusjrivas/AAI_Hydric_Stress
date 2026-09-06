@@ -158,6 +158,75 @@ def test_recalibration_replays_corrections_and_excludes_used_dates_from_evaluati
     assert again.model_id != updated.model_id
 
 
+def test_recalibration_supports_two_successive_hitl_cycles_across_model_versions():
+    """Regresión H-01: forecast -> feedback -> recalibración -> forecast ->
+    feedback -> recalibración, con el log acumulando `model_version` de dos
+    predictores distintos, no debe fallar por "múltiples predictores".
+    """
+    df = dataset()
+    predictor_a = run(df)["predictor"]
+    all_forecasts = predict_available(df, predictor_a)
+
+    # Ciclo 1: forecast con A, feedback rechazado + corregido, recalibración -> B.
+    cycle1 = all_forecasts.tail(4).head(2).reset_index(drop=True)
+    log = init_prediction_feedback(cycle1, predictor_a.model_id, 3, predictor_a.threshold)
+    log = update_feedback(log, cycle1.timestamp.iloc[0], "rechazada", 1)
+    predictor_b, dates_1, _ = recalibrate_predictor(predictor_a, df, log)
+    assert predictor_b.model_id != predictor_a.model_id
+
+    # Ciclo 2: nuevo forecast con B sobre fechas distintas, nuevo feedback
+    # rechazado + corregido. El log ahora mezcla `model_version` de A (ya
+    # aplicado) y de B (pendiente).
+    cycle2 = all_forecasts.tail(2).reset_index(drop=True)
+    assert not cycle2.timestamp.isin(cycle1.timestamp).any()
+    fresh_b = init_prediction_feedback(cycle2, predictor_b.model_id, 3, predictor_b.threshold)
+    log = pd.concat([log, fresh_b[~fresh_b.fecha.isin(log.fecha)]], ignore_index=True)
+    log = update_feedback(log, cycle2.timestamp.iloc[0], "rechazada", 0)
+
+    # Feedback inmaduro (target_timestamp futuro) presente en el log no debe
+    # bloquear la recalibración ni incorporarse.
+    future_fecha = pd.Timestamp.now().normalize() + pd.Timedelta(days=30)
+    immature = pd.DataFrame(
+        {
+            "fecha": [future_fecha],
+            "alerta_generada": [1],
+            "estado_validacion": ["rechazada"],
+            "etiqueta_corregida": pd.array([1], dtype="Int64"),
+            "observacion": [None],
+            "target_timestamp": [future_fecha + pd.Timedelta(days=3)],
+            "y_proba": [0.9],
+            "model_version": [predictor_b.model_id],
+            "target_threshold": [predictor_b.threshold],
+            "issued_at": [pd.Timestamp.now(tz="UTC").tz_localize(None)],
+            "validated_at": [pd.Timestamp.now(tz="UTC").tz_localize(None)],
+        }
+    )
+    log = pd.concat([log, immature], ignore_index=True)
+
+    predictor_c, dates_2, _ = recalibrate_predictor(predictor_b, df, log)
+
+    assert predictor_c.model_id != predictor_b.model_id
+    assert predictor_c.model_id != predictor_a.model_id
+    assert predictor_c.trained_through >= predictor_b.trained_through
+
+    # Cada fila del log conserva el predictor que originó ese feedback.
+    assert log.loc[log.fecha == cycle1.timestamp.iloc[0], "model_version"].iloc[0] == (
+        predictor_a.model_id
+    )
+    assert log.loc[log.fecha == cycle2.timestamp.iloc[0], "model_version"].iloc[0] == (
+        predictor_b.model_id
+    )
+
+    # La corrección del ciclo 1 se reutiliza y la del ciclo 2 se aplica.
+    assert predictor_c.applied_feedback[str(dates_1[0])] == 1
+    assert predictor_c.applied_feedback[str(cycle2.timestamp.iloc[0])] == 0
+    assert len(predictor_c.applied_feedback) == 2
+
+    # El feedback inmaduro no se incorpora.
+    assert str(future_fecha) not in predictor_c.applied_feedback
+    assert future_fecha not in dates_2
+
+
 def test_contract_rejects_metadata_only_feature_change():
     bundle = run(dataset())["predictor"]
     changed = replace(bundle, contract={**bundle.contract, "model_features": ["unrelated"]})

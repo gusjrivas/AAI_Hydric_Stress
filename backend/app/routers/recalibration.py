@@ -33,8 +33,15 @@ def recalibrate(
     except FileNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     try:
-        model_id = log["model_version"].dropna().iloc[0] if "model_version" in log else None
         latest = load_latest_recalibrated_model(sensor_id, expected_contract=configured_contract())
+        # El predictor vigente es siempre `latest` (si ya se recalibró alguna
+        # vez); elegir el primer `model_version` del log sería arbitrario en
+        # cuanto el log acumula feedback de más de un ciclo HITL.
+        model_id = (
+            latest.model_id
+            if latest is not None
+            else (log["model_version"].dropna().iloc[0] if "model_version" in log else None)
+        )
         applied = (
             {str(pd.Timestamp(value)) for value in (latest.applied_feedback or {})}
             if latest is not None
