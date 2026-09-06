@@ -194,26 +194,66 @@ class RecalibrationLineage:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> RecalibrationLineage:
+    def from_dict(cls, data) -> RecalibrationLineage:
         """Reconstruye el evento desde un artefacto persistido, ejecutando
         la misma validación que en la construcción. Los eventos
         históricos que no incluyen `lineage_version`/`dataset_sha256`
         (persistidos antes de que existieran estos campos) se interpretan
         explícitamente como `LINEAGE_VERSION_1` — nunca se los reinterpreta
         como si cumplieran una versión posterior.
+
+        Cualquier estructura inválida (el artefacto no es un objeto JSON,
+        `feedback_references` no es una lista, una referencia no es un
+        objeto o le faltan campos, faltan campos obligatorios del evento)
+        se normaliza a `LineageValidationError` — nunca se propaga
+        `TypeError`/`KeyError`/`AttributeError` sin envolver.
         """
-        refs = [FeedbackReference(**ref) for ref in data.get("feedback_references", [])]
+        if not isinstance(data, dict):
+            raise LineageValidationError(
+                "El artefacto de linaje debe ser un objeto JSON (dict), recibido: "
+                f"{type(data).__name__}."
+            )
+
+        raw_references = data.get("feedback_references", [])
+        # Acepta lista o tupla: `to_dict()` (`dataclasses.asdict`) conserva
+        # `feedback_references` como tupla cuando se usa en memoria (sin pasar
+        # por JSON); un artefacto JSON deserializado siempre trae una lista.
+        if not isinstance(raw_references, (list, tuple)):
+            raise LineageValidationError(
+                "feedback_references debe ser una lista, recibido: "
+                f"{type(raw_references).__name__}."
+            )
+        refs = []
+        for entry in raw_references:
+            if not isinstance(entry, dict):
+                raise LineageValidationError(
+                    "Cada referencia de feedback debe ser un objeto JSON (dict), recibido: "
+                    f"{type(entry).__name__}."
+                )
+            try:
+                refs.append(FeedbackReference(**entry))
+            except TypeError as error:
+                raise LineageValidationError(
+                    f"Referencia de feedback con campos ausentes o inesperados: {entry!r}."
+                ) from error
+
         rest = {
             k: v
             for k, v in data.items()
             if k not in {"feedback_references", "lineage_version", "dataset_sha256"}
         }
-        return cls(
-            feedback_references=refs,
-            lineage_version=data.get("lineage_version", LINEAGE_VERSION_1),
-            dataset_sha256=data.get("dataset_sha256"),
-            **rest,
-        )
+        try:
+            return cls(
+                feedback_references=refs,
+                lineage_version=data.get("lineage_version", LINEAGE_VERSION_1),
+                dataset_sha256=data.get("dataset_sha256"),
+                **rest,
+            )
+        except TypeError as error:
+            raise LineageValidationError(
+                f"El artefacto de linaje tiene campos ausentes, inesperados o de tipo "
+                f"incorrecto: {error}"
+            ) from error
 
 
 def build_feedback_references(

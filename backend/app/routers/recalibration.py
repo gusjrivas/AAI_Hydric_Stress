@@ -6,13 +6,11 @@ from uuid import uuid4
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
-from data_ingestion.sensor_naming import dataset_name_for, feedback_log_name_for
-from data_ingestion.storage import get_dataset_path
+from data_ingestion.sensor_naming import feedback_log_name_for
 from human_feedback.lineage import (
     CURRENT_LINEAGE_VERSION,
     RecalibrationLineage,
     build_feedback_references,
-    compute_dataset_sha256,
 )
 from human_feedback.model_registry import (
     load_latest_recalibrated_model,
@@ -23,7 +21,11 @@ from human_feedback.registry import load_feedback_log
 
 from ..config import get_dataset_data_dir, get_feedback_data_dir
 from ..dependencies import get_valid_sensor_id
-from ..pipeline import configured_contract, execute_configured_pipeline, load_dataset_or_raise
+from ..pipeline import (
+    configured_contract,
+    execute_configured_pipeline,
+    load_dataset_snapshot_or_raise,
+)
 from ..schemas import RecalibrationResponse
 
 router = APIRouter()
@@ -37,15 +39,21 @@ def recalibrate(
 ) -> RecalibrationResponse:
     try:
         log = load_feedback_log(feedback_log_name_for(sensor_id), data_dir=feedback_dir)
-        df, fingerprint = load_dataset_or_raise(sensor_id, data_dir=dataset_dir)
-        # Hash de contenido del dataset realmente usado para recalibrar —
-        # provenance verificable, distinta de `fingerprint` (mtime, size),
-        # que sigue siendo solo la clave económica de caché/invalidación.
-        dataset_sha256 = compute_dataset_sha256(
-            get_dataset_path(dataset_name_for(sensor_id), dataset_dir)
-        )
+        # `snapshot.dataframe` y `snapshot.dataset_sha256` provienen de la
+        # MISMA captura de bytes del dataset (ver `DatasetSnapshot`) — nunca
+        # de dos lecturas independientes del archivo, que podrían ver
+        # contenido distinto entre sí si el archivo cambia entre medio.
+        snapshot = load_dataset_snapshot_or_raise(sensor_id, data_dir=dataset_dir)
+        df = snapshot.dataframe
+        fingerprint = snapshot.cache_fingerprint
+        dataset_sha256 = snapshot.dataset_sha256
     except FileNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    except ValueError as error:
+        # `load_dataset_snapshot_or_raise` aborta así si no puede garantizar
+        # una captura estable (el archivo cambió mientras se leía) — nunca
+        # se llega a registrar un sucesor con esa instantánea inconsistente.
+        raise HTTPException(status_code=400, detail=str(error)) from error
     try:
         latest = load_latest_recalibrated_model(sensor_id, expected_contract=configured_contract())
         # El predictor vigente es siempre `latest` (si ya se recalibró alguna

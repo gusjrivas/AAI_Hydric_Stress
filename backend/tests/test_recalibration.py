@@ -257,3 +257,39 @@ def test_no_lineage_event_recorded_on_failed_or_noop_recalibration(tmp_path):
     assert len(list_recalibration_lineage("sensor-a")) == 1
 
     app.dependency_overrides.clear()
+
+
+def test_recalibration_aborts_and_registers_nothing_when_dataset_changes_during_snapshot(
+    tmp_path, monkeypatch
+):
+    """R2: si el dataset cambia mientras se captura su instantánea (df +
+    `dataset_sha256`), la recalibración debe abortar en vez de registrar
+    un predictor sucesor con un `dataset_sha256` que podría corresponder
+    a otro contenido."""
+    _use_sqlite_tracking(tmp_path, "test-recalibrate-unstable-snapshot")
+    _seed_sensor_dataset("sensor-a", tmp_path)
+    app.dependency_overrides[get_dataset_data_dir] = lambda: tmp_path
+    app.dependency_overrides[get_feedback_data_dir] = lambda: tmp_path
+    client = TestClient(app)
+
+    forecast = client.post("/forecast/sensor-a/run")
+    assert forecast.status_code == 200, forecast.text
+    fecha = forecast.json()["verdicts"][0]["fecha"]
+    client.post(
+        f"/feedback/sensor-a/{fecha}/reject",
+        json={"etiqueta_corregida": 0, "observacion": "test"},
+    )
+
+    import app.pipeline as pipeline_module
+
+    def unstable_snapshot(*args, **kwargs):
+        raise RuntimeError("El dataset cambió mientras se leía (simulado en el test).")
+
+    monkeypatch.setattr(pipeline_module, "load_dataset_snapshot", unstable_snapshot)
+
+    response = client.post("/recalibrate/sensor-a")
+
+    assert response.status_code == 400
+    assert list_recalibration_lineage("sensor-a") == []
+
+    app.dependency_overrides.clear()

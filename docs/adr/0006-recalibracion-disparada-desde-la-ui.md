@@ -116,6 +116,18 @@ Corregido separando dos conjuntos con roles distintos:
 
 Documentado formalmente en `openspec/specs/human-feedback/spec.md`, mismo requirement, párrafo "Lectura fail-closed" reescrito.
 
+## Actualización 2026-09-06 — revisión dirigida T-01: R1 (consistencia parámetro↔artefacto) y R2 (instantánea dataset↔hash)
+
+Revisión dirigida sobre T-01 encontró dos P2, resueltos en la misma rama (`fix/hitl-lineage-auditability`, previo a PR):
+
+**R1 — el parámetro `lineage_version` y el `lineage_version` del artefacto podían divergir sin detectarse.** La comparación de consistencia entre artefacto y parámetros solo cubría los cuatro `_LINEAGE_REQUIRED_PARAMS`; nunca cruzaba el parámetro `lineage_version` contra el campo homónimo del artefacto. Un run con parámetro `lineage_version=2` pero artefacto V1 (sin `dataset_sha256`), parámetro V1 con artefacto V2, o parámetro ausente con artefacto V2, se aceptaban incorrectamente. Corregido con `_validate_lineage_version_consistency` (`model_registry.py`): exige que, si el parámetro está presente, sea un entero soportado y coincida exactamente con el del artefacto; si está ausente, solo es válido cuando el artefacto es genuinamente `LINEAGE_VERSION_1`. Además, `RecalibrationLineage.from_dict` (`lineage.py`) se reforzó para normalizar toda estructura de artefacto inválida (no-dict, `{}`, listas, escalares, referencias de feedback mal formadas, campos ausentes/inesperados) a `LineageValidationError`, nunca a `TypeError`/`KeyError`/`AttributeError` sin envolver; `_load_lineage_for_version` agrega una red de seguridad equivalente. Todo mensaje de error incluye la versión del modelo y el `run_id` afectados.
+
+**R2 — el `DataFrame` usado para recalibrar y el `dataset_sha256` registrado podían provenir de lecturas independientes del archivo.** La implementación anterior cargaba el dataset vía `load_dataset_or_raise` y, por separado, reabría el mismo archivo para calcular `dataset_sha256` (`get_dataset_path` + `compute_dataset_sha256`) — dos lecturas del mismo path en momentos distintos, sin garantía de que vieran el mismo contenido si el archivo cambiaba entre medio. Se agregó `data_ingestion.storage.DatasetSnapshot` (`load_dataset_snapshot`): lee los bytes del archivo una única vez, verifica `(mtime, size)` antes y después de esa lectura (aborta con `RuntimeError` si cambió), calcula el SHA-256 incrementalmente sobre esos mismos bytes, y construye el `DataFrame` desde ese contenido en memoria (`pd.read_parquet` sobre un buffer, no una segunda apertura del archivo) — así el `DataFrame` y el `dataset_sha256` provienen estructuralmente de la misma instantánea, no de una garantía externa de que dos lecturas coincidan. `cache_fingerprint` (el mismo `(mtime, size)` de `get_dataset_fingerprint`) se preserva sin cambios como clave de caché en `execute_configured_pipeline`. Se evaluó y descartó una copia temporal a disco (opción también sugerida): innecesaria dado el tamaño actual de los datasets de este prototipo, que ya se cargan enteros en memoria en otros puntos del pipeline.
+
+`backend/app/pipeline.py::load_dataset_snapshot_or_raise` (usado solo por `POST /recalibrate/{sensor_id}`) envuelve `load_dataset_snapshot`, traduciendo `RuntimeError` a `ValueError` para que el router lo mapee a HTTP 400 sin llegar nunca a `register_recalibrated_model`. `POST /forecast/{sensor_id}/run` sigue usando `load_dataset_or_raise` sin cambios — no necesita `dataset_sha256`.
+
+Documentado formalmente en `openspec/specs/human-feedback/spec.md`, mismo requirement, escenarios agregados.
+
 ## Referencias
 
 - [ADR-0003: Stack web (backend/frontend) y ciclo de vida de desarrollo automatizado con IA](0003-stack-web-y-ciclo-de-vida-automatizado.md)

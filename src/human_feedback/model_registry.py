@@ -9,7 +9,12 @@ import mlflow
 import mlflow.sklearn
 
 from data_ingestion.sensor_naming import registered_model_name_for
-from human_feedback.lineage import LineageValidationError, RecalibrationLineage
+from human_feedback.lineage import (
+    LINEAGE_VERSION_1,
+    SUPPORTED_LINEAGE_VERSIONS,
+    LineageValidationError,
+    RecalibrationLineage,
+)
 from predictive_modeling.contract import FittedPredictor, ModelContractMismatch
 
 
@@ -180,6 +185,51 @@ def _require_complete_lineage_declaration(run_params: dict, context: str) -> Non
         )
 
 
+def _validate_lineage_version_consistency(
+    run_params: dict, lineage: RecalibrationLineage, context: str
+) -> None:
+    """Cruza el parámetro MLflow `lineage_version` (si está presente)
+    contra el `lineage_version` efectivamente contenido en el artefacto.
+
+    - Ausencia del parámetro solo es válida cuando el artefacto es
+      genuinamente `LINEAGE_VERSION_1` (la única versión que existió antes
+      de que este parámetro se empezara a loguear); un artefacto de una
+      versión posterior sin el parámetro nunca se interpreta como V1
+      histórico.
+    - Un parámetro presente debe ser un entero soportado y coincidir
+      exactamente con el del artefacto; cualquier diferencia (parámetro
+      V2 + artefacto V1, parámetro V1 + artefacto V2, parámetro
+      inválido/no soportado) falla explícitamente.
+    """
+    raw_param_version = run_params.get("lineage_version")
+    if raw_param_version is None:
+        if lineage.lineage_version != LINEAGE_VERSION_1:
+            raise LineageValidationError(
+                f"El artefacto declara lineage_version={lineage.lineage_version!r} pero el "
+                f"run no tiene el parámetro `lineage_version` ({context}); la ausencia del "
+                f"parámetro solo es válida para un evento histórico lineage_version="
+                f"{LINEAGE_VERSION_1}."
+            )
+        return
+    try:
+        param_version = int(raw_param_version)
+    except (TypeError, ValueError) as error:
+        raise LineageValidationError(
+            f"El parámetro `lineage_version` no es un entero válido ({context}): "
+            f"{raw_param_version!r}."
+        ) from error
+    if param_version not in SUPPORTED_LINEAGE_VERSIONS:
+        raise LineageValidationError(
+            f"El parámetro `lineage_version` no es una versión soportada ({context}): "
+            f"{param_version!r}. Soportadas: {SUPPORTED_LINEAGE_VERSIONS}."
+        )
+    if param_version != lineage.lineage_version:
+        raise LineageValidationError(
+            f"El parámetro `lineage_version`={param_version} es inconsistente con el "
+            f"lineage_version del artefacto ({lineage.lineage_version!r}) ({context})."
+        )
+
+
 def _load_lineage_for_version(client, version) -> RecalibrationLineage | None:
     """Recuperación *fail-closed* del linaje de una versión ya registrada.
 
@@ -225,6 +275,15 @@ def _load_lineage_for_version(client, version) -> RecalibrationLineage | None:
         raise LineageValidationError(
             f"El artefacto de linaje incumple la semántica del contrato ({context}): {error}"
         ) from error
+    except (TypeError, KeyError, AttributeError) as error:
+        # Red de seguridad: `RecalibrationLineage.from_dict` ya normaliza toda
+        # estructura inválida a `LineageValidationError`, pero esta capa nunca
+        # debe dejar escapar una excepción estructural sin envolver.
+        raise LineageValidationError(
+            f"El artefacto de linaje tiene una estructura inválida ({context}): {error}"
+        ) from error
+
+    _validate_lineage_version_consistency(run_params, lineage, context)
 
     mismatches = [
         param

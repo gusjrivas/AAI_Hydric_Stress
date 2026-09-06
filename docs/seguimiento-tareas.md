@@ -500,3 +500,63 @@ declaración parcial. Suite completa en verde: `pytest -q`
 cambios), `cd backend && pytest -q` 35, `frontend npm test` 5. `ruff
 check`/`black --check` sobre `src`/`backend`/`tests` y `npm run lint`
 (oxlint) en verde. PR sigue sin crearse.
+
+## Revisión dirigida T-01: R1 y R2 (sobre la misma rama)
+
+Revisión dirigida encontró dos P2 sobre T-01, ambos resueltos sobre
+`fix/hitl-lineage-auditability` (HEAD de partida
+`7564787fd11d79a9c82d066caca668aedbe5701b`), sin PR creada todavía. Sin
+impacto sobre `controlled_daily_v3`, evidencia formal, datasets, modelos,
+protocolo experimental, frontend ni endpoints públicos; sin nuevos
+experimentos; `technical-baseline-v1` sin mover, `technical-baseline-v2` sin
+crear.
+
+**R1 — consistencia entre el parámetro MLflow `lineage_version` y el
+artefacto.** La comparación existente no cruzaba `lineage_version` (solo los
+otros 4 parámetros), dejando pasar: parámetro V2 + artefacto V1, parámetro V1
++ artefacto V2, y parámetro ausente + artefacto V2 (este último se
+interpretaba incorrectamente como V1 histórico). Corregido con
+`_validate_lineage_version_consistency` en
+`src/human_feedback/model_registry.py`. Además, `RecalibrationLineage.from_dict`
+(`src/human_feedback/lineage.py`) ahora normaliza cualquier estructura de
+artefacto inválida (no-dict, `{}`, listas, escalares, referencias de feedback
+mal formadas, campos ausentes/inesperados) a `LineageValidationError`, nunca
+a `TypeError`/`KeyError`/`AttributeError` sin envolver; los mensajes incluyen
+versión del modelo y `run_id`.
+
+**R2 — instantánea consistente entre el `DataFrame` recalibrado y
+`dataset_sha256`.** El router cargaba el dataset y por separado reabría el
+mismo archivo para hashearlo — dos lecturas independientes que podían ver
+contenido distinto si el archivo cambiaba entre medio. Se agregó
+`DatasetSnapshot`/`load_dataset_snapshot` en `src/data_ingestion/storage.py`:
+una única lectura de bytes (verificando `(mtime, size)` antes/después,
+abortando con `RuntimeError` si cambió), SHA-256 incremental sobre esos
+mismos bytes, y `DataFrame` construido desde ese contenido en memoria (no una
+segunda apertura del archivo). `cache_fingerprint` sigue siendo exactamente
+`(mtime, size)`, sin cambios de rol. `backend/app/pipeline.py` gana
+`load_dataset_snapshot_or_raise` (usado solo por `POST /recalibrate/{sensor_id}`,
+traduce `RuntimeError` a `ValueError` → HTTP 400 antes de llegar a
+`register_recalibrated_model`); `POST /forecast/{sensor_id}/run` no cambia
+(sigue usando `load_dataset_or_raise`, no necesita el hash).
+
+Detalle en `openspec/specs/human-feedback/spec.md` (mismo requirement,
+escenarios agregados) y `docs/adr/0006-recalibracion-disparada-desde-la-ui.md`
+("revisión dirigida T-01: R1 y R2"). Tests agregados: 15 en
+`tests/test_recalibration_lineage.py` y `tests/test_model_registry.py`
+combinados (estructuras inválidas → `LineageValidationError`; los tres cruces
+incompatibles de `lineage_version`; V1 sin parámetro y V2 con parámetro
+coincidente siguen aceptándose; parámetro no soportado; contexto con versión
+y `run_id`; propagación desde `list_recalibration_lineage`), 6 nuevos en
+`tests/test_storage.py` (`DatasetSnapshot` válida y consistente, SHA
+coincide con hash manual del archivo, distingue contenidos distintos, aborta
+ante sustitución del archivo durante la lectura, dataset faltante), 1 nuevo
+en `backend/tests/test_recalibration.py` (aborta y no registra sucesor
+cuando la captura del dataset falla). Suite dirigida
+(`pytest -q tests/test_recalibration_lineage.py tests/test_model_registry.py
+backend/tests/test_recalibration.py`) → 109 passed. Suite completa en verde:
+`pytest -q` 262 (previo 234 + 28 nuevos: 9 en `test_model_registry.py`, 15 en
+`test_recalibration_lineage.py`/`test_model_registry.py` combinados por los
+cruces de versión, y 6 en `test_storage.py`), `cd backend && pytest -q` 36
+(previo 35 + 1), `frontend npm test` 5. `ruff check`/`black --check` sobre
+`src`/`backend`/`tests` y `npm run lint` (oxlint) en verde. `git diff --check
+main...HEAD` sin hallazgos.

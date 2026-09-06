@@ -299,3 +299,78 @@ def test_compute_dataset_sha256_differs_for_different_content_same_size_and_mtim
     assert path_a.stat().st_size == path_b.stat().st_size
     assert path_a.stat().st_mtime == path_b.stat().st_mtime
     assert compute_dataset_sha256(path_a) != compute_dataset_sha256(path_b)
+
+
+# --- R1: normalización de estructuras inválidas a LineageValidationError ---
+
+
+@pytest.mark.parametrize("bad_artifact", [{}, [], "no-es-un-dict", 123, None, True])
+def test_from_dict_rejects_non_dict_or_incomplete_structures(bad_artifact):
+    """R1 (4): artefactos `{}`, listas, escalares y otros valores no-dict
+    deben terminar en `LineageValidationError`, nunca en `TypeError` u
+    otra excepción estructural sin normalizar."""
+    with pytest.raises(LineageValidationError):
+        RecalibrationLineage.from_dict(bad_artifact)
+
+
+def test_from_dict_rejects_feedback_references_that_is_not_a_list():
+    payload = RecalibrationLineage(**_base_kwargs()).to_dict()
+    payload["feedback_references"] = "no-es-una-lista"
+
+    with pytest.raises(LineageValidationError):
+        RecalibrationLineage.from_dict(payload)
+
+
+@pytest.mark.parametrize(
+    "malformed_reference",
+    [
+        "no-es-un-objeto",
+        123,
+        None,
+        {"sensor_id": "sensor-a"},  # faltan fecha/model_version/target_timestamp
+        {
+            "sensor_id": "sensor-a",
+            "fecha": "x",
+            "model_version": "y",
+            "target_timestamp": "z",
+            "extra": 1,
+        },
+    ],
+)
+def test_from_dict_rejects_malformed_feedback_reference(malformed_reference):
+    """R1 (4): una referencia de feedback mal formada (no es un objeto,
+    le faltan campos, o tiene campos inesperados) también se normaliza a
+    `LineageValidationError`."""
+    payload = RecalibrationLineage(**_base_kwargs()).to_dict()
+    payload["feedback_references"] = [malformed_reference]
+
+    with pytest.raises(LineageValidationError):
+        RecalibrationLineage.from_dict(payload)
+
+
+def test_from_dict_rejects_missing_required_field():
+    """Un campo obligatorio ausente (tipo incorrecto/estructura
+    incompleta) debe fallar como `LineageValidationError`, no como
+    `TypeError` de la construcción del dataclass."""
+    payload = RecalibrationLineage(**_base_kwargs()).to_dict()
+    del payload["sensor_id"]
+
+    with pytest.raises(LineageValidationError):
+        RecalibrationLineage.from_dict(payload)
+
+
+# --- R1: consistencia entre el parámetro `lineage_version` y el artefacto ---
+
+
+def test_lineage_from_dict_defaults_missing_lineage_version_to_v1():
+    """Un artefacto sin `lineage_version` (persistido antes de que
+    existiera el campo) se interpreta como V1 histórico — nunca se
+    reinterpreta como una versión posterior."""
+    payload = RecalibrationLineage(**_base_kwargs()).to_dict()
+    del payload["lineage_version"]
+    del payload["dataset_sha256"]
+
+    restored = RecalibrationLineage.from_dict(payload)
+
+    assert restored.lineage_version == LINEAGE_VERSION_1
+    assert restored.dataset_sha256 is None
