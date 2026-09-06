@@ -32,13 +32,28 @@ def load_dataset(name: str, data_dir: Path = DEFAULT_DATA_DIR) -> pd.DataFrame:
 def get_dataset_fingerprint(name: str, data_dir: Path = DEFAULT_DATA_DIR) -> tuple[float, int]:
     """Devuelve una huella barata (fecha de modificación, tamaño en
     bytes) del archivo de `name`, sin leer su contenido. Cambia si y
-    solo si el archivo fue reescrito con `save_dataset`.
+    solo si el archivo fue reescrito con `save_dataset`. Sirve como
+    clave económica de invalidación de caché o cambio, no como
+    identidad de contenido: dos archivos distintos pueden compartir
+    tamaño y fecha de modificación por coincidencia.
     """
     path = data_dir / f"{name}.parquet"
     if not path.exists():
         raise FileNotFoundError(f"No existe el dataset '{name}' en {data_dir}")
     stat = path.stat()
     return (stat.st_mtime, stat.st_size)
+
+
+def get_dataset_path(name: str, data_dir: Path = DEFAULT_DATA_DIR) -> Path:
+    """Ruta del archivo Parquet que persiste el dataset `name`, para los
+    escasos casos que necesitan su contenido binario exacto (p. ej.
+    `human_feedback.lineage.compute_dataset_sha256`) en vez de leerlo
+    como DataFrame. No usar para lectura tabular — para eso, `load_dataset`.
+    """
+    path = data_dir / f"{name}.parquet"
+    if not path.exists():
+        raise FileNotFoundError(f"No existe el dataset '{name}' en {data_dir}")
+    return path
 
 
 def append_reading(name: str, row: dict, data_dir: Path = DEFAULT_DATA_DIR) -> pd.DataFrame:

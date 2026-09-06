@@ -403,3 +403,71 @@ verde: `pytest -q` 205 (previo: 184 + 21 nuevos), `cd backend && pytest -q` 35
 `dataset_fingerprint` para volver a pasar), `frontend npm test` 5. `ruff
 check`/`black --check` sobre `src`/`backend`/`tests` y `npm run lint`
 (oxlint) en verde.
+
+## T-01: auditabilidad fail-closed y provenance por contenido del linaje HITL
+
+Única mejora material resultante de la auditoría técnica final, HU5
+(`human-feedback`), fase CRISP-DM de despliegue e integración experimental.
+Rama `fix/hitl-lineage-auditability` desde `main` (baseline técnico
+`technical-baseline-v1`, commit `f0aeaf4e363337528f417c71e798a6f1b99d6ea8`, no
+movido ni recreado). Sin impacto sobre `controlled_daily_v3`, evidencia
+formal, datasets, hipótesis, propósito, alcance ni arquitectura conceptual;
+sin impacto sobre HU7/HU8; sin nuevos experimentos ni entrenamientos fuera de
+tests.
+
+La auditoría detectó que la carga del linaje (`load_recalibration_lineage`/
+`list_recalibration_lineage`) colapsaba a `None`/omisión silenciosa
+situaciones distintas: una versión histórica que legítimamente nunca declaró
+linaje, un artefacto ausente, un fallo de descarga, JSON corrupto o una
+violación semántica eran indistinguibles. Además, `dataset_fingerprint`
+(`(mtime, size)`) servía como única "identidad" del dataset usado en una
+recalibración, sin identificar realmente su contenido.
+
+Corregido:
+
+- **Lectura fail-closed:** el marcador canónico de que una versión *declaró*
+  linaje pasa a ser los parámetros indexables ya persistidos
+  (`recalibration_id`, `source_model_id`, `successor_model_id`,
+  `dataset_fingerprint`), no la mera presencia descargable del artefacto. Sin
+  esos parámetros → `None` (retrocompatible). Con esos parámetros pero sin
+  poder reconstruir el linaje (artefacto ausente, error de descarga, JSON
+  inválido, semántica inválida, inconsistencia con esos mismos parámetros) →
+  `LineageValidationError` con contexto (versión, `run_id`), nunca `None`.
+  `list_recalibration_lineage` propaga el error en vez de devolver una cadena
+  parcial que aparente estar completa.
+- **Versionado del esquema de linaje:** nuevo campo `lineage_version`
+  (constantes `LINEAGE_VERSION_1`/`LINEAGE_VERSION_2`/
+  `CURRENT_LINEAGE_VERSION` en `src/human_feedback/lineage.py`), deliberadamente
+  distinto de `contract_version` (que sigue versionando el contrato de
+  modelado del predictor, sin relación con el linaje). `LINEAGE_VERSION_1` es
+  la forma histórica sin `dataset_sha256`; `LINEAGE_VERSION_2` (la que usan
+  las recalibraciones nuevas) lo exige. `from_dict` nunca reinterpreta un
+  evento `LINEAGE_VERSION_1` persistido como si cumpliera la versión nueva.
+- **`dataset_sha256`:** SHA-256 (hex minúscula, 64 caracteres) del contenido
+  binario exacto del dataset usado en cada recalibración nueva, calculado con
+  lectura incremental (`compute_dataset_sha256`, sin cargar el archivo
+  completo en memoria) sobre la ruta que expone el nuevo
+  `data_ingestion.storage.get_dataset_path`. `dataset_fingerprint` (`(mtime,
+  size)`) no se reemplaza — sigue siendo solo la clave económica de
+  caché/invalidación en `execute_configured_pipeline`; el hash se calcula una
+  sola vez por recalibración, no en cada lectura del dataset.
+
+Detalle en `openspec/specs/human-feedback/spec.md` (mismo requirement,
+escenarios agregados) y `docs/adr/0006-recalibracion-disparada-desde-la-ui.md`
+("Actualización 2026-09-06 — T-01"). Tests agregados/ampliados: 7 nuevos en
+`tests/test_recalibration_lineage.py` (compatibilidad con eventos históricos
+sin `dataset_sha256`, aceptación de eventos nuevos válidos, rechazo de
+`dataset_sha256` ausente/malformado, rechazo de `lineage_version` no
+soportada, `compute_dataset_sha256` coincide con el contenido real y
+distingue archivos de igual tamaño/`mtime` pero contenido distinto), 10
+nuevos en `tests/test_model_registry.py` (carga histórica sin declarar
+linaje → `None`, fail-closed ante artefacto ausente/error de descarga/JSON
+corrupto/semántica inválida, `list_recalibration_lineage` propaga el error en
+vez de una cadena parcial), y `backend/tests/test_recalibration.py`
+(`test_recalibration_lineage_reconstructs_full_a_to_b_to_c_chain` ampliado
+para verificar `lineage_version`/`dataset_sha256` de A→B y B→C contra el
+contenido real del dataset en cada ciclo). Suite completa en verde: `pytest
+-q` 226 (previo: 205 + 21 nuevos), `cd backend && pytest -q` 35 (sin cambio de
+cantidad), `frontend npm test` 5. `ruff check`/`black --check` sobre
+`src`/`backend`/`tests` y `npm run lint` (oxlint) en verde. PR no creada
+todavía (pendiente de revisión dirigida).

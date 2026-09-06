@@ -6,8 +6,14 @@ from uuid import uuid4
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
-from data_ingestion.sensor_naming import feedback_log_name_for
-from human_feedback.lineage import RecalibrationLineage, build_feedback_references
+from data_ingestion.sensor_naming import dataset_name_for, feedback_log_name_for
+from data_ingestion.storage import get_dataset_path
+from human_feedback.lineage import (
+    CURRENT_LINEAGE_VERSION,
+    RecalibrationLineage,
+    build_feedback_references,
+    compute_dataset_sha256,
+)
 from human_feedback.model_registry import (
     load_latest_recalibrated_model,
     register_recalibrated_model,
@@ -32,6 +38,12 @@ def recalibrate(
     try:
         log = load_feedback_log(feedback_log_name_for(sensor_id), data_dir=feedback_dir)
         df, fingerprint = load_dataset_or_raise(sensor_id, data_dir=dataset_dir)
+        # Hash de contenido del dataset realmente usado para recalibrar —
+        # provenance verificable, distinta de `fingerprint` (mtime, size),
+        # que sigue siendo solo la clave económica de caché/invalidación.
+        dataset_sha256 = compute_dataset_sha256(
+            get_dataset_path(dataset_name_for(sensor_id), dataset_dir)
+        )
     except FileNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     try:
@@ -74,6 +86,8 @@ def recalibrate(
             dataset_fingerprint=str(fingerprint),
             contract_version=predictor.contract["contract_version"],
             pipeline_version=predictor.contract["pipeline_version"],
+            lineage_version=CURRENT_LINEAGE_VERSION,
+            dataset_sha256=dataset_sha256,
         )
         version = register_recalibrated_model(
             sensor_id,

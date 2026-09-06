@@ -91,6 +91,16 @@ Se corrigió también el orden de escritura dentro del run de MLflow: el artefac
 
 No cambia el mecanismo de recalibración, el Model Registry adoptado, ni el contrato de `POST /recalibrate/{sensor_id}` frente a un uso correcto — es endurecimiento de robustez y trazabilidad sobre el mismo diseño.
 
+## Actualización 2026-09-06 — T-01: auditabilidad fail-closed y provenance por contenido
+
+Auditoría técnica final detectó dos brechas de auditabilidad en el linaje, ambas cerradas en la misma rama (`fix/hitl-lineage-auditability`, previo a PR), sin tocar el mecanismo de recalibración ni el Model Registry:
+
+**Lectura fail-closed.** Antes, `load_recalibration_lineage`/`list_recalibration_lineage` colapsaban a `None`/omisión silenciosa cualquier problema al reconstruir un linaje: una versión histórica sin linaje, un artefacto ausente, un fallo de descarga, JSON corrupto o una violación semántica eran indistinguibles. Se introdujo un marcador canónico de "declaración de linaje": los parámetros indexables que `register_recalibrated_model` ya persistía (`recalibration_id`, `source_model_id`, `successor_model_id`, `dataset_fingerprint`). Una versión sin esos parámetros nunca declaró linaje → `None` (retrocompatible). Una versión que sí los tiene pero no puede reconstruirse correctamente (artefacto ausente, error de descarga, JSON inválido, semántica inválida, o inconsistencia entre el artefacto y esos parámetros) levanta `LineageValidationError` con contexto (versión, `run_id`) — nunca degrada a `None`. `list_recalibration_lineage` propaga ese error en vez de devolver una cadena parcial.
+
+**Versionado del contrato de linaje y provenance por contenido.** `RecalibrationLineage` gana `lineage_version` (constantes `LINEAGE_VERSION_1`/`LINEAGE_VERSION_2`/`CURRENT_LINEAGE_VERSION` en `lineage.py`) — un eje de versionado del **esquema del evento**, deliberadamente distinto de `contract_version` (que sigue versionando el contrato de modelado del predictor, sin relación con el linaje). `LINEAGE_VERSION_1` es la forma histórica (sin `dataset_sha256`, la que ya existía); `LINEAGE_VERSION_2` exige `dataset_sha256`: el SHA-256 del contenido binario exacto del dataset usado en la recalibración, calculado incrementalmente (`compute_dataset_sha256`) para no cargarlo completo en memoria. `dataset_fingerprint` (`(mtime, size)`) no se reemplaza — sigue siendo la clave económica de caché/invalidación en `execute_configured_pipeline`; `dataset_sha256` es provenance nueva y adicional, calculada una sola vez por recalibración (no en cada lectura del dataset), evitando el cómputo innecesario que el enunciado pedía no introducir. `from_dict` nunca reinterpreta un evento `LINEAGE_VERSION_1` persistido (sin las claves nuevas) como si ya cumpliera `LINEAGE_VERSION_2`.
+
+Documentado formalmente en `openspec/specs/human-feedback/spec.md`, mismo requirement, escenarios agregados.
+
 ## Referencias
 
 - [ADR-0003: Stack web (backend/frontend) y ciclo de vida de desarrollo automatizado con IA](0003-stack-web-y-ciclo-de-vida-automatizado.md)

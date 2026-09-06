@@ -1,4 +1,6 @@
+import json
 from dataclasses import replace
+from pathlib import Path
 
 import mlflow
 import pandas as pd
@@ -7,7 +9,13 @@ from mlflow.exceptions import MlflowException
 from sklearn.linear_model import LogisticRegression
 
 from data_ingestion.sensor_naming import registered_model_name_for
-from human_feedback.lineage import FeedbackReference, LineageValidationError, RecalibrationLineage
+from human_feedback.lineage import (
+    LINEAGE_VERSION_1,
+    LINEAGE_VERSION_2,
+    FeedbackReference,
+    LineageValidationError,
+    RecalibrationLineage,
+)
 from human_feedback.model_registry import (
     ModelContractMismatch,
     list_recalibration_lineage,
@@ -76,9 +84,18 @@ def test_registration_rejects_metadata_that_disagrees_with_estimator(tmp_path):
         register_recalibrated_model("a", bad, {}, {})
 
 
-def _lineage(sensor_id, source_model_id, model, recalibration_id="r1"):
+def _lineage(
+    sensor_id,
+    source_model_id,
+    model,
+    recalibration_id="r1",
+    lineage_version=LINEAGE_VERSION_1,
+    dataset_sha256=None,
+):
     """Linaje consistente con `model` (el predictor que efectivamente se
-    va a registrar), como lo exige `_validate_lineage_matches_model`.
+    va a registrar), como lo exige `_validate_lineage_matches_model`. Por
+    defecto construye un evento `LINEAGE_VERSION_1` (histórico, sin
+    `dataset_sha256`), igual que antes de esta capacidad.
     """
     return RecalibrationLineage(
         recalibration_id=recalibration_id,
@@ -99,6 +116,8 @@ def _lineage(sensor_id, source_model_id, model, recalibration_id="r1"):
         dataset_fingerprint="abc123",
         contract_version=model.contract["contract_version"],
         pipeline_version=model.contract["pipeline_version"],
+        lineage_version=lineage_version,
+        dataset_sha256=dataset_sha256,
     )
 
 
@@ -175,6 +194,262 @@ def test_register_rejects_lineage_inconsistent_with_the_model_and_registers_noth
     assert load_latest_recalibrated_model("a", bundle.contract) is None
     name = registered_model_name_for("a")
     assert mlflow.MlflowClient().search_model_versions(f"name='{name}'") == []
+
+
+def _registered_version(sensor_id):
+    name = registered_model_name_for(sensor_id)
+    versions = sorted(
+        mlflow.MlflowClient().search_model_versions(f"name='{name}'"), key=lambda v: int(v.version)
+    )
+    return versions
+
+
+def _corrupt_lineage_artifact(run_id, mutate) -> None:
+    """Descarga el artefacto de linaje ya persistido, le aplica `mutate`
+    sobre su contenido parseado, y lo reescribe en el mismo archivo local
+    (posible porque el store de artefactos en estos tests es local).
+    """
+    client = mlflow.MlflowClient()
+    artifact_path = client.download_artifacts(run_id, "recalibration_lineage.json")
+    payload = json.loads(Path(artifact_path).read_text(encoding="utf-8"))
+    mutate(payload)
+    Path(artifact_path).write_text(json.dumps(payload), encoding="utf-8")
+
+
+def test_load_recalibration_lineage_accepts_historical_event_without_sha256(tmp_path):
+    """Requirement T-01 (1): un evento histórico `LINEAGE_VERSION_1` sin
+    `dataset_sha256` sigue cargando correctamente.
+    """
+    _tracking(tmp_path)
+    bundle, _ = _bundle()
+    lineage = _lineage("a", "model-a", bundle)  # LINEAGE_VERSION_1 por defecto
+
+    register_recalibrated_model("a", bundle, {}, {}, lineage=lineage)
+
+    resolved = load_recalibration_lineage("a", bundle.model_id)
+    assert resolved is not None
+    assert resolved.lineage_version == LINEAGE_VERSION_1
+    assert resolved.dataset_sha256 is None
+
+
+def test_load_recalibration_lineage_accepts_new_event_with_sha256(tmp_path):
+    """Requirement T-01 (2): un evento nuevo `LINEAGE_VERSION_2` con
+    `dataset_sha256` válido carga correctamente y lo preserva.
+    """
+    _tracking(tmp_path)
+    bundle, _ = _bundle()
+    sha = "a" * 64
+    lineage = _lineage(
+        "a", "model-a", bundle, lineage_version=LINEAGE_VERSION_2, dataset_sha256=sha
+    )
+
+    register_recalibrated_model("a", bundle, {}, {}, lineage=lineage)
+
+    resolved = load_recalibration_lineage("a", bundle.model_id)
+    assert resolved is not None
+    assert resolved.lineage_version == LINEAGE_VERSION_2
+    assert resolved.dataset_sha256 == sha
+
+
+def test_register_rejects_new_event_missing_sha256(tmp_path):
+    """Requirement T-01 (3): un evento `LINEAGE_VERSION_2` sin
+    `dataset_sha256` no puede ni construirse; por lo tanto tampoco
+    registrarse."""
+    _tracking(tmp_path)
+    bundle, _ = _bundle()
+
+    with pytest.raises(LineageValidationError):
+        _lineage("a", "model-a", bundle, lineage_version=LINEAGE_VERSION_2)
+
+    assert _registered_version("a") == []
+
+
+@pytest.mark.parametrize(
+    "bad_sha",
+    ["", "a" * 63, "a" * 65, "g" * 64, "A" * 64, "not-a-sha256-hash-value-at-all"],
+)
+def test_lineage_rejects_malformed_dataset_sha256(bad_sha):
+    with pytest.raises(LineageValidationError):
+        RecalibrationLineage(
+            recalibration_id="r1",
+            sensor_id="sensor-a",
+            source_model_id="model-a",
+            successor_model_id="model-b",
+            feedback_references=[
+                FeedbackReference(
+                    sensor_id="sensor-a",
+                    fecha="2024-01-01 00:00:00",
+                    model_version="model-a",
+                    target_timestamp="2024-01-04 00:00:00",
+                )
+            ],
+            recalibrated_at="2026-09-06 00:00:00",
+            source_trained_through="2024-01-01",
+            successor_trained_through="2024-01-05",
+            dataset_fingerprint="abc123",
+            contract_version=1,
+            pipeline_version="controlled_daily_v3",
+            lineage_version=LINEAGE_VERSION_2,
+            dataset_sha256=bad_sha,
+        )
+
+
+def test_lineage_rejects_unsupported_lineage_version():
+    with pytest.raises(LineageValidationError):
+        RecalibrationLineage(
+            recalibration_id="r1",
+            sensor_id="sensor-a",
+            source_model_id="model-a",
+            successor_model_id="model-b",
+            feedback_references=[
+                FeedbackReference(
+                    sensor_id="sensor-a",
+                    fecha="2024-01-01 00:00:00",
+                    model_version="model-a",
+                    target_timestamp="2024-01-04 00:00:00",
+                )
+            ],
+            recalibrated_at="2026-09-06 00:00:00",
+            source_trained_through="2024-01-01",
+            successor_trained_through="2024-01-05",
+            dataset_fingerprint="abc123",
+            contract_version=1,
+            pipeline_version="controlled_daily_v3",
+            lineage_version=99,
+        )
+
+
+def test_load_recalibration_lineage_returns_none_for_a_version_that_never_declared_lineage(
+    tmp_path,
+):
+    """Requirement T-01 (6): comportamiento retrocompatible — una versión
+    histórica sin los parámetros canónicos de linaje no es tratada como
+    corrupta, sino como ausencia legítima.
+    """
+    _tracking(tmp_path)
+    bundle, _ = _bundle()
+
+    register_recalibrated_model("a", bundle, {}, {})  # sin lineage=
+
+    assert load_recalibration_lineage("a", bundle.model_id) is None
+    assert list_recalibration_lineage("a") == []
+
+
+def test_load_recalibration_lineage_fails_closed_when_artifact_download_raises_mlflow_error(
+    tmp_path, monkeypatch
+):
+    """Requirement T-01 (7/8): una versión que declara linaje (tiene los
+    parámetros canónicos) pero cuyo artefacto no puede descargarse debe
+    fallar explícitamente, no degradar a `None`.
+    """
+    _tracking(tmp_path)
+    bundle, _ = _bundle()
+    lineage = _lineage(
+        "a", "model-a", bundle, lineage_version=LINEAGE_VERSION_2, dataset_sha256="a" * 64
+    )
+    register_recalibrated_model("a", bundle, {}, {}, lineage=lineage)
+
+    def fail(*args, **kwargs):
+        raise MlflowException("Artifact recalibration_lineage.json not found")
+
+    monkeypatch.setattr(mlflow.MlflowClient, "download_artifacts", fail)
+
+    with pytest.raises(LineageValidationError):
+        load_recalibration_lineage("a", bundle.model_id)
+
+
+def test_load_recalibration_lineage_fails_closed_on_download_os_error(tmp_path, monkeypatch):
+    """Requirement T-01 (8): un error de descarga (p. ej. de I/O) también
+    debe fallar explícitamente."""
+    _tracking(tmp_path)
+    bundle, _ = _bundle()
+    lineage = _lineage(
+        "a", "model-a", bundle, lineage_version=LINEAGE_VERSION_2, dataset_sha256="a" * 64
+    )
+    register_recalibrated_model("a", bundle, {}, {}, lineage=lineage)
+
+    def fail(*args, **kwargs):
+        raise OSError("network unreachable")
+
+    monkeypatch.setattr(mlflow.MlflowClient, "download_artifacts", fail)
+
+    with pytest.raises(LineageValidationError):
+        load_recalibration_lineage("a", bundle.model_id)
+
+
+def test_load_recalibration_lineage_fails_closed_on_corrupted_json(tmp_path):
+    """Requirement T-01 (9): JSON corrupto en un artefacto que sí se
+    declaró debe fallar explícitamente."""
+    _tracking(tmp_path)
+    bundle, _ = _bundle()
+    lineage = _lineage(
+        "a", "model-a", bundle, lineage_version=LINEAGE_VERSION_2, dataset_sha256="a" * 64
+    )
+    register_recalibrated_model("a", bundle, {}, {}, lineage=lineage)
+
+    version = _registered_version("a")[0]
+    artifact_path = mlflow.MlflowClient().download_artifacts(
+        version.run_id, "recalibration_lineage.json"
+    )
+    Path(artifact_path).write_text("{not valid json", encoding="utf-8")
+
+    with pytest.raises(LineageValidationError):
+        load_recalibration_lineage("a", bundle.model_id)
+
+
+def test_load_recalibration_lineage_fails_closed_on_semantically_invalid_artifact(tmp_path):
+    """Requirement T-01 (10): un artefacto sintácticamente válido pero que
+    incumple la semántica del contrato (aquí, `source_model_id ==
+    successor_model_id`) debe fallar explícitamente."""
+    _tracking(tmp_path)
+    bundle, _ = _bundle()
+    lineage = _lineage(
+        "a", "model-a", bundle, lineage_version=LINEAGE_VERSION_2, dataset_sha256="a" * 64
+    )
+    register_recalibrated_model("a", bundle, {}, {}, lineage=lineage)
+
+    version = _registered_version("a")[0]
+    _corrupt_lineage_artifact(
+        version.run_id,
+        lambda payload: payload.__setitem__("source_model_id", payload["successor_model_id"]),
+    )
+
+    with pytest.raises(LineageValidationError):
+        load_recalibration_lineage("a", bundle.model_id)
+
+
+def test_list_recalibration_lineage_propagates_error_instead_of_partial_chain(tmp_path):
+    """Requirement T-01 (11): si una versión posterior de la cadena
+    declaró linaje pero está corrupta, `list_recalibration_lineage` no
+    debe devolver silenciosamente solo las versiones previas válidas.
+    """
+    _tracking(tmp_path)
+    bundle, _ = _bundle()
+    successor = replace(bundle, model_id="model-c")
+
+    lineage_a_b = _lineage(
+        "a", "model-a", bundle, lineage_version=LINEAGE_VERSION_2, dataset_sha256="a" * 64
+    )
+    register_recalibrated_model("a", bundle, {}, {}, lineage=lineage_a_b)
+    lineage_b_c = _lineage(
+        "a",
+        bundle.model_id,
+        successor,
+        recalibration_id="r2",
+        lineage_version=LINEAGE_VERSION_2,
+        dataset_sha256="b" * 64,
+    )
+    register_recalibrated_model("a", successor, {}, {}, lineage=lineage_b_c)
+
+    versions = _registered_version("a")
+    assert len(versions) == 2
+    _corrupt_lineage_artifact(
+        versions[1].run_id,
+        lambda payload: payload.__setitem__("source_model_id", payload["successor_model_id"]),
+    )
+
+    with pytest.raises(LineageValidationError):
+        list_recalibration_lineage("a")
 
 
 def test_loading_requires_expected_contract():

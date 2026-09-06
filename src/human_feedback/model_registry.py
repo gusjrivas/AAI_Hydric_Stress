@@ -114,26 +114,88 @@ def load_latest_recalibrated_model(sensor_id, expected_contract: dict) -> Fitted
     return _load_registered_version(latest, expected_contract)
 
 
+_LINEAGE_MARKER_PARAMS = (
+    "recalibration_id",
+    "source_model_id",
+    "successor_model_id",
+    "dataset_fingerprint",
+)
+
+
+def _run_declares_lineage(run_params: dict) -> bool:
+    """El marcador canónico de que una versión *declara* linaje son los
+    parámetros indexables que `register_recalibrated_model` persiste
+    junto con el artefacto (`recalibration_id`, `source_model_id`,
+    `successor_model_id`, `dataset_fingerprint`) — no la mera presencia
+    descargable del artefacto opcional. Una versión histórica anterior a
+    esta capacidad simplemente no tiene estos parámetros; eso, y solo
+    eso, es lo que la distingue de un linaje declarado pero corrupto.
+    """
+    return all(run_params.get(param) for param in _LINEAGE_MARKER_PARAMS)
+
+
 def _load_lineage_for_version(client, version) -> RecalibrationLineage | None:
-    """Descarga y valida el linaje de una versión ya registrada,
-    resolviendo `mlflow_model_version` desde la versión efectivamente
+    """Recuperación *fail-closed* del linaje de una versión ya registrada.
+
+    - Si la versión nunca declaró linaje (no tiene los parámetros
+      canónicos), devuelve `None` — comportamiento retrocompatible con
+      versiones históricas anteriores a esta capacidad.
+    - Si la versión declara linaje, cualquier problema para reconstruirlo
+      (artefacto ausente, fallo de descarga, contenido ilegible, JSON
+      inválido, semántica inválida, o inconsistencia entre el artefacto y
+      los parámetros ya persistidos) levanta `LineageValidationError` en
+      vez de degradar silenciosamente a `None`: una versión que declaró
+      linaje y no puede reconstruirse es un evento corrupto, no un
+      historial legítimamente ausente.
+
+    `mlflow_model_version` se resuelve aquí desde la versión efectivamente
     asociada a ese `run_id` (nunca desde lo que quedó grabado en el
     artefacto, que se escribió antes de que la versión existiera).
     """
-    data = _download_lineage_payload(client, version.run_id)
-    if data is None:
+    run_params = client.get_run(version.run_id).data.params
+    if not _run_declares_lineage(run_params):
         return None
-    lineage = RecalibrationLineage.from_dict(data)
+
+    context = f"sensor version={version.version} run_id={version.run_id}"
+    try:
+        artifact_path = client.download_artifacts(version.run_id, "recalibration_lineage.json")
+    except (OSError, mlflow.exceptions.MlflowException) as error:
+        raise LineageValidationError(
+            f"La versión declara linaje pero su artefacto no pudo descargarse ({context})."
+        ) from error
+    try:
+        with open(artifact_path, encoding="utf-8") as lineage_file:
+            data = json.load(lineage_file)
+    except (OSError, ValueError) as error:
+        raise LineageValidationError(
+            f"El artefacto de linaje es ilegible o no es JSON válido ({context})."
+        ) from error
+    try:
+        lineage = RecalibrationLineage.from_dict(data)
+    except LineageValidationError as error:
+        raise LineageValidationError(
+            f"El artefacto de linaje incumple la semántica del contrato ({context}): {error}"
+        ) from error
+
+    mismatches = [
+        param
+        for param in _LINEAGE_MARKER_PARAMS
+        if run_params.get(param) != getattr(lineage, param)
+    ]
+    if mismatches:
+        raise LineageValidationError(
+            f"El artefacto de linaje es inconsistente con los parámetros registrados "
+            f"({context}): {', '.join(mismatches)}."
+        )
+
     return replace(lineage, mlflow_model_version=str(version.version))
 
 
 def load_recalibration_lineage(sensor_id, successor_model_id: str) -> RecalibrationLineage | None:
-    """Recupera el evento de linaje cuyo `successor_model_id` coincide,
-    validando que el artefacto persistido tenga la forma esperada. Solo
-    considera versiones efectivamente registradas: un run con artefacto
-    de linaje pero sin versión registrada (huérfano, p. ej. porque el
-    registro se interrumpió después de persistir el linaje) queda fuera
-    de esta búsqueda.
+    """Recupera el evento de linaje cuyo `successor_model_id` coincide.
+    Ver `_load_lineage_for_version` para la semántica *fail-closed*: solo
+    devuelve `None` para versiones que nunca declararon linaje; un
+    linaje declarado pero corrupto levanta `LineageValidationError`.
     """
     name = registered_model_name_for(sensor_id)
     client = mlflow.MlflowClient()
@@ -147,24 +209,17 @@ def load_recalibration_lineage(sensor_id, successor_model_id: str) -> Recalibrat
 def list_recalibration_lineage(sensor_id) -> list[RecalibrationLineage]:
     """Recupera, en orden cronológico, todos los eventos de linaje
     registrados para un sensor — permite reconstruir la cadena completa
-    (p. ej. feedback A → A → B, feedback B → B → C). Igual que
-    `load_recalibration_lineage`, solo considera versiones efectivamente
-    registradas.
+    (p. ej. feedback A → A → B, feedback B → B → C). Las versiones
+    históricas que nunca declararon linaje se omiten silenciosamente; si
+    alguna versión declaró linaje y está corrupta, la función propaga
+    `LineageValidationError` en vez de devolver una cadena parcial que
+    aparente estar completa.
     """
     name = registered_model_name_for(sensor_id)
     client = mlflow.MlflowClient()
     versions = sorted(client.search_model_versions(f"name='{name}'"), key=lambda v: int(v.version))
     lineage = [_load_lineage_for_version(client, version) for version in versions]
     return [entry for entry in lineage if entry is not None]
-
-
-def _download_lineage_payload(client, run_id: str) -> dict | None:
-    try:
-        path = client.download_artifacts(run_id, "recalibration_lineage.json")
-        with open(path, encoding="utf-8") as lineage_file:
-            return json.load(lineage_file)
-    except (OSError, ValueError, mlflow.exceptions.MlflowException):
-        return None
 
 
 def load_predictor_by_id(

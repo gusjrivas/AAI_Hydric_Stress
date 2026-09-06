@@ -1,4 +1,6 @@
 import dataclasses
+import hashlib
+import os
 
 import numpy as np
 import pandas as pd
@@ -7,10 +9,13 @@ from sklearn.ensemble import RandomForestClassifier
 
 from architecture_integration.pipeline import predict_available, run_end_to_end_pipeline
 from human_feedback.lineage import (
+    LINEAGE_VERSION_1,
+    LINEAGE_VERSION_2,
     FeedbackReference,
     LineageValidationError,
     RecalibrationLineage,
     build_feedback_references,
+    compute_dataset_sha256,
 )
 from human_feedback.recalibration import recalibrate_predictor
 from human_feedback.schema import init_prediction_feedback, update_feedback
@@ -226,3 +231,71 @@ def test_from_dict_revalidates_a_corrupted_artifact():
 
     with pytest.raises(LineageValidationError):
         RecalibrationLineage.from_dict(payload)
+
+
+def test_from_dict_loads_historical_event_without_lineage_version_or_sha256():
+    """Requirement T-01 (1): un payload persistido antes de que existieran
+    `lineage_version`/`dataset_sha256` (ninguna de las dos claves
+    presente) se interpreta como `LINEAGE_VERSION_1`, sin exigir
+    `dataset_sha256` — nunca se lo reinterpreta como si cumpliera una
+    versión posterior.
+    """
+    payload = RecalibrationLineage(**_base_kwargs()).to_dict()
+    del payload["lineage_version"]
+    del payload["dataset_sha256"]
+
+    restored = RecalibrationLineage.from_dict(payload)
+
+    assert restored.lineage_version == LINEAGE_VERSION_1
+    assert restored.dataset_sha256 is None
+
+
+def test_lineage_accepts_new_version_with_valid_sha256_and_roundtrips():
+    """Requirement T-01 (2): un evento nuevo (`LINEAGE_VERSION_2`) con un
+    `dataset_sha256` válido se construye y sobrevive un roundtrip por
+    `to_dict`/`from_dict`.
+    """
+    sha = "0123456789abcdef" * 4
+    lineage = RecalibrationLineage(
+        **_base_kwargs(lineage_version=LINEAGE_VERSION_2, dataset_sha256=sha)
+    )
+
+    assert lineage.lineage_version == LINEAGE_VERSION_2
+    assert lineage.dataset_sha256 == sha
+    assert RecalibrationLineage.from_dict(lineage.to_dict()) == lineage
+
+
+def test_lineage_rejects_new_version_without_sha256():
+    """Requirement T-01 (3): la nueva versión exige `dataset_sha256`."""
+    with pytest.raises(LineageValidationError):
+        RecalibrationLineage(**_base_kwargs(lineage_version=LINEAGE_VERSION_2))
+
+
+def test_compute_dataset_sha256_matches_content(tmp_path):
+    """Requirement T-01 (12): el hash calculado coincide con el hash del
+    contenido real del archivo."""
+    path = tmp_path / "dataset.bin"
+    path.write_bytes(b"contenido de prueba " * 1000)
+
+    expected = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    assert compute_dataset_sha256(path) == expected
+
+
+def test_compute_dataset_sha256_differs_for_different_content_same_size_and_mtime(tmp_path):
+    """Requirement T-01 (13): dos archivos de igual tamaño y `mtime` pero
+    contenido distinto no pueden producir el mismo hash — el
+    `(mtime, size)` de `get_dataset_fingerprint` no distingue este caso,
+    por eso `dataset_sha256` existe como provenance separada.
+    """
+    path_a = tmp_path / "a.bin"
+    path_b = tmp_path / "b.bin"
+    path_a.write_bytes(b"A" * 4096)
+    path_b.write_bytes(b"B" * 4096)
+    shared_time = 1_700_000_000
+    os.utime(path_a, (shared_time, shared_time))
+    os.utime(path_b, (shared_time, shared_time))
+
+    assert path_a.stat().st_size == path_b.stat().st_size
+    assert path_a.stat().st_mtime == path_b.stat().st_mtime
+    assert compute_dataset_sha256(path_a) != compute_dataset_sha256(path_b)

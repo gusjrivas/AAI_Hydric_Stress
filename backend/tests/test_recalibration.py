@@ -8,7 +8,8 @@ from app.pipeline import load_dataset_or_raise
 from fastapi.testclient import TestClient
 
 from data_ingestion.sensor_naming import dataset_name_for
-from data_ingestion.storage import DEFAULT_DATA_DIR, load_dataset, save_dataset
+from data_ingestion.storage import DEFAULT_DATA_DIR, get_dataset_path, load_dataset, save_dataset
+from human_feedback.lineage import CURRENT_LINEAGE_VERSION, compute_dataset_sha256
 from human_feedback.model_registry import list_recalibration_lineage, load_recalibration_lineage
 
 
@@ -154,6 +155,9 @@ def test_recalibration_lineage_reconstructs_full_a_to_b_to_c_chain(tmp_path):
     assert response_1.status_code == 200, response_1.text
     body_1 = response_1.json()
     assert body_1["recalibration_id"]
+    dataset_sha_at_cycle1 = compute_dataset_sha256(
+        get_dataset_path(dataset_name_for("sensor-a"), tmp_path)
+    )
 
     # Avanza el dataset una fecha real (ADR-0007) para que el ciclo 2 emita
     # un pronóstico genuinamente nuevo con B; no se reutiliza el forecast de A.
@@ -185,6 +189,9 @@ def test_recalibration_lineage_reconstructs_full_a_to_b_to_c_chain(tmp_path):
     body_2 = response_2.json()
     assert body_2["recalibration_id"]
     assert body_2["recalibration_id"] != body_1["recalibration_id"]
+    dataset_sha_at_cycle2 = compute_dataset_sha256(
+        get_dataset_path(dataset_name_for("sensor-a"), tmp_path)
+    )
 
     chain = list_recalibration_lineage("sensor-a")
 
@@ -208,6 +215,16 @@ def test_recalibration_lineage_reconstructs_full_a_to_b_to_c_chain(tmp_path):
 
     resolved_second = load_recalibration_lineage("sensor-a", second.successor_model_id)
     assert resolved_second == second
+
+    # T-01: provenance por contenido (`dataset_sha256`) del dataset
+    # realmente usado en cada recalibración, distinta de `dataset_fingerprint`
+    # ((mtime, size), solo caché) — el dataset cambió entre ciclos (ADR-0007),
+    # así que ambos hashes deben ser válidos y distintos entre sí.
+    assert first.lineage_version == CURRENT_LINEAGE_VERSION
+    assert second.lineage_version == CURRENT_LINEAGE_VERSION
+    assert first.dataset_sha256 == dataset_sha_at_cycle1
+    assert second.dataset_sha256 == dataset_sha_at_cycle2
+    assert first.dataset_sha256 != second.dataset_sha256
 
     app.dependency_overrides.clear()
 
