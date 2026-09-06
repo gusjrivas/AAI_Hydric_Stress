@@ -4,7 +4,7 @@ Tarea de origen: "Relevar datos disponibles en SMN, NASA POWER y Copernicus" y "
 
 Objetivo: dejar registrado qué gestión de acceso (registro, cuenta, licencia, API key) requiere cada fuente candidata, para poder ejecutar la ingesta (`data-ingestion`, ver `openspec/changes/add-data-ingestion/`) sin bloqueos. **Ninguna credencial se guarda en este repositorio** — este documento solo registra el estado de gestión.
 
-Estado general: **pendiente de gestión por el responsable del proyecto**.
+Estado general: **fuentes seleccionadas incorporadas**. NASA POWER y ESA CCI Soil Moisture fueron seleccionadas, incorporadas y usadas para construir el conjunto experimental real (`data/melchor_romero_2024_consolidado.parquet`). Las demás fuentes de este checklist se conservan como candidatas: descartadas, bloqueadas o pendientes de registro, sin que su incorporación sea obligatoria para HU2 (ver `docs/research/hu2-auditoria-cierre.md`, sección 3).
 
 ## Fuentes climáticas / meteorológicas
 
@@ -59,9 +59,13 @@ Tarea de origen: "Definir criterios de selección y descarte de fuentes de datos
 - **Fuente que solo aporta pronóstico a corto plazo o datos no históricos** → descarte definitivo si el objetivo es series históricas para el conjunto experimental (ya aplicado explícitamente a la API no oficial de SMN, fila de "Fuentes climáticas / meteorológicas").
 - **Fuente redundante sin aporte diferencial** → si dos fuentes cubren exactamente las mismas variables con la misma calidad para el mismo punto/período, se prioriza la de menor fricción de acceso; no se incorporan ambas solo por completitud del checklist.
 
-## Próximos pasos
+## Extensiones futuras opcionales
 
-1. El responsable del proyecto gestiona el registro en Copernicus CDS (y, si corresponde, NASA Earthdata/ISMN) siguiendo los enlaces de la tabla.
-2. Mientras tanto, la implementación de `data-ingestion` puede arrancar con las fuentes sin bloqueo de registro: NASA POWER, SMN/datos.gob.ar, INTA RIAN (prioritaria por ser específica de Argentina) y ESA CCI Soil Moisture.
+El conjunto experimental real de HU2 ya está construido con NASA POWER y ESA CCI Soil Moisture (`data/melchor_romero_2024_consolidado.parquet`), usado por HU3-HU8. Las siguientes acciones son ampliaciones posibles, no requisitos para el cierre de HU2:
+
+1. Gestionar el registro en Copernicus CDS (y, si se justifica, NASA Earthdata/ISMN) para incorporar reanálisis climáticos o humedad de suelo adicional.
+2. Reintentar el acceso a SMN si cambia la disponibilidad técnica (dataset restaurado en datos.gob.ar, o verificación manual con navegador real en `smn.gob.ar/descarga-de-datos`).
 3. Relevar en detalle datos.magyp.gob.ar y el grupo "agri" de datos.gob.ar para identificar datasets hortícolas específicos más allá de las fuentes agroclimáticas generales.
-4. Una vez obtenidas las credenciales de Copernicus (y de NASA Earthdata/ISMN si corresponde), se actualiza el estado de este documento y se incorporan esas fuentes a la ingesta.
+4. Evaluar INTA RIAN, NASA SMAP o ISMN si un trabajo futuro requiere mayor cobertura geográfica o redundancia de fuentes.
+
+Ninguna de estas acciones es necesaria para satisfacer los criterios de aceptación de HU2 (ver `docs/research/hu2-auditoria-cierre.md`).

@@ -1,8 +1,9 @@
 """Conector de NASA POWER (comunidad Agroclimatology, sin registro ni API
 key — ver docs/research/hu2-fuentes-datos-acceso.md). Provee variables
-climáticas obligatorias del esquema; no provee humedad de suelo ni ET0
-directamente (ET0 se deriva en preprocesamiento a partir de estas
-variables, no se ingiere).
+climáticas obligatorias del esquema. No provee humedad de suelo ni ET0.
+ET0 permanece nula en el conjunto experimental histórico; existe un
+cálculo de referencia utilizado únicamente por el flujo de sensor
+mock/en vivo y ET0 no se utiliza como predictor en HU7/HU8.
 """
 
 from __future__ import annotations

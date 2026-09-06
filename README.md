@@ -10,8 +10,8 @@ Ver [`docs/seguimiento-tareas.md`](docs/seguimiento-tareas.md) para la auditorí
 
 | HU | Capacidad | Estado |
 |----|-----------|--------|
-| HU1 | Estado del arte y comprensión del dominio | 🟡 Parcial (búsqueda dirigida; falta protocolo sistemático en bases institucionales) |
-| HU2 | `data-ingestion` — preparación del conjunto experimental de datos | 🟡 Parcial (NASA POWER + ESA CCI consolidados; falta 1 fuente) |
+| HU1 | Estado del arte y comprensión del dominio | ✅ Cerrada (estado del arte definitivo y auditoría de cierre completos) |
+| HU2 | `data-ingestion` — preparación del conjunto experimental de datos | 🟡 Cuenta con un conjunto experimental real y reproducible (NASA POWER + ESA CCI Soil Moisture, Melchor Romero 2024) utilizado por el pipeline experimental; pendiente únicamente de cierre documental/administrativo |
 | HU3 | `data-quality` — calidad, anomalías y datos sintéticos | ✅ Completa |
 | HU4 | `predictive-modeling` — modelado predictivo y alertas tempranas | ✅ Completa |
 | HU5 | `human-feedback` — retroalimentación humana y recalibración | ✅ Completa |

@@ -30,9 +30,11 @@ LICENSE = (
     "(docs/research/hu2-fuentes-datos-acceso.md)."
 )
 LIMITATIONS = (
-    "No provee humedad de suelo ni evapotranspiración de referencia (ET0) "
-    "directamente; ET0 se deriva en preprocesamiento a partir de las "
-    "variables climáticas descargadas."
+    "No provee humedad de suelo ni evapotranspiración de referencia (ET0). "
+    "ET0 no es provista por NASA POWER en este flujo y permanece nula en el "
+    "dataset histórico consolidado. Existe un cálculo de referencia para el "
+    "flujo de sensor mock/en vivo (src/data_quality/reference_et.py), pero "
+    "ET0 no se utiliza como predictor en HU7/HU8."
 )
 
 
