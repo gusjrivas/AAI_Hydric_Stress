@@ -1,32 +1,38 @@
-# React + TypeScript + Vite
+# Frontend — demo de arquitectura de IA (alerting-ui)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + TypeScript + Vite, sin router ni librería de estado global (ver
+`docs/adr/0003-stack-web-y-ciclo-de-vida-automatizado.md`). Consume la API del
+backend (`../backend/`) por HTTP; no accede a `src/`, `data/` ni MLflow
+directamente.
 
-Currently, two official plugins are available:
+## Ejecutar en desarrollo
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Por defecto apunta a `http://localhost:8000`. Para apuntar a otro backend,
+configurar `VITE_API_BASE_URL` (ver `.env.example`):
+
+```bash
+cp .env.example .env   # editar VITE_API_BASE_URL si hace falta
+```
+
+## Tests, lint y build
+
+```bash
+npm test
+npm run lint
+npm run build
+```
+
+## Estructura
+
+Una sola página (`App.tsx`), organizada por *feature* en `src/features/`:
+
+- `architecture-flow/`: guía visual de las etapas de la arquitectura, con anclas a cada sección.
+- `quality/`: panel de calidad y anomalías (`GET /quality/{sensor_id}`).
+- `forecast/`: pronóstico, alerta, feedback humano y recalibración (flujo existente desde HU5/HU6, más el predictor activo vía `GET /models/{sensor_id}/active`).
+- `lineage/`: reconstrucción de la cadena de recalibraciones A→B→C (`GET /lineage/{sensor_id}`).
+- `evidence/`: panel estático de evidencia científica formal (`controlled_daily_v3`), sin llamadas HTTP.
