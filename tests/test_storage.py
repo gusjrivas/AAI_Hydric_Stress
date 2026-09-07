@@ -1,9 +1,16 @@
+import re
 import time
+from pathlib import Path
 
 import pandas as pd
 import pytest
 
-from data_ingestion.storage import load_dataset, save_dataset
+from data_ingestion.storage import (
+    get_dataset_fingerprint,
+    load_dataset,
+    load_dataset_snapshot,
+    save_dataset,
+)
 
 
 def test_save_and_load_roundtrip(tmp_path):
@@ -106,3 +113,90 @@ def test_append_reading_replaces_row_for_same_timestamp(tmp_path):
 
     assert len(updated) == 1
     assert updated.loc[0, "temperature"] == 30.0
+
+
+def test_load_dataset_snapshot_dataframe_and_sha_are_valid_and_consistent(tmp_path):
+    """R2: el DataFrame y el SHA-256 de la instantánea corresponden al
+    mismo contenido, y `cache_fingerprint` sigue siendo la clave (mtime,
+    size) de `get_dataset_fingerprint` — el SHA no la reemplaza."""
+    df = pd.DataFrame({"timestamp": pd.to_datetime(["2026-01-01"]), "temperature": [25.0]})
+    save_dataset("snapshot_valido", df, data_dir=tmp_path)
+
+    snapshot = load_dataset_snapshot("snapshot_valido", data_dir=tmp_path)
+
+    pd.testing.assert_frame_equal(snapshot.dataframe, df)
+    assert re.fullmatch(r"[0-9a-f]{64}", snapshot.dataset_sha256)
+    assert snapshot.cache_fingerprint == get_dataset_fingerprint(
+        "snapshot_valido", data_dir=tmp_path
+    )
+
+
+def test_load_dataset_snapshot_sha_matches_manual_file_hash(tmp_path):
+    """El SHA de la instantánea coincide con el hash calculado
+    manualmente sobre los bytes reales del archivo — no es un hash de una
+    representación reconstruida del DataFrame."""
+    import hashlib
+
+    df = pd.DataFrame({"timestamp": pd.to_datetime(["2026-01-01"]), "temperature": [25.0]})
+    save_dataset("hash_manual", df, data_dir=tmp_path)
+    path = tmp_path / "hash_manual.parquet"
+    expected = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    snapshot = load_dataset_snapshot("hash_manual", data_dir=tmp_path)
+
+    assert snapshot.dataset_sha256 == expected
+
+
+def test_load_dataset_snapshot_raises_when_missing(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        load_dataset_snapshot("no_existe", data_dir=tmp_path)
+
+
+def test_load_dataset_snapshot_distinguishes_different_content(tmp_path):
+    """Dos datasets con contenido distinto nunca deben producir el mismo
+    SHA — cada instantánea (DataFrame + SHA) corresponde inequívocamente
+    a su propio contenido, sin depender de que (mtime, size) coincidan o
+    no entre archivos."""
+    df_a = pd.DataFrame({"timestamp": pd.to_datetime(["2026-01-01"]), "temperature": [25.0]})
+    df_b = pd.DataFrame({"timestamp": pd.to_datetime(["2026-01-01"]), "temperature": [99.0]})
+    save_dataset("contenido_a", df_a, data_dir=tmp_path)
+    save_dataset("contenido_b", df_b, data_dir=tmp_path)
+
+    snapshot_a = load_dataset_snapshot("contenido_a", data_dir=tmp_path)
+    snapshot_b = load_dataset_snapshot("contenido_b", data_dir=tmp_path)
+
+    assert snapshot_a.dataset_sha256 != snapshot_b.dataset_sha256
+    pd.testing.assert_frame_equal(snapshot_a.dataframe, df_a)
+    pd.testing.assert_frame_equal(snapshot_b.dataframe, df_b)
+
+
+def test_load_dataset_snapshot_aborts_when_file_changes_during_read(tmp_path, monkeypatch):
+    """R2: si el archivo cambia entre el momento en que empieza y termina
+    de leerse (sustitución concurrente simulada), la captura no es
+    estable y debe abortar en vez de devolver un DataFrame y un SHA
+    potencialmente inconsistentes entre sí."""
+    df = pd.DataFrame({"timestamp": pd.to_datetime(["2026-01-01"]), "temperature": [25.0]})
+    save_dataset("mutable", df, data_dir=tmp_path)
+    target_path = tmp_path / "mutable.parquet"
+    original_read_bytes = Path.read_bytes
+
+    def flaky_read_bytes(self, *args, **kwargs):
+        content = original_read_bytes(self, *args, **kwargs)
+        if self == target_path:
+            # Simula una escritura concurrente justo después de leer los
+            # bytes originales, antes de que se vuelva a mirar el (mtime,
+            # size) del archivo.
+            time.sleep(0.01)
+            df2 = pd.DataFrame(
+                {
+                    "timestamp": pd.to_datetime(["2026-01-01", "2026-01-02"]),
+                    "temperature": [25.0, 26.0],
+                }
+            )
+            save_dataset("mutable", df2, data_dir=tmp_path)
+        return content
+
+    monkeypatch.setattr(Path, "read_bytes", flaky_read_bytes)
+
+    with pytest.raises(RuntimeError):
+        load_dataset_snapshot("mutable", data_dir=tmp_path)

@@ -7,7 +7,11 @@ import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
 from data_ingestion.sensor_naming import feedback_log_name_for
-from human_feedback.lineage import RecalibrationLineage, build_feedback_references
+from human_feedback.lineage import (
+    CURRENT_LINEAGE_VERSION,
+    RecalibrationLineage,
+    build_feedback_references,
+)
 from human_feedback.model_registry import (
     load_latest_recalibrated_model,
     register_recalibrated_model,
@@ -17,7 +21,11 @@ from human_feedback.registry import load_feedback_log
 
 from ..config import get_dataset_data_dir, get_feedback_data_dir
 from ..dependencies import get_valid_sensor_id
-from ..pipeline import configured_contract, execute_configured_pipeline, load_dataset_or_raise
+from ..pipeline import (
+    configured_contract,
+    execute_configured_pipeline,
+    load_dataset_snapshot_or_raise,
+)
 from ..schemas import RecalibrationResponse
 
 router = APIRouter()
@@ -31,9 +39,21 @@ def recalibrate(
 ) -> RecalibrationResponse:
     try:
         log = load_feedback_log(feedback_log_name_for(sensor_id), data_dir=feedback_dir)
-        df, fingerprint = load_dataset_or_raise(sensor_id, data_dir=dataset_dir)
+        # `snapshot.dataframe` y `snapshot.dataset_sha256` provienen de la
+        # MISMA captura de bytes del dataset (ver `DatasetSnapshot`) — nunca
+        # de dos lecturas independientes del archivo, que podrían ver
+        # contenido distinto entre sí si el archivo cambia entre medio.
+        snapshot = load_dataset_snapshot_or_raise(sensor_id, data_dir=dataset_dir)
+        df = snapshot.dataframe
+        fingerprint = snapshot.cache_fingerprint
+        dataset_sha256 = snapshot.dataset_sha256
     except FileNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    except ValueError as error:
+        # `load_dataset_snapshot_or_raise` aborta así si no puede garantizar
+        # una captura estable (el archivo cambió mientras se leía) — nunca
+        # se llega a registrar un sucesor con esa instantánea inconsistente.
+        raise HTTPException(status_code=400, detail=str(error)) from error
     try:
         latest = load_latest_recalibrated_model(sensor_id, expected_contract=configured_contract())
         # El predictor vigente es siempre `latest` (si ya se recalibró alguna
@@ -74,6 +94,8 @@ def recalibrate(
             dataset_fingerprint=str(fingerprint),
             contract_version=predictor.contract["contract_version"],
             pipeline_version=predictor.contract["pipeline_version"],
+            lineage_version=CURRENT_LINEAGE_VERSION,
+            dataset_sha256=dataset_sha256,
         )
         version = register_recalibrated_model(
             sensor_id,

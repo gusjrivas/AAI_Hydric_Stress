@@ -10,7 +10,13 @@ import pandas as pd
 
 from architecture_integration.pipeline import predict_available, run_end_to_end_pipeline
 from data_ingestion.sensor_naming import dataset_name_for
-from data_ingestion.storage import DEFAULT_DATA_DIR, get_dataset_fingerprint, load_dataset
+from data_ingestion.storage import (
+    DEFAULT_DATA_DIR,
+    DatasetSnapshot,
+    get_dataset_fingerprint,
+    load_dataset,
+    load_dataset_snapshot,
+)
 from human_feedback.model_registry import load_latest_recalibrated_model, load_predictor_by_id
 from predictive_modeling.contract import make_contract
 from predictive_modeling.models import build_candidate_models
@@ -33,6 +39,22 @@ def load_dataset_or_raise(sensor_id: str, data_dir: Path = DEFAULT_DATA_DIR):
     if before != after:
         raise ValueError("El dataset cambió durante la lectura; repetir la solicitud.")
     return df, after
+
+
+def load_dataset_snapshot_or_raise(
+    sensor_id: str, data_dir: Path = DEFAULT_DATA_DIR
+) -> DatasetSnapshot:
+    """Como `load_dataset_or_raise`, pero además deriva `dataset_sha256`
+    de la misma instantánea de bytes que el `DataFrame` devuelto — para
+    recalibraciones, donde el linaje debe registrar el hash del contenido
+    exacto realmente usado, no el de una lectura posterior e
+    independiente del mismo archivo.
+    """
+    name = dataset_name_for(sensor_id)
+    try:
+        return load_dataset_snapshot(name, data_dir=data_dir)
+    except RuntimeError as error:
+        raise ValueError(str(error)) from error
 
 
 def execute_configured_pipeline(

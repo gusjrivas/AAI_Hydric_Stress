@@ -10,9 +10,26 @@ JSON dentro del run de MLflow que registra al sucesor) vive en
 
 from __future__ import annotations
 
+import hashlib
+import os
+import re
 from dataclasses import asdict, dataclass, field
 
 import pandas as pd
+
+# Versión del ESQUEMA del evento de linaje — no confundir con
+# `RecalibrationLineage.contract_version`, que es el `contract_version`
+# del contrato de modelado (`predictive_modeling.contract.make_contract`)
+# del predictor sucesor, un eje de versionado completamente distinto.
+#
+# v1: forma histórica (sin `dataset_sha256`); v2: exige `dataset_sha256`
+# (provenance verificable del dataset usado para recalibrar).
+LINEAGE_VERSION_1 = 1
+LINEAGE_VERSION_2 = 2
+SUPPORTED_LINEAGE_VERSIONS = (LINEAGE_VERSION_1, LINEAGE_VERSION_2)
+CURRENT_LINEAGE_VERSION = LINEAGE_VERSION_2
+
+_SHA256_HEX_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
 
 @dataclass(frozen=True)
@@ -54,6 +71,15 @@ def _require_valid_timestamp(value, field_name: str) -> pd.Timestamp:
     return timestamp
 
 
+def _require_valid_sha256(value, field_name: str) -> str:
+    if not isinstance(value, str) or not _SHA256_HEX_PATTERN.fullmatch(value):
+        raise LineageValidationError(
+            f"{field_name} debe ser un SHA-256 hexadecimal en minúsculas de 64 caracteres, "
+            f"recibido: {value!r}."
+        )
+    return value
+
+
 @dataclass(frozen=True)
 class RecalibrationLineage:
     """Evento inmutable de recalibración: qué feedback nuevo la disparó,
@@ -63,10 +89,11 @@ class RecalibrationLineage:
     La semántica mínima (identificadores no vacíos, `source_model_id !=
     successor_model_id`, al menos una referencia de feedback, todas
     provenientes del mismo sensor y del mismo `source_model_id`, sin
-    duplicados, fechas/timestamps válidos, y `successor_trained_through
-    >= source_trained_through`) se valida siempre en la construcción —
-    tanto al crear el evento como al reconstruirlo con `from_dict` —,
-    nunca de forma opcional o diferida.
+    duplicados, fechas/timestamps válidos, `successor_trained_through >=
+    source_trained_through`, `lineage_version` soportada y, a partir de
+    `LINEAGE_VERSION_2`, `dataset_sha256` presente y con forma válida) se
+    valida siempre en la construcción — tanto al crear el evento como al
+    reconstruirlo con `from_dict` —, nunca de forma opcional o diferida.
     """
 
     recalibration_id: str
@@ -81,6 +108,8 @@ class RecalibrationLineage:
     contract_version: int
     pipeline_version: str
     mlflow_model_version: str | None = field(default=None)
+    lineage_version: int = field(default=LINEAGE_VERSION_1)
+    dataset_sha256: str | None = field(default=None)
 
     def __post_init__(self) -> None:
         # `feedback_references` se normaliza a tupla antes de validar, de
@@ -144,14 +173,87 @@ class RecalibrationLineage:
         ):
             raise LineageValidationError("contract_version debe ser un entero positivo.")
 
+        if (
+            not isinstance(self.lineage_version, int)
+            or isinstance(self.lineage_version, bool)
+            or self.lineage_version not in SUPPORTED_LINEAGE_VERSIONS
+        ):
+            raise LineageValidationError(
+                f"lineage_version no soportada: {self.lineage_version!r}. "
+                f"Soportadas: {SUPPORTED_LINEAGE_VERSIONS}."
+            )
+
+        if self.dataset_sha256 is not None:
+            _require_valid_sha256(self.dataset_sha256, "dataset_sha256")
+        elif self.lineage_version >= LINEAGE_VERSION_2:
+            raise LineageValidationError(
+                f"dataset_sha256 es obligatorio a partir de lineage_version={LINEAGE_VERSION_2}."
+            )
+
     def to_dict(self) -> dict:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> RecalibrationLineage:
-        refs = [FeedbackReference(**ref) for ref in data.get("feedback_references", [])]
-        rest = {k: v for k, v in data.items() if k != "feedback_references"}
-        return cls(feedback_references=refs, **rest)
+    def from_dict(cls, data) -> RecalibrationLineage:
+        """Reconstruye el evento desde un artefacto persistido, ejecutando
+        la misma validación que en la construcción. Los eventos
+        históricos que no incluyen `lineage_version`/`dataset_sha256`
+        (persistidos antes de que existieran estos campos) se interpretan
+        explícitamente como `LINEAGE_VERSION_1` — nunca se los reinterpreta
+        como si cumplieran una versión posterior.
+
+        Cualquier estructura inválida (el artefacto no es un objeto JSON,
+        `feedback_references` no es una lista, una referencia no es un
+        objeto o le faltan campos, faltan campos obligatorios del evento)
+        se normaliza a `LineageValidationError` — nunca se propaga
+        `TypeError`/`KeyError`/`AttributeError` sin envolver.
+        """
+        if not isinstance(data, dict):
+            raise LineageValidationError(
+                "El artefacto de linaje debe ser un objeto JSON (dict), recibido: "
+                f"{type(data).__name__}."
+            )
+
+        raw_references = data.get("feedback_references", [])
+        # Acepta lista o tupla: `to_dict()` (`dataclasses.asdict`) conserva
+        # `feedback_references` como tupla cuando se usa en memoria (sin pasar
+        # por JSON); un artefacto JSON deserializado siempre trae una lista.
+        if not isinstance(raw_references, (list, tuple)):
+            raise LineageValidationError(
+                "feedback_references debe ser una lista, recibido: "
+                f"{type(raw_references).__name__}."
+            )
+        refs = []
+        for entry in raw_references:
+            if not isinstance(entry, dict):
+                raise LineageValidationError(
+                    "Cada referencia de feedback debe ser un objeto JSON (dict), recibido: "
+                    f"{type(entry).__name__}."
+                )
+            try:
+                refs.append(FeedbackReference(**entry))
+            except TypeError as error:
+                raise LineageValidationError(
+                    f"Referencia de feedback con campos ausentes o inesperados: {entry!r}."
+                ) from error
+
+        rest = {
+            k: v
+            for k, v in data.items()
+            if k not in {"feedback_references", "lineage_version", "dataset_sha256"}
+        }
+        try:
+            return cls(
+                feedback_references=refs,
+                lineage_version=data.get("lineage_version", LINEAGE_VERSION_1),
+                dataset_sha256=data.get("dataset_sha256"),
+                **rest,
+            )
+        except TypeError as error:
+            raise LineageValidationError(
+                f"El artefacto de linaje tiene campos ausentes, inesperados o de tipo "
+                f"incorrecto: {error}"
+            ) from error
 
 
 def build_feedback_references(
@@ -173,3 +275,18 @@ def build_feedback_references(
             )
         )
     return references
+
+
+def compute_dataset_sha256(path: str | os.PathLike, chunk_size: int = 1024 * 1024) -> str:
+    """SHA-256 del contenido binario exacto de `path`, leído de forma
+    incremental (sin cargar el archivo completo en memoria) — provenance
+    verificable del dataset usado en una recalibración, distinta de
+    `(mtime, size)` (`data_ingestion.storage.get_dataset_fingerprint`),
+    que sigue siendo la clave económica de invalidación de caché y no
+    identifica el contenido.
+    """
+    digest = hashlib.sha256()
+    with open(path, "rb") as dataset_file:
+        for chunk in iter(lambda: dataset_file.read(chunk_size), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
