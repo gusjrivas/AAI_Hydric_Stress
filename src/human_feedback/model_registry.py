@@ -330,6 +330,40 @@ def list_recalibration_lineage(sensor_id) -> list[RecalibrationLineage]:
     return [entry for entry in lineage if entry is not None]
 
 
+def get_latest_recalibrated_version(sensor_id) -> str | None:
+    """Número de versión MLflow más reciente registrada para `sensor_id`
+    en el Model Registry de recalibraciones, o `None` si nunca se
+    recalibró. Solo lectura de metadata de versión — no descarga ni
+    valida el estimador (a diferencia de `load_latest_recalibrated_model`).
+    """
+    name = registered_model_name_for(sensor_id)
+    versions = mlflow.MlflowClient().search_model_versions(f"name='{name}'")
+    if not versions:
+        return None
+    return str(max(int(v.version) for v in versions))
+
+
+def load_latest_issued_predictor_metadata(sensor_id) -> dict | None:
+    """Metadata (sin el estimador) del último predictor "issued"
+    registrado para `sensor_id` (`register_predictor`, invocado por
+    `POST /forecast/{sensor_id}/run`), con `issued_model_version`
+    agregado (la versión MLflow de ese registro). Devuelve `None` si
+    todavía no se corrió ningún pronóstico para ese sensor. Solo
+    lectura: no carga el estimador ni reentrena nada.
+    """
+    name = registered_model_name_for(sensor_id) + "__issued"
+    client = mlflow.MlflowClient()
+    versions = client.search_model_versions(f"name='{name}'")
+    if not versions:
+        return None
+    latest = max(versions, key=lambda v: int(v.version))
+    metadata_path = client.download_artifacts(latest.run_id, "predictor_metadata.json")
+    with open(metadata_path, encoding="utf-8") as metadata_file:
+        metadata = json.load(metadata_file)
+    metadata["issued_model_version"] = str(latest.version)
+    return metadata
+
+
 def load_predictor_by_id(
     sensor_id, model_id: str, expected_contract: dict
 ) -> FittedPredictor | None:

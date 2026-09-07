@@ -112,6 +112,32 @@ Implementado en `backend/app/pipeline.py` (`execute_configured_pipeline`, `_sele
 
 **Precisión sobre la semántica del caché:** este requirement se originó cuando el backend usaba selección automática entre candidatos (de ahí el nombre histórico "modelo auto-seleccionado"). El backend operativo vigente usa un contrato Random Forest explícito cuando no hay predictor recalibrado o cacheado (ver la sección "Modelo operativo vs. selección automática experimental" más abajo); el mecanismo de caché por huella de dataset y por sensor sigue vigente y sigue evitando reentrenar innecesariamente en cada corrida, independientemente de si el modelo subyacente es fijo o auto-seleccionado.
 
+### Requirement: Observabilidad de solo lectura para la demo académica
+
+El sistema DEBE exponer, por sensor y de solo lectura, la calidad/anomalías del dataset consolidado, la identidad verificable del predictor que usaría el próximo pronóstico, y la cadena completa de linaje de recalibraciones — sin modificar el dataset, sin entrenar ni recalibrar, y sin crear ningún run o versión nueva en MLflow.
+
+#### Scenario: Consultar calidad y anomalías de un sensor
+
+- **GIVEN** un dataset consolidado disponible para un `sensor_id` dado
+- **WHEN** se invoca el endpoint de calidad de ese sensor
+- **THEN** se devuelve el reporte de calidad (`data_quality.quality_report`) y anomalías (`data_quality.anomaly_detection.detect_anomalies`, exploratorio, calculado bajo demanda) sin modificar el dataset ni el predictor operativo
+
+#### Scenario: Consultar el predictor activo sin que exista ninguno todavía
+
+- **GIVEN** un sensor que nunca corrió un pronóstico ni una recalibración
+- **WHEN** se invoca el endpoint del predictor activo de ese sensor
+- **THEN** se devuelve la configuración del contrato (horizonte, columnas, lags, ventanas — siempre disponible desde `backend/app/config.py`) con `origin`, `model_id`, `version`, `trained_through` y `calibration_end` explícitamente `None`, nunca inventados
+
+#### Scenario: Consultar la cadena de linaje completa
+
+- **GIVEN** un sensor con una o más recalibraciones exitosas
+- **WHEN** se invoca el endpoint de linaje de ese sensor
+- **THEN** se devuelve la cadena cronológica completa (`human_feedback.model_registry.list_recalibration_lineage`), o un error HTTP explícito (409) si algún evento de linaje está corrupto o incompleto — nunca una cadena parcial ni un error oculto
+
+Implementado en `backend/app/routers/quality.py` (`GET /quality/{sensor_id}`), `backend/app/routers/models.py` (`GET /models/{sensor_id}/active`) y `backend/app/routers/lineage.py` (`GET /lineage/{sensor_id}`). Testeado en `backend/tests/test_quality.py`, `backend/tests/test_models_active.py` y `backend/tests/test_lineage.py`, incluyendo verificación explícita de ausencia de efectos secundarios (ningún run ni versión de modelo nuevos).
+
+El predictor "base configurado" (sin recalibración previa) se identifica leyendo la metadata del último predictor `issued` (`human_feedback.model_registry.load_latest_issued_predictor_metadata`, agregada junto con `get_latest_recalibrated_version` para esta capacidad) — nunca cargando ni entrenando un modelo distinto del que usaría `execute_configured_pipeline`.
+
 ## Limitaciones conocidas
 
 - ~~Un único modelo fijo (Random Forest, configuración base) genera el veredicto; el motor de selección/ensamble entre varios modelos queda para una iteración futura (`openspec/changes/add-alerting-ui/proposal.md`, "Fuera de alcance").~~ **Actualización (2026-08-22):** por un tiempo resuelto mediante selección automática entre candidatos (`openspec/specs/predictive-modeling/spec.md`, requirement "Selección automática del mejor modelo candidato"). **Actualización posterior (ver "Modelo operativo vs. selección automática experimental" más abajo):** el backend operativo volvió a usar un contrato Random Forest explícito, por una decisión deliberada distinta del motivo original de esta limitación — no es un regreso a la limitación original, sino una decisión operativa para evitar que la UI falle ante folds de validación degenerados.
@@ -123,9 +149,9 @@ Implementado en `backend/app/pipeline.py` (`execute_configured_pipeline`, `_sele
 
 ## Multi-sensor
 
-Todas las rutas de esta capacidad exigen un `sensor_id` explícito (`POST /forecast/{sensor_id}/run`, `GET /feedback/{sensor_id}`, `POST /feedback/{sensor_id}/{fecha}/confirm`, `POST /feedback/{sensor_id}/{fecha}/reject`, `POST /recalibrate/{sensor_id}`, `POST /sensors/{sensor_id}/readings`; ver ADR-0008). Por cada sensor: el dataset consolidado, el registro de retroalimentación, el modelo recalibrado en el Model Registry de MLflow y el caché de modelo (`_selection_cache`) están aislados entre sí mediante la convención de nombres de `data_ingestion.sensor_naming`, sin estado global compartido entre sensores.
+Todas las rutas de esta capacidad exigen un `sensor_id` explícito (`POST /forecast/{sensor_id}/run`, `GET /feedback/{sensor_id}`, `POST /feedback/{sensor_id}/{fecha}/confirm`, `POST /feedback/{sensor_id}/{fecha}/reject`, `POST /recalibrate/{sensor_id}`, `POST /sensors/{sensor_id}/readings`, `GET /quality/{sensor_id}`, `GET /models/{sensor_id}/active`, `GET /lineage/{sensor_id}`; ver ADR-0008). Por cada sensor: el dataset consolidado, el registro de retroalimentación, el modelo recalibrado en el Model Registry de MLflow y el caché de modelo (`_selection_cache`) están aislados entre sí mediante la convención de nombres de `data_ingestion.sensor_naming`, sin estado global compartido entre sensores.
 
-El frontend (`frontend/src/features/forecast/ForecastPage.tsx`) consume actualmente estas rutas con `sensor_id`, tras el breaking change deliberado introducido por PR #163 (que exigió `sensor_id` en todos los endpoints) y su resolución posterior, que incorporó el selector/input de sensor en la interfaz. No queda ninguna llamada del frontend a una ruta sin `sensor_id`.
+El frontend consume estas rutas con `sensor_id` desde `frontend/src/App.tsx` (estado del sensor compartido entre secciones) y sus features `forecast/`, `quality/` y `lineage/`, tras el breaking change deliberado introducido por PR #163 (que exigió `sensor_id` en todos los endpoints) y su resolución posterior, que incorporó el selector/input de sensor en la interfaz. No queda ninguna llamada del frontend a una ruta sin `sensor_id`.
 
 ## Modelo operativo vs. selección automática experimental
 

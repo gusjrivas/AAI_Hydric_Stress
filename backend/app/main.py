@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import feedback, forecast, recalibration, sensors
+from .routers import feedback, forecast, lineage, models, quality, recalibration, sensors
 
 app = FastAPI(title="Alerting UI API")
 
@@ -20,3 +20,6 @@ app.include_router(forecast.router)
 app.include_router(feedback.router)
 app.include_router(recalibration.router)
 app.include_router(sensors.router)
+app.include_router(quality.router)
+app.include_router(models.router)
+app.include_router(lineage.router)
