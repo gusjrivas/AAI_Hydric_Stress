@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:8000";
+import { API_BASE_URL } from "../../api/baseUrl";
 
 export interface Verdict {
   fecha: string;
@@ -73,6 +73,7 @@ export interface RecalibrationResponse {
   version: string;
   n_correcciones: number;
   fechas_corregidas: string[];
+  recalibration_id?: string | null;
 }
 
 export async function recalibrate(sensorId: string): Promise<RecalibrationResponse> {
@@ -80,6 +81,32 @@ export async function recalibrate(sensorId: string): Promise<RecalibrationRespon
   if (!response.ok) {
     const body = await response.json().catch(() => null);
     throw new Error(body?.detail ?? `Error al recalibrar el modelo: ${response.status}`);
+  }
+  return response.json();
+}
+
+export interface ActivePredictor {
+  sensor_id: string;
+  origin: "recalibrado" | "base_configurado" | null;
+  model_id: string | null;
+  version: string | null;
+  trained_through: string | null;
+  calibration_end: string | null;
+  horizon_days: number;
+  contract_version: number;
+  pipeline_version: string;
+  feature_columns: string[];
+  lags: number[];
+  rolling_windows: number[];
+  applied_feedback_count: number;
+  applied_feedback_dates: string[];
+}
+
+export async function getActivePredictor(sensorId: string): Promise<ActivePredictor> {
+  const response = await fetch(`${API_BASE_URL}/models/${encodeURIComponent(sensorId)}/active`);
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.detail ?? `Error al obtener el predictor activo: ${response.status}`);
   }
   return response.json();
 }
