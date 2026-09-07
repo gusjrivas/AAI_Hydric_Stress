@@ -16,14 +16,21 @@ export function LineageChain({
   sensorId: string;
   refreshToken?: number;
 }) {
+  const requestKey = `${sensorId}:${refreshToken}`;
+  const [loadedFor, setLoadedFor] = useState(requestKey);
   const [status, setStatus] = useState<Status>("loading");
   const [chain, setChain] = useState<LineageEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  if (requestKey !== loadedFor) {
+    setLoadedFor(requestKey);
+    setStatus("loading");
+    setChain([]);
+    setError(null);
+  }
+
   useEffect(() => {
     let cancelled = false;
-    setStatus("loading");
-    setError(null);
     getLineage(sensorId)
       .then((result) => {
         if (cancelled) return;

@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { QualityPanel } from "./QualityPanel";
 import * as api from "./api";
+import type { QualityReport } from "./api";
 
 describe("QualityPanel", () => {
   beforeEach(() => {
@@ -56,5 +57,53 @@ describe("QualityPanel", () => {
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent(/fallo de red/i);
     });
+  });
+
+  it("shows loading again and never the previous sensor's report when sensorId changes", async () => {
+    const spy = vi.spyOn(api, "getQualityReport");
+    spy.mockResolvedValueOnce({
+      sensor_id: "sensor-a",
+      total_rows: 366,
+      period_start: "2024-01-01",
+      period_end: "2024-12-31",
+      missing_pct: { soil_moisture: 24.04 },
+      duplicate_timestamps: [],
+      out_of_range: {},
+      anomalies_detected: 19,
+      anomaly_method: "isolation_forest",
+      anomaly_contamination: 0.05,
+      anomaly_columns: ["soil_moisture"],
+      is_diagnostic_only: true,
+      note: "Diagnóstico exploratorio.",
+    });
+
+    const { rerender } = render(<QualityPanel sensorId="sensor-a" />);
+    await waitFor(() => screen.getByText(/366 registros/i));
+
+    let resolveSensorB!: (value: QualityReport) => void;
+    spy.mockReturnValueOnce(new Promise<QualityReport>((resolve) => (resolveSensorB = resolve)));
+
+    rerender(<QualityPanel sensorId="sensor-b" />);
+
+    expect(screen.getByRole("status")).toHaveTextContent(/cargando/i);
+    expect(screen.queryByText(/366 registros/i)).not.toBeInTheDocument();
+
+    resolveSensorB({
+      sensor_id: "sensor-b",
+      total_rows: 120,
+      period_start: "2025-01-01",
+      period_end: "2025-04-30",
+      missing_pct: { soil_moisture: 1 },
+      duplicate_timestamps: [],
+      out_of_range: {},
+      anomalies_detected: 2,
+      anomaly_method: "isolation_forest",
+      anomaly_contamination: 0.05,
+      anomaly_columns: ["soil_moisture"],
+      is_diagnostic_only: true,
+      note: "Diagnóstico exploratorio.",
+    });
+
+    await waitFor(() => screen.getByText(/120 registros/i));
   });
 });

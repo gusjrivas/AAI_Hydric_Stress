@@ -16,14 +16,21 @@ export function ActivePredictorSummary({
   sensorId: string;
   refreshToken?: number;
 }) {
+  const requestKey = `${sensorId}:${refreshToken}`;
+  const [loadedFor, setLoadedFor] = useState(requestKey);
   const [status, setStatus] = useState<Status>("loading");
   const [predictor, setPredictor] = useState<ActivePredictor | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  if (requestKey !== loadedFor) {
+    setLoadedFor(requestKey);
+    setStatus("loading");
+    setPredictor(null);
+    setError(null);
+  }
+
   useEffect(() => {
     let cancelled = false;
-    setStatus("loading");
-    setError(null);
     getActivePredictor(sensorId)
       .then((result) => {
         if (cancelled) return;

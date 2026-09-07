@@ -6,14 +6,20 @@ import type { QualityReport } from "./api";
 type Status = "loading" | "empty" | "error" | "ready";
 
 export function QualityPanel({ sensorId }: { sensorId: string }) {
+  const [loadedFor, setLoadedFor] = useState(sensorId);
   const [status, setStatus] = useState<Status>("loading");
   const [report, setReport] = useState<QualityReport | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  if (sensorId !== loadedFor) {
+    setLoadedFor(sensorId);
+    setStatus("loading");
+    setReport(null);
+    setError(null);
+  }
+
   useEffect(() => {
     let cancelled = false;
-    setStatus("loading");
-    setError(null);
     getQualityReport(sensorId)
       .then((result) => {
         if (cancelled) return;
