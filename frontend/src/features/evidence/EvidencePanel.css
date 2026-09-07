@@ -1,0 +1,116 @@
+.ep-panel {
+  --ep-border: #d9e0d5;
+  --ep-ink: #1b2a1e;
+  --ep-muted: #5c6b5f;
+  --ep-formal-bg: #f4f0e6;
+  --ep-formal-border: #a68a4a;
+  --ep-operational-bg: #e5eef0;
+  --ep-operational-border: #1f5b6b;
+  --ep-mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  color: var(--ep-ink);
+}
+
+.ep-formal {
+  border: 1px solid var(--ep-formal-border);
+  border-left: 6px solid var(--ep-formal-border);
+  background: var(--ep-formal-bg);
+  border-radius: 6px;
+  padding: 1rem 1.2rem;
+}
+
+.ep-formal-label {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.ep-provenance {
+  font-size: 0.82rem;
+  color: var(--ep-muted);
+  max-width: 80ch;
+}
+
+.ep-provenance code {
+  font-family: var(--ep-mono);
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+}
+
+.ep-table-wrap {
+  overflow-x: auto;
+}
+
+.ep-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.82rem;
+}
+
+.ep-table-caption {
+  caption-side: top;
+  text-align: left;
+  color: var(--ep-muted);
+  font-size: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.ep-table th,
+.ep-table td {
+  border: 1px solid var(--ep-border);
+  padding: 0.4rem 0.6rem;
+  text-align: right;
+  font-family: var(--ep-mono);
+}
+
+.ep-table th[scope="col"] {
+  text-align: right;
+  font-family: inherit;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.ep-table th[scope="row"] {
+  text-align: left;
+}
+
+.ep-subheading {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.9rem;
+}
+
+.ep-limitations {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.82rem;
+  color: var(--ep-ink);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.ep-operational {
+  border: 1px solid var(--ep-operational-border);
+  border-left: 6px solid var(--ep-operational-border);
+  background: var(--ep-operational-bg);
+  border-radius: 6px;
+  padding: 1rem 1.2rem;
+}
+
+.ep-operational-label {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ep-operational-border);
+}
+
+.ep-operational p {
+  margin: 0;
+  font-size: 0.85rem;
+  max-width: 80ch;
+}

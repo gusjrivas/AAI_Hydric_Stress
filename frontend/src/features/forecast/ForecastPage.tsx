@@ -8,18 +8,37 @@ import {
   runForecast,
 } from "./api";
 import type { FeedbackRow, Verdict } from "./api";
+import { ActivePredictorSummary } from "./ActivePredictorSummary";
+import { getLineage } from "../lineage/api";
 
-export function ForecastPage() {
-  const [sensorId, setSensorId] = useState("sensor-a");
+interface ForecastPageProps {
+  sensorId?: string;
+  onSensorIdChange?: (sensorId: string) => void;
+  onRecalibrated?: () => void;
+}
+
+export function ForecastPage({
+  sensorId: sensorIdProp,
+  onSensorIdChange,
+  onRecalibrated,
+}: ForecastPageProps = {}) {
+  const [internalSensorId, setInternalSensorId] = useState("sensor-a");
+  const sensorId = sensorIdProp ?? internalSensorId;
+  const setSensorId = onSensorIdChange ?? setInternalSensorId;
+
   const [verdicts, setVerdicts] = useState<Verdict[]>([]);
   const [feedback, setFeedback] = useState<FeedbackRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [recalibrating, setRecalibrating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [predictorRefreshToken, setPredictorRefreshToken] = useState(0);
 
   const pendingCorrections = feedback.filter(
     (row) => row.estado_validacion === "rechazada" && row.etiqueta_corregida !== null,
+  ).length;
+  const feedbackPendienteRevision = feedback.filter(
+    (row) => row.estado_validacion === "pendiente",
   ).length;
 
   async function handleRunForecast() {
@@ -37,6 +56,7 @@ export function ForecastPage() {
         ...result.verdicts,
       ]);
       if (result.selection_warning) setActionMessage(result.selection_warning);
+      setPredictorRefreshToken((token) => token + 1);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -61,9 +81,28 @@ export function ForecastPage() {
     setError(null);
     try {
       const result = await recalibrate(sensorId);
+      let lineageInfo = "";
+      if (result.recalibration_id) {
+        try {
+          const lineage = await getLineage(sensorId);
+          const event = lineage.chain.find(
+            (entry) => entry.recalibration_id === result.recalibration_id,
+          );
+          if (event) {
+            lineageInfo = ` Predictor origen ${event.source_model_id.slice(0, 8)}… → sucesor ${event.successor_model_id.slice(0, 8)}… (ver sección Linaje).`;
+          }
+        } catch {
+          // La sección de Linaje tiene su propio estado de error; esta
+          // consulta adicional es solo para enriquecer este mensaje.
+        }
+      }
       setActionMessage(
-        `Modelo recalibrado (versión ${result.version}) usando ${result.n_correcciones} corrección(es) — el próximo pronóstico usará este modelo.`,
+        `Modelo recalibrado (versión ${result.version}` +
+          `${result.recalibration_id ? `, recalibration_id ${result.recalibration_id}` : ""}` +
+          `) usando ${result.n_correcciones} corrección(es) — el próximo pronóstico usará este modelo.${lineageInfo}`,
       );
+      setPredictorRefreshToken((token) => token + 1);
+      onRecalibrated?.();
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -79,7 +118,7 @@ export function ForecastPage() {
     <div className="fp-page">
       <header className="fp-header">
         <div>
-          <h1 className="fp-title">Pronóstico de estrés hídrico</h1>
+          <h3 className="fp-title">Pronóstico de estrés hídrico</h3>
           <p className="fp-subtitle">Validación humana de alertas sobre el dataset consolidado</p>
         </div>
         <div className="fp-header-actions">
@@ -106,12 +145,27 @@ export function ForecastPage() {
         acumuladas y registra una nueva versión — el próximo pronóstico usará esa versión.
       </div>
 
+      <p className="fp-disclaimer">
+        La probabilidad es una señal predictiva relativa del modelo y no un diagnóstico
+        fisiológico ni una probabilidad agronómicamente calibrada.
+      </p>
+
+      <section className="fp-predictor-section" aria-label="Predictor activo">
+        <h3 className="fp-section-heading">Predictor activo</h3>
+        <ActivePredictorSummary sensorId={sensorId} refreshToken={predictorRefreshToken} />
+      </section>
+
       {error && <p role="alert" className="fp-error">{error}</p>}
       {actionMessage && (
         <p role="status" className="fp-action-message">
           {actionMessage}
         </p>
       )}
+
+      <p className="fp-feedback-stats">
+        Feedback sin revisar: <strong>{feedbackPendienteRevision}</strong> · Correcciones sin
+        incorporar a la recalibración: <strong>{pendingCorrections}</strong>
+      </p>
 
       <ul className="fp-list">
         {verdicts.map((verdict) => {
