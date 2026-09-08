@@ -236,24 +236,37 @@ hyperparameter_grids:
     base_models: [logistic_regression, random_forest, hist_gradient_boosting_classifier]
 
 environment:
-  status: PRECONDITION_FOR_EXECUTION
+  status: VALIDATED_FOR_TESTS_ONLY
   note: >
-    Ningún experimento puede ejecutarse hasta que exista un manifiesto/lock con
-    las versiones exactas y validadas del entorno. pyproject.toml solo fija
-    pisos mínimos hoy (scikit-learn>=1.4, pandas>=2.0), sin lockfile.
-  python_version: PENDING_BEFORE_EXECUTION
-  numpy_version: PENDING_BEFORE_EXECUTION
-  pandas_version: PENDING_BEFORE_EXECUTION
-  scipy_version: PENDING_BEFORE_EXECUTION
-  pyarrow_version: PENDING_BEFORE_EXECUTION
-  scikit_learn_version: PENDING_BEFORE_EXECUTION
+    Entorno experimental dedicado, resuelto y construido en un contenedor
+    limpio (docker/experiment-v4/Dockerfile, base python@sha256:9534e5a8e31548
+    5d4061ed659af0fd78a284c015f9b73661b41d6bab25604534, digest fijado) y
+    validado ejecutando allí la suite de tests con datasets sintéticos.
+    Constraints exactas en docker/experiment-v4/constraints.txt. Este estado
+    cubre exclusivamente la reproducibilidad para tests/CI con datos
+    sintéticos; la ejecución real de la Etapa A sobre Pergamino sigue
+    pendiente y exige, además, congelar este mismo entorno como el usado en
+    esa corrida real (repository_state.commit debe corresponder a ese momento).
+  python_version: "3.11.16 (python:3.11-slim, digest fijado en el Dockerfile)"
+  numpy_version: "2.4.6"
+  scipy_version: "1.17.1"
+  pandas_version: "3.0.5"
+  pyarrow_version: "25.0.1"
+  scikit_learn_version: "1.9.0"
+  joblib_version: "1.6.0"
+  threadpoolctl_version: "3.6.0"
+  pytest_version: "9.1.1"
+  ruff_version: "0.16.6"
+  black_version: "26.5.1"
 
 repository_state:
-  branch: docs/controlled-daily-v4-pergamino-protocol
+  branch: feat/controlled-daily-v4-stage-a-runner
   commit: PENDING_BEFORE_EXECUTION
   note: >
-    Se completa con el commit real en el momento de ejecución del protocolo,
-    no en el momento de su documentación.
+    Se completa con el commit real en el momento de ejecución REAL de la
+    Etapa A sobre Pergamino (todavía no ejecutada). El runner y su entorno
+    reproducible ya existen (ver environment), pero esta tarea solo autorizó
+    implementación y tests con datos sintéticos, no la corrida real.
 
 execution_artifacts:
   status: PENDING_BEFORE_EXECUTION

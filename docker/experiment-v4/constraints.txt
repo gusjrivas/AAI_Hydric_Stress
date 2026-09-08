@@ -1,0 +1,14 @@
+# Constraints dedicadas a controlled_daily_v4_external_pergamino.
+# Versiones resueltas y validadas en un entorno limpio (python:3.11-slim,
+# digest fijado en docker/experiment-v4/Dockerfile), no escritas a mano.
+# No reemplaza ni amplía las dependencias globales de pyproject.toml.
+numpy==2.4.6
+scipy==1.17.1
+pandas==3.0.5
+pyarrow==25.0.1
+scikit-learn==1.9.0
+joblib==1.6.0
+threadpoolctl==3.6.0
+pytest==9.1.1
+ruff==0.16.6
+black==26.5.1
