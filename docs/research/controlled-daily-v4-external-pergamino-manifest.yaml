@@ -1,0 +1,284 @@
+# Manifiesto de provenance — controlled_daily_v4_external_pergamino
+#
+# Plantilla versionada, SIN resultados experimentales. Estado global: PROTOCOL_ONLY.
+# Ningún experimento fue ejecutado; ningún valor de resultados existe todavía.
+# No modificar controlled_daily_v3 ni su evidencia (scientific-baseline-v3) a partir de este archivo.
+# Ver docs/adr/0011-protocolo-controlled-daily-v4-external-pergamino.md y
+# docs/research/controlled-daily-v4-external-pergamino-protocol.md para la decisión y el detalle completo.
+
+protocol_id: controlled_daily_v4_external_pergamino
+status: PROTOCOL_ONLY
+adr: docs/adr/0011-protocolo-controlled-daily-v4-external-pergamino.md
+protocol_document: docs/research/controlled-daily-v4-external-pergamino-protocol.md
+related_adr: docs/adr/0010-seleccion-modelos-controlled-daily-v4.md
+does_not_alter: scientific-baseline-v3, controlled_daily_v3, technical-baseline-v1, technical-baseline-v2
+
+site:
+  name: Pergamino
+  role: primary_external_site
+  future_replication:
+    name: Balcarce
+    status: FUTURE_GEOGRAPHIC_VALIDATION
+    note: >
+      No participa en selección, ajuste de hiperparámetros ni confirmación en esta
+      iteración. No se concatena con Pergamino sin estudiar antes el cambio de dominio
+      entre ambos sitios.
+
+coordinates:
+  requested:
+    latitude: -33.89101
+    longitude: -60.57462
+    confirmation_status: CONFIRMED_BY_CONSISTENCY_CHECK
+    note: >
+      No existe en el repositorio un registro independiente de la coordenada
+      originalmente solicitada. Se infiere con alta confianza a partir de la
+      consistencia entre la URL de adquisición informada y los metadatos
+      embebidos en los CSV: NASA POWER reporta "Location: latitude -33.891
+      longitude -60.5746" (coincide, redondeado, con la coordenada solicitada),
+      y Open-Meteo/ERA5-Land devuelve -33.899998/-60.6 (coherente con el
+      snapping a su grilla nativa de ~0.1°, más gruesa que la precisión de la
+      solicitud). No se trata de una confirmación documental directa.
+  returned_era5_land:
+    latitude: -33.899998
+    longitude: -60.6
+    elevation_m: 70.0
+    source: metadato embebido en pergamino_era5land_soil_hourly_2015_2025.csv
+  returned_nasa_power:
+    latitude: -33.891
+    longitude: -60.5746
+    elevation_m: 69.07
+    elevation_note: "Average for 0.5 x 0.625 degree lat/lon region (MERRA-2)"
+    source: metadato embebido en pergamino_nasa_power_daily_2015_2025.csv
+
+sources:
+  era5_land:
+    provider: Open-Meteo Archive API (modelo ERA5-Land)
+    acquisition_url: >-
+      https://archive-api.open-meteo.com/v1/archive?latitude=-33.89101&longitude=-60.57462&start_date=2015-01-01&end_date=2025-12-31&hourly=soil_moisture_0_to_7cm%2Csoil_moisture_7_to_28cm%2Csoil_moisture_28_to_100cm%2Csoil_moisture_100_to_255cm&models=era5_land&timezone=America%2FArgentina%2FBuenos_Aires&format=csv
+    url_consistency_check: CONSISTENT
+    url_consistency_evidence: >
+      Rango de fechas (2015-01-01/2025-12-31), variables (las 4 columnas de
+      soil_moisture presentes en el CSV), modelo (era5_land) y timezone
+      (America/Argentina/Buenos_Aires) coinciden exactamente con los metadatos
+      embebidos y con el contenido tabular del archivo.
+    acquisition_date: "2026-09-08"
+    acquisition_date_status: PENDING_CONFIRMATION
+    acquisition_date_note: >
+      Fecha informada por el proyecto; no verificable de forma independiente
+      desde el repositorio (solo se observó la fecha de modificación del
+      archivo en disco, que puede diferir de la fecha real de descarga desde
+      la API).
+    license_status: PENDING_CONFIRMATION
+    license_note: >
+      Requiere verificación oficial contra documentación de Open-Meteo y de
+      Copernicus/ECMWF (ERA5-Land es un producto Copernicus) antes de
+      incorporar los CSV al manifiesto científico definitivo. No se transcribe
+      texto de licencia sin verificar directamente la fuente oficial.
+    temporal_resolution: hourly
+    spatial_resolution_native: "~0.1 grado (grilla nativa ERA5-Land)"
+    variables:
+      - name: soil_moisture_0_to_7cm
+        unit: m3/m3
+      - name: soil_moisture_7_to_28cm
+        unit: m3/m3
+      - name: soil_moisture_28_to_100cm
+        unit: m3/m3
+      - name: soil_moisture_100_to_255cm
+        unit: m3/m3
+    timezone: America/Argentina/Buenos_Aires
+    utc_offset_seconds: -10800
+    raw_file:
+      path: AAI_Hydric_Stress_external_data/raw/pergamino_era5land_soil_hourly_2015_2025.csv
+      in_git: false
+      size_bytes: 3954003
+      sha256: 318edffb89c64d5f500e35b5530e6064cb02f68b89bd28a71262c2ebb01f485f
+      encoding: UTF-8
+      delimiter: ","
+      header_structure: >
+        2 líneas de metadatos (latitude,longitude,elevation,utc_offset_seconds,
+        timezone,timezone_abbreviation + valores), línea en blanco, encabezado
+        tabular (time + 4 columnas soil_moisture_*), luego datos horarios.
+      n_records: 96432
+      timestamp_min: "2015-01-01T00:00"
+      timestamp_max: "2025-12-31T23:00"
+
+  nasa_power:
+    provider: NASA POWER API (MERRA-2 + CERES SYN1deg)
+    acquisition_url: >-
+      https://power.larc.nasa.gov/api/temporal/daily/point?parameters=RH2M%2CALLSKY_SFC_SW_DWN%2CT2M%2CPRECTOTCORR&community=AG&longitude=-60.57462&latitude=-33.89101&start=20150101&end=20251231&format=CSV
+    url_consistency_check: CONSISTENT
+    url_consistency_evidence: >
+      Rango de fechas (20150101/20251231), variables (RH2M, ALLSKY_SFC_SW_DWN,
+      T2M, PRECTOTCORR, las 4 columnas presentes en el CSV) coinciden
+      exactamente con los metadatos embebidos y el contenido tabular del
+      archivo. La coordenada solicitada en la URL coincide, redondeada, con la
+      "Location" reportada en el propio header del CSV.
+    acquisition_date: "2026-09-08"
+    acquisition_date_status: PENDING_CONFIRMATION
+    license_status: PENDING_CONFIRMATION
+    license_note: >
+      Requiere verificación oficial contra los términos de uso publicados de
+      NASA POWER antes de incorporar los CSV al manifiesto científico
+      definitivo.
+    temporal_resolution: daily
+    spatial_resolution_native: "~0.5 x 0.625 grados (grilla nativa MERRA-2/CERES)"
+    missing_value_sentinel: -999
+    variables:
+      - name: RH2M
+        unit: percent
+        description: "MERRA-2 Relative Humidity at 2 Meters"
+      - name: ALLSKY_SFC_SW_DWN
+        unit: MJ/m^2/day
+        description: "CERES SYN1deg All Sky Surface Shortwave Downward Irradiance"
+      - name: T2M
+        unit: celsius
+        description: "MERRA-2 Temperature at 2 Meters"
+      - name: PRECTOTCORR
+        unit: mm/day
+        description: "MERRA-2 Precipitation Corrected"
+    timezone: LST (según metadato propio del archivo)
+    raw_file:
+      path: AAI_Hydric_Stress_external_data/raw/pergamino_nasa_power_daily_2015_2025.csv
+      in_git: false
+      size_bytes: 127568
+      sha256: 415b4f71abb78e419b765110f4a42c3f32587b204d12897812df9573c5c2202b
+      encoding: ASCII
+      line_terminator: CRLF
+      delimiter: ","
+      header_structure: >
+        Bloque -BEGIN HEADER- .. -END HEADER- (12 líneas de metadatos), luego
+        encabezado tabular (YEAR,DOY,RH2M,ALLSKY_SFC_SW_DWN,T2M,PRECTOTCORR).
+      n_records: 4018
+      date_min: "2015-01-01"
+      date_max: "2025-12-31"
+
+aggregation_rules:
+  hourly_to_daily: >
+    Promedio aritmético de las 24 observaciones horarias de cada día calendario,
+    interpretado en America/Argentina/Buenos_Aires. No se imputan días con menos
+    de 24 observaciones válidas (verificado: 100% de los 4018 días tienen
+    exactamente 24 observaciones, en ambas fuentes, sin gaps).
+  date_alignment: >
+    Inner join por fecha calendario entre el promedio diario de ERA5-Land y el
+    registro diario de NASA POWER (reconstruyendo la fecha desde YEAR+DOY).
+    Verificado: 4018/4018 fechas comunes, 0% de faltantes post-cruce, 0 fechas
+    exclusivas de ninguna de las dos fuentes, en el rango 2015-01-01/2025-12-31.
+
+experimental_design:
+  target:
+    rule: "stress(t) = 1 si soil_moisture(t+3) < P20_train"
+    operator: strict_less_than
+    horizon_days: 3
+  primary_depth: soil_moisture_0_to_7cm
+  sensitivity_depth: soil_moisture_7_to_28cm
+  excluded_depths:
+    - soil_moisture_28_to_100cm
+    - soil_moisture_100_to_255cm
+  periods:
+    stage_a_development:
+      target_timestamp_range: ["2015-01-01", "2022-12-31"]
+      emission_range: ["2015-01-07", "2022-12-28"]
+    stage_b_temporal_validation:
+      target_timestamp_range: ["2023-01-01", "2023-12-31"]
+      emission_range: ["2023-01-01", "2023-12-28"]
+      status: PENDING_BEFORE_EXECUTION
+    stage_c_holdout:
+      target_timestamp_range: ["2024-01-01", "2025-12-31"]
+      emission_range: ["2024-01-01", "2025-12-28"]
+      status: closed
+      opening_authorization: PENDING_BEFORE_EXECUTION
+      opening_date: PENDING_BEFORE_EXECUTION
+      opening_condition: "CANDIDATE_VALIDATED en Etapa B (ver protocolo, sección 10)"
+  nested_cv:
+    outer: "TimeSeriesSplit(n_splits=3, gap=3)"
+    inner: "TimeSeriesSplit(n_splits=3, gap=3)"
+  models:
+    - logistic_regression
+    - random_forest
+    - hist_gradient_boosting_classifier
+    - soft_voting
+  class_balancing: sample_weight (fold-local, w_c = n_train / (n_classes * n_train_c)); no class_weight
+  decision_threshold: 0.5
+  practical_margin_delta_mcc: 0.05
+  bootstrap:
+    method: moving_block_bootstrap
+    block_days: 30
+    replicas: 5000
+    seed: 20250109
+
+hyperparameter_grids:
+  logistic_regression:
+    C: [0.01, 0.1, 1.0, 10.0]
+    weighting: [none, sample_weight_balanced]
+    n_configs: 8
+  random_forest:
+    n_estimators: [100, 300]
+    max_depth: [4, 8, null]
+    min_samples_leaf: [5, 20]
+    weighting: [none, sample_weight_balanced]
+    random_state: 42
+    n_jobs: 1
+    n_configs: 24
+  hist_gradient_boosting_classifier:
+    learning_rate: [0.03, 0.1]
+    max_iter: [100, 300]
+    max_leaf_nodes: [15, 31]
+    l2_regularization: [0.0, 1.0]
+    max_depth: null
+    weighting: [none, sample_weight_balanced]
+    early_stopping: false
+    random_state: 42
+    n_configs: 32
+  soft_voting:
+    weights: [0.333333, 0.333333, 0.333333]
+    base_models: [logistic_regression, random_forest, hist_gradient_boosting_classifier]
+
+environment:
+  status: PRECONDITION_FOR_EXECUTION
+  note: >
+    Ningún experimento puede ejecutarse hasta que exista un manifiesto/lock con
+    las versiones exactas y validadas del entorno. pyproject.toml solo fija
+    pisos mínimos hoy (scikit-learn>=1.4, pandas>=2.0), sin lockfile.
+  python_version: PENDING_BEFORE_EXECUTION
+  numpy_version: PENDING_BEFORE_EXECUTION
+  pandas_version: PENDING_BEFORE_EXECUTION
+  scipy_version: PENDING_BEFORE_EXECUTION
+  pyarrow_version: PENDING_BEFORE_EXECUTION
+  scikit_learn_version: PENDING_BEFORE_EXECUTION
+
+repository_state:
+  branch: docs/controlled-daily-v4-pergamino-protocol
+  commit: PENDING_BEFORE_EXECUTION
+  note: >
+    Se completa con el commit real en el momento de ejecución del protocolo,
+    no en el momento de su documentación.
+
+execution_artifacts:
+  status: PENDING_BEFORE_EXECUTION
+  note: >
+    Ninguno de los siguientes campos existe todavía; se completan únicamente
+    cuando el protocolo se ejecute (fuera de alcance de esta tarea documental).
+  folds:
+    outer_fold_boundaries: PENDING_BEFORE_EXECUTION
+    inner_fold_boundaries: PENDING_BEFORE_EXECUTION
+  p20_train_by_fold: PENDING_BEFORE_EXECUTION
+  frozen_hyperparameters: PENDING_BEFORE_EXECUTION
+  seeds_used: PENDING_BEFORE_EXECUTION
+  oof_predictions_path: PENDING_BEFORE_EXECUTION
+  metrics_path: PENDING_BEFORE_EXECUTION
+  warnings_log: PENDING_BEFORE_EXECUTION
+  stage_b_result: PENDING_BEFORE_EXECUTION
+  stage_c_result: PENDING_BEFORE_EXECUTION
+
+future_versioned_artifacts:
+  note: >
+    A versionar únicamente después de ejecutar el protocolo (fuera de alcance
+    de esta tarea): predicciones OOF, métricas finales, resultados de Etapa B
+    y C, y el dataset diario derivado (o su receta reproducible de
+    construcción) junto con su propio SHA-256. Los CSV crudos permanecen
+    fuera de Git en todo momento.
+  planned_paths:
+    daily_derived_dataset: PENDING_BEFORE_EXECUTION
+    daily_derived_dataset_sha256: PENDING_BEFORE_EXECUTION
+    oof_predictions: PENDING_BEFORE_EXECUTION
+    results: PENDING_BEFORE_EXECUTION

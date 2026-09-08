@@ -562,3 +562,24 @@ cruces de versión, y 6 en `test_storage.py`), `cd backend && pytest -q` 36
 (previo 35 + 1), `frontend npm test` 5. `ruff check`/`black --check` sobre
 `src`/`backend`/`tests` y `npm run lint` (oxlint) en verde. `git diff --check
 main...HEAD` sin hallazgos.
+
+## Protocolo controlled_daily_v4_external_pergamino documentado (2026-09-08)
+
+Documentación formal, exclusivamente read-only sobre el repositorio (sin implementación de
+código ni ejecución de experimentos), del protocolo derivado de ADR-0010 para una futura
+iteración multimodelo sobre un dataset externo de reanálisis agroclimático. Pergamino queda
+seleccionado como segunda fuente/sitio principal de esa iteración (ERA5-Land + NASA POWER,
+2015–2025, sin faltantes estructurales); Balcarce queda reservado como
+`FUTURE_GEOGRAPHIC_VALIDATION`, sin participar todavía. Artefactos creados:
+`docs/adr/0011-protocolo-controlled-daily-v4-external-pergamino.md` (decisión),
+`docs/research/controlled-daily-v4-external-pergamino-protocol.md` (protocolo reproducible
+completo: etiquetas, fronteras causales, nested CV, selección estadística, métricas,
+baselines, costo computacional), `docs/research/controlled-daily-v4-external-pergamino-manifest.yaml`
+(plantilla de provenance, estado `PROTOCOL_ONLY`, con campos `PENDING_BEFORE_EXECUTION` donde
+corresponde y `PENDING_CONFIRMATION` para licencias/fecha de adquisición no verificables desde
+el repositorio) y `openspec/changes/add-controlled-daily-v4-external-pergamino/` (propuesta
+OpenSpec con delta de `experiment-runner` en formato Given/When/Then, sin tocar el spec
+canónico vigente de `controlled_daily_v3`). Implementación del runner y ejecución de
+cualquier experimento quedan pendientes, fuera de alcance de esta tarea. Holdout 2024–2025
+permanece completamente cerrado; `controlled_daily_v3`, `scientific-baseline-v3`,
+`technical-baseline-v1` y `technical-baseline-v2` sin alteración ni movimiento.
