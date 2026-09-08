@@ -28,16 +28,18 @@ coordinates:
   requested:
     latitude: -33.89101
     longitude: -60.57462
-    confirmation_status: CONFIRMED_BY_CONSISTENCY_CHECK
+    confirmation_status: PROJECT_REPORTED_AND_HEADER_CONSISTENT
     note: >
       No existe en el repositorio un registro independiente de la coordenada
-      originalmente solicitada. Se infiere con alta confianza a partir de la
-      consistencia entre la URL de adquisición informada y los metadatos
-      embebidos en los CSV: NASA POWER reporta "Location: latitude -33.891
-      longitude -60.5746" (coincide, redondeado, con la coordenada solicitada),
-      y Open-Meteo/ERA5-Land devuelve -33.899998/-60.6 (coherente con el
+      originalmente solicitada. Fue informada por el proyecto (a través de la
+      URL de adquisición) y resulta consistente con los metadatos embebidos en
+      los CSV: NASA POWER reporta "Location: latitude -33.891 longitude
+      -60.5746" (coincide, redondeado, con la coordenada solicitada), y
+      Open-Meteo/ERA5-Land devuelve -33.899998/-60.6 (coherente con el
       snapping a su grilla nativa de ~0.1°, más gruesa que la precisión de la
-      solicitud). No se trata de una confirmación documental directa.
+      solicitud). No se trata de una confirmación documental independiente:
+      es consistencia entre lo informado por el proyecto y el encabezado de
+      cada fuente, no una verificación externa.
   returned_era5_land:
     latitude: -33.899998
     longitude: -60.6
@@ -176,14 +178,14 @@ experimental_design:
     - soil_moisture_100_to_255cm
   periods:
     stage_a_development:
-      target_timestamp_range: ["2015-01-01", "2022-12-31"]
+      target_timestamp_range: ["2015-01-10", "2022-12-31"]
       emission_range: ["2015-01-07", "2022-12-28"]
     stage_b_temporal_validation:
-      target_timestamp_range: ["2023-01-01", "2023-12-31"]
+      target_timestamp_range: ["2023-01-04", "2023-12-31"]
       emission_range: ["2023-01-01", "2023-12-28"]
       status: PENDING_BEFORE_EXECUTION
     stage_c_holdout:
-      target_timestamp_range: ["2024-01-01", "2025-12-31"]
+      target_timestamp_range: ["2024-01-04", "2025-12-31"]
       emission_range: ["2024-01-01", "2025-12-28"]
       status: closed
       opening_authorization: PENDING_BEFORE_EXECUTION

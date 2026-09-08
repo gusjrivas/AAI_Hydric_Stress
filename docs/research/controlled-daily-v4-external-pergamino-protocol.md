@@ -235,7 +235,7 @@ Carga computacional modesta (datasets de a lo sumo ~2.400 filas, ≤10 features)
 
 - Debe existir un manifiesto o lock experimental con versiones exactas y validadas de Python, NumPy, pandas, SciPy, PyArrow y scikit-learn antes del primer experimento.
 - El runner correspondiente (a implementar en un *change* de OpenSpec futuro) no podrá ejecutarse mientras ese manifiesto/lock no exista.
-- Hoy, `pyproject.toml` solo fija pisos mínimos (`scikit-learn>=1.4`, `pandas>=2.0`, sin NumPy/SciPy/PyArrow como dependencias directas con versión fijada), sin lockfile — el entorno no es reproducible tal como está configurado.
+- Hoy, `pyproject.toml` declara `scikit-learn>=1.4`, `pandas>=2.0` y `pyarrow>=14.0` como dependencias directas, pero solo con piso mínimo, no con versión exacta fijada. NumPy y SciPy no están declarados como dependencias directas del proyecto. No existe lockfile con resolución exacta de ninguna de ellas — el entorno no es estrictamente reproducible tal como está configurado.
 
 ## 16. Provenance
 
