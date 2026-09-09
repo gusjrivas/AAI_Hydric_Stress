@@ -139,6 +139,22 @@ No se usa `class_weight` en ningún modelo — elimina la dependencia de si `cla
 5. **Comparación pareada entre candidatos:** moving block bootstrap temporal sobre la serie OOF concatenada — bloques de **30 días**, **5.000 réplicas**, semilla **`20250109`**. Los bloques respetan las discontinuidades de los outer folds: no se construye ningún bloque que cruce el final de un segmento outer y el comienzo del siguiente; el muestreo con reemplazo ocurre dentro de cada segmento temporal válido, preservando la comparación pareada por `timestamp` compartido entre candidatos.
 6. No se afirma significancia simultánea ni control familiar del error a partir de varios intervalos del 95% individuales sin corrección — cada comparación pareada se interpreta por separado.
 
+### Implementación del moving block bootstrap: variante no circular
+
+El bootstrap del paso 5 se implementa como **moving block bootstrap no circular**, con las siguientes reglas exactas:
+
+- Bloques solapados de longitud fija `L=30`.
+- Dentro de cada segmento outer, los inicios válidos de bloque son `start ∈ [0, n_s - L]`, donde `n_s` es el tamaño de ese segmento — nunca se envuelve el final de un segmento con su comienzo para completar un bloque.
+- El remuestreo con reemplazo es independiente por segmento: cada segmento repone exactamente sus `n_s` observaciones originales, eligiendo bloques de su propio pool hasta reunir al menos `n_s` posiciones.
+- Se permite truncar únicamente el último bloque concatenado de cada segmento, para ajustar el largo final a exactamente `n_s` — nunca se trunca un bloque intermedio ni se recorta el largo `L` de un bloque individual.
+- Si `n_s < L` para cualquier segmento, la ejecución normativa falla explícitamente: ese segmento no admite ningún bloque completo y no existe una excepción tácita que reduzca `L` para acomodarlo.
+
+**Justificación de la variante no circular:** la variante circular (Politis & Romano) reduciría el sesgo de muestreo en los extremos de cada segmento, pero para lograrlo debe envolver el final de un segmento con su comienzo al construir un bloque — es decir, tratar como temporalmente adyacentes dos fechas que en la serie real no lo son. Esa vecindad artificial contradice la separación temporal estricta y el diseño segment-aware exigido por este protocolo (secciones 5 y 6): los outer folds están deliberadamente separados por `gap=3` para impedir cualquier continuidad espuria entre el final de un segmento y el comienzo del siguiente, y una envoltura circular reintroduciría precisamente ese tipo de continuidad dentro de un mismo segmento.
+
+**Limitación documentada:** la variante no circular produce menor frecuencia de muestreo en las posiciones cercanas a los extremos de cada segmento que en las posiciones centrales — una posición a `L-1` pasos de un extremo participa en un solo bloque posible, mientras que una posición central participa en `L` bloques distintos. Este es el sesgo de borde conocido del moving block bootstrap clásico, aceptado explícitamente como costo de preservar la integridad temporal segment-aware.
+
+**Trabajo futuro:** una comparación de sensibilidad entre esta variante y bootstrap circular, estacionario (stationary bootstrap) o con ponderación decreciente hacia los bordes (tapered block bootstrap) queda fuera del alcance de `controlled_daily_v4`.
+
 ### Margen práctico
 
 `δ = 0.05` (en escala MCC, rango `[-1, 1]`). Fijado **antes de observar resultados** de A, B o C — no derivado del desvío estándar bootstrap ni de ninguna otra cantidad calculada durante la ejecución. Representa cinco centésimas de capacidad discriminativa, adoptado como umbral conservador de diferencia práctica apropiado para un conjunto temporal de tamaño modesto (~2.900 filas elegibles en desarrollo).
@@ -207,6 +223,22 @@ Solo si B produce `CANDIDATE_VALIDATED`:
 | Matriz de confusión | Se calcula siempre con `labels=[0,1]`, garantizando una matriz 2×2 aunque una fila/columna quede en cero |
 
 Ningún `NaN` se convierte silenciosamente en cero ni en un resultado favorable. Si el OOF concatenado de A, o el conjunto de 2023 en B, resulta monoclase, el candidato correspondiente no puede ser validado en esa etapa.
+
+### Representación serializada (`metrics.json`, esquema `controlled_daily_v4_stage_a.v2`)
+
+Toda métrica de esta sección se serializa en artefactos JSON mediante un **envelope uniforme**, el mismo para el caso definido y el indefinido — nunca un número plano en un caso y una estructura distinta en el otro:
+
+```json
+{"value": <number>, "status": "defined"}
+```
+
+```json
+{"value": null, "status": "undefined", "undefined_reason": "<motivo>"}
+```
+
+Justificación: un único tipo estructural por métrica evita que quien consuma el artefacto deba distinguir "número" de "objeto" según el caso, hace explícita la semántica de cada valor sin depender de convención implícita, y mejora la auditabilidad al dejar registrado el motivo concreto de cada indefinición (`monoclass_y_true`, `no_positive_labels_in_y_true`, `no_stress_episodes_in_y_true`, `soft_voting_has_no_own_grid`, entre otros). Ningún artefacto de esta implementación contiene los tokens no estándar `NaN`, `Infinity` ni `-Infinity`.
+
+Este contrato es el que hace operativo, a nivel de serialización, el principio ya establecido en esta sección: "ningún `NaN` se convierte silenciosamente en cero ni en un resultado favorable".
 
 ## 13. Baselines
 

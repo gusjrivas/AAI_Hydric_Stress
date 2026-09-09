@@ -1,0 +1,31 @@
+# Mantiene el contexto de build hermético: sin este archivo, artefactos
+# locales no versionados (por ejemplo `src/*.egg-info`, generado por una
+# instalación editable) entran a la imagen y cambian su contenido respecto de
+# un clon limpio. Con `src/aai_hydric_stress.egg-info` dentro, `pip check`
+# informa dependencias del proyecto que el entorno experimental no instala
+# a propósito (mlflow, netcdf4, requests, xarray).
+# Los patrones de .dockerignore se evalúan contra la ruta completa y `*` no
+# cruza `/`: `*.egg-info` solo alcanzaría el nivel raíz, de modo que hace
+# falta `**/` para excluir `src/aai_hydric_stress.egg-info`.
+**/*.egg-info/
+**/*.egg-info
+**/.eggs/
+build/
+dist/
+**/*.pyc
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.mypy_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+.git/
+.github/
+.idea/
+.vscode/
+node_modules/
+frontend/
+notebooks/
+*.ipynb_checkpoints/
