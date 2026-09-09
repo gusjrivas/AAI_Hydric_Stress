@@ -583,3 +583,31 @@ canónico vigente de `controlled_daily_v3`). Implementación del runner y ejecuc
 cualquier experimento quedan pendientes, fuera de alcance de esta tarea. Holdout 2024–2025
 permanece completamente cerrado; `controlled_daily_v3`, `scientific-baseline-v3`,
 `technical-baseline-v1` y `technical-baseline-v2` sin alteración ni movimiento.
+
+## Runner de Etapa A de controlled_daily_v4 implementado, sin ejecutar (2026-09-08)
+
+Implementación de código (`src/experiment_runner/controlled_daily_v4/`, 15 módulos) del runner
+de la Etapa A del protocolo `controlled_daily_v4_external_pergamino` (ADR-0011), con entorno
+experimental reproducible dedicado (`docker/experiment-v4/`, versiones exactas fijadas y
+validadas: Python 3.11.16, NumPy 2.4.6, SciPy 1.17.1, pandas 3.0.5, PyArrow 25.0.1,
+scikit-learn 1.9.0). Cubre: validación de provenance de los dos CSV de Pergamino, ingesta y
+alineación causal ERA5-Land/NASA POWER, target estricto `<` con `P20_train` fold-local, lags y
+rolling causales, los cuatro candidatos de ADR-0010 (LR/RF/HGB/Soft Voting) balanceados vía
+`sample_weight` sin `class_weight`, nested `TimeSeriesSplit(n_splits=3, gap=3)` outer/inner con
+invariante temporal verificado, MCC global sobre OOF concatenado con convención explícita de
+`NaN` en casos degenerados, moving block bootstrap pareado y segment-aware, selección de
+familia (ganador estable / `SIN_GANADOR_ESTABLE` con desempate por simplicidad predeclarada),
+congelamiento final de hiperparámetros, serialización atómica de artefactos (sin escribir en
+`docs/research/` ni en MLflow) y una CLI que solo acepta `--stage A`. 67 tests nuevos,
+exclusivamente con datos sintéticos (nunca leen los CSV reales de Pergamino): 67 passed en el
+entorno reproducible dedicado (~131s); suite completa del repositorio (260 preexistentes + 67
+nuevos) también en verde (327 passed) sin regresiones, en un entorno separado con todas las
+dependencias del proyecto. `ruff check`/`black --check` limpios sobre `src`/`backend`/`tests`
+completos; `git diff --check` sin hallazgos. Documentado en
+`openspec/changes/implement-controlled-daily-v4-stage-a/` (nuevo *change*, sin alterar
+retrospectivamente `add-controlled-daily-v4-external-pergamino`, ya mergeado). **No se ejecutó
+la Etapa A real sobre Pergamino** (solo datos sintéticos en tests); **no se implementaron las
+Etapas B ni C**; el holdout 2024–2025 permanece completamente cerrado; no se integró MLflow (ni
+se registró nada en el servidor compartido); `controlled_daily_v3`, `scientific-baseline-v3`,
+`technical-baseline-v1` y `technical-baseline-v2` sin alteración ni movimiento; no se creó
+ningún PR.
