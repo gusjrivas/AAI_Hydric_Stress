@@ -1,10 +1,13 @@
 """Features causales y target estricto de controlled_daily_v4_external_pergamino.
 
-Las features se calculan una única vez sobre la serie diaria continua
-completa (nunca reiniciadas por etapa); el filtrado por etapa ocurre después,
-por `target_timestamp` (protocolo, sección 5). `P20_train` nunca se calcula
-sobre el DataFrame completo — solo lo hace quien llama a `compute_p20_threshold`,
-siempre con el segmento de train correspondiente.
+Las features se calculan exclusivamente sobre el período autorizado de la
+etapa más la historia causal estrictamente necesaria para lags(1,2,3) y
+rolling(3,7): `restrict_to_stage_window` recorta la serie ANTES de invocar a
+`build_feature_frame`, de modo que ninguna observación posterior al corte de
+la etapa entra al constructor de features ni recibe `future_soil_moisture`
+(protocolo, sección 5). `P20_train` nunca se calcula sobre el DataFrame
+completo — solo lo hace quien llama a `compute_p20_threshold`, siempre con el
+segmento de train correspondiente.
 """
 
 from __future__ import annotations
@@ -32,11 +35,44 @@ FEATURE_COLUMNS = (
 )
 
 
+def required_history_days(
+    lags: tuple[int, ...] = LAGS, rolling_windows: tuple[int, ...] = ROLLING_WINDOWS
+) -> int:
+    """Días de historia cruda necesarios antes de la primera emisión para que
+    lags y medias móviles queden completos. Una ventana móvil de `w` días que
+    incluye el valor actual requiere `w - 1` observaciones previas."""
+    return max(max(lags), max(rolling_windows) - 1)
+
+
+def restrict_to_stage_window(
+    daily_series: pd.DataFrame,
+    stage_bounds: StageBounds,
+    lags: tuple[int, ...] = LAGS,
+    rolling_windows: tuple[int, ...] = ROLLING_WINDOWS,
+) -> pd.DataFrame:
+    """Recorta la serie diaria al período autorizado de la etapa más la
+    historia causal mínima, ANTES de construir cualquier feature.
+
+    Límite inferior: `emission_start` menos la historia necesaria para
+    lags/rolling. Límite superior: `target_end`, la última observación cruda
+    que puede usarse como target de la etapa. Ninguna fila posterior llega al
+    constructor de features (protocolo, sección 5)."""
+    index = pd.to_datetime(daily_series.index)
+    start = pd.Timestamp(stage_bounds.emission_start) - pd.to_timedelta(
+        required_history_days(lags, rolling_windows), unit="D"
+    )
+    end = pd.Timestamp(stage_bounds.target_end)
+    return daily_series.loc[(index >= start) & (index <= end)]
+
+
 def build_feature_frame(daily_series: pd.DataFrame, depth_column: str) -> pd.DataFrame:
     """Construye, para una profundidad dada, el frame con todas las features
     causales, el target base (`future_soil_moisture`) y los timestamps de
-    emisión/target, sobre TODA la serie diaria continua provista (sin
-    filtrar por etapa)."""
+    emisión/target.
+
+    `daily_series` debe venir ya recortada a la ventana autorizada de la
+    etapa (ver `restrict_to_stage_window`): esta función no vuelve a filtrar
+    y calcularía features sobre cualquier fila que reciba."""
     s = daily_series[depth_column]
 
     frame = pd.DataFrame(index=daily_series.index)

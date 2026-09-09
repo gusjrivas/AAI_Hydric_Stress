@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 
 import numpy as np
+import pytest
 
 from experiment_runner.controlled_daily_v4.metrics import (
     average_precision_strict,
@@ -58,7 +59,11 @@ def test_compute_metrics_never_replaces_nan_with_zero():
     y_true = np.array([1, 1, 1, 1])
     y_pred = np.array([1, 0, 1, 1])
     y_score = np.array([0.9, 0.2, 0.8, 0.7])
-    bundle = compute_metrics(y_true, y_pred, y_score)
+    # `balanced_accuracy_score` avisa que `y_pred` contiene clases ausentes de
+    # `y_true`: es el aviso esperado del caso degenerado monoclase que exige
+    # el protocolo (sección 12), y se asevera en lugar de dejarse como ruido.
+    with pytest.warns(UserWarning, match="y_pred contains classes not in y_true"):
+        bundle = compute_metrics(y_true, y_pred, y_score)
     assert math.isnan(bundle.mcc)
     assert math.isnan(bundle.roc_auc)
     assert not math.isnan(bundle.brier_score)

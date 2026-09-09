@@ -247,6 +247,10 @@ environment:
     sintéticos; la ejecución real de la Etapa A sobre Pergamino sigue
     pendiente y exige, además, congelar este mismo entorno como el usado en
     esa corrida real (repository_state.commit debe corresponder a ese momento).
+    El build es hermético: `.dockerignore` excluye artefactos locales no
+    versionados (`**/*.egg-info`) y el Dockerfile corre `pip check` dos veces,
+    antes y después de copiar `src`/`tests`. `constraints.txt` fija además las
+    transitivas relevantes, de modo que la resolución sea repetible.
   python_version: "3.11.16 (python:3.11-slim, digest fijado en el Dockerfile)"
   numpy_version: "2.4.6"
   scipy_version: "1.17.1"

@@ -17,3 +17,15 @@
 - [ ] Ejecutar la Etapa B (2023). **No implementada. No ejecutada.**
 - [ ] Abrir la Etapa C (2024–2025). **No implementada. Holdout permanece cerrado.**
 - [ ] Persistir resultados reales (predicciones OOF, métricas, dataset diario derivado con su propio SHA-256) y actualizar `openspec/specs/experiment-runner/spec.md` (canónico) reflejando la capacidad implementada. **Pendiente de una corrida real y de una decisión explícita de cuándo el spec canónico debe actualizarse.**
+
+## Correcciones de la revisión técnica dirigida
+
+- [x] Reemplazar `VotingClassifier` por un Soft Voting propio con balanceo independiente por base (`SelfWeightingClassifier` + `SoftVotingClassifier`), alineación explícita de clases y cloning compatible con scikit-learn; probar las 8 combinaciones de modos (P1-1).
+- [x] Implementar el moving block bootstrap real: bloques solapados de largo exacto dentro de cada segmento, remuestreo independiente por segmento que preserva `n_s`, fallo explícito si un segmento es más corto que el bloque, largo no normativo solo en modo de test, y contabilidad de réplicas válidas/descartadas con su motivo (P1-2).
+- [x] Recortar la serie a la ventana autorizada más la historia causal mínima antes de construir features y target, con instrumentación del constructor y comprobación por centinelas en 2023–2025 (P2-4).
+- [x] Integrar `compute_metrics` y `compute_operational_metrics` en el runner y persistir `metrics.json` con métricas globales recalculadas desde el OOF concatenado, métricas por outer fold, calibración de 10 bins y motivos de indefinición (P2-2).
+- [x] Poblar `per_fold_mcc` y reportar mediana, Q1, Q3, IQR y recuento de folds definidos/indefinidos con método de percentil declarado (P2-3).
+- [x] Serializar con `allow_nan=False` y normalización recursiva, representando toda métrica indefinida como `{"value": null, "status": "undefined", "undefined_reason": ...}` (P2-1).
+- [x] Capturar el entorno real de la corrida en `environment.json` en lugar de un placeholder (P2-5).
+- [x] Resolver los P3: `.dockerignore` hermético y `pip check` como compuerta del build; transitivas fijadas; parámetros de grilla efectivamente conectados al estimador; regularización efectiva L2 verificada por API y registrada; equivalencia práctica que exige que el intervalo incluya el cero; marcado de corridas no normativas; barrido AST de MLflow ampliado; y aserciones tautológicas o casi vacuas reemplazadas.
+- [ ] Última revisión técnica dirigida sobre el delta corregido, previa a la PR.

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 from sklearn.metrics import (
@@ -167,3 +168,168 @@ def compute_operational_metrics(y_true, y_pred) -> OperationalMetrics:
         episode_recall=episode_recall(y_true, y_pred),
         alert_precision=precision_strict(y_true, y_pred),
     )
+
+
+# --------------------------------------------------------------------------
+# Serialización de métricas con estado explícito (protocolo, sección 12)
+# --------------------------------------------------------------------------
+
+METRIC_STATUS_DEFINED = "defined"
+METRIC_STATUS_UNDEFINED = "undefined"
+
+REASON_MONOCLASS = "monoclass_y_true"
+REASON_NO_POSITIVES = "no_positive_labels_in_y_true"
+REASON_NO_PREDICTED_OR_TRUE_POSITIVES = "no_predicted_and_no_true_positives"
+REASON_NO_EPISODES = "no_stress_episodes_in_y_true"
+REASON_EMPTY = "empty_evaluation_set"
+REASON_EMPTY_BIN = "no_observations_in_bin"
+REASON_UNSPECIFIED = "unspecified"
+
+PERCENTILE_METHOD = "linear"
+"""Método de interpolación de percentiles usado para Q1/Q3, fijado
+explícitamente para que la mediana y el IQR sean deterministas y
+reproducibles entre versiones de NumPy."""
+
+CALIBRATION_N_BINS = 10
+
+
+def metric_envelope(value, undefined_reason: str = REASON_UNSPECIFIED) -> dict[str, Any]:
+    """Envoltura serializable de una métrica.
+
+    Una métrica definida se representa como `{"value": x, "status": "defined"}`;
+    una indefinida como `{"value": null, "status": "undefined",
+    "undefined_reason": ...}`. Ningún valor indefinido se convierte en 0."""
+    if value is None or not np.isfinite(float(value)):
+        return {
+            "value": None,
+            "status": METRIC_STATUS_UNDEFINED,
+            "undefined_reason": undefined_reason,
+        }
+    return {"value": float(value), "status": METRIC_STATUS_DEFINED}
+
+
+def calibration_curve_10_bins(y_true, y_score) -> list[dict[str, Any]]:
+    """Reliability diagram de 10 bins equiespaciados en `[0, 1]`.
+
+    Los bins sin observaciones reportan frecuencia observada y probabilidad
+    media predicha indefinidas, nunca 0."""
+    y_true = np.asarray(y_true, dtype=float)
+    y_score = np.asarray(y_score, dtype=float)
+    edges = np.linspace(0.0, 1.0, CALIBRATION_N_BINS + 1)
+    bins: list[dict[str, Any]] = []
+    for i in range(CALIBRATION_N_BINS):
+        low, high = edges[i], edges[i + 1]
+        # El último bin incluye el borde superior para no perder score == 1.0.
+        in_bin = (y_score >= low) & (
+            (y_score < high) if i < CALIBRATION_N_BINS - 1 else (y_score <= high)
+        )
+        count = int(in_bin.sum())
+        bins.append(
+            {
+                "bin_index": i,
+                "bin_lower": float(low),
+                "bin_upper": float(high),
+                "count": count,
+                "mean_predicted_probability": metric_envelope(
+                    float(y_score[in_bin].mean()) if count else float("nan"), REASON_EMPTY_BIN
+                ),
+                "observed_frequency": metric_envelope(
+                    float(y_true[in_bin].mean()) if count else float("nan"), REASON_EMPTY_BIN
+                ),
+            }
+        )
+    return bins
+
+
+def metrics_payload(y_true, y_pred, y_score) -> dict[str, Any]:
+    """Todas las métricas del protocolo sobre un conjunto evaluado, con estado
+    explícito por métrica y la razón de cada indefinición."""
+    y_true = np.asarray(y_true)
+    y_pred = np.asarray(y_pred)
+    y_score = np.asarray(y_score)
+
+    empty = len(y_true) == 0
+    monoclass_reason = REASON_EMPTY if empty else REASON_MONOCLASS
+    zero_division_reason = REASON_EMPTY if empty else REASON_NO_PREDICTED_OR_TRUE_POSITIVES
+    bundle = compute_metrics(y_true, y_pred, y_score) if not empty else None
+    operational = compute_operational_metrics(y_true, y_pred) if not empty else None
+
+    def value(attribute):
+        return getattr(bundle, attribute) if bundle is not None else float("nan")
+
+    def operational_value(attribute):
+        return getattr(operational, attribute) if operational is not None else float("nan")
+
+    return {
+        "n_observations": int(len(y_true)),
+        "n_positive_labels": int((y_true == 1).sum()),
+        "n_predicted_positive": int((y_pred == 1).sum()),
+        "mcc": metric_envelope(value("mcc"), monoclass_reason),
+        "average_precision": metric_envelope(
+            value("average_precision"), REASON_EMPTY if empty else REASON_NO_POSITIVES
+        ),
+        "balanced_accuracy": metric_envelope(value("balanced_accuracy"), monoclass_reason),
+        "f1": metric_envelope(value("f1"), zero_division_reason),
+        "precision": metric_envelope(value("precision"), zero_division_reason),
+        "recall": metric_envelope(value("recall"), zero_division_reason),
+        "roc_auc": metric_envelope(value("roc_auc"), monoclass_reason),
+        "brier_score": metric_envelope(value("brier_score"), REASON_EMPTY),
+        "log_loss": metric_envelope(value("log_loss"), REASON_EMPTY),
+        "confusion_matrix": (
+            confusion_matrix_2x2(y_true, y_pred).tolist() if not empty else [[0, 0], [0, 0]]
+        ),
+        "confusion_matrix_labels": list(LABELS),
+        "operational": {
+            "alert_rate": metric_envelope(operational_value("alert_rate"), REASON_EMPTY),
+            "false_positives_per_30_days": metric_envelope(
+                operational_value("false_positives_per_30_days"), REASON_EMPTY
+            ),
+            "false_negatives_per_30_days": metric_envelope(
+                operational_value("false_negatives_per_30_days"), REASON_EMPTY
+            ),
+            "episode_recall": metric_envelope(
+                operational_value("episode_recall"),
+                REASON_EMPTY if empty else REASON_NO_EPISODES,
+            ),
+            "alert_precision": metric_envelope(
+                operational_value("alert_precision"), zero_division_reason
+            ),
+        },
+        "calibration": calibration_curve_10_bins(y_true, y_score),
+    }
+
+
+def summarize_fold_mcc(fold_mcc: list[float]) -> dict[str, Any]:
+    """Diagnóstico por outer fold (protocolo, sección 8.4): mediana, cuartiles
+    e IQR de los MCC por fold, con recuento explícito de folds indefinidos.
+
+    Nunca reemplaza el MCC global: este bloque es descriptivo y no decide."""
+    values = [float(v) for v in fold_mcc]
+    defined = [v for v in values if np.isfinite(v)]
+    n_undefined = len(values) - len(defined)
+
+    if defined:
+        median = float(np.percentile(defined, 50, method=PERCENTILE_METHOD))
+        q1 = float(np.percentile(defined, 25, method=PERCENTILE_METHOD))
+        q3 = float(np.percentile(defined, 75, method=PERCENTILE_METHOD))
+        iqr = q3 - q1
+    else:
+        median = q1 = q3 = iqr = float("nan")
+
+    reason = REASON_EMPTY if not values else REASON_MONOCLASS
+    return {
+        "per_fold": [metric_envelope(v, REASON_MONOCLASS) for v in values],
+        "median": metric_envelope(median, reason),
+        "q1": metric_envelope(q1, reason),
+        "q3": metric_envelope(q3, reason),
+        "iqr": metric_envelope(iqr, reason),
+        "n_folds": len(values),
+        "n_folds_defined": len(defined),
+        "n_folds_undefined": n_undefined,
+        "percentile_method": PERCENTILE_METHOD,
+    }
+
+
+REASON_NO_OWN_GRID = "soft_voting_has_no_own_grid"
+"""El Soft Voting no tiene grilla propia (protocolo, sección 7.5): su mediana
+de MCC inner es indefinida por construcción, no por un fold degenerado."""

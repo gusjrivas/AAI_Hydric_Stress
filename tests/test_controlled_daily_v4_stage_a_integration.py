@@ -25,7 +25,7 @@ from experiment_runner.controlled_daily_v4.selection import (
     OUTCOME_NO_VALID_SELECTION,
     OUTCOME_STABLE_WINNER,
 )
-from experiment_runner.controlled_daily_v4.stage_a_runner import run_stage_a
+from experiment_runner.controlled_daily_v4.stage_a_runner import build_eligible_frame, run_stage_a
 from tests.controlled_daily_v4_fixtures import write_synthetic_pergamino_csv_pair
 
 FAST_CONFIG = ProtocolConfig(
@@ -81,17 +81,37 @@ def test_stage_a_oof_predictions_have_no_duplicate_timestamps_and_are_ordered(tm
 
 
 def test_stage_a_oof_excludes_gap_rows_between_outer_folds(tmp_path):
+    """En cada outer fold quedan exactamente `gap` emisiones entre el final del
+    train y el comienzo de la validación, y esas filas no pertenecen ni al
+    train ni a la validación de ese fold.
+
+    La exclusión es por fold, no global: con `TimeSeriesSplit` las filas del
+    gap de un fold son las últimas del `outer_val` del fold anterior, de modo
+    que sí aparecen en el OOF a través de ese otro segmento — predichas por un
+    modelo cuyo train terminaba antes todavía. Lo que el gap garantiza es que
+    ningún fold evalúe una emisión adyacente al final de su propio train.
+    """
     daily_series = _synthetic_daily_series(tmp_path)
     results = run_stage_a(daily_series, PRIMARY_DEPTH_COLUMN, FAST_CONFIG)
 
-    n_eligible = sum(len(f.train) for f in results.outer_folds[:1]) + sum(
-        len(f.validation) for f in results.outer_folds
+    oof = results.oof_by_family[FAMILY_LOGISTIC_REGRESSION]
+    eligible = pd.to_datetime(
+        build_eligible_frame(daily_series, PRIMARY_DEPTH_COLUMN)["feature_timestamp"]
     )
-    # El primer outer_train más todas las validaciones no cubre el total de
-    # filas elegibles: las filas del gap quedan fuera de train y de
-    # validación en cada fold, tal como exige TimeSeriesSplit(gap=3).
-    lr_oof = results.oof_by_family[FAMILY_LOGISTIC_REGRESSION]
-    assert len(lr_oof.y_true) < n_eligible + 1
+
+    # El OOF es exactamente la unión de las validaciones.
+    assert len(oof.y_true) == sum(len(f.validation) for f in results.outer_folds)
+
+    for fold in results.outer_folds:
+        train_timestamps = set(pd.to_datetime(fold.train["feature_timestamp"]))
+        validation_timestamps = set(pd.to_datetime(fold.validation["feature_timestamp"]))
+        train_end = max(train_timestamps)
+        validation_start = min(validation_timestamps)
+
+        gap_rows = set(eligible[(eligible > train_end) & (eligible < validation_start)])
+        assert len(gap_rows) == FAST_CONFIG.gap, f"outer fold {fold.index}"
+        assert not (gap_rows & train_timestamps), f"outer fold {fold.index}"
+        assert not (gap_rows & validation_timestamps), f"outer fold {fold.index}"
 
 
 def test_three_outer_folds_are_generated():

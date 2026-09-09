@@ -13,6 +13,7 @@ from experiment_runner.controlled_daily_v4.config import (
 )
 from experiment_runner.controlled_daily_v4.models import (
     ModelConfig,
+    SoftVotingClassifier,
     SoftVotingSpec,
     build_estimator,
     build_soft_voting_estimator,
@@ -95,8 +96,11 @@ def test_soft_voting_has_fixed_uniform_weights():
     }
     voting = build_soft_voting_estimator(base)
     assert voting.weights == pytest.approx([1 / 3, 1 / 3, 1 / 3])
-    assert voting.voting == "soft"
-    assert voting.n_jobs == 1
+    # El ensamble es soft por construcción: promedia `predict_proba` de las
+    # tres bases. Ver tests/test_controlled_daily_v4_soft_voting.py para la
+    # verificación del promedio exacto y del balanceo independiente.
+    assert isinstance(voting, SoftVotingClassifier)
+    assert sorted(voting.base_configs) == sorted(base)
 
 
 def test_fit_candidate_dispatches_soft_voting_and_single_family():

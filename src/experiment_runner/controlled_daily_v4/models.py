@@ -12,11 +12,7 @@ from typing import Any
 
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
-from sklearn.ensemble import (
-    HistGradientBoostingClassifier,
-    RandomForestClassifier,
-    VotingClassifier,
-)
+from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 
@@ -24,7 +20,10 @@ from experiment_runner.controlled_daily_v4.config import (
     FAMILY_HIST_GRADIENT_BOOSTING,
     FAMILY_LOGISTIC_REGRESSION,
     FAMILY_RANDOM_FOREST,
+    FAMILY_SIMPLICITY_ORDER,
+    RANDOM_STATE,
     WEIGHTING_BALANCED,
+    WEIGHTING_NONE,
     HistGradientBoostingGridSpec,
     LogisticRegressionGridSpec,
     RandomForestGridSpec,
@@ -66,7 +65,17 @@ def iter_logistic_regression_configs(
 ) -> list[ModelConfig]:
     grid = grid or LogisticRegressionGridSpec()
     return [
-        ModelConfig(FAMILY_LOGISTIC_REGRESSION, {"C": c, "weighting": w})
+        ModelConfig(
+            FAMILY_LOGISTIC_REGRESSION,
+            {
+                "C": c,
+                "weighting": w,
+                # `solver` y `max_iter` provienen de la grilla normativa en
+                # lugar de quedar implícitos en los defaults del estimador.
+                "solver": grid.solver,
+                "max_iter": grid.max_iter,
+            },
+        )
         for c, w in product(grid.C, grid.weighting)
     ]
 
@@ -81,6 +90,8 @@ def iter_random_forest_configs(grid: RandomForestGridSpec | None = None) -> list
                 "max_depth": d,
                 "min_samples_leaf": m,
                 "weighting": w,
+                "random_state": grid.random_state,
+                "n_jobs": grid.n_jobs,
             },
         )
         for n, d, m, w in product(
@@ -102,6 +113,9 @@ def iter_hist_gradient_boosting_configs(
                 "max_leaf_nodes": mln,
                 "l2_regularization": l2,
                 "weighting": w,
+                "max_depth": grid.max_depth,
+                "early_stopping": grid.early_stopping,
+                "random_state": grid.random_state,
             },
         )
         for lr, mi, mln, l2, w in product(
@@ -116,7 +130,8 @@ def iter_hist_gradient_boosting_configs(
 
 class ScaledLogisticRegression(ClassifierMixin, BaseEstimator):
     """`StandardScaler` fold-local + `LogisticRegression`, expuestos como un
-    único estimador scikit-learn compatible (clonable por `VotingClassifier`).
+    único estimador scikit-learn compatible (clonable, y utilizable como base
+    del `SoftVotingClassifier` de este módulo).
     Sin `random_state`: `lbfgs` es determinista para este problema (protocolo,
     sección 7.2). No pasa `penalty` explícito a `LogisticRegression`: en la
     versión fijada del entorno (scikit-learn 1.9.0, ver constraints.txt) ese
@@ -146,14 +161,18 @@ class ScaledLogisticRegression(ClassifierMixin, BaseEstimator):
 
 def build_estimator(family: str, params: dict[str, Any]):
     if family == FAMILY_LOGISTIC_REGRESSION:
-        return ScaledLogisticRegression(C=params["C"])
+        return ScaledLogisticRegression(
+            C=params["C"],
+            max_iter=params.get("max_iter", 2000),
+            solver=params.get("solver", "lbfgs"),
+        )
     if family == FAMILY_RANDOM_FOREST:
         return RandomForestClassifier(
             n_estimators=params["n_estimators"],
             max_depth=params["max_depth"],
             min_samples_leaf=params["min_samples_leaf"],
-            random_state=params.get("random_state", 42),
-            n_jobs=1,
+            random_state=params.get("random_state", RANDOM_STATE),
+            n_jobs=params.get("n_jobs", 1),
         )
     if family == FAMILY_HIST_GRADIENT_BOOSTING:
         return HistGradientBoostingClassifier(
@@ -161,11 +180,37 @@ def build_estimator(family: str, params: dict[str, Any]):
             max_iter=params["max_iter"],
             max_leaf_nodes=params["max_leaf_nodes"],
             l2_regularization=params["l2_regularization"],
-            max_depth=None,
-            early_stopping=False,
-            random_state=params.get("random_state", 42),
+            max_depth=params.get("max_depth", None),
+            early_stopping=params.get("early_stopping", False),
+            random_state=params.get("random_state", RANDOM_STATE),
         )
     raise ValueError(f"Familia desconocida: {family}")
+
+
+def effective_logistic_regularization(estimator: ScaledLogisticRegression) -> dict[str, Any]:
+    """Regularización efectivamente aplicada por la Logistic Regression ya
+    ajustada, leída de la API del estimador y no del valor declarado.
+
+    En scikit-learn 1.9.0 el parámetro `penalty` está deprecado y su atributo
+    expone el centinela `'deprecated'`; la regularización real la determina
+    `l1_ratio` (`0.0` equivale a L2 puro, exactamente lo que exige el
+    protocolo, sección 7.2)."""
+    model = estimator.model_
+    l1_ratio = getattr(model, "l1_ratio", None)
+    if l1_ratio == 0.0 or l1_ratio is None:
+        effective = "l2"
+    elif l1_ratio == 1.0:
+        effective = "l1"
+    else:
+        effective = "elasticnet"
+    return {
+        "effective_regularization": effective,
+        "l1_ratio": l1_ratio,
+        "C": float(model.C),
+        "solver": model.solver,
+        "penalty_attribute": str(getattr(model, "penalty", "absent")),
+        "matches_protocol_l2": effective == "l2",
+    }
 
 
 def fit_estimator(family: str, params: dict[str, Any], X, y):
@@ -178,18 +223,123 @@ def fit_estimator(family: str, params: dict[str, Any], X, y):
     return estimator
 
 
+class SelfWeightingClassifier(ClassifierMixin, BaseEstimator):
+    """Estimador base que calcula su propio `sample_weight` dentro de `fit`.
+
+    Existe para que el Soft Voting respete el modo de balanceo seleccionado
+    independientemente por cada familia (protocolo, secciones 7.1 y 7.5). No
+    acepta `sample_weight` externo por diseño: los pesos derivan
+    exclusivamente del `y` que recibe este `fit`, de modo que ninguna base
+    puede heredar los pesos calculados para otra."""
+
+    def __init__(self, family: str | None = None, model_params: dict[str, Any] | None = None):
+        self.family = family
+        self.model_params = model_params
+
+    def weighting_mode(self) -> str:
+        return dict(self.model_params or {}).get("weighting", WEIGHTING_NONE)
+
+    def fit(self, X, y):
+        params = dict(self.model_params or {})
+        y = np.asarray(y)
+        self.estimator_ = build_estimator(self.family, params)
+        self.estimator_.fit(X, y, sample_weight=_weight_for(y, self.weighting_mode()))
+        self.classes_ = np.asarray(self.estimator_.classes_)
+        return self
+
+    def predict_proba(self, X):
+        return self.estimator_.predict_proba(X)
+
+    def predict(self, X):
+        return self.estimator_.predict(X)
+
+
+class SoftVotingClassifier(ClassifierMixin, BaseEstimator):
+    """Soft Voting propio: clona y ajusta cada base por separado y promedia
+    `predict_proba` con pesos fijos (1/3, 1/3, 1/3).
+
+    Reemplaza a `sklearn.ensemble.VotingClassifier`, que solo admite un único
+    vector de `sample_weight` propagado a los tres sub-estimadores y por lo
+    tanto no puede representar una combinación mixta de modos de balanceo.
+    Las columnas de probabilidad se alinean explícitamente contra `classes_`
+    del ensamble, sin suponer que cada base observó las dos clases."""
+
+    def __init__(
+        self,
+        base_configs: dict[str, ModelConfig] | None = None,
+        weights: list[float] | None = None,
+    ):
+        self.base_configs = base_configs
+        self.weights = weights
+
+    def _ordered_families(self) -> list[str]:
+        """Orden determinista por simplicidad predeclarada, independiente del
+        orden de inserción del diccionario recibido."""
+        configs = self.base_configs or {}
+        known = [f for f in FAMILY_SIMPLICITY_ORDER if f in configs]
+        extra = sorted(f for f in configs if f not in FAMILY_SIMPLICITY_ORDER)
+        return known + extra
+
+    def base_weighting_modes(self) -> dict[str, str]:
+        configs = self.base_configs or {}
+        return {
+            family: configs[family].params.get("weighting", WEIGHTING_NONE)
+            for family in self._ordered_families()
+        }
+
+    def base_config_ids(self) -> dict[str, str]:
+        configs = self.base_configs or {}
+        return {family: configs[family].config_id for family in self._ordered_families()}
+
+    def fit(self, X, y):
+        configs = self.base_configs or {}
+        if not configs:
+            raise ValueError("Soft Voting requiere al menos una configuración base.")
+        y = np.asarray(y)
+        self.classes_ = np.unique(y)
+        self.families_ = self._ordered_families()
+        self.weights_ = (
+            [float(w) for w in self.weights]
+            if self.weights is not None
+            else [1.0 / len(self.families_)] * len(self.families_)
+        )
+        self.named_estimators_ = {
+            family: SelfWeightingClassifier(
+                family=family, model_params=dict(configs[family].params)
+            ).fit(X, y)
+            for family in self.families_
+        }
+        return self
+
+    def _aligned_proba(self, proba: np.ndarray, base_classes: np.ndarray) -> np.ndarray:
+        position = {c: i for i, c in enumerate(self.classes_)}
+        aligned = np.zeros((proba.shape[0], len(self.classes_)), dtype=float)
+        for column, klass in enumerate(base_classes):
+            aligned[:, position[klass]] = proba[:, column]
+        return aligned
+
+    def predict_proba(self, X):
+        total = None
+        for weight, family in zip(self.weights_, self.families_, strict=True):
+            estimator = self.named_estimators_[family]
+            contribution = (
+                self._aligned_proba(estimator.predict_proba(X), estimator.classes_) * weight
+            )
+            total = contribution if total is None else total + contribution
+        return total
+
+    def predict(self, X):
+        return self.classes_[self.predict_proba(X).argmax(axis=1)]
+
+
 def build_soft_voting_estimator(
     base_configs: dict[str, ModelConfig],
-) -> VotingClassifier:
-    """`VotingClassifier(voting='soft')` con los tres candidatos base y
-    pesos fijos (1/3, 1/3, 1/3). Reentrena sus tres modelos base al ajustar
-    (protocolo, sección 7.5) — no admite estimadores ya entrenados."""
-    estimators = [
-        (family, build_estimator(family, config.params)) for family, config in base_configs.items()
-    ]
-    return VotingClassifier(
-        estimators=estimators, voting="soft", weights=[1 / 3, 1 / 3, 1 / 3], n_jobs=1
-    )
+) -> SoftVotingClassifier:
+    """Soft Voting con los candidatos base y pesos fijos (1/3, 1/3, 1/3).
+    Reentrena sus modelos base al ajustar (protocolo, sección 7.5) — no
+    admite estimadores ya entrenados."""
+    n = len(base_configs)
+    return SoftVotingClassifier(base_configs=dict(base_configs), weights=[1 / n] * n)
 
 
 @dataclass(frozen=True)
@@ -206,13 +356,8 @@ def fit_candidate(spec: ModelConfig | SoftVotingSpec, X, y):
     return fit_estimator(spec.family, spec.params, X, y)
 
 
-def fit_soft_voting(base_configs: dict[str, ModelConfig], X, y) -> VotingClassifier:
-    voting = build_soft_voting_estimator(base_configs)
-    # VotingClassifier.fit no admite sample_weight por sub-estimador de forma
-    # diferenciada en esta versión de scikit-learn; se aplica un único
-    # sample_weight combinado si TODAS las configuraciones base piden
-    # ponderación balanceada, replicando el criterio de cada familia.
-    weightings = {c.params.get("weighting", "none") for c in base_configs.values()}
-    weights = compute_sample_weight(np.asarray(y)) if weightings == {WEIGHTING_BALANCED} else None
-    voting.fit(X, y, sample_weight=weights)
-    return voting
+def fit_soft_voting(base_configs: dict[str, ModelConfig], X, y) -> SoftVotingClassifier:
+    """Ajusta el Soft Voting sin propagar ningún `sample_weight` global: cada
+    base lo calcula internamente desde el mismo `y`, según su propio modo
+    seleccionado (protocolo, secciones 7.1, 7.5 y 9)."""
+    return build_soft_voting_estimator(base_configs).fit(X, y)

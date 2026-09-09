@@ -2,6 +2,8 @@
 # Versiones resueltas y validadas en un entorno limpio (python:3.11-slim,
 # digest fijado en docker/experiment-v4/Dockerfile), no escritas a mano.
 # No reemplaza ni amplía las dependencias globales de pyproject.toml.
+
+# Dependencias directas del protocolo.
 numpy==2.4.6
 scipy==1.17.1
 pandas==3.0.5
@@ -9,6 +11,26 @@ pyarrow==25.0.1
 scikit-learn==1.9.0
 joblib==1.6.0
 threadpoolctl==3.6.0
+
+# Herramientas de verificación.
 pytest==9.1.1
 ruff==0.16.6
 black==26.5.1
+
+# Dependencias transitivas, fijadas para que la resolución sea repetible y no
+# quede a merced de lo que el índice publique después. Sin estas líneas, un
+# build posterior instala versiones distintas de las validadas aunque las
+# directas queden idénticas.
+click==8.5.0
+cloudpickle==3.1.2
+iniconfig==2.3.0
+mypy-extensions==1.1.0
+narwhals==2.26.0
+packaging==26.3
+pathspec==1.1.1
+platformdirs==4.11.8
+pluggy==1.6.0
+pygments==2.21.0
+python-dateutil==2.9.0.post0
+pytokens==0.4.1
+six==1.17.0

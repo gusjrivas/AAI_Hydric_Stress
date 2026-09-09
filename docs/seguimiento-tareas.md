@@ -586,7 +586,7 @@ permanece completamente cerrado; `controlled_daily_v3`, `scientific-baseline-v3`
 
 ## Runner de Etapa A de controlled_daily_v4 implementado, sin ejecutar (2026-09-08)
 
-Implementación de código (`src/experiment_runner/controlled_daily_v4/`, 15 módulos) del runner
+Implementación de código (`src/experiment_runner/controlled_daily_v4/`, 16 módulos) del runner
 de la Etapa A del protocolo `controlled_daily_v4_external_pergamino` (ADR-0011), con entorno
 experimental reproducible dedicado (`docker/experiment-v4/`, versiones exactas fijadas y
 validadas: Python 3.11.16, NumPy 2.4.6, SciPy 1.17.1, pandas 3.0.5, PyArrow 25.0.1,
@@ -611,3 +611,53 @@ Etapas B ni C**; el holdout 2024–2025 permanece completamente cerrado; no se i
 se registró nada en el servidor compartido); `controlled_daily_v3`, `scientific-baseline-v3`,
 `technical-baseline-v1` y `technical-baseline-v2` sin alteración ni movimiento; no se creó
 ningún PR.
+
+## Correcciones de la revisión técnica dirigida del runner de Etapa A (2026-09-08)
+
+Revisión técnica dirigida sobre el delta `main...feat/controlled-daily-v4-stage-a-runner`
+(HEAD `113871e`) y corrección integral de sus hallazgos, sin ejecutar el experimento real. La
+revisión encontró tres contradicciones con el protocolo aprobado, todas ya resueltas:
+
+1. **Soft Voting con ponderaciones dependientes.** `VotingClassifier` solo propaga un único
+   `sample_weight` a los tres sub-estimadores, de modo que cualquier combinación mixta de modos
+   de balanceo se ajustaba como si fuera toda sin ponderar (7 de 8 combinaciones degradadas), y
+   el cuarto candidato dejaba de componerse con las configuraciones seleccionadas de forma
+   independiente por familia. Reemplazado por un Soft Voting propio (`SoftVotingClassifier`
+   sobre `SelfWeightingClassifier`), donde cada base calcula su `sample_weight` dentro de su
+   propio `fit` y el ensamble promedia `predict_proba` con alineación explícita de clases.
+2. **Bootstrap que no era moving-block.** Los bloques eran una partición fija no solapada, con
+   residuos más cortos que 30 días, y el pool se mezclaba entre segmentos outer, de modo que
+   una réplica podía sobrerrepresentar un fold (338–1148 filas de un segmento de 728).
+   Reimplementado con bloques solapados de largo exacto por segmento, remuestreo independiente
+   que repone el tamaño original de cada segmento, fallo explícito ante segmentos más cortos
+   que el bloque y contabilidad de réplicas descartadas con su motivo.
+3. **Features y target calculados sobre 2015–2025.** El pipeline los construía sobre toda la
+   serie y filtraba después, contra la letra de la sección 5 del protocolo. Ahora la serie se
+   recorta a la ventana autorizada más la historia causal mínima antes del constructor de
+   features. No existía fuga —los centinelas extremos en 2023–2025 no alteraban ninguna
+   salida— pero sí violación del contrato.
+
+Además se corrigieron carencias de evidencia: los artefactos JSON emitían tokens `NaN`
+(inválidos como JSON) y no persistían ninguna métrica más allá del MCC de selección;
+`per_fold_mcc` quedaba vacío; `environment.json` era un placeholder. Ahora la serialización usa
+`allow_nan=False` con normalización recursiva y estado explícito por métrica, se agrega
+`metrics.json` (métricas del §12 globales y por outer fold, calibración de 10 bins, motivos de
+indefinición), el diagnóstico del §8.4 (mediana/Q1/Q3/IQR con método de percentil declarado) y
+la captura real del entorno. Los hallazgos menores también quedaron resueltos: `.dockerignore`
+hermético más `pip check` como compuerta del build (antes fallaba por un `*.egg-info` local que
+entraba al contexto), transitivas fijadas en `constraints.txt`, parámetros de grilla realmente
+conectados al estimador, regularización efectiva L2 verificada por API del estimador y
+registrada en los artefactos, equivalencia práctica que exige que el intervalo pareado
+*incluya* el cero, marcado explícito de corridas no normativas, barrido AST de MLflow ampliado
+a los 16 módulos y a la suite completa, y reemplazo de aserciones tautológicas o casi vacuas.
+
+Esquema de artefactos elevado a `controlled_daily_v4_stage_a.v2`. **144 tests** dirigidos en el
+entorno reproducible (exclusivamente sintéticos, sin warnings); **404 passed** en la suite
+completa del repositorio, sin regresiones; `ruff check` y `black --check` limpios sobre
+`src`/`backend`/`tests`; `git diff --check` sin hallazgos; build del contenedor experimental
+repetible desde cero con `pip check` en verde. Se mantuvieron todas las restricciones: **no se
+ejecutó la Etapa A real sobre Pergamino**, no se accedió a Pergamino ni a Balcarce, no se
+procesó 2023, el holdout 2024–2025 permanece cerrado, no se usó MLflow compartido,
+`controlled_daily_v3` y la evidencia formal v3 sin alteración, ningún tag movido ni creado, y
+no se creó ningún PR. Queda pendiente una última revisión dirigida sobre el delta corregido
+antes de abrir la PR.

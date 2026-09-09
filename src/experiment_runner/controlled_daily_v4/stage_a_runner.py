@@ -26,6 +26,7 @@ from experiment_runner.controlled_daily_v4.features import (
     build_feature_frame,
     build_target,
     compute_p20_threshold,
+    restrict_to_stage_window,
     select_eligible_rows,
 )
 from experiment_runner.controlled_daily_v4.freezing import (
@@ -33,9 +34,13 @@ from experiment_runner.controlled_daily_v4.freezing import (
     fit_final_estimator,
     freeze_family,
 )
+from experiment_runner.controlled_daily_v4.metrics import mcc_strict
 from experiment_runner.controlled_daily_v4.models import (
     ModelConfig,
+    ScaledLogisticRegression,
+    SoftVotingClassifier,
     SoftVotingSpec,
+    effective_logistic_regularization,
     fit_candidate,
     fit_estimator,
     iter_hist_gradient_boosting_configs,
@@ -85,10 +90,18 @@ class OuterFoldFamilyResult:
     y_pred: np.ndarray
     y_score: np.ndarray
     feature_timestamps: np.ndarray
+    # Solo para Soft Voting: las configuraciones base con las que se compuso
+    # este outer fold y el modo de balanceo independiente de cada una.
+    soft_voting_base_config_ids: dict[str, str] = field(default_factory=dict)
+    soft_voting_base_weighting_modes: dict[str, str] = field(default_factory=dict)
 
 
 def build_eligible_frame(daily_series: pd.DataFrame, depth_column: str) -> pd.DataFrame:
-    frame = build_feature_frame(daily_series, depth_column)
+    """Recorta primero a la ventana autorizada de la Etapa A y solo después
+    construye features y target: ninguna observación posterior a
+    `2022-12-31` llega al constructor (protocolo, sección 5)."""
+    restricted = restrict_to_stage_window(daily_series, STAGE_A_BOUNDS)
+    frame = build_feature_frame(restricted, depth_column)
     return select_eligible_rows(frame, STAGE_A_BOUNDS)
 
 
@@ -142,6 +155,8 @@ def _run_soft_voting_outer_fold(
     return OuterFoldFamilyResult(
         outer_fold_index=outer_fold.index,
         family=FAMILY_SOFT_VOTING,
+        # El Soft Voting no tiene grilla propia (protocolo, sección 7.5): se
+        # compone con las configuraciones ya seleccionadas de LR/RF/HGB.
         inner_best_config=ModelConfig(FAMILY_SOFT_VOTING, {}),
         inner_median_mcc=float("nan"),
         inner_fold_mcc=[],
@@ -150,6 +165,8 @@ def _run_soft_voting_outer_fold(
         y_pred=y_pred,
         y_score=y_score,
         feature_timestamps=outer_fold.validation["feature_timestamp"].to_numpy(),
+        soft_voting_base_config_ids=estimator.base_config_ids(),
+        soft_voting_base_weighting_modes=estimator.base_weighting_modes(),
     )
 
 
@@ -164,6 +181,7 @@ class StageAResults:
     frozen_soft_voting_bases: dict[str, FrozenConfig] | None = None
     final_estimator: object = None
     final_p20_train: float | None = None
+    final_estimator_details: dict[str, dict] | None = None
 
 
 def _concatenate_oof(
@@ -187,7 +205,9 @@ def _concatenate_oof(
         y_pred=y_pred[order],
         y_score=y_score[order],
         frame_with_segment_id=frame,
-        per_fold_mcc=[],
+        # Diagnóstico por outer fold (protocolo, sección 8.4). No interviene
+        # en la decisión: el MCC global se recalcula desde el OOF completo.
+        per_fold_mcc=[mcc_strict(r.y_true, r.y_pred) for r in results],
     )
 
 
@@ -291,4 +311,39 @@ def run_stage_a(
         results.final_estimator = estimator
         results.final_p20_train = p20_train
 
+    results.final_estimator_details = _describe_final_estimator(
+        results.final_estimator, selection.selected_family
+    )
     return results
+
+
+def _describe_estimator(estimator: object) -> dict:
+    """Descripción verificada por API de un estimador ya ajustado.
+
+    Para la Logistic Regression incluye la regularización *efectiva* leída del
+    estimador, no la declarada en la grilla: en scikit-learn 1.9.0 `penalty`
+    está deprecado y el valor real lo fija `l1_ratio` (protocolo, sección
+    7.2). Para el resto registra los parámetros efectivos, lo que deja
+    constancia de que `class_weight` permanece en `None` (sección 7.1)."""
+    if isinstance(estimator, ScaledLogisticRegression):
+        return {
+            "estimator_class": type(estimator).__name__,
+            **effective_logistic_regularization(estimator),
+        }
+    return {
+        "estimator_class": type(estimator).__name__,
+        "effective_params": dict(estimator.get_params()),
+    }
+
+
+def _describe_final_estimator(estimator: object, selected_family: str | None) -> dict[str, dict]:
+    """Detalles del estimador congelado, por familia. Para Soft Voting
+    describe cada una de sus tres bases por separado."""
+    if estimator is None or selected_family is None:
+        return {}
+    if isinstance(estimator, SoftVotingClassifier):
+        return {
+            family: _describe_estimator(base.estimator_)
+            for family, base in estimator.named_estimators_.items()
+        }
+    return {selected_family: _describe_estimator(estimator)}

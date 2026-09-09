@@ -15,15 +15,34 @@ from experiment_runner.controlled_daily_v4.artifacts import (
 from experiment_runner.controlled_daily_v4.provenance import ProvenanceReport
 from experiment_runner.controlled_daily_v4.selection import CandidateOOF, select_family
 
+DUMMY_SEGMENT_SIZE = 40
+DUMMY_N_SEGMENTS = 3
+DUMMY_N = DUMMY_SEGMENT_SIZE * DUMMY_N_SEGMENTS
+
 
 def _dummy_oof(family):
-    frame = pd.DataFrame({"segment_id": ["outer_fold_1"] * 10})
+    """OOF sintético con tres segmentos outer de tamaño realista.
+
+    El moving block bootstrap normativo exige bloques de 30 días, de modo que
+    cada segmento debe tener al menos 30 observaciones: un segmento más corto
+    se rechaza explícitamente y no serviría como fixture."""
+    frame = pd.DataFrame(
+        {
+            "feature_timestamp": pd.date_range("2015-01-07", periods=DUMMY_N),
+            "segment_id": sum(
+                ([f"outer_fold_{i + 1}"] * DUMMY_SEGMENT_SIZE for i in range(DUMMY_N_SEGMENTS)),
+                [],
+            ),
+        }
+    )
+    pattern = np.array([0, 1] * (DUMMY_N // 2))
     return CandidateOOF(
         family=family,
-        y_true=np.array([0, 1] * 5),
-        y_pred=np.array([0, 1] * 5),
-        y_score=np.array([0.1, 0.9] * 5),
+        y_true=pattern,
+        y_pred=pattern,
+        y_score=np.where(pattern == 1, 0.9, 0.1),
         frame_with_segment_id=frame,
+        per_fold_mcc=[1.0] * DUMMY_N_SEGMENTS,
     )
 
 
@@ -43,7 +62,7 @@ def test_oof_to_dataframe_includes_predictions():
     oof = _dummy_oof("logistic_regression")
     df = oof_to_dataframe(oof)
     assert set(["segment_id", "y_true", "y_pred", "y_score"]).issubset(df.columns)
-    assert len(df) == 10
+    assert len(df) == DUMMY_N
 
 
 def test_write_stage_a_artifacts_produces_expected_files(tmp_path):

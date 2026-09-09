@@ -21,9 +21,24 @@ from experiment_runner.controlled_daily_v4.config import (
     UnsupportedStageError,
     require_stage_a,
 )
+from experiment_runner.controlled_daily_v4.environment import capture_environment
 from experiment_runner.controlled_daily_v4.provenance import validate_pergamino_provenance
 
 DEPTH_CHOICES = {"primary": PRIMARY_DEPTH_COLUMN, "sensitivity": SENSITIVITY_DEPTH_COLUMN}
+
+
+def normative_deviations(seed: int, bootstrap_replicas: int) -> list[str]:
+    """Parámetros que se apartan de los valores normativos del protocolo.
+
+    Una corrida con semilla o réplicas distintas sigue siendo ejecutable
+    (sirve para pruebas rápidas), pero queda marcada como no normativa en la
+    evidencia para que no se confunda con la corrida real."""
+    deviations = []
+    if seed != BOOTSTRAP_SEED:
+        deviations.append("seed")
+    if bootstrap_replicas != BOOTSTRAP_REPLICAS_DEFAULT:
+        deviations.append("bootstrap_replicas")
+    return deviations
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -141,6 +156,8 @@ def main(argv: list[str] | None = None) -> int:
         for fold in results.outer_folds
     ]
 
+    deviations = normative_deviations(args.seed, args.bootstrap_replicas)
+
     written = artifacts.write_stage_a_artifacts(
         args.output_dir,
         depth_column=depth_column,
@@ -148,9 +165,13 @@ def main(argv: list[str] | None = None) -> int:
             "stage": STAGE_A,
             "seed": args.seed,
             "bootstrap_replicas": args.bootstrap_replicas,
+            "normative_seed": BOOTSTRAP_SEED,
+            "normative_bootstrap_replicas": BOOTSTRAP_REPLICAS_DEFAULT,
+            "normative_run": not deviations,
+            "normative_deviations": deviations,
         },
         provenance_report=report,
-        environment_info={"note": "completar con versiones exactas del entorno de ejecución real"},
+        environment_info=capture_environment(),
         input_hashes={
             "era5_sha256": report.era5_sha256,
             "nasa_power_sha256": report.nasa_power_sha256,
@@ -162,6 +183,7 @@ def main(argv: list[str] | None = None) -> int:
         frozen_single_family=results.frozen_single_family,
         frozen_soft_voting_bases=results.frozen_soft_voting_bases,
         final_p20_train=results.final_p20_train,
+        final_estimator_details=results.final_estimator_details,
         overwrite=args.overwrite,
     )
 

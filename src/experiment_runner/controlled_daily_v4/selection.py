@@ -13,8 +13,9 @@ import numpy as np
 import pandas as pd
 
 from experiment_runner.controlled_daily_v4.bootstrap import (
+    BOOTSTRAP_BLOCK_DAYS,
+    BootstrapDiagnostics,
     paired_bootstrap_delta,
-    percentile_interval,
 )
 from experiment_runner.controlled_daily_v4.config import (
     BOOTSTRAP_REPLICAS_DEFAULT,
@@ -48,10 +49,22 @@ class SelectionResult:
     stable_winner: str | None
     selected_family: str | None
     selection_reason: str
+    bootstrap_diagnostics: dict[tuple[str, str], BootstrapDiagnostics] = field(default_factory=dict)
 
 
 def _pairwise_key(a: str, b: str) -> tuple[str, str]:
     return (a, b)
+
+
+def is_practically_equivalent(diff: float, interval: tuple[float, float], delta: float) -> bool:
+    """Pertenencia al conjunto de equivalencia práctica (protocolo, sección 8):
+    la diferencia de MCC global respecto del mejor es `< δ`, o el intervalo
+    pareado frente al mejor **incluye el cero**.
+
+    Un intervalo íntegramente negativo no incluye el cero y por lo tanto no
+    habilita equivalencia por sí solo."""
+    lower, upper = interval
+    return bool(diff < delta or (lower <= 0 <= upper))
 
 
 def select_family(
@@ -59,6 +72,8 @@ def select_family(
     delta: float = PRACTICAL_MARGIN_DELTA_MCC,
     n_replicas: int = BOOTSTRAP_REPLICAS_DEFAULT,
     seed: int = BOOTSTRAP_SEED,
+    block_length: int = BOOTSTRAP_BLOCK_DAYS,
+    normative: bool = True,
 ) -> SelectionResult:
     families = list(candidates.keys())
     global_mcc = {f: mcc_strict(c.y_true, c.y_pred) for f, c in candidates.items()}
@@ -75,11 +90,12 @@ def select_family(
         )
 
     pairwise_intervals: dict[tuple[str, str], tuple[float, float]] = {}
+    bootstrap_diagnostics: dict[tuple[str, str], BootstrapDiagnostics] = {}
     for a in families:
         for b in families:
             if a == b:
                 continue
-            deltas = paired_bootstrap_delta(
+            result = paired_bootstrap_delta(
                 y_true=candidates[a].y_true,
                 y_pred_a=candidates[a].y_pred,
                 y_pred_b=candidates[b].y_pred,
@@ -87,8 +103,11 @@ def select_family(
                 metric_fn=mcc_strict,
                 n_replicas=n_replicas,
                 seed=seed,
+                block_length=block_length,
+                normative=normative,
             )
-            pairwise_intervals[_pairwise_key(a, b)] = percentile_interval(deltas)
+            pairwise_intervals[_pairwise_key(a, b)] = result.interval
+            bootstrap_diagnostics[_pairwise_key(a, b)] = result.diagnostics
 
     best = max(families, key=lambda f: global_mcc[f])
 
@@ -111,6 +130,7 @@ def select_family(
             stable_winner=best,
             selected_family=best,
             selection_reason="stable_winner",
+            bootstrap_diagnostics=bootstrap_diagnostics,
         )
 
     equivalence_set = {best}
@@ -118,8 +138,8 @@ def select_family(
         if candidate == best:
             continue
         diff = global_mcc[best] - global_mcc[candidate]
-        lower, _ = pairwise_intervals[_pairwise_key(best, candidate)]
-        if diff < delta or (lower <= 0):
+        interval = pairwise_intervals[_pairwise_key(best, candidate)]
+        if is_practically_equivalent(diff, interval, delta):
             equivalence_set.add(candidate)
 
     simplicity_rank = {f: i for i, f in enumerate(FAMILY_SIMPLICITY_ORDER)}
@@ -135,4 +155,5 @@ def select_family(
         stable_winner=None,
         selected_family=selected,
         selection_reason="tie_break_simplicity_predeclarada_no_superioridad",
+        bootstrap_diagnostics=bootstrap_diagnostics,
     )
