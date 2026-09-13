@@ -20,6 +20,11 @@ RUN pip install --no-cache-dir -c docker/experiment-v4/constraints.txt \
 
 COPY src ./src
 COPY tests ./tests
+# Referencia versionada de identidad/entorno (hallazgos H-01/H-04): el mismo
+# archivo que documenta el protocolo, nunca una copia mantenida a mano.
+# `docker/experiment-v4/constraints.txt` ya se copió arriba.
+COPY docs/research/controlled-daily-v4-external-pergamino-manifest.yaml \
+     ./docs/research/controlled-daily-v4-external-pergamino-manifest.yaml
 
 # Segunda comprobación, ya con `src` y `tests` en la imagen: si el contexto
 # arrastrara un `*.egg-info` no versionado, pip interpretaría el proyecto como

@@ -1,13 +1,26 @@
 """Ingesta y alineación causal ERA5-Land/NASA POWER para Pergamino.
 
-Construye la serie diaria continua 2015-2025 (sin filtrar por etapa): el
-filtrado por etapa ocurre en `features.py`, nunca aquí, para no reiniciar
-artificialmente lags/rolling en cada frontera (protocolo, sección 5).
+Las funciones de lectura y agregación de este módulo (`load_*_raw`,
+`aggregate_era5_daily`) son deliberadamente agnósticas de etapa: pueden
+recibir la serie completa 2015-2025 y no filtran nada por sí solas. Eso NO
+autoriza a un llamador a agregarlas/pasarlas a `replace_missing_sentinel`
+sobre el archivo completo sin recortar antes: `restrict_era5_hourly_to_window`
+y `restrict_nasa_power_daily_to_window` existen exactamente para que quien
+orquesta una corrida de una etapa (la CLI, `stage_a_runner.py`) recorte las
+entradas crudas a la ventana autorizada (más la historia causal mínima)
+ANTES de agregar humedad, convertir el centinela `-999` o unir ambas fuentes
+— nunca después (hallazgo H-03: la CLI llamaba `aggregate_era5_daily` y
+`replace_missing_sentinel` sobre el rango completo, y solo el runner recortaba
+después, con lo que un agregador llegaba a promediar humedad de 2024-2025).
+`build_daily_joined_series` sigue siendo, por diseño, un join genérico sin
+recorte propio: el recorte es responsabilidad exclusiva de quien orquesta la
+corrida, usando las funciones de este módulo antes de invocarlo.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from io import StringIO
 from pathlib import Path
 
@@ -73,18 +86,62 @@ def load_era5_hourly_raw(path: str | Path) -> tuple[Era5Metadata, pd.DataFrame]:
     return metadata, df
 
 
-def aggregate_era5_daily(df: pd.DataFrame) -> pd.DataFrame:
-    """Promedio diario de las 4 columnas de humedad de suelo, más `n_obs`.
+def restrict_era5_hourly_to_window(df: pd.DataFrame, start: date, end: date) -> pd.DataFrame:
+    """Recorta el CSV horario ERA5-Land a un rango de fechas calendario
+    `[start, end]` (inclusive) ANTES de agregar a diario.
 
-    No imputa días con menos de 24 observaciones — se conserva `n_obs` para
-    que quien consuma el resultado pueda decidir si un día es completo.
-    """
+    Filtra únicamente por la fecha del timestamp `time` — un dato puramente
+    estructural, no un valor de humedad — de modo que ninguna hora fuera de
+    la ventana llegue jamás a `aggregate_era5_daily` (hallazgo H-03). Usar
+    con los límites de `features.compute_stage_window_bounds` para aislar
+    una etapa desde la ingesta, antes de cualquier agregación."""
+    dates = df["time"].dt.date
+    return df.loc[(dates >= start) & (dates <= end)].reset_index(drop=True)
+
+
+def restrict_nasa_power_daily_to_window(df: pd.DataFrame, start: date, end: date) -> pd.DataFrame:
+    """Recorta el CSV diario NASA POWER (ya indexado por fecha) al mismo
+    rango `[start, end]` (inclusive), ANTES de convertir el centinela `-999`
+    o unir con ERA5-Land (hallazgo H-03)."""
+    index_dates = df.index.date
+    return df.loc[(index_dates >= start) & (index_dates <= end)]
+
+
+def _n_finite(series: pd.Series) -> int:
+    return int(np.isfinite(series.to_numpy(dtype=float)).sum())
+
+
+def aggregate_era5_daily(df: pd.DataFrame) -> pd.DataFrame:
+    """Promedio diario de las 4 columnas de humedad de suelo, más `n_obs`,
+    `n_unique_hours` y `n_finite_<columna>` por columna.
+
+    No imputa días con menos de 24 observaciones, ni corrige un día con una
+    hora duplicada que oculte otra ausente — se conservan `n_obs` (cantidad
+    de filas) y `n_unique_hours` (cantidad de horas distintas 0-23) para que
+    quien consuma el resultado pueda exigir cobertura horaria completa dentro
+    de su propio período autorizado (hallazgo H-02). Estas dos columnas son
+    puramente temporales (no involucran valores de humedad): calcularlas
+    sobre el archivo completo es estructura, no análisis de valores futuros
+    (protocolo, sección 16).
+
+    `n_finite_<columna>` cuenta, por columna de humedad de suelo, cuántas de
+    las lecturas horarias del día son valores finitos: `groupby(...).mean()`
+    ignora silenciosamente los `NaN` (`skipna=True`), de modo que un día con
+    24 filas y 24 horas distintas pero una única lectura ausente/infinita
+    igual produce un promedio "completo" en apariencia -- sin este contador
+    esa lectura faltante queda invisible para quien valide cobertura después
+    de agregar (hallazgo H-02)."""
     d = df.copy()
     d["date"] = d["time"].dt.date
     grouped = d.groupby("date")
     counts = grouped.size().rename("n_obs")
+    n_unique_hours = grouped["time"].apply(lambda s: s.dt.hour.nunique()).rename("n_unique_hours")
     means = grouped[list(ALL_SOIL_MOISTURE_COLUMNS)].mean()
-    daily = means.join(counts)
+    finite_counts = grouped[list(ALL_SOIL_MOISTURE_COLUMNS)].agg(_n_finite)
+    finite_counts = finite_counts.rename(
+        columns={c: f"n_finite_{c}" for c in ALL_SOIL_MOISTURE_COLUMNS}
+    )
+    daily = means.join(counts).join(n_unique_hours).join(finite_counts)
     daily.index = pd.to_datetime(daily.index)
     daily.index.name = "date"
     return daily
@@ -96,7 +153,11 @@ def load_nasa_power_daily_raw(path: str | Path) -> tuple[list[str], pd.DataFrame
     Devuelve las líneas de metadatos del bloque `-BEGIN HEADER-`/`-END HEADER-`
     y un DataFrame indexado por fecha (reconstruida desde YEAR+DOY), con las
     4 variables en sus valores crudos (incluyendo el centinela `-999` intacto).
-    """
+
+    Levanta `ValueError` con diagnóstico explícito si falta alguna columna
+    requerida -- nunca deja que una selección `df[columnas]` levante un
+    `KeyError` genérico antes de que `provenance.py` pueda reportar el
+    diagnóstico de columnas faltantes de forma controlada (hallazgo H-03)."""
     with open(path, encoding="ascii", errors="replace") as f:
         lines = f.readlines()
     header_end = next(i for i, line in enumerate(lines) if "-END HEADER-" in line)
@@ -109,6 +170,11 @@ def load_nasa_power_daily_raw(path: str | Path) -> tuple[list[str], pd.DataFrame
     )
     df = df.set_index("date")
     df.index.name = "date"
+
+    missing_columns = [c for c in NASA_POWER_VARIABLE_COLUMNS if c not in df.columns]
+    if missing_columns:
+        raise ValueError(f"columnas requeridas ausentes en NASA POWER: {missing_columns}")
+
     return meta_lines, df[list(NASA_POWER_VARIABLE_COLUMNS)]
 
 
@@ -126,11 +192,17 @@ class DateAlignmentReport:
     n_only_nasa_power: int
 
 
-def compute_date_alignment(
-    era5_daily: pd.DataFrame, nasa_power_df: pd.DataFrame
-) -> DateAlignmentReport:
-    era5_dates = set(era5_daily.index)
-    nasa_dates = set(nasa_power_df.index)
+def extract_era5_daily_dates(df: pd.DataFrame) -> set:
+    """Fechas calendario presentes en el CSV horario, sin agregar ningún
+    valor de humedad. Puramente estructural (protocolo, sección 16): permite
+    verificar cobertura/alineación de fechas sin promediar humedad de suelo
+    de todo el archivo, incluida la ventana de B/C (hallazgo H-03)."""
+    return set(pd.to_datetime(df["time"]).dt.normalize())
+
+
+def compute_date_alignment(era5_dates: set, nasa_dates: set) -> DateAlignmentReport:
+    era5_dates = set(pd.Timestamp(d).normalize() for d in era5_dates)
+    nasa_dates = set(pd.Timestamp(d).normalize() for d in nasa_dates)
     return DateAlignmentReport(
         n_dates_era5=len(era5_dates),
         n_dates_nasa_power=len(nasa_dates),
