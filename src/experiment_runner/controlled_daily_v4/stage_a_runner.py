@@ -8,6 +8,7 @@ diaria continua completa y filtra internamente por `STAGE_A_BOUNDS`.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -21,6 +22,7 @@ from experiment_runner.controlled_daily_v4.config import (
     STAGE_A_BOUNDS,
     ProtocolConfig,
 )
+from experiment_runner.controlled_daily_v4.dataset_fingerprint import compute_dataset_fingerprint
 from experiment_runner.controlled_daily_v4.features import (
     FEATURE_COLUMNS,
     build_feature_frame,
@@ -58,6 +60,7 @@ from experiment_runner.controlled_daily_v4.splits import (
     generate_outer_folds,
 )
 from experiment_runner.controlled_daily_v4.tuning import select_best_config
+from experiment_runner.controlled_daily_v4.warnings_capture import collect_context_warnings
 
 SINGLE_MODEL_FAMILIES = (
     FAMILY_LOGISTIC_REGRESSION,
@@ -109,13 +112,16 @@ def _run_single_family_outer_fold(
     family: str,
     configs: list[ModelConfig],
     outer_fold: Fold,
-    inner_n_splits: int,
-    gap: int,
+    inner_folds: list[Fold],
     p20_train: float,
     y_train: np.ndarray,
     y_val: np.ndarray,
 ) -> OuterFoldFamilyResult:
-    inner_folds = generate_inner_folds(outer_fold.train, n_splits=inner_n_splits, gap=gap)
+    # `inner_folds` llega ya calculado por `run_stage_a` (una sola vez por
+    # outer fold, reutilizado por las tres familias): evita recalcular la
+    # misma partición con una segunda lógica que pudiera divergir, y permite
+    # que el artefacto de folds registrado sea exactamente el consumido aquí
+    # (hallazgo H-05).
     best_config, median, fold_scores = select_best_config(configs, inner_folds)
 
     X_train = outer_fold.train[list(FEATURE_COLUMNS)].to_numpy()
@@ -182,6 +188,16 @@ class StageAResults:
     final_estimator: object = None
     final_p20_train: float | None = None
     final_estimator_details: dict[str, dict] | None = None
+    # Huella determinista del conjunto diario elegible efectivamente usado
+    # (hallazgo H-05); ver `dataset_fingerprint.compute_dataset_fingerprint`.
+    dataset_fingerprint: dict[str, Any] = field(default_factory=dict)
+    # Folds internos realmente consumidos por el tuning, indexados por
+    # `outer_fold_index` (hallazgo H-05): idénticos para las tres familias de
+    # un mismo outer fold, por eso se registran una única vez por outer fold.
+    inner_folds_by_outer: dict[int, list[Fold]] = field(default_factory=dict)
+    # Advertencias efectivamente emitidas durante el ajuste, con contexto
+    # (familia/outer fold/fase) y deduplicadas por conteo (hallazgo H-05).
+    warnings_log: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _concatenate_oof(
@@ -222,6 +238,7 @@ def run_stage_a(
     protocol_config = protocol_config or ProtocolConfig()
 
     eligible = build_eligible_frame(daily_series, depth_column)
+    dataset_fingerprint = compute_dataset_fingerprint(eligible)
     outer_folds = generate_outer_folds(
         eligible, n_splits=protocol_config.outer_n_splits, gap=protocol_config.gap
     )
@@ -230,30 +247,51 @@ def run_stage_a(
     per_family_outer_results: dict[str, list[OuterFoldFamilyResult]] = {
         f: [] for f in (*SINGLE_MODEL_FAMILIES, FAMILY_SOFT_VOTING)
     }
+    inner_folds_by_outer: dict[int, list[Fold]] = {}
+    warnings_log: list[dict[str, Any]] = []
 
     for outer_fold in outer_folds:
         p20_train = compute_p20_threshold(outer_fold.train["future_soil_moisture"])
         y_train = build_target(outer_fold.train["future_soil_moisture"], p20_train).to_numpy()
         y_val = build_target(outer_fold.validation["future_soil_moisture"], p20_train).to_numpy()
 
+        # Única fuente de folds internos para las tres familias de este outer
+        # fold (hallazgo H-05): calculado una vez y reutilizado, nunca
+        # recalculado por familia con una segunda lógica que pudiera divergir.
+        inner_folds = generate_inner_folds(
+            outer_fold.train, n_splits=protocol_config.inner_n_splits, gap=protocol_config.gap
+        )
+        inner_folds_by_outer[outer_fold.index] = inner_folds
+
         base_results: dict[str, OuterFoldFamilyResult] = {}
         for family in SINGLE_MODEL_FAMILIES:
-            result = _run_single_family_outer_fold(
-                family,
-                family_configs[family],
-                outer_fold,
-                protocol_config.inner_n_splits,
-                protocol_config.gap,
-                p20_train,
-                y_train,
-                y_val,
-            )
+            with collect_context_warnings(
+                warnings_log,
+                phase="outer_fold_tuning_and_fit",
+                family=family,
+                outer_fold_index=outer_fold.index,
+            ):
+                result = _run_single_family_outer_fold(
+                    family,
+                    family_configs[family],
+                    outer_fold,
+                    inner_folds,
+                    p20_train,
+                    y_train,
+                    y_val,
+                )
             base_results[family] = result
             per_family_outer_results[family].append(result)
 
-        soft_voting_result = _run_soft_voting_outer_fold(
-            outer_fold, base_results, p20_train, y_train, y_val
-        )
+        with collect_context_warnings(
+            warnings_log,
+            phase="outer_fold_soft_voting_fit",
+            family=FAMILY_SOFT_VOTING,
+            outer_fold_index=outer_fold.index,
+        ):
+            soft_voting_result = _run_soft_voting_outer_fold(
+                outer_fold, base_results, p20_train, y_train, y_val
+            )
         per_family_outer_results[FAMILY_SOFT_VOTING].append(soft_voting_result)
 
     oof_by_family = {
@@ -274,40 +312,46 @@ def run_stage_a(
         per_family_outer_results=per_family_outer_results,
         oof_by_family=oof_by_family,
         selection=selection,
+        dataset_fingerprint=dataset_fingerprint,
+        inner_folds_by_outer=inner_folds_by_outer,
+        warnings_log=warnings_log,
     )
 
     if selection.selected_family is None:
         return results
 
     if selection.selected_family == FAMILY_SOFT_VOTING:
-        frozen_bases = {
-            family: freeze_family(
+        frozen_bases = {}
+        for family in SINGLE_MODEL_FAMILIES:
+            with collect_context_warnings(warnings_log, phase="freeze_tuning", family=family):
+                frozen_bases[family] = freeze_family(
+                    family,
+                    family_configs[family],
+                    eligible,
+                    protocol_config.outer_n_splits,
+                    protocol_config.gap,
+                )
+        results.frozen_soft_voting_bases = frozen_bases
+        p20_train = compute_p20_threshold(eligible["future_soil_moisture"])
+        y = build_target(eligible["future_soil_moisture"], p20_train).to_numpy()
+        X = eligible[list(FEATURE_COLUMNS)].to_numpy()
+        base_configs = {family: fc.config for family, fc in frozen_bases.items()}
+        with collect_context_warnings(warnings_log, phase="final_fit", family=FAMILY_SOFT_VOTING):
+            results.final_estimator = fit_candidate(SoftVotingSpec(base_configs), X, y)
+        results.final_p20_train = p20_train
+    else:
+        family = selection.selected_family
+        with collect_context_warnings(warnings_log, phase="freeze_tuning", family=family):
+            frozen = freeze_family(
                 family,
                 family_configs[family],
                 eligible,
                 protocol_config.outer_n_splits,
                 protocol_config.gap,
             )
-            for family in SINGLE_MODEL_FAMILIES
-        }
-        results.frozen_soft_voting_bases = frozen_bases
-        p20_train = compute_p20_threshold(eligible["future_soil_moisture"])
-        y = build_target(eligible["future_soil_moisture"], p20_train).to_numpy()
-        X = eligible[list(FEATURE_COLUMNS)].to_numpy()
-        base_configs = {family: fc.config for family, fc in frozen_bases.items()}
-        results.final_estimator = fit_candidate(SoftVotingSpec(base_configs), X, y)
-        results.final_p20_train = p20_train
-    else:
-        family = selection.selected_family
-        frozen = freeze_family(
-            family,
-            family_configs[family],
-            eligible,
-            protocol_config.outer_n_splits,
-            protocol_config.gap,
-        )
         results.frozen_single_family = frozen
-        estimator, p20_train = fit_final_estimator(frozen, eligible)
+        with collect_context_warnings(warnings_log, phase="final_fit", family=family):
+            estimator, p20_train = fit_final_estimator(frozen, eligible)
         results.final_estimator = estimator
         results.final_p20_train = p20_train
 

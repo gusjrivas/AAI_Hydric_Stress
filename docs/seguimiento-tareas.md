@@ -764,3 +764,211 @@ resultado local); `ruff check`/`black --check`/`git diff --check` limpios sobre 
 afectado. No se leyó ningún CSV real de Pergamino/Balcarce, no se ejecutó A real ni B ni C, no se
 usó MLflow compartido, `controlled_daily_v3` sin alteración, ningún tag movido, y no se hizo
 push, PR ni merge.
+
+## H-05/H-06: reproducibilidad/trazabilidad de la Etapa A y documentación coherente (2026-09-13)
+
+Rama `fix/controlled-daily-v4-reproducibility-docs`, base `origin/main`
+(`be6a5559100637180ee1c3dede4e99e24455474c`, PR #189 ya mergeado con H-01 a
+H-04). Diagnóstico contra el código real de `src/experiment_runner/controlled_daily_v4/`
+y contra el manifiesto de provenance, que ya anticipaba estos campos como
+`PENDING_BEFORE_EXECUTION` (`repository_state.commit`,
+`execution_artifacts.folds.inner_fold_boundaries`, `warnings_log`,
+`future_versioned_artifacts.daily_derived_dataset_sha256`) sin que el runner
+los completara todavía.
+
+**H-05 (reproducibilidad/trazabilidad):**
+
+- **Identidad de código** — pendiente, ahora implementado: `code_identity.py`
+  (`capture_code_identity`) captura SHA completo + árbol limpio/modificado vía
+  `git`, con fallback explícito a un archivo de metadatos embebido en el build
+  (`.build_commit`, escrito por `docker/experiment-v4/Dockerfile` a partir de
+  `--build-arg GIT_COMMIT=$(git rev-parse HEAD)`) cuando no hay `.git` en
+  tiempo de ejecución (caso contenedor). Si ninguna fuente está disponible,
+  se declara `available=False` explícitamente — nunca se inventa un commit.
+  Persistido en `code_version.json`, capturado antes de entrenar (igual que
+  el entorno). Verificado dentro del contenedor reconstruido: cae al
+  fallback (`source=build_metadata_file`, `dirty=None`), nunca asume estado
+  limpio.
+- **Huella del conjunto derivado** — pendiente, ahora implementado:
+  `dataset_fingerprint.py` calcula SHA-256 sobre una representación estable
+  del conjunto elegible de la Etapa A (columnas fijas, orden por
+  `feature_timestamp`, timestamps ISO, floats con formato fijo) — nunca
+  `hash()` de Python, nunca sobre B/C. Persistido en `dataset_fingerprint.json`.
+- **Folds internos y de congelamiento** — pendiente, ahora implementado:
+  `run_stage_a` calcula los folds internos una única vez por outer fold
+  (antes se recalculaban, idénticos, tres veces por familia) y los expone en
+  `inner_folds_by_outer`; `FrozenConfig` ahora expone también los folds de la
+  segunda pasada de congelamiento. Persistidos en `inner_fold_boundaries.json`
+  y `freeze_fold_boundaries.json` — mismos folds consumidos por el
+  entrenamiento, sin lógica paralela.
+- **Advertencias con contexto** — pendiente, ahora implementado:
+  `warnings_capture.collect_context_warnings` envuelve cada ajuste (familia,
+  outer fold, fase) y deduplica por `(contexto, categoría, mensaje)` con
+  conteo. Persistido en `warnings.json`, sin volcar datasets.
+- **Distinción configuración congelada vs. estimador en memoria** —
+  documentado explícitamente en `artifacts.py`/`freezing.py`: `frozen_config.json`
+  persiste familia + hiperparámetros + detalle verificado por API (nunca el
+  estimador serializado); el estimador ajustado en memoria se reconstruye
+  reentrenando con la misma configuración sobre el conjunto identificado por
+  `dataset_fingerprint.json`.
+- **Entorno, entradas y distinción científica/sintética** — ya resueltos por
+  H-01/H-04 (PR #189); sin cambios adicionales, solo verificados en
+  compatibilidad.
+- **Bump de esquema:** `ARTIFACT_SCHEMA_VERSION` `v2` → `v3` (nuevos
+  artefactos; `frozen_config.json` cambia de forma).
+
+**H-06 (documentación coherente):**
+
+- `docs/research/controlled-daily-v4-external-pergamino-protocol.md`,
+  sección 7.5: corregida la descripción de `VotingClassifier(voting='soft')`
+  (no implementado) por la combinación propia de probabilidades
+  (`SoftVotingClassifier`), con la justificación real (balanceo independiente
+  por familia, que `VotingClassifier` no soporta).
+- Sección 15 ("Entorno reproducible"): ya no describe el entorno como no
+  fijado — refleja `docker/experiment-v4/constraints.txt` +
+  `environment.validate_environment()`, y distingue lo ya validado
+  (tests/CI sintético) de lo pendiente (commit de la corrida científica real).
+- ADR-0011: tres referencias desactualizadas a la ausencia de entorno fijado
+  (Decisión, Consecuencias, Condiciones previas) marcadas `~~tachado~~` con
+  nota "Actualización (2026-09-12)", siguiendo el patrón ya usado en
+  ADR-0004/ADR-0006 — no se reescribe la decisión histórica.
+- `docker/experiment-v4/Dockerfile`: documentado el mecanismo de
+  `--build-arg GIT_COMMIT`; `.github/workflows/ci.yml` actualizado para
+  pasarlo (`$GITHUB_SHA`) en el job `experiment-v4-container`.
+- Manifiesto de provenance: notas de `execution_artifacts` y
+  `future_versioned_artifacts` actualizadas para distinguir "mecanismo ya
+  implementado" de "valor pendiente de una ejecución real" — sin completar
+  ningún campo con datos inventados.
+- ~~Sin cambios necesarios: explicación del gap/OOF (sección 8, ya correcta)~~
+  **Corrección (2026-09-13):** era incorrecta. Una revisión externa posterior
+  reprodujo, con artefactos sintéticos, que los tres `outer_val` quedan
+  calendario-adyacentes entre sí (ej.: uno termina 13/04, el siguiente
+  comienza 14/04) — `gap=3` opera **dentro** de cada fold (fin de
+  `outer_train` → comienzo de su propio `outer_val`), no entre segmentos
+  `outer_val` sucesivos. La sección 8 del protocolo conflacionaba ambas
+  nociones para justificar la prohibición de bloques de bootstrap que crucen
+  segmentos. Corregido: la prohibición es una regla de remuestreo
+  predeclarada y segment-aware, independiente de la distancia calendario
+  real entre segmentos; la purga por `gap=3` sigue siendo exclusivamente
+  intra-fold. Sin cambios en splits, sampler, longitud de bloque, réplicas,
+  semillas ni ninguna decisión estadística — solo en la explicación.
+- Sin cambios necesarios: descripción de VotingClassifier en ADR-0010 (no la
+  mencionaba), README (no tiene referencias a v4), estado de A/B/C (ya
+  correctamente `PENDING`).
+- Manifiesto: los pendientes de licencia/fecha de adquisición de Pergamino
+  (`PENDING_CONFIRMATION`) se dejan explícitamente sin resolver — no hay
+  evidencia disponible en este repositorio para confirmarlos ni descartarlos;
+  siguen bloqueando una futura ejecución científica real, no esta tarea.
+
+**Trazabilidad — capítulo 3 (arquitectura e implementación):**
+
+| Componente | Responsabilidad | Ruta | Evidencia de verificación |
+|---|---|---|---|
+| `code_identity.py` | Identidad de código (SHA + limpio/modificado) antes de entrenar, con fallback de build sin `.git` | `src/experiment_runner/controlled_daily_v4/code_identity.py` | `tests/test_controlled_daily_v4_code_identity.py` (5 tests), verificado dentro y fuera del contenedor |
+| `dataset_fingerprint.py` | Huella determinista del conjunto diario elegible de la Etapa A | `src/experiment_runner/controlled_daily_v4/dataset_fingerprint.py` | `tests/test_controlled_daily_v4_dataset_fingerprint.py` (6 tests) |
+| `warnings_capture.py` | Captura de advertencias de ajuste con contexto, deduplicadas | `src/experiment_runner/controlled_daily_v4/warnings_capture.py` | `tests/test_controlled_daily_v4_warnings_capture.py` (4 tests) |
+| Folds internos/congelamiento expuestos | Correspondencia entre folds registrados y consumidos | `stage_a_runner.py`, `freezing.py` (campo `folds` de `FrozenConfig`) | `tests/test_controlled_daily_v4_reproducibility_artifacts.py` (10 tests) |
+
+Implementación terminada: los cinco componentes de la tabla, integrados en la
+CLI (`cli.py`) y en el runner (`stage_a_runner.py`). Diseño previsto, no
+implementado en esta tarea: ejecución científica real de la Etapa A (fuera de
+alcance), Etapas B/C.
+
+Verificación real ejecutada: `tests/test_controlled_daily_v4_*.py` completa
+en verde (**201 passed** — 176 previos + 25 nuevos); suite raíz `tests/`
+completa en verde (**463 passed**); suite sintética dentro del contenedor
+`docker/experiment-v4` reconstruido desde cero con `--build-arg
+GIT_COMMIT=$(git rev-parse HEAD)` (**200 passed, 1 skipped** — el test que
+exige `git` instalado se salta correctamente dentro del contenedor, que no lo
+tiene; confirmado por separado que `capture_code_identity()` cae al fallback
+de build con `dirty=None`); `ruff check`/`black --check`/`git diff --check`
+limpios sobre el alcance afectado. No se ejecutó la Etapa A real, no se leyó
+ningún CSV real de Pergamino/Balcarce, no se accedió a Balcarce, no se
+ejecutó B ni C, no se usó MLflow compartido, `controlled_daily_v3` sin
+alteración, ningún tag movido, y no se hizo commit, push, PR ni merge.
+
+## Revisión externa del paquete H-05/H-06: 4 pendientes corregidos (2026-09-13)
+
+Sobre el ZIP `controlled-daily-v4-reproducibility-docs-review.zip`
+(SHA-256 `9214f04f876b9d6f5bd8f6e7004d8fa7309c9ea9cf32ab71b4fc992c2bb0a1d4`),
+una revisión externa reprodujo, con fixtures sintéticas, cuatro defectos
+concretos que esa entrega no cubría:
+
+- **Punto 1, identidad de código en contenedor:** `.build_commit` era texto
+  plano sin estado limpio/modificado (`dirty` quedaba siempre `None` dentro
+  de un contenedor, marcando toda corrida en contenedor como no normativa
+  aunque el checkout de origen estuviera limpio) y aceptaba cualquier texto
+  no vacío como si fuera un commit (`available=True` con
+  `commit="this-is-not-a-commit"`). Corregido con
+  `docker/experiment-v4/build.py`: captura el SHA completo y `git status
+  --porcelain` del MISMO checkout usado como contexto de build (el estado
+  limpio/modificado se calcula ANTES de escribir el archivo de metadatos,
+  para no autocontaminar el resultado), valida el formato del SHA contra el
+  que este repositorio usa realmente (`git rev-parse --show-object-format`),
+  y escribe un JSON versionado (`BUILD_IDENTITY_SCHEMA_VERSION`) que
+  `code_identity.py` valida estrictamente al leer -- un commit inválido, un
+  `dirty` con tipo incorrecto o una versión de esquema inesperada producen
+  `available=False, source=build_metadata_invalid` explícito, nunca una
+  identidad aceptada a ciegas ni `dirty=None` convertido en `False`. El
+  Dockerfile ya no acepta `ARG GIT_COMMIT`; requiere `.build_identity.json`
+  (falla el `COPY` si falta). CI actualizado para invocar el wrapper.
+- **Punto 2, precisión de la huella del dataset:** `"%.12g"` (12 dígitos
+  significativos) colisionaba valores `float64` distintos -- reproducido con
+  `0.36482934020882524` vs. `0.3648293402088253`, y con `0.3` vs.
+  `numpy.nextafter(0.3, 0)` (este último cambia la etiqueta de estrés
+  resultante sin cambiar la huella). Corregido: cada float se serializa con
+  `repr()` de Python (round-trip exacto, sin redondeo con pérdida);
+  `dataset_fingerprint.json` agrega `schema_version`
+  (`DATASET_FINGERPRINT_FORMAT_VERSION`, `v2`) y declara explícitamente
+  `float_encoding`/`timestamp_encoding`/`cell_separator`. Toda huella `v1`
+  (implícita, `ARTIFACT_SCHEMA_VERSION` `v3`) queda invalidada por este
+  cambio, no comparable con una `v4`.
+- **Punto 3, identidad de constraints y configuración efectiva:**
+  `environment.json` no registraba la identidad del propio
+  `constraints.txt` contrastado (solo el resultado de contrastarlo), y
+  `resolved_config.json` no persistía la configuración experimental efectiva
+  completa. Corregido: `environment.capture_constraints_identity()`
+  (reutiliza `provenance.compute_sha256`, sin duplicar hashing) agrega
+  `constraints_identity` (ruta + SHA-256) a `environment.json`;
+  `resolved_config.json` agrega `effective_protocol_config` con el mismo
+  objeto `ProtocolConfig` efectivamente pasado a `run_stage_a` (fronteras
+  temporales, horizonte, gap, folds, lags, ventanas móviles, umbral, margen
+  práctico, bootstrap y las tres grillas) -- no una copia manual mantenida
+  aparte. La CLI no expone hoy forma de solicitar una configuración distinta
+  de la efectivamente consumida (más allá de `--seed`/`--bootstrap-replicas`,
+  ya reflejados), así que no existe una divergencia "solicitado vs.
+  consumido" que documentar en este punto.
+- **Punto 4, gap y ventanas OOF:** ver arriba, entrada "Corrección
+  (2026-09-13)" sobre la sección de gap/OOF -- corregido en el protocolo
+  (sección 8) y en esta misma bitácora.
+
+`ARTIFACT_SCHEMA_VERSION` `v3` → `v4` (cambios de formato en
+`dataset_fingerprint.json`, `code_version.json`, `environment.json` y
+`resolved_config.json`; ver docstring de `artifacts.py`).
+
+**Archivos nuevos/modificados en esta ronda:** `docker/experiment-v4/build.py`
+(nuevo), `code_identity.py`, `dataset_fingerprint.py`, `environment.py`,
+`cli.py`, `artifacts.py`, `Dockerfile`, `.gitignore`, `.github/workflows/ci.yml`,
+protocolo v4 (sección 8), este archivo; 3 archivos de test extendidos
+(`test_controlled_daily_v4_code_identity.py`,
+`test_controlled_daily_v4_dataset_fingerprint.py`,
+`test_controlled_daily_v4_reproducibility_artifacts.py`) con pruebas
+dirigidas a los cuatro pendientes. El cambio completo, contra la base
+`origin/main` (ambas rondas de H-05/H-06 incluidas), son **20 archivos: 12
+modificados y 8 nuevos** (ver PR).
+
+Verificación real ejecutada: pruebas dirigidas a los cuatro pendientes en
+verde; suite `tests/test_controlled_daily_v4_*.py` completa (**231 passed**,
+30 nuevos sobre la base de 201); suite raíz `tests/` completa (**493
+passed**, 30 nuevos sobre 463); suite sintética dentro del contenedor
+`docker/experiment-v4` reconstruido con `python docker/experiment-v4/build.py`
+(**228 passed, 3 skipped** -- los 3 tests que exigen `git` instalado se
+saltan correctamente dentro del contenedor, que no lo tiene; 228+3=231,
+idéntico al total local); verificado además, manualmente, que un
+`.build_identity.json` con un commit malformado produce
+`available=False, source=build_metadata_invalid` dentro del contenedor (no
+una identidad aceptada). `ruff check`/`black --check`/`git diff --check`
+limpios sobre el alcance afectado. No se ejecutó la Etapa A real, no se leyó
+ningún CSV real de Pergamino/Balcarce, no se accedió a Balcarce, no se
+ejecutó B ni C, no se usó MLflow compartido, `controlled_daily_v3` sin
+alteración, ningún tag movido, y no se hizo commit, push, PR ni merge.

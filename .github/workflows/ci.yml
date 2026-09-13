@@ -34,7 +34,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Construir el entorno experimental fijado (controlled_daily_v4)
-        run: docker build -f docker/experiment-v4/Dockerfile -t experiment-v4-controlled-daily-v4 .
+        run: |
+          python3 docker/experiment-v4/build.py -t experiment-v4-controlled-daily-v4
 
       - name: Ejecutar la suite sintética de la Etapa A dentro del contenedor
         run: docker run --rm experiment-v4-controlled-daily-v4

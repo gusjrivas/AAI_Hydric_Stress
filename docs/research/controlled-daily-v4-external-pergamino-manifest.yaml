@@ -277,6 +277,13 @@ execution_artifacts:
   note: >
     Ninguno de los siguientes campos existe todavía; se completan únicamente
     cuando el protocolo se ejecute (fuera de alcance de esta tarea documental).
+    El mecanismo que los produce ya existe en el runner (`artifacts.py`,
+    `code_identity.py`, `dataset_fingerprint.py`): folds internos y de
+    congelamiento, advertencias con contexto e identidad de código, todos
+    serializados por la CLI en cada corrida (incluidas las sintéticas de
+    test). Esto no adelanta ninguna ejecución científica real -- solo indica
+    que, al ejecutarla, estos campos podrán completarse con evidencia real en
+    lugar de quedar pendientes de implementación.
   folds:
     outer_fold_boundaries: PENDING_BEFORE_EXECUTION
     inner_fold_boundaries: PENDING_BEFORE_EXECUTION
@@ -295,7 +302,11 @@ future_versioned_artifacts:
     de esta tarea): predicciones OOF, métricas finales, resultados de Etapa B
     y C, y el dataset diario derivado (o su receta reproducible de
     construcción) junto con su propio SHA-256. Los CSV crudos permanecen
-    fuera de Git en todo momento.
+    fuera de Git en todo momento. El SHA-256 del conjunto diario elegible ya
+    se calcula en cada corrida (`dataset_fingerprint.py`, artefacto
+    `dataset_fingerprint.json`) sobre una representación estable y explícita
+    (columnas, orden, formato de floats); lo pendiente es únicamente
+    versionar el valor de una ejecución científica real, no el mecanismo.
   planned_paths:
     daily_derived_dataset: PENDING_BEFORE_EXECUTION
     daily_derived_dataset_sha256: PENDING_BEFORE_EXECUTION

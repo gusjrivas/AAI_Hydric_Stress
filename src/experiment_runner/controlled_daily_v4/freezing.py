@@ -19,7 +19,7 @@ from experiment_runner.controlled_daily_v4.features import (
     compute_p20_threshold,
 )
 from experiment_runner.controlled_daily_v4.models import ModelConfig, fit_estimator
-from experiment_runner.controlled_daily_v4.splits import generate_outer_folds
+from experiment_runner.controlled_daily_v4.splits import Fold, generate_outer_folds
 from experiment_runner.controlled_daily_v4.tuning import select_best_config
 
 
@@ -29,6 +29,11 @@ class FrozenConfig:
     config: ModelConfig
     median_mcc: float
     fold_mcc: list[float]
+    # Folds de la segunda pasada usada para congelar hiperparámetros (hallazgo
+    # H-05): se exponen para que quien registre la corrida persista los
+    # límites/cantidades/gap realmente consumidos, sin recalcularlos con una
+    # segunda lógica que pudiera divergir de esta.
+    folds: list[Fold]
 
 
 def freeze_family(
@@ -44,7 +49,9 @@ def freeze_family(
     `fit_final_estimator`, sobre el conjunto completo."""
     folds = generate_outer_folds(eligible_frame, n_splits=n_splits, gap=gap)
     best_config, median, scores = select_best_config(configs, folds)
-    return FrozenConfig(family=family, config=best_config, median_mcc=median, fold_mcc=scores)
+    return FrozenConfig(
+        family=family, config=best_config, median_mcc=median, fold_mcc=scores, folds=folds
+    )
 
 
 def fit_final_estimator(frozen: FrozenConfig, eligible_frame: pd.DataFrame) -> tuple[Any, float]:

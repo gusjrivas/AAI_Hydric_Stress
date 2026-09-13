@@ -8,9 +8,11 @@ MLflow, no lo integra en absoluto.
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import sys
 from pathlib import Path
 
+from experiment_runner.controlled_daily_v4.code_identity import capture_code_identity
 from experiment_runner.controlled_daily_v4.config import (
     BOOTSTRAP_REPLICAS_DEFAULT,
     BOOTSTRAP_SEED,
@@ -27,27 +29,37 @@ from experiment_runner.controlled_daily_v4.config import (
     require_stage_a,
 )
 from experiment_runner.controlled_daily_v4.environment import (
+    capture_constraints_identity,
     capture_environment,
     validate_environment,
 )
+from experiment_runner.controlled_daily_v4.manifest_reference import DEFAULT_CONSTRAINTS_PATH
 from experiment_runner.controlled_daily_v4.provenance import validate_pergamino_provenance
 
 DEPTH_CHOICES = {"primary": PRIMARY_DEPTH_COLUMN, "sensitivity": SENSITIVITY_DEPTH_COLUMN}
 
 
 def normative_deviations(
-    seed: int, bootstrap_replicas: int, *, input_mode: str, environment_ok: bool
+    seed: int,
+    bootstrap_replicas: int,
+    *,
+    input_mode: str,
+    environment_ok: bool,
+    code_identity_ok: bool = True,
 ) -> list[str]:
     """Parámetros/condiciones que apartan la corrida de lo normativo.
 
-    Una corrida con semilla, réplicas, modo de entrada no científico o
-    entorno no validado sigue siendo ejecutable (sirve para pruebas
-    rápidas o desarrollo), pero queda marcada como no normativa en la
-    evidencia para que no se confunda con la corrida real (hallazgo H-04:
-    la condición normativa considera modo, validación de entradas,
-    integridad temporal y entorno; la integridad temporal ya se exige de
-    forma incondicional -- ver `features.validate_continuous_daily_calendar`
-    -- por lo que llegar a este punto ya la satisface)."""
+    Una corrida con semilla, réplicas, modo de entrada no científico,
+    entorno no validado, o identidad de código no verificable/modificada
+    sigue siendo ejecutable (sirve para pruebas rápidas o desarrollo), pero
+    queda marcada como no normativa en la evidencia para que no se confunda
+    con la corrida real (hallazgo H-04: la condición normativa considera
+    modo, validación de entradas, integridad temporal y entorno; la
+    integridad temporal ya se exige de forma incondicional -- ver
+    `features.validate_continuous_daily_calendar` -- por lo que llegar a
+    este punto ya la satisface). `code_identity_ok` cubre el hallazgo H-05:
+    es `False` cuando el SHA de código no pudo obtenerse de ninguna fuente,
+    o cuando se obtuvo pero el árbol de trabajo está modificado."""
     deviations = []
     if seed != BOOTSTRAP_SEED:
         deviations.append("seed")
@@ -57,6 +69,8 @@ def normative_deviations(
         deviations.append("input_mode")
     if not environment_ok:
         deviations.append("environment")
+    if not code_identity_ok:
+        deviations.append("code_identity")
     return deviations
 
 
@@ -156,6 +170,11 @@ def main(argv: list[str] | None = None) -> int:
 
     environment_info = capture_environment()
     environment_report = validate_environment(environment_info)
+    # Identidad del archivo de referencia contrastado (hallazgo H-05, revisión
+    # externa 2026-09-13, punto 3): persiste el SHA-256 de `constraints.txt`
+    # junto con el resultado de validarlo, no solo el resultado — capturado
+    # antes de entrenar, igual que el resto del entorno.
+    constraints_identity = capture_constraints_identity(DEFAULT_CONSTRAINTS_PATH)
     if args.input_mode == INPUT_MODE_SCIENTIFIC and not environment_report.ok:
         print(
             "ERROR: validación de entorno falló (antes de ajustar ningún modelo):",
@@ -164,6 +183,12 @@ def main(argv: list[str] | None = None) -> int:
         for issue in environment_report.issues:
             print(f"  - {issue}", file=sys.stderr)
         return 4
+
+    # Identidad de código (hallazgo H-05), capturada antes de entrenar, igual
+    # que el entorno: nunca inventa un commit ni un estado limpio/modificado
+    # si no puede determinarlos (ver `code_identity.capture_code_identity`).
+    code_identity = capture_code_identity()
+    code_identity_ok = code_identity.available and code_identity.dirty is False
 
     from experiment_runner.controlled_daily_v4 import artifacts
     from experiment_runner.controlled_daily_v4.features import compute_stage_window_bounds
@@ -228,6 +253,7 @@ def main(argv: list[str] | None = None) -> int:
         args.bootstrap_replicas,
         input_mode=args.input_mode,
         environment_ok=environment_report.ok,
+        code_identity_ok=code_identity_ok,
     )
 
     written = artifacts.write_stage_a_artifacts(
@@ -243,18 +269,34 @@ def main(argv: list[str] | None = None) -> int:
             "normative_run": not deviations,
             "normative_deviations": deviations,
             "scientific_run": report.scientific and not deviations,
+            # Configuración experimental efectiva completa (hallazgo H-05,
+            # revisión externa 2026-09-13, punto 3): el mismo objeto
+            # `ProtocolConfig` pasado a `run_stage_a`, no una copia manual
+            # mantenida aparte -- incluye fronteras temporales, horizonte,
+            # gap, folds, lags, ventanas móviles, umbral, margen práctico,
+            # parámetros de bootstrap y las tres grillas de hiperparámetros.
+            # La CLI no expone forma de solicitar una configuración distinta
+            # de esta (solo `--seed`/`--bootstrap-replicas` la parametrizan,
+            # ya reflejados arriba): no existe hoy una divergencia posible
+            # entre "solicitado" y "efectivamente consumido" más allá de esos
+            # dos campos.
+            "effective_protocol_config": protocol_config,
         },
         provenance_report=report,
         environment_info={
             **environment_info,
             "validation_issues": environment_report.issues,
             "validated_before_training": True,
+            "constraints_identity": constraints_identity,
         },
+        code_version=dataclasses.asdict(code_identity),
         input_hashes={
             "era5_sha256": report.era5_sha256,
             "nasa_power_sha256": report.nasa_power_sha256,
         },
+        dataset_fingerprint=results.dataset_fingerprint,
         outer_fold_boundaries=outer_fold_boundaries,
+        inner_fold_boundaries_by_outer=results.inner_folds_by_outer,
         per_family_outer_results=results.per_family_outer_results,
         oof_by_family=results.oof_by_family,
         selection_result=results.selection,
@@ -262,6 +304,7 @@ def main(argv: list[str] | None = None) -> int:
         frozen_soft_voting_bases=results.frozen_soft_voting_bases,
         final_p20_train=results.final_p20_train,
         final_estimator_details=results.final_estimator_details,
+        warnings_log=results.warnings_log,
         overwrite=args.overwrite,
     )
 
