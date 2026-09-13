@@ -28,7 +28,7 @@ Se adopta el protocolo `controlled_daily_v4_external_pergamino`, documentado en 
 - **Selección:** MCC global sobre OOF concatenado como criterio principal, con margen práctico predeclarado `δ = 0.05` (fijado antes de observar resultados, no derivado de A/B/C) para definir ganador estable, conjunto de equivalencia práctica y `SIN_GANADOR_ESTABLE`.
 - **Bootstrap:** moving block bootstrap **no circular**, con reglas exactas y justificación registradas en el protocolo canónico (sección 8, "Implementación del moving block bootstrap: variante no circular") — no duplicadas aquí.
 - **Umbral de decisión probabilístico:** fijo en `0.5` para los cuatro candidatos, no optimizado con A, B ni C.
-- **Entorno:** la versión exacta de Python/NumPy/pandas/SciPy/PyArrow/scikit-learn se fija y valida en un manifiesto o lock experimental antes del primer experimento (`PRECONDITION_FOR_EXECUTION`); no existe hoy en el repositorio (`pyproject.toml` solo fija pisos mínimos, sin lockfile).
+- ~~**Entorno:** la versión exacta de Python/NumPy/pandas/SciPy/PyArrow/scikit-learn se fija y valida en un manifiesto o lock experimental antes del primer experimento (`PRECONDITION_FOR_EXECUTION`); no existe hoy en el repositorio (`pyproject.toml` solo fija pisos mínimos, sin lockfile).~~ **Actualización (2026-09-12):** implementado. `docker/experiment-v4/constraints.txt` fija las versiones exactas y `environment.validate_environment()` las contrasta antes de entrenar, en modo `scientific` (ver protocolo, sección 15). Pendiente únicamente congelar el commit exacto de la corrida científica real, no la validación del entorno en sí.
 
 ## Alternativas consideradas
 
@@ -48,7 +48,7 @@ Positivas:
 Negativas / riesgos:
 - Mayor costo experimental (hasta ~789 ajustes de modelo en la Etapa A, ver el protocolo detallado) frente a una comparación de un único modelo.
 - Pergamino es reanálisis, no observación de campo: cualquier resultado de este protocolo es replicación funcional/validación temporal sobre datos modelados, nunca validación agronómica in situ.
-- La versión exacta del entorno de ejecución no está fijada hoy en el repositorio; ejecutar sin fijarla primero comprometería la reproducibilidad.
+- ~~La versión exacta del entorno de ejecución no está fijada hoy en el repositorio; ejecutar sin fijarla primero comprometería la reproducibilidad.~~ **Actualización (2026-09-12):** ya está fijada y validada antes de entrenar (ver actualización de la sección "Decisión"); el riesgo pendiente es exclusivamente registrar la identidad de código (commit) de la corrida científica real, no la del entorno.
 
 ## Restricciones
 
@@ -68,7 +68,7 @@ Este ADR es la condición previa #3 de ADR-0010 ("definirse el protocolo complet
 
 ## Condiciones previas a la ejecución
 
-1. Existencia de un manifiesto o lock experimental con las versiones exactas y validadas de Python, NumPy, pandas, SciPy, PyArrow y scikit-learn (`PRECONDITION_FOR_EXECUTION`, ver `docs/research/controlled-daily-v4-external-pergamino-protocol.md`).
+1. ~~Existencia de un manifiesto o lock experimental con las versiones exactas y validadas de Python, NumPy, pandas, SciPy, PyArrow y scikit-learn (`PRECONDITION_FOR_EXECUTION`, ver `docs/research/controlled-daily-v4-external-pergamino-protocol.md`).~~ **Cumplida (2026-09-12):** `docker/experiment-v4/constraints.txt` + `environment.validate_environment()`. Sigue pendiente registrar `repository_state.commit` (identidad de código de la corrida real) en el manifiesto de provenance al momento de ejecutar.
 2. Confirmación (o descarte explícito) de las URLs exactas de adquisición de los CSV de Pergamino y de sus licencias/términos de uso (Open-Meteo/ERA5-Land vía Copernicus/ECMWF, NASA POWER), hoy marcadas `PENDING_CONFIRMATION` en el manifiesto de provenance.
 3. Implementación del código del protocolo (fuera de alcance de este ADR y de la tarea que lo originó, exclusivamente documental) como un *change* de OpenSpec propio, con su propia propuesta, delta de especificación y tareas.
 4. Ninguna ejecución puede comenzar sin que este ADR y el protocolo detallado ya estén mergeados en `main`.

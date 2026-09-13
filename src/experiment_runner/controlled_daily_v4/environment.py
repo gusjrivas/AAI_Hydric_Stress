@@ -9,6 +9,12 @@ La validación (hallazgo H-04) se ejecuta y decide ANTES del primer ajuste de
 un modelo: `capture_environment()` se invoca y, en modo científico,
 `validate_environment()` puede abortar la corrida antes de que
 `run_stage_a` reciba ningún dato — nunca después de entrenar.
+
+Revisión externa (2026-09-13), hallazgo 3: `environment.json` registraba el
+resultado de contrastar el entorno contra `constraints.txt`, pero no la
+identidad del propio archivo de referencia usado para ese contraste.
+`capture_constraints_identity()` agrega el SHA-256 de `constraints.txt`,
+reutilizando `provenance.compute_sha256` -- no duplica lógica de hashing.
 """
 
 from __future__ import annotations
@@ -26,6 +32,7 @@ from experiment_runner.controlled_daily_v4.manifest_reference import (
     EnvironmentReference,
     load_environment_reference,
 )
+from experiment_runner.controlled_daily_v4.provenance import compute_sha256
 
 TRACKED_PACKAGES: tuple[tuple[str, str], ...] = (
     ("numpy", "numpy"),
@@ -46,6 +53,23 @@ def _package_version(module_name: str) -> str:
     except ImportError:
         return UNAVAILABLE
     return str(getattr(module, "__version__", UNAVAILABLE))
+
+
+def capture_constraints_identity(
+    constraints_path: str | Path = DEFAULT_CONSTRAINTS_PATH,
+) -> dict[str, Any]:
+    """Identidad (ruta + SHA-256) del `constraints.txt` efectivamente usado
+    para validar el entorno de esta corrida (hallazgo H-05, revisión externa
+    2026-09-13, punto 3). Se captura ANTES de entrenar, junto con el resto
+    del entorno; nunca inventa un hash si el archivo no existe."""
+    constraints_path = Path(constraints_path)
+    if not constraints_path.exists():
+        return {"path": str(constraints_path), "sha256": None, "exists": False}
+    return {
+        "path": str(constraints_path),
+        "sha256": compute_sha256(constraints_path),
+        "exists": True,
+    }
 
 
 def capture_environment() -> dict[str, Any]:

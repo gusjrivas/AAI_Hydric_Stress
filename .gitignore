@@ -25,3 +25,8 @@ mlartifacts/
 # estado de ejecución efímero de uso local, no un dataset curado — a
 # diferencia de los datasets reales de HU2, no tiene sentido versionarlo.
 data/feedback_ui.parquet
+
+# Metadato de identidad de código generado por docker/experiment-v4/build.py
+# y embebido al construir esa imagen (hallazgo H-05, ver code_identity.py).
+# Nunca se versiona: se regenera en cada build a partir del checkout real.
+.build_identity.json

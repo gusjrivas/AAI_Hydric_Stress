@@ -28,9 +28,37 @@ from experiment_runner.controlled_daily_v4.metrics import (
     summarize_fold_mcc,
 )
 
-ARTIFACT_SCHEMA_VERSION = "controlled_daily_v4_stage_a.v2"
+ARTIFACT_SCHEMA_VERSION = "controlled_daily_v4_stage_a.v4"
 """v2: métricas completas persistidas, diagnóstico por outer fold, provenance
-del bootstrap y JSON estrictamente estándar (sin `NaN`/`Infinity`)."""
+del bootstrap y JSON estrictamente estándar (sin `NaN`/`Infinity`).
+
+v3 (hallazgo H-05, reproducibilidad/trazabilidad): agrega `code_version.json`
+(identidad de código -- SHA completo y árbol limpio/modificado, o su
+ausencia explícita), `dataset_fingerprint.json` (huella determinista del
+conjunto diario elegible de la Etapa A), `inner_fold_boundaries.json` y
+`freeze_fold_boundaries.json` (límites de los folds internos y de
+congelamiento realmente consumidos, no recalculados aparte), y
+`warnings.json` (advertencias de ajuste con contexto). También cambia la
+forma de `frozen_config.json`: `single_family`/`soft_voting_bases` ahora son
+un resumen explícito (familia, hiperparámetros, MCC) en lugar del volcado
+directo del dataclass `FrozenConfig`, que desde v3 incluye los folds de
+congelamiento (no serializables como JSON de resultados).
+
+v4 (revisión externa 2026-09-13, cuatro hallazgos sobre el paquete v3):
+- `dataset_fingerprint.json` cambia de codificación de floats (de `"%.12g"`,
+  con pérdida de precisión que colisionaba valores `float64` distintos, a
+  `repr()` de Python, sin pérdida) -- toda huella `v3` queda invalidada, no
+  comparable con una `v4`.
+- `code_version.json` puede ahora reportar `dirty=False` genuino desde un
+  build en contenedor (antes siempre `None` ahí), y distingue metadatos de
+  build ausentes de metadatos de build malformados
+  (`SOURCE_BUILD_METADATA_INVALID`).
+- `environment.json` agrega `constraints_identity` (ruta + SHA-256 del
+  `constraints.txt` efectivamente contrastado).
+- `resolved_config.json` agrega `effective_protocol_config` (el
+  `ProtocolConfig` completo efectivamente consumido: fronteras temporales,
+  horizonte, gap, folds, lags, ventanas móviles, umbral, margen práctico,
+  parámetros de bootstrap y las tres grillas de hiperparámetros)."""
 
 
 class OutputDirectoryNotEmptyError(FileExistsError):
@@ -199,6 +227,37 @@ def oof_to_dataframe(oof) -> pd.DataFrame:
     return frame
 
 
+def _frozen_config_to_json(frozen: Any) -> dict[str, Any]:
+    """Payload JSON de un `FrozenConfig`, excluyendo explícitamente `folds`
+    (contiene los DataFrames de train/validation): esos límites se persisten
+    aparte, como boundaries, nunca como datos (hallazgo H-05; ver
+    `freeze_fold_boundaries`)."""
+    return {
+        "family": frozen.family,
+        "config": {"family": frozen.config.family, "params": frozen.config.params},
+        "median_mcc": metric_envelope(frozen.median_mcc, REASON_NO_OWN_GRID),
+        "fold_mcc": [metric_envelope(v, REASON_MONOCLASS) for v in frozen.fold_mcc],
+    }
+
+
+def _fold_boundaries(folds: list[Any]) -> list[dict[str, Any]]:
+    """Límites/cantidades de una lista de folds ya generados (nunca
+    recalculados): mismo formato que `outer_fold_boundaries` (hallazgo H-05)."""
+    return [
+        {
+            "fold_index": fold.index,
+            "segment_id": fold.segment_id,
+            "n_train": len(fold.train),
+            "n_validation": len(fold.validation),
+            "train_feature_start": str(fold.train["feature_timestamp"].min()),
+            "train_feature_end": str(fold.train["feature_timestamp"].max()),
+            "validation_feature_start": str(fold.validation["feature_timestamp"].min()),
+            "validation_feature_end": str(fold.validation["feature_timestamp"].max()),
+        }
+        for fold in folds
+    ]
+
+
 def write_stage_a_artifacts(
     output_dir: str | Path,
     *,
@@ -214,7 +273,11 @@ def write_stage_a_artifacts(
     frozen_single_family: Any | None,
     frozen_soft_voting_bases: dict[str, Any] | None,
     final_p20_train: float | None,
+    code_version: dict[str, Any] | None = None,
+    dataset_fingerprint: dict[str, Any] | None = None,
+    inner_fold_boundaries_by_outer: dict[int, list[Any]] | None = None,
     final_estimator_details: dict[str, Any] | None = None,
+    warnings_log: list[dict[str, Any]] | None = None,
     overwrite: bool = False,
 ) -> dict[str, Path]:
     """Serializa todos los artefactos de una corrida de Etapa A. Nunca
@@ -234,11 +297,29 @@ def write_stage_a_artifacts(
     written["environment"] = output_dir / "environment.json"
     _write_json(written["environment"], environment_info)
 
+    written["code_version"] = output_dir / "code_version.json"
+    _write_json(written["code_version"], code_version or {})
+
     written["input_hashes"] = output_dir / "input_hashes.json"
     _write_json(written["input_hashes"], input_hashes)
 
+    written["dataset_fingerprint"] = output_dir / "dataset_fingerprint.json"
+    _write_json(written["dataset_fingerprint"], dataset_fingerprint or {})
+
     written["outer_fold_boundaries"] = output_dir / "outer_fold_boundaries.json"
     _write_json(written["outer_fold_boundaries"], outer_fold_boundaries)
+
+    written["inner_fold_boundaries"] = output_dir / "inner_fold_boundaries.json"
+    _write_json(
+        written["inner_fold_boundaries"],
+        {
+            str(outer_index): _fold_boundaries(folds)
+            for outer_index, folds in (inner_fold_boundaries_by_outer or {}).items()
+        },
+    )
+
+    written["warnings"] = output_dir / "warnings.json"
+    _write_json(written["warnings"], warnings_log or [])
 
     p20_by_fold = {
         family: [
@@ -281,16 +362,36 @@ def write_stage_a_artifacts(
     _write_json(written["selection_decision"], _selection_result_to_json(selection_result))
 
     frozen_payload: dict[str, Any] = {}
+    freeze_folds: list[Any] | None = None
     if frozen_single_family is not None:
-        frozen_payload["single_family"] = frozen_single_family
+        frozen_payload["single_family"] = _frozen_config_to_json(frozen_single_family)
+        freeze_folds = frozen_single_family.folds
     if frozen_soft_voting_bases is not None:
-        frozen_payload["soft_voting_bases"] = frozen_soft_voting_bases
+        frozen_payload["soft_voting_bases"] = {
+            family: _frozen_config_to_json(fc) for family, fc in frozen_soft_voting_bases.items()
+        }
+        # Las tres bases se congelan sobre el mismo `eligible_frame`/n_splits/gap,
+        # por lo que comparten exactamente los mismos folds (hallazgo H-05):
+        # se registran una única vez, no por base.
+        freeze_folds = next(iter(frozen_soft_voting_bases.values())).folds
     frozen_payload["final_p20_train"] = final_p20_train
     # Regularización efectiva verificada por API del estimador congelado
     # (protocolo, sección 7.2): L2 real, no la declarada en la grilla.
+    # El estimador ajustado en memoria (`results.final_estimator`) nunca se
+    # serializa aquí: este artefacto persiste únicamente la configuración
+    # congelada (familia + hiperparámetros + detalle de la API del estimador
+    # ya ajustado), suficiente para reconstruir el mismo estimador reentrenando
+    # con `freezing.fit_final_estimator` sobre el mismo `eligible_frame`
+    # (identificado por `dataset_fingerprint.json`) — no es un modelo
+    # serializado (hallazgo H-05, punto f).
     frozen_payload["final_estimator_details"] = final_estimator_details or {}
     written["frozen_config"] = output_dir / "frozen_config.json"
     _write_json(written["frozen_config"], frozen_payload)
+
+    written["freeze_fold_boundaries"] = output_dir / "freeze_fold_boundaries.json"
+    _write_json(
+        written["freeze_fold_boundaries"], _fold_boundaries(freeze_folds) if freeze_folds else []
+    )
 
     written["holdout_status"] = output_dir / "holdout_status.json"
     _write_json(
