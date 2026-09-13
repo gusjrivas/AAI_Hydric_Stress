@@ -1,7 +1,9 @@
 # Manifiesto de provenance — controlled_daily_v4_external_pergamino
 #
-# Plantilla versionada, SIN resultados experimentales. Estado global: PROTOCOL_ONLY.
-# Ningún experimento fue ejecutado; ningún valor de resultados existe todavía.
+# Plantilla versionada, SIN resultados experimentales. Estado global (`status`): PROTOCOL_ONLY.
+# Ningún experimento fue ejecutado; ningún valor de resultados existe todavía. Esto sigue
+# siendo cierto (actualización 2026-09-13) y no debe confundirse con el estado de la
+# IMPLEMENTACIÓN DE CÓDIGO, que es distinto: ver el bloque `implementation_status` más abajo.
 # No modificar controlled_daily_v3 ni su evidencia (scientific-baseline-v3) a partir de este archivo.
 # Ver docs/adr/0011-protocolo-controlled-daily-v4-external-pergamino.md y
 # docs/research/controlled-daily-v4-external-pergamino-protocol.md para la decisión y el detalle completo.
@@ -12,6 +14,27 @@ adr: docs/adr/0011-protocolo-controlled-daily-v4-external-pergamino.md
 protocol_document: docs/research/controlled-daily-v4-external-pergamino-protocol.md
 related_adr: docs/adr/0010-seleccion-modelos-controlled-daily-v4.md
 does_not_alter: scientific-baseline-v3, controlled_daily_v3, technical-baseline-v1, technical-baseline-v2
+
+# Añadido 2026-09-13, sin relación con ningún campo leído por
+# src/experiment_runner/controlled_daily_v4/manifest_reference.py (que solo lee
+# coordinates/sources/environment): distingue el estado de la IMPLEMENTACIÓN DE
+# CÓDIGO del estado de RESULTADOS EXPERIMENTALES (`status`, arriba, que sigue en
+# PROTOCOL_ONLY porque ningún experimento se ejecutó todavía).
+implementation_status:
+  stage_a_code: IMPLEMENTED
+  stage_a_verification: SYNTHETIC_TESTS_ONLY
+  stage_a_real_execution: NOT_EXECUTED
+  stage_b_code: NOT_IMPLEMENTED
+  stage_c_code: NOT_IMPLEMENTED
+  note: >
+    El runner de la Etapa A (src/experiment_runner/controlled_daily_v4/) existe,
+    con verificación exhaustiva sobre datos sintéticos (ver
+    docs/seguimiento-tareas.md, secciones sobre el runner de Etapa A y sus
+    correcciones H-01 a H-06). No se ejecutó todavía sobre los CSV reales de
+    Pergamino. Las Etapas B y C no tienen ningún código asociado: solo existen
+    sus fronteras temporales de referencia (STAGE_B_BOUNDS/STAGE_C_BOUNDS en
+    config.py), usadas exclusivamente para que el runner rechace explícitamente
+    cualquier intento de ejecutarlas.
 
 site:
   name: Pergamino
@@ -264,13 +287,20 @@ environment:
   black_version: "26.5.1"
 
 repository_state:
-  branch: feat/controlled-daily-v4-stage-a-runner
+  branch: PENDING_BEFORE_EXECUTION
   commit: PENDING_BEFORE_EXECUTION
   note: >
-    Se completa con el commit real en el momento de ejecución REAL de la
-    Etapa A sobre Pergamino (todavía no ejecutada). El runner y su entorno
-    reproducible ya existen (ver environment), pero esta tarea solo autorizó
-    implementación y tests con datos sintéticos, no la corrida real.
+    Ambos campos se completan con la rama y el commit reales en el momento de
+    ejecución REAL de la Etapa A sobre Pergamino (todavía no ejecutada). El
+    valor anterior de `branch` (feat/controlled-daily-v4-stage-a-runner) quedó
+    obsoleto: esa rama ya fue mergeada a main (PR #188) y main avanzó con
+    correcciones posteriores (PR #189, #190) sin que se haya ejecutado ninguna
+    corrida real todavía — no documentaba una ejecución completada, sino el
+    estado del repositorio al momento de redactar este manifiesto. Corregido
+    2026-09-13 (diagnóstico de cierre de controlled_daily_v4). El runner y su
+    entorno reproducible ya existen (ver environment), pero ninguna tarea
+    autorizó hasta ahora más que implementación y tests con datos sintéticos,
+    no la corrida real.
 
 execution_artifacts:
   status: PENDING_BEFORE_EXECUTION

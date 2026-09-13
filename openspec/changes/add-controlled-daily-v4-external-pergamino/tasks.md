@@ -1,11 +1,26 @@
 # Tareas — add-controlled-daily-v4-external-pergamino
 
-Ninguna tarea de este listado está completada. Este *change* es exclusivamente documental
-(ADR-0011 + protocolo + manifiesto + spec delta); la implementación real queda para un
-*change* de código posterior, todavía no propuesto. El holdout 2024–2025 permanece cerrado
-hasta que la Etapa B produzca `CANDIDATE_VALIDATED` y exista autorización explícita de
-apertura (ver protocolo, secciones 10–11, y manifiesto, `stage_c_holdout`). Balcarce
-permanece fuera de esta ejecución, registrado únicamente como `FUTURE_GEOGRAPHIC_VALIDATION`.
+Ninguna tarea de este listado fue marcada como completada **dentro de este *change*** — este
+*change* es exclusivamente documental (ADR-0011 + protocolo + manifiesto + spec delta); la
+implementación real quedó, como estaba previsto aquí, para *changes* de código posteriores.
+El holdout 2024–2025 permanece cerrado hasta que la Etapa B produzca `CANDIDATE_VALIDATED` y
+exista autorización explícita de apertura (ver protocolo, secciones 10–11, y manifiesto,
+`stage_c_holdout`). Balcarce permanece fuera de esta ejecución, registrado únicamente como
+`FUTURE_GEOGRAPHIC_VALIDATION`.
+
+**Aclaración (2026-09-13, corrección documental de cierre de `controlled_daily_v4`):** varias
+de las tareas de código listadas abajo (entorno reproducible, ingesta, target/lags/rolling,
+los cuatro modelos, nested CV, MCC/métricas, bootstrap, congelamiento, y su suite de tests)
+**ya fueron implementadas y verificadas sobre datos sintéticos** por el *change* separado
+`implement-controlled-daily-v4-stage-a` (mergeado, PR #188), con correcciones posteriores en
+`fix/controlled-daily-v4-stage-a-validation` (PR #189) y `fix/controlled-daily-v4-reproducibility-docs`
+(PR #190). Este archivo no marca esas tareas como `[x]` porque, tal como se diseñó al separar
+`implement-controlled-daily-v4-stage-a` de este *change* (ver ese *change*, "Trazabilidad"), el
+checklist de implementación vive en el *change* que efectivamente implementa cada tarea, no
+aquí — este listado se conserva como registro histórico del alcance original, sin editar sus
+casillas. Las tareas de Etapa B, Etapa C y ejecución real (líneas siguientes) siguen sin
+ningún código asociado; no se marcan como completadas ni parcialmente completadas por esta
+aclaración.
 
 - [ ] Fijar y validar el entorno experimental reproducible (versiones exactas de Python, NumPy, pandas, SciPy, PyArrow y scikit-learn en un manifiesto o lock), `PRECONDITION_FOR_EXECUTION` según protocolo sección 15.
 - [ ] Completar el manifiesto definitivo de provenance de Pergamino (confirmar licencias y fecha de adquisición hoy `PENDING_CONFIRMATION`, resolver los campos `PENDING_BEFORE_EXECUTION` de `controlled-daily-v4-external-pergamino-manifest.yaml`).
@@ -18,6 +33,6 @@ permanece fuera de esta ejecución, registrado únicamente como `FUTURE_GEOGRAPH
 - [ ] Implementar el congelamiento final de hiperparámetros tras seleccionar familia en la Etapa A (protocolo sección 9).
 - [ ] Agregar tests unitarios, de fronteras temporales/causalidad, de integración y de provenance para el runner de `controlled_daily_v4_external_pergamino`.
 - [ ] Ejecutar la Etapa A (2015–2022) y congelar el candidato seleccionado. No ejecutado todavía.
-- [ ] Ejecutar la Etapa B (2023) únicamente después de cerrar y congelar la Etapa A. No ejecutado todavía.
-- [ ] Abrir la Etapa C (2024–2025) únicamente si la Etapa B produce `CANDIDATE_VALIDATED` y existe registro explícito de autorización (fecha y responsable) en el manifiesto de provenance. Holdout cerrado hasta entonces.
+- [ ] Ejecutar la Etapa B (2023) únicamente después de cerrar y congelar la Etapa A. No ejecutado todavía — sin ningún código asociado (ver `openspec/changes/implement-controlled-daily-v4-stage-b-c/`, propuesta de implementación, todavía no codificada).
+- [ ] Abrir la Etapa C (2024–2025) únicamente si la Etapa B produce `CANDIDATE_VALIDATED` y existe registro explícito de autorización (fecha y responsable) en el manifiesto de provenance. Holdout cerrado hasta entonces — sin ningún código asociado (ídem).
 - [ ] Persistir resultados (predicciones OOF, métricas, dataset diario derivado con su propio SHA-256) y actualizar la documentación científica correspondiente, sin modificar ni reinterpretar retrospectivamente `controlled_daily_v3` ni `scientific-baseline-v3`.

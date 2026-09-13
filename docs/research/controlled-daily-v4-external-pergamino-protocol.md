@@ -1,6 +1,6 @@
 # Protocolo experimental: controlled_daily_v4_external_pergamino
 
-Estado: **PROTOCOL_ONLY** — protocolo formalizado, sin implementación de código ni ejecución. Este documento es la fuente detallada y reproducible del protocolo; la decisión y su justificación quedan registradas en [ADR-0011](../adr/0011-protocolo-controlled-daily-v4-external-pergamino.md), que no debe duplicar este contenido.
+Estado: ~~**PROTOCOL_ONLY** — protocolo formalizado, sin implementación de código ni ejecución.~~ **Actualización (2026-09-13):** el protocolo permanece formalizado como fuente normativa. La Etapa A (secciones 5–9) cuenta con implementación de código y verificación exhaustiva sobre datos sintéticos desde el *change* `implement-controlled-daily-v4-stage-a` (mergeado; correcciones posteriores en los *changes* `fix/controlled-daily-v4-stage-a-validation` y `fix/controlled-daily-v4-reproducibility-docs`, PR #188–#190) — no así las Etapas B (sección 10) ni C (sección 11), que siguen sin ningún código asociado (ver `docs/seguimiento-tareas.md`). Ninguna ejecución real sobre los CSV de Pergamino se realizó todavía en ninguna etapa; toda verificación existente es exclusivamente sintética. Este documento sigue siendo la fuente detallada y reproducible del protocolo; la decisión y su justificación quedan registradas en [ADR-0011](../adr/0011-protocolo-controlled-daily-v4-external-pergamino.md), que no debe duplicar este contenido.
 
 Rige `ADR-0011` y `ADR-0010`. No modifica, reinterpreta ni recalcula `controlled_daily_v3` (protocolo vigente en `protocolo-experimental-v3.md`, evidencia congelada bajo `scientific-baseline-v3`).
 
@@ -95,6 +95,7 @@ No se usa `class_weight` en ningún modelo — elimina la dependencia de si `cla
 
 - Preprocesamiento: `StandardScaler` fold-local.
 - `solver='lbfgs'`, `penalty='l2'`, `max_iter=2000`.
+- **Nota de implementación (2026-09-13):** en la versión de scikit-learn fijada en el entorno reproducible (1.9.0, `docker/experiment-v4/constraints.txt`), el parámetro `penalty` de `LogisticRegression` está deprecado a favor de `l1_ratio` y emite `FutureWarning` si se pasa explícitamente. La implementación (`ScaledLogisticRegression`, `src/experiment_runner/controlled_daily_v4/models.py`) no pasa `penalty` al estimador y confía en su valor por defecto, que en esa versión equivale a regularización L2 pura (`l1_ratio=0.0`). Esta equivalencia no se asume: se verifica leyendo `l1_ratio` de la API del estimador ya ajustado (`effective_logistic_regularization`, `models.py`) y queda cubierta por un test dedicado (`test_final_estimator_details_record_effective_l2_regularization`, `tests/test_controlled_daily_v4_runner_artifacts.py`) que falla si `l1_ratio != 0.0`. El requisito normativo de esta sección (`penalty='l2'`) no se modifica; esta nota documenta cómo se satisface en el entorno efectivamente fijado, sin introducir una dependencia de versión no verificada.
 - Sin `random_state`: `lbfgs` es determinista para clasificación binaria en este problema (sin submuestreo ni shuffling internos); fijar una semilla no tiene efecto. Si en el futuro se cambiara a `solver='saga'` o `'liblinear'`, `random_state=42` debería reincorporarse.
 - `C ∈ {0.01, 0.1, 1.0, 10.0}`
 - Ponderación: `{sin ponderar, sample_weight balanceado}`
@@ -224,7 +225,9 @@ Solo si B produce `CANDIDATE_VALIDATED`:
 
 Ningún `NaN` se convierte silenciosamente en cero ni en un resultado favorable. Si el OOF concatenado de A, o el conjunto de 2023 en B, resulta monoclase, el candidato correspondiente no puede ser validado en esa etapa.
 
-### Representación serializada (`metrics.json`, esquema `controlled_daily_v4_stage_a.v2`)
+### Representación serializada (`metrics.json`)
+
+**Nota de versionado (2026-09-13):** el esquema de artefactos de la Etapa A (`ARTIFACT_SCHEMA_VERSION`, `src/experiment_runner/controlled_daily_v4/artifacts.py`) evolucionó de `controlled_daily_v4_stage_a.v2` a `v3` (hallazgo H-05: identidad de código, huella del dataset, límites de folds y advertencias) y luego a `v4` (revisión externa del 2026-09-13: codificación sin pérdida del fingerprint, distinción de metadatos de build ausentes/malformados, identidad de constraints, configuración de protocolo efectiva). El requisito normativo de esta sección — el envelope uniforme de abajo, no un número de versión específico — no cambió en ninguna de esas revisiones; el número de esquema exacto vigente debe verificarse en `artifacts.py`, no en este documento, para evitar que este protocolo quede desactualizado en cada bump de esquema.
 
 Toda métrica de esta sección se serializa en artefactos JSON mediante un **envelope uniforme**, el mismo para el caso definido y el indefinido — nunca un número plano en un caso y una estructura distinta en el otro:
 
