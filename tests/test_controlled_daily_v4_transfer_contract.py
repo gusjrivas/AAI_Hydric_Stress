@@ -1,0 +1,322 @@
+"""Tests de la lectura y validación ESTRUCTURAL del contrato de transferencia
+A→B (`transfer_contract.py`). Exclusivamente sintéticos: nunca abren un CSV
+real ni entrenan nada -- construyen `frozen_config.json` directamente vía
+`artifacts.write_stage_a_artifacts` con `FrozenConfig`/`ModelConfig`
+sintéticos, para que el resultado sea determinista (sin depender de qué
+familia gane una selección estocástica)."""
+
+from __future__ import annotations
+
+import json
+
+import pytest
+
+from experiment_runner.controlled_daily_v4.artifacts import (
+    TRANSFER_CONTRACT_SCHEMA_VERSION,
+    write_stage_a_artifacts,
+)
+from experiment_runner.controlled_daily_v4.config import (
+    DEPTH_ROLE_PRIMARY,
+    DEPTH_ROLE_SENSITIVITY_ONLY,
+    FAMILY_HIST_GRADIENT_BOOSTING,
+    FAMILY_LOGISTIC_REGRESSION,
+    FAMILY_RANDOM_FOREST,
+    INPUT_MODE_SCIENTIFIC,
+    INPUT_MODE_SYNTHETIC,
+    PRIMARY_DEPTH_COLUMN,
+    SENSITIVITY_DEPTH_COLUMN,
+)
+from experiment_runner.controlled_daily_v4.freezing import FrozenConfig
+from experiment_runner.controlled_daily_v4.models import ModelConfig
+from experiment_runner.controlled_daily_v4.provenance import ProvenanceReport
+from experiment_runner.controlled_daily_v4.selection import CandidateOOF
+from experiment_runner.controlled_daily_v4.transfer_contract import (
+    TransferContractSchemaError,
+    TransferContractValidationError,
+    load_frozen_config_contract,
+)
+
+_CODE_VERSION = {
+    "available": True,
+    "source": "git",
+    "commit": "a" * 40,
+    "dirty": False,
+    "reason": None,
+}
+_DATASET_FINGERPRINT = {
+    "schema_version": "controlled_daily_v4_dataset_fingerprint.v2",
+    "sha256": "deadbeef" * 8,
+    "n_rows": 123,
+    "scope": "stage_a_eligible_rows_only",
+}
+
+_SEGMENT_SIZE = 40
+
+
+def _dummy_oof(family: str) -> CandidateOOF:
+    import numpy as np
+    import pandas as pd
+
+    n = _SEGMENT_SIZE * 3
+    frame = pd.DataFrame(
+        {
+            "feature_timestamp": pd.date_range("2015-01-07", periods=n),
+            "segment_id": sum(([f"outer_fold_{i + 1}"] * _SEGMENT_SIZE for i in range(3)), []),
+        }
+    )
+    pattern = np.array([0, 1] * (n // 2))
+    return CandidateOOF(
+        family=family,
+        y_true=pattern,
+        y_pred=pattern,
+        y_score=np.where(pattern == 1, 0.9, 0.1),
+        frame_with_segment_id=frame,
+        per_fold_mcc=[1.0, 1.0, 1.0],
+    )
+
+
+class _FakeSelectionResult:
+    """Doble de prueba determinista: evita depender de qué familia gana una
+    selección estocástica real (`select_family`) para que los tests de
+    round-trip del contrato sean deterministas."""
+
+    def __init__(self, selected_family: str | None):
+        self.outcome = "STABLE_WINNER" if selected_family else "NO_VALID_SELECTION"
+        self.global_mcc_by_family = {}
+        self.pairwise_intervals: dict = {}
+        self.bootstrap_diagnostics: dict = {}
+        self.equivalence_set: list[str] = []
+        self.stable_winner = selected_family
+        self.selected_family = selected_family
+        self.selection_reason = "fixture_determinista"
+
+
+def _selection_result(selected_family: str | None = FAMILY_LOGISTIC_REGRESSION):
+    return _FakeSelectionResult(selected_family)
+
+
+def _write_contract(
+    tmp_path,
+    *,
+    depth_column=PRIMARY_DEPTH_COLUMN,
+    input_mode=INPUT_MODE_SCIENTIFIC,
+    scientific_run=True,
+    frozen_single_family=None,
+    frozen_soft_voting_bases=None,
+    final_p20_train=None,
+    selection_result=None,
+    code_version=_CODE_VERSION,
+    dataset_fingerprint=_DATASET_FINGERPRINT,
+):
+    out_dir = tmp_path / "out"
+    write_stage_a_artifacts(
+        out_dir,
+        depth_column=depth_column,
+        input_mode=input_mode,
+        scientific_run=scientific_run,
+        resolved_config={"stage": "A"},
+        provenance_report=ProvenanceReport(era5_path="era5.csv", nasa_power_path="nasa.csv"),
+        environment_info={"validated_before_training": True, "validation_issues": []},
+        input_hashes={},
+        outer_fold_boundaries=[],
+        per_family_outer_results={},
+        oof_by_family={
+            FAMILY_LOGISTIC_REGRESSION: _dummy_oof(FAMILY_LOGISTIC_REGRESSION),
+        },
+        selection_result=selection_result or _selection_result(),
+        frozen_single_family=frozen_single_family,
+        frozen_soft_voting_bases=frozen_soft_voting_bases,
+        final_p20_train=final_p20_train,
+        code_version=code_version,
+        dataset_fingerprint=dataset_fingerprint,
+    )
+    return out_dir
+
+
+def _single_frozen_config(family=FAMILY_LOGISTIC_REGRESSION) -> FrozenConfig:
+    return FrozenConfig(
+        family=family,
+        config=ModelConfig(family, {"C": 1.0}),
+        median_mcc=0.42,
+        fold_mcc=[0.3, 0.4, 0.5],
+        folds=[],
+    )
+
+
+def test_round_trip_single_family_candidate(tmp_path):
+    out_dir = _write_contract(
+        tmp_path,
+        frozen_single_family=_single_frozen_config(),
+        final_p20_train=0.31,
+    )
+    contract = load_frozen_config_contract(out_dir)
+
+    assert contract.schema_version == TRANSFER_CONTRACT_SCHEMA_VERSION
+    assert contract.candidate_produced is True
+    assert contract.single_family is not None
+    assert contract.single_family.family == FAMILY_LOGISTIC_REGRESSION
+    assert contract.single_family.params == {"C": 1.0}
+    assert contract.single_family.median_mcc["value"] == pytest.approx(0.42)
+    assert contract.final_p20_train == pytest.approx(0.31)
+    assert contract.soft_voting_bases is None
+    assert contract.producer_code_identity == _CODE_VERSION
+    assert contract.producer_dataset_fingerprint_ref["sha256"] == _DATASET_FINGERPRINT["sha256"]
+
+
+def test_round_trip_soft_voting_candidate(tmp_path):
+    bases = {
+        FAMILY_LOGISTIC_REGRESSION: _single_frozen_config(FAMILY_LOGISTIC_REGRESSION),
+        FAMILY_RANDOM_FOREST: _single_frozen_config(FAMILY_RANDOM_FOREST),
+        FAMILY_HIST_GRADIENT_BOOSTING: _single_frozen_config(FAMILY_HIST_GRADIENT_BOOSTING),
+    }
+    out_dir = _write_contract(
+        tmp_path,
+        frozen_soft_voting_bases=bases,
+        final_p20_train=0.28,
+        selection_result=_selection_result("soft_voting"),
+    )
+    contract = load_frozen_config_contract(out_dir)
+
+    assert contract.single_family is None
+    assert contract.soft_voting_bases is not None
+    assert set(contract.soft_voting_bases) == {
+        FAMILY_LOGISTIC_REGRESSION,
+        FAMILY_RANDOM_FOREST,
+        FAMILY_HIST_GRADIENT_BOOSTING,
+    }
+    for family, candidate in contract.soft_voting_bases.items():
+        assert candidate.family == family
+        assert candidate.params == {"C": 1.0}
+
+
+def test_declares_input_mode_and_depth_role(tmp_path):
+    out_dir = _write_contract(
+        tmp_path,
+        depth_column=SENSITIVITY_DEPTH_COLUMN,
+        input_mode=INPUT_MODE_SYNTHETIC,
+        scientific_run=False,
+        frozen_single_family=_single_frozen_config(),
+        final_p20_train=0.4,
+    )
+    contract = load_frozen_config_contract(out_dir)
+
+    assert contract.input_mode == INPUT_MODE_SYNTHETIC
+    assert contract.scientific_run is False
+    assert contract.depth_role == DEPTH_ROLE_SENSITIVITY_ONLY
+
+
+def test_primary_depth_gets_primary_selection_role(tmp_path):
+    out_dir = _write_contract(
+        tmp_path, frozen_single_family=_single_frozen_config(), final_p20_train=0.4
+    )
+    contract = load_frozen_config_contract(out_dir)
+    assert contract.depth_role == DEPTH_ROLE_PRIMARY
+
+
+def test_absence_of_candidate_is_preserved_explicitly(tmp_path):
+    """Si A no produjo candidato, `frozen_config.json` debe reflejar esa
+    ausencia explícita -- nunca fabricar una configuración congelada."""
+    out_dir = _write_contract(
+        tmp_path,
+        frozen_single_family=None,
+        frozen_soft_voting_bases=None,
+        selection_result=_selection_result(None),
+    )
+    contract = load_frozen_config_contract(out_dir)
+
+    assert contract.candidate_produced is False
+    assert contract.single_family is None
+    assert contract.soft_voting_bases is None
+    assert contract.selected_family is None
+    assert contract.final_p20_train is None
+
+
+def test_rejects_unrecognized_schema_version(tmp_path):
+    out_dir = _write_contract(
+        tmp_path, frozen_single_family=_single_frozen_config(), final_p20_train=0.4
+    )
+    path = out_dir / "frozen_config.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["schema_version"] = "controlled_daily_v4_transfer_contract.v999"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TransferContractSchemaError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_rejects_invalid_json(tmp_path):
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    (out_dir / "frozen_config.json").write_text("{not valid json", encoding="utf-8")
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_rejects_missing_required_field(tmp_path):
+    out_dir = _write_contract(
+        tmp_path, frozen_single_family=_single_frozen_config(), final_p20_train=0.4
+    )
+    path = out_dir / "frozen_config.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    del payload["depth_role"]
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_rejects_contradictory_depth_role(tmp_path):
+    out_dir = _write_contract(
+        tmp_path, frozen_single_family=_single_frozen_config(), final_p20_train=0.4
+    )
+    path = out_dir / "frozen_config.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["depth_role"] = "not_a_real_role"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_rejects_candidate_produced_true_without_serialized_candidate(tmp_path):
+    out_dir = _write_contract(tmp_path, selection_result=_selection_result(None))
+    path = out_dir / "frozen_config.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["candidate_produced"] = True
+    payload["selected_family"] = FAMILY_LOGISTIC_REGRESSION
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_rejects_non_finite_median_mcc(tmp_path):
+    out_dir = _write_contract(
+        tmp_path, frozen_single_family=_single_frozen_config(), final_p20_train=0.4
+    )
+    path = out_dir / "frozen_config.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["single_family"]["median_mcc"] = {"value": "not-a-number", "status": "defined"}
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_load_never_trains_or_selects(tmp_path):
+    """Centinela textual: el lector estructural no debe importar ni invocar
+    el runner de entrenamiento/selección ni la ingesta de CSV crudos."""
+    import inspect
+
+    from experiment_runner.controlled_daily_v4 import transfer_contract
+
+    source = inspect.getsource(transfer_contract)
+    for forbidden in (
+        "stage_a_runner",
+        "ingestion",
+        "run_stage_a",
+        "fit_estimator",
+        "fit_candidate",
+    ):
+        assert forbidden not in source, forbidden

@@ -79,6 +79,8 @@ def test_write_stage_a_artifacts_produces_expected_files(tmp_path):
     written = write_stage_a_artifacts(
         tmp_path / "out",
         depth_column="soil_moisture_0_to_7cm",
+        input_mode="synthetic",
+        scientific_run=False,
         resolved_config={"stage": "A"},
         provenance_report=provenance_report,
         environment_info={"python": "3.11.16"},
@@ -128,6 +130,8 @@ def test_write_stage_a_artifacts_rejects_overwrite_by_default(tmp_path):
         write_stage_a_artifacts(
             out_dir,
             depth_column="soil_moisture_0_to_7cm",
+            input_mode="synthetic",
+            scientific_run=False,
             resolved_config={},
             provenance_report=provenance_report,
             environment_info={},

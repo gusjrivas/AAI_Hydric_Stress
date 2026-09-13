@@ -1043,3 +1043,94 @@ sin alteración. `git diff --check`/`git diff --cached --check` limpios sobre
 el alcance afectado (9 archivos: 6 modificados, 3 nuevos, más este archivo).
 Commit `508fc24f99d3863398b61729398450cd934dfd44`; PR abierto contra `main`
 desde esta rama.
+
+## Contrato de transferencia A→B de controlled_daily_v4 (2026-09-13)
+
+Rama `feat/controlled-daily-v4-stage-a-b-transfer-contract`, base `origin/main`
+(`cb5b462c433fddf2dc459ee0671e08ed8414199e`, PR #191 ya integrado). Implementa
+la parte no bloqueada del *change* OpenSpec
+`implement-controlled-daily-v4-stage-b-c` (ver `tasks.md` de ese *change*, secciones
+"Contrato de transferencia A→B"): lectura/validación estructural de
+`frozen_config.json` y validación de admisibilidad para una ejecución concreta de
+la Etapa B, ambas separadas entre sí y del runner de B (que no se implementa).
+
+- `artifacts.py`: `frozen_config.json` agrega `schema_version` propio
+  (`TRANSFER_CONTRACT_SCHEMA_VERSION`, distinto de `ARTIFACT_SCHEMA_VERSION` y de
+  `DATASET_FINGERPRINT_FORMAT_VERSION`), `input_mode`, `scientific_run`,
+  `depth_role`, `candidate_produced` (ausencia explícita cuando A no selecciona
+  candidato, sin fabricar una configuración congelada) y una referencia a la
+  evidencia ya persistida del productor (`code_identity`, resumen del
+  `dataset_fingerprint`) -- todo derivado de los mismos objetos efectivos que la
+  Etapa A ya calculaba, sin copiar defaults del protocolo ni inferir identidades
+  de nombres de archivo.
+- `config.py`: `depth_role_for_column` deriva `DEPTH_ROLE_PRIMARY` /
+  `DEPTH_ROLE_SENSITIVITY_ONLY` desde `--depth`. **Decisión de este encargo**
+  (Decisión 4 del *change*, ubicación de `depth_role`): se registra únicamente en
+  `frozen_config.json`, deliberadamente sin duplicarse en `selection_decision.json`
+  -- decisión explícita del alcance de esta entrega, no una aprobación atribuible
+  a terceros.
+- `transfer_contract.py` (nuevo): `load_frozen_config_contract` -- lectura
+  tipada, sin entrenar ni seleccionar modelos ni abrir CSV crudos. Rechaza
+  `schema_version` no reconocido (`TransferContractSchemaError`) y JSON
+  inválido/campos ausentes/tipos incorrectos/valores no finitos/incoherencia
+  entre `candidate_produced` y el candidato serializado
+  (`TransferContractValidationError`). Admite por igual artefactos sintéticos y
+  de sensibilidad -- la autorización de uso se evalúa aparte.
+- `admissibility.py` (nuevo): `check_stage_b_admissibility`, independiente del
+  runner de B, con contexto explícito del consumidor (`consumer_input_mode`,
+  `consumer_training_dataset_fingerprint` recibido como parámetro, nunca
+  calculado aquí). Rechaza siempre como error duro un `depth_role` de
+  sensibilidad; exige candidato presente; admite sintético→sintético sin tocar
+  ningún artefacto científico; para una ejecución científica, `scientific_run=true`
+  no basta por sí solo -- exige además identidad de código íntegra del productor
+  (commit válido, `dirty=False`), evidencia de validación de entorno, e igualdad
+  exacta de huella entre el entrenamiento autorizado de B y el conjunto derivado
+  de A (mismo período). La única comparación de commit que realiza es una
+  verificación de consistencia interna entre `frozen_config.json` y
+  `code_version.json` del mismo directorio del productor (misma corrida) --
+  **nunca** compara el commit de la ejecución consumidora contra el del
+  productor (ninguna de las dos relaciones, por sí sola, certifica ni descarta
+  nada; ver el docstring de `admissibility.py` para la distinción exacta, ya
+  corregida en la entrega documental anterior de esta bitácora).
+- `cli.py`: `scientific_run` se calcula una única vez y se reutiliza tanto en
+  `resolved_config.json` como en el contrato de transferencia, sin duplicar la
+  lógica.
+
+Interpretación explícita adoptada para reconciliar dos formulaciones del
+encargo que, leídas superficialmente, podrían parecer contradictorias: el
+encargo pide "si los commits [productor/consumidor] difieren y no hay política
+documentada, rechazar por compatibilidad no acreditada", mientras que el propio
+delta de spec de este *change* (`specs/experiment-runner/spec.md`, escenario
+"`scientific_run=true` por sí solo no basta") dice explícitamente que esta
+verificación "no compara el commit actual de la ejecución consumidora contra el
+commit histórico del productor". Ambas se satisfacen sin contradicción
+interpretando la comparación de commits como una verificación de consistencia
+interna entre los propios artefactos del productor (`frozen_config.json` vs.
+`code_version.json` del mismo directorio, misma corrida) -- nunca como una
+comparación productor-vs-consumidor. No se trata de una reinterpretación
+científica nueva: es la misma corrección ya registrada en la entrega documental
+previa de esta bitácora, aplicada ahora en código.
+
+Pruebas nuevas, exclusivamente sintéticas (`tests/test_controlled_daily_v4_transfer_contract.py`,
+12 tests; `tests/test_controlled_daily_v4_admissibility.py`, 12 tests): round-trip
+de familia única y Soft Voting; rechazo de `schema_version` desconocido, JSON
+inválido, campos ausentes, `depth_role` contradictorio, métricas no finitas;
+ausencia de candidato preservada explícitamente; admisión sintética y rechazo de
+sintético→científico; rechazo por `scientific_run=false`/árbol sucio aun con
+`scientific_run=true`; rechazo por huella de entrenamiento de B distinta de la de
+A; rechazo por ausencia de huella del consumidor; admisión/rechazo por
+commit coincidente/divergente entre artefactos del productor; rechazo de
+profundidad de sensibilidad como error duro; ausencia de candidato bloquea;
+centinela textual de que ningún módulo de carga/admisibilidad importa el runner
+de entrenamiento ni la ingesta de CSV crudos. Suite completa
+`-k controlled_daily_v4`: 279 tests pasan (255 preexistentes + 24 nuevos, 0
+fallos). `ruff check`/`black --check`/`git diff --cached --check` limpios sobre
+el alcance afectado.
+
+No se implementaron baselines, runners de las Etapas B/C, ledger del holdout ni
+mecanismos de apertura del holdout -- quedan pendientes, según el alcance
+explícito de este encargo. No se accedió a ningún CSV real de
+Pergamino/Balcarce/holdout, no se ejecutó ningún experimento científico real ni
+se usó MLflow compartido, y `controlled_daily_v3`, la evidencia histórica, los
+tags de baseline, `backend/`, `frontend/` y `human_feedback/` quedan sin
+alteración. No se hizo merge ni se habilitó auto-merge.

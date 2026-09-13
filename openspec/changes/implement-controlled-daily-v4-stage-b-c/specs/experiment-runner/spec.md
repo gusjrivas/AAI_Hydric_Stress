@@ -1,6 +1,21 @@
 # Spec delta: experiment-runner (contrato A→B, baselines, marcado científico/sintético y de profundidad)
 
-> Estado de este delta: **propuesta, sin implementación de código todavía.** Complementa, sin duplicar, el delta ya mergeado en `openspec/changes/add-controlled-daily-v4-external-pergamino/specs/experiment-runner/spec.md`, que ya especifica los escenarios "Compuerta real de validación temporal antes de abrir el holdout" (Etapa B) y "El holdout no admite ajustes posteriores a su apertura" (Etapa C). Este delta agrega los requisitos de infraestructura que faltan para que esos dos escenarios sean implementables sin introducir una interpretación no autorizada del protocolo. No reemplaza ni modifica ningún requirement vigente de `controlled_daily_v3` ni de la Etapa A ya implementada.
+> Estado de este delta (actualizado 2026-09-13): los dos primeros requirements
+> ("Lectura y validación estructural del contrato de transferencia A→B" y
+> "Admisibilidad de un candidato congelado para una ejecución concreta", más el
+> requirement de "Compatibilidad de procedencia entre etapas" en su parte
+> aplicable a la Etapa B) están **implementados e integrados** (`transfer_contract.py`,
+> `admissibility.py`, extensión de `artifacts.py`/`config.py`/`cli.py`) y
+> verificados exclusivamente con pruebas sintéticas. Los requirements de
+> "Baselines del protocolo" y "Distinción verificable entre corrida principal y
+> de sensibilidad" (más la parte de compatibilidad de procedencia específica de
+> la Etapa C) siguen **sin implementar**. Complementa, sin duplicar, el delta ya
+> mergeado en `openspec/changes/add-controlled-daily-v4-external-pergamino/specs/experiment-runner/spec.md`,
+> que ya especifica los escenarios "Compuerta real de validación temporal antes
+> de abrir el holdout" (Etapa B) y "El holdout no admite ajustes posteriores a
+> su apertura" (Etapa C) -- esos dos escenarios (los runners de B/C en sí)
+> siguen sin implementar. No reemplaza ni modifica ningún requirement vigente
+> de `controlled_daily_v3` ni de la Etapa A ya implementada.
 
 ## ADDED Requirements
 

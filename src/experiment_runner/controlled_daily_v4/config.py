@@ -82,6 +82,34 @@ y desarrollo con fixtures — nunca se activa automáticamente ante un fallo de
 validación formal, y toda salida producida en este modo queda marcada como no
 científica (hallazgo H-01)."""
 
+DEPTH_ROLE_PRIMARY = "primary_selection"
+DEPTH_ROLE_SENSITIVITY_ONLY = "sensitivity_only_no_selection_effect"
+DEPTH_ROLES = (DEPTH_ROLE_PRIMARY, DEPTH_ROLE_SENSITIVITY_ONLY)
+"""Rol de la profundidad analizada por una corrida de la Etapa A, registrado
+únicamente en `frozen_config.json` (contrato de transferencia A→B; ver
+`openspec/changes/implement-controlled-daily-v4-stage-b-c/proposal.md`,
+Decisión 4). Deliberadamente NO se duplica en `selection_decision.json`: es
+una decisión explícita de este *change*, no una omisión ni una aprobación
+atribuible a terceros. `primary_selection` es la única admisible como insumo
+de la Etapa B; `sensitivity_only_no_selection_effect` se rechaza siempre como
+error duro en el punto de consumo (`admissibility.py`), nunca en la lectura
+estructural (`transfer_contract.py`)."""
+
+
+def depth_role_for_column(depth_column: str) -> str:
+    """Deriva `depth_role` a partir de la columna de profundidad efectivamente
+    analizada (`--depth`) -- nunca se infiere del nombre de un archivo ni se
+    acepta como valor libre."""
+    if depth_column == PRIMARY_DEPTH_COLUMN:
+        return DEPTH_ROLE_PRIMARY
+    if depth_column == SENSITIVITY_DEPTH_COLUMN:
+        return DEPTH_ROLE_SENSITIVITY_ONLY
+    raise ValueError(
+        f"No se puede derivar depth_role: columna de profundidad no reconocida "
+        f"'{depth_column}' (se esperaba '{PRIMARY_DEPTH_COLUMN}' o "
+        f"'{SENSITIVITY_DEPTH_COLUMN}')"
+    )
+
 
 class CalendarIntegrityError(ValueError):
     """La serie diaria recibida no es continua/única/ordenada en su propio
