@@ -972,3 +972,74 @@ limpios sobre el alcance afectado. No se ejecutó la Etapa A real, no se leyó
 ningún CSV real de Pergamino/Balcarce, no se accedió a Balcarce, no se
 ejecutó B ni C, no se usó MLflow compartido, `controlled_daily_v3` sin
 alteración, ningún tag movido, y no se hizo commit, push, PR ni merge.
+
+## Corrección documental de cierre de controlled_daily_v4 y preparación de Etapas B/C (2026-09-13)
+
+Rama `docs/controlled-daily-v4-close-out-diagnostics`, base `origin/main`
+(`653dc0d1b15af87cfe2008c5b5ea5583512c1324`, sin divergencia). Diagnóstico de
+cierre read-only previo (misma sesión) encontró siete inconsistencias
+documentales (C-01 a C-07) entre el protocolo, el manifiesto de provenance,
+el delta de spec de `add-controlled-daily-v4-external-pergamino` y el
+`tasks.md` de `implement-controlled-daily-v4-stage-a` -- ninguna requería
+cambiar metodología, solo corregir texto desactualizado. Corregidas en esta
+entrega:
+
+- `protocol.md`: nota de estado que se autodeclaraba `PROTOCOL_ONLY` "sin
+  implementación de código" pese a citar módulos ya implementados
+  (`models.py`, `environment.py`, `code_identity.py`); número de esquema de
+  artefactos (`v2`) desactualizado frente al código (`v4`); nota de
+  implementación agregada sobre `penalty='l2'` (equivalencia L2 verificada
+  empíricamente por `test_final_estimator_details_record_effective_l2_regularization`,
+  sin cambiar el requisito normativo).
+- `controlled-daily-v4-external-pergamino-manifest.yaml`: nuevo bloque
+  `implementation_status` que distingue código implementado/verificado
+  sintéticamente de resultados experimentales reales (el campo `status:
+  PROTOCOL_ONLY` se conserva, sigue siendo cierto sobre resultados);
+  `repository_state.branch` corregido de una rama ya mergeada y obsoleta a
+  `PENDING_BEFORE_EXECUTION`. Ninguno de los campos tocados es leído por
+  `manifest_reference.py` (verificado antes de editar).
+- `add-controlled-daily-v4-external-pergamino/specs/experiment-runner/spec.md`:
+  nota de estado actualizada (los escenarios de Etapa A ya tienen código y
+  verificación sintética; los de Etapa B/C, no) y corrección de un escenario
+  que mezclaba la convención matemática `NaN` con su representación
+  serializada (envelope JSON) -- sin modificar el contenido normativo
+  (Given/When/Then) de ese *change* ya mergeado.
+- `implement-controlled-daily-v4-stage-a/tasks.md`: conteo de tests interno
+  contradictorio (67 vs. 144 dentro del mismo *change*) reconciliado sin
+  reemplazar el conteo posterior de 231 de esta misma bitácora.
+- `add-controlled-daily-v4-external-pergamino/tasks.md`: aclaración de que
+  varias de sus tareas de código ya fueron completadas por
+  `implement-controlled-daily-v4-stage-a` (y sus correcciones H-01 a H-06),
+  sin marcar ninguna casilla y sin alterar el registro histórico original.
+
+Además, preparación (sin código) del *change* OpenSpec
+`implement-controlled-daily-v4-stage-b-c`: propuesta, delta de especificación
+y `tasks.md` para el contrato de transferencia A→B (lectura estructural
+separada de admisibilidad para una ejecución concreta), los tres baselines
+del protocolo (sección 13, con acceso legítimo a las etiquetas de `train` para
+la clase mayoritaria, distinguido de una fuga de etiquetas de evaluación), y
+los runners de las Etapas B y C. Cuatro decisiones de diseño quedan
+documentadas como explícitamente pendientes de aprobación, sin resolverse en
+esta entrega, en
+`docs/research/controlled-daily-v4-stage-b-c-decisiones-pendientes.md`:
+segmentación del bootstrap de B; identidad del holdout y secuencia de
+apertura de C (con tres estados de registro `AUSENTE`/`CONFIRMADA`/
+`INDETERMINADA` -- este último bloquea todo acceso automático sin borrarse ni
+reinicializarse solo -- y exigencia de `fsync` explícito para la durabilidad
+de la apertura, una garantía que el mecanismo de escritura atómica ya
+existente en `artifacts.py` no provee hoy); política de `--overwrite` para C;
+y ubicación exacta de `depth_role`. Se corrigió además una comparación
+incorrecta entre el commit del productor A y el de la ejecución consumidora
+de B/C: ambos pueden coincidir o diferir legítimamente, y ninguna de las dos
+relaciones certifica ni descarta nada por sí sola.
+
+No se implementó ningún código de `src/`, `backend/`, `frontend/` ni
+`tests/`; no se modificó CLI, Docker, dependencias ni CI; no se ejecutó
+ningún experimento, entrenamiento, build ni suite; no se leyó ni se calculó
+hash de ningún CSV real de Pergamino/Balcarce; no se accedió a MLflow
+compartido ni al holdout real; `controlled_daily_v3`,
+`scientific-baseline-v3`, `technical-baseline-v1` y `technical-baseline-v2`
+sin alteración. `git diff --check`/`git diff --cached --check` limpios sobre
+el alcance afectado (9 archivos: 6 modificados, 3 nuevos, más este archivo).
+Commit `508fc24f99d3863398b61729398450cd934dfd44`; PR abierto contra `main`
+desde esta rama.
