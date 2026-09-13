@@ -72,6 +72,29 @@ SUPPORTED_STAGES = (STAGE_A,)
 """Únicas etapas que este runner puede ejecutar. B y C deben rechazarse
 explícitamente en configuración/CLI (protocolo, alcance de esta tarea)."""
 
+INPUT_MODE_SCIENTIFIC = "scientific"
+INPUT_MODE_SYNTHETIC = "synthetic"
+INPUT_MODES = (INPUT_MODE_SCIENTIFIC, INPUT_MODE_SYNTHETIC)
+"""`scientific`: exige identidad de los CSV contra la referencia versionada del
+manifiesto (hash, coordenadas por proveedor) y entorno validado contra
+`docker/experiment-v4/constraints.txt`. `synthetic`: exclusivamente para tests
+y desarrollo con fixtures — nunca se activa automáticamente ante un fallo de
+validación formal, y toda salida producida en este modo queda marcada como no
+científica (hallazgo H-01)."""
+
+
+class CalendarIntegrityError(ValueError):
+    """La serie diaria recibida no es continua/única/ordenada en su propio
+    rango, o contiene cobertura horaria o valores incompletos en columnas
+    requeridas dentro de ese rango (protocolo, secciones 5 y 6; hallazgo
+    H-02). Nunca se degrada silenciosamente: quien la reciba debe abortar."""
+
+
+class EnvironmentValidationError(RuntimeError):
+    """El entorno de ejecución no coincide con la referencia versionada de
+    `docker/experiment-v4/constraints.txt` (hallazgo H-04). Exclusivo del modo
+    científico: en modo sintético esta validación no bloquea la ejecución."""
+
 
 @dataclass(frozen=True)
 class StageBounds:

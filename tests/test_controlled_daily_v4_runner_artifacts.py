@@ -126,6 +126,8 @@ def _run_cli(tmp_path, extra_args=()):
             str(nasa),
             "--output-dir",
             str(output_dir),
+            "--input-mode",
+            "synthetic",
             *extra_args,
         ]
     )
@@ -179,11 +181,23 @@ def test_protocol_defaults_record_no_normative_deviation():
     réplicas normativas, que no aporta nada a esta aserción y cuesta minutos.
     """
     from experiment_runner.controlled_daily_v4.cli import normative_deviations
+    from experiment_runner.controlled_daily_v4.config import INPUT_MODE_SCIENTIFIC
 
-    assert normative_deviations(BOOTSTRAP_SEED, BOOTSTRAP_REPLICAS_DEFAULT) == []
-    assert normative_deviations(BOOTSTRAP_SEED, 10) == ["bootstrap_replicas"]
-    assert normative_deviations(1234, BOOTSTRAP_REPLICAS_DEFAULT) == ["seed"]
-    assert normative_deviations(1234, 10) == ["seed", "bootstrap_replicas"]
+    kwargs = {"input_mode": INPUT_MODE_SCIENTIFIC, "environment_ok": True}
+    assert normative_deviations(BOOTSTRAP_SEED, BOOTSTRAP_REPLICAS_DEFAULT, **kwargs) == []
+    assert normative_deviations(BOOTSTRAP_SEED, 10, **kwargs) == ["bootstrap_replicas"]
+    assert normative_deviations(1234, BOOTSTRAP_REPLICAS_DEFAULT, **kwargs) == ["seed"]
+    assert normative_deviations(1234, 10, **kwargs) == ["seed", "bootstrap_replicas"]
+
+    assert normative_deviations(
+        BOOTSTRAP_SEED, BOOTSTRAP_REPLICAS_DEFAULT, input_mode="synthetic", environment_ok=True
+    ) == ["input_mode"]
+    assert normative_deviations(
+        BOOTSTRAP_SEED,
+        BOOTSTRAP_REPLICAS_DEFAULT,
+        input_mode=INPUT_MODE_SCIENTIFIC,
+        environment_ok=False,
+    ) == ["environment"]
 
 
 def test_cli_records_the_schema_version_of_the_current_artifacts(cli_output):

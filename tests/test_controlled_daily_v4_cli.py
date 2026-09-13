@@ -7,7 +7,10 @@ from pathlib import Path
 import pytest
 
 from experiment_runner.controlled_daily_v4.cli import main
-from tests.controlled_daily_v4_fixtures import write_synthetic_pergamino_csv_pair
+from tests.controlled_daily_v4_fixtures import (
+    drop_nasa_power_column,
+    write_synthetic_pergamino_csv_pair,
+)
 
 
 def test_cli_rejects_stage_b(tmp_path, capsys):
@@ -77,12 +80,39 @@ def test_cli_validate_inputs_only_does_not_train(tmp_path, capsys):
             "--output-dir",
             str(output_dir),
             "--validate-inputs-only",
+            "--input-mode",
+            "synthetic",
         ]
     )
     assert exit_code == 0
     assert not output_dir.exists()
     captured = capsys.readouterr()
-    assert "no se entrena nada" in captured.out
+    assert "No se entrena nada" in captured.out
+    assert "NO CIENTÍFICO" in captured.out
+
+
+def test_cli_validate_inputs_only_defaults_to_scientific_mode_and_rejects_synthetic_fixtures(
+    tmp_path,
+):
+    """El modo por defecto es `scientific`: nunca se degrada automáticamente
+    a sintético ante un fallo de identidad (hallazgo H-01)."""
+    era5, nasa = write_synthetic_pergamino_csv_pair(tmp_path, n_days=30, seed=1)
+    output_dir = tmp_path / "out"
+    exit_code = main(
+        [
+            "--stage",
+            "A",
+            "--era5-csv",
+            str(era5),
+            "--nasa-power-csv",
+            str(nasa),
+            "--output-dir",
+            str(output_dir),
+            "--validate-inputs-only",
+        ]
+    )
+    assert exit_code == 3
+    assert not output_dir.exists()
 
 
 def test_cli_validate_inputs_only_reports_provenance_issues(tmp_path):
@@ -121,6 +151,8 @@ def test_cli_full_run_with_synthetic_data_produces_artifacts_and_never_touches_m
             str(output_dir),
             "--bootstrap-replicas",
             "10",
+            "--input-mode",
+            "synthetic",
         ]
     )
     assert exit_code == 0
@@ -137,6 +169,132 @@ def test_cli_full_run_with_synthetic_data_produces_artifacts_and_never_touches_m
     # La corrida completa no importó mlflow en ningún momento.
     imported_by_the_run = set(sys.modules) - modules_before
     assert not [m for m in imported_by_the_run if m.split(".")[0] == "mlflow"]
+
+
+class _StopAfterIngestion(RuntimeError):
+    """Marca de test: la corrida se detiene apenas se invoca `run_stage_a`,
+    después de que la ingesta ya ejecutó su propio recorte -- nunca se ajusta
+    ningún modelo (hallazgo H-03, completado a nivel CLI)."""
+
+
+def test_cli_never_aggregates_or_processes_values_outside_the_authorized_window(
+    tmp_path, monkeypatch
+):
+    """Reproducción externa H-03 (CLI): con datos sintéticos que cubren
+    fechas de A, B y C, `aggregate_era5_daily` y `replace_missing_sentinel`
+    debían recibir el rango completo antes del recorte del runner -- una
+    prueba instrumentada observó una media calculada para 2024-01-01 durante
+    la preparación de A. Esta prueba demuestra, instrumentando esas dos
+    funciones tal como las importa la CLI, que ya no reciben ninguna fila
+    fuera de la ventana autorizada (más la historia causal mínima). No se
+    entrena nada: `run_stage_a` se reemplaza por una marca que corta la
+    ejecución apenas se invoca, después de que la ingesta ya se recortó."""
+    import experiment_runner.controlled_daily_v4.ingestion as ingestion_module
+    import experiment_runner.controlled_daily_v4.stage_a_runner as stage_a_runner_module
+    from experiment_runner.controlled_daily_v4.config import STAGE_A_BOUNDS
+    from experiment_runner.controlled_daily_v4.features import compute_stage_window_bounds
+
+    # 2015-01-01 .. 2025-12-31 (~4018 días): cubre A, B y C, igual que el
+    # rango real del manifiesto de Pergamino.
+    era5, nasa = write_synthetic_pergamino_csv_pair(tmp_path, n_days=4018, seed=42)
+    window_start, window_end = compute_stage_window_bounds(STAGE_A_BOUNDS)
+
+    original_aggregate = ingestion_module.aggregate_era5_daily
+    original_replace = ingestion_module.replace_missing_sentinel
+    seen_era5_ranges: list[tuple] = []
+    seen_nasa_ranges: list[tuple] = []
+
+    def spy_aggregate(df):
+        seen_era5_ranges.append((df["time"].min(), df["time"].max()))
+        return original_aggregate(df)
+
+    def spy_replace(df):
+        seen_nasa_ranges.append((df.index.min(), df.index.max()))
+        return original_replace(df)
+
+    monkeypatch.setattr(ingestion_module, "aggregate_era5_daily", spy_aggregate)
+    monkeypatch.setattr(ingestion_module, "replace_missing_sentinel", spy_replace)
+
+    def _stop(*_args, **_kwargs):
+        raise _StopAfterIngestion
+
+    monkeypatch.setattr(stage_a_runner_module, "run_stage_a", _stop)
+
+    with pytest.raises(_StopAfterIngestion):
+        main(
+            [
+                "--stage",
+                "A",
+                "--era5-csv",
+                str(era5),
+                "--nasa-power-csv",
+                str(nasa),
+                "--output-dir",
+                str(tmp_path / "out"),
+                "--input-mode",
+                "synthetic",
+            ]
+        )
+
+    assert seen_era5_ranges, "aggregate_era5_daily debe haberse invocado"
+    assert seen_nasa_ranges, "replace_missing_sentinel debe haberse invocado"
+    era5_min, era5_max = seen_era5_ranges[0]
+    nasa_min, nasa_max = seen_nasa_ranges[0]
+    assert era5_min.date() >= window_start, "aggregate_era5_daily recibió filas anteriores a A"
+    assert era5_max.date() <= window_end, "aggregate_era5_daily recibió filas de B/C"
+    assert nasa_min.date() >= window_start, "replace_missing_sentinel recibió filas anteriores a A"
+    assert nasa_max.date() <= window_end, "replace_missing_sentinel recibió filas de B/C"
+
+
+def test_cli_scientific_mode_still_rejects_any_identity_change_after_isolation_fix(tmp_path):
+    """El recorte de aislamiento (H-03) no debilita H-01: la ruta científica
+    sigue rechazando cualquier CSV cuya identidad no coincida con la
+    congelada en el manifiesto."""
+    era5, nasa = write_synthetic_pergamino_csv_pair(tmp_path, n_days=30, seed=1)
+    exit_code = main(
+        [
+            "--stage",
+            "A",
+            "--era5-csv",
+            str(era5),
+            "--nasa-power-csv",
+            str(nasa),
+            "--output-dir",
+            str(tmp_path / "out"),
+            "--validate-inputs-only",
+        ]
+    )
+    assert exit_code == 3
+
+
+def test_cli_reports_a_controlled_error_when_a_required_nasa_column_is_missing(tmp_path, capsys):
+    """La ausencia de una columna requerida (RH2M) debía producir un
+    `KeyError` sin manejar dentro de `load_nasa_power_daily_raw`, antes de
+    que `provenance.py` pudiera reportar el diagnóstico de columnas
+    faltantes. Ahora termina con el código de entrada inválida, sin
+    traceback sin manejar y sin entrenar nada."""
+    era5, nasa = write_synthetic_pergamino_csv_pair(tmp_path, n_days=30, seed=21)
+    drop_nasa_power_column(nasa, "RH2M")
+
+    output_dir = tmp_path / "out"
+    exit_code = main(
+        [
+            "--stage",
+            "A",
+            "--era5-csv",
+            str(era5),
+            "--nasa-power-csv",
+            str(nasa),
+            "--output-dir",
+            str(output_dir),
+            "--input-mode",
+            "synthetic",
+        ]
+    )
+    assert exit_code == 3
+    assert not output_dir.exists()
+    captured = capsys.readouterr()
+    assert "RH2M" in captured.err
 
 
 def _imported_top_level_names(path) -> set[str]:

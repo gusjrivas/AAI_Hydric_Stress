@@ -661,3 +661,106 @@ procesó 2023, el holdout 2024–2025 permanece cerrado, no se usó MLflow compa
 `controlled_daily_v3` y la evidencia formal v3 sin alteración, ningún tag movido ni creado, y
 no se creó ningún PR. Queda pendiente una última revisión dirigida sobre el delta corregido
 antes de abrir la PR.
+
+## Auditoría externa post-merge del runner de Etapa A: H-01 a H-04 corregidos (2026-09-12)
+
+Auditoría externa adversarial sobre `b8575f3` (merge de PR #188, arriba). Cuatro hallazgos
+confirmados, todos corregidos con fixtures sintéticas, en rama
+`fix/controlled-daily-v4-stage-a-validation`, sin ejecutar la Etapa A real:
+
+- **H-01 (identidad de las entradas):** `validate_pergamino_provenance()` aceptaba hashes
+  esperados opcionales (`None` por defecto en la CLI) y nunca contrastaba coordenadas. Se agrega
+  `manifest_reference.py` (lee hash/coordenadas por proveedor directamente del manifiesto
+  versionado, nunca calculados de los archivos recibidos) y el modo explícito
+  `--input-mode {scientific,synthetic}` (por defecto `scientific`; nunca se degrada
+  automáticamente a sintético ante un fallo de validación formal). Metadatos de encabezado
+  inválidos generan errores controlados en vez de excepciones sin manejar.
+- **H-02 (calendario y horizonte):** el inner join podía ocultar días faltantes y `shift(-3)`
+  no garantizaba coincidir con `target_timestamp = feature_timestamp + 3 días` si la serie tenía
+  huecos; un día con 23 horas, o con una hora duplicada que ocultara otra ausente, pasaba sin
+  detectarse. `features.validate_continuous_daily_calendar` (invocada desde
+  `build_feature_frame`) exige continuidad/unicidad/orden del calendario, cobertura horaria
+  completa (`n_obs`/`n_unique_hours`, nuevas columnas de `aggregate_era5_daily`) y valores
+  finitos en las columnas requeridas, dentro del rango recibido — nunca imputa, rechaza con
+  diagnóstico preciso.
+- **H-03 (aislamiento de A desde la ingesta):** `provenance.py` agregaba humedad de suelo de
+  todo el archivo (`aggregate_era5_daily` sobre 2015-2025 completo) y contaba centinelas `-999`
+  de NASA POWER también sobre el archivo completo, de modo que un cambio de valor en 2024
+  (fuera de la Etapa A) podía tumbar la validación de identidad. Ahora la identidad/provenance
+  es exclusivamente estructural (hash, encabezados, columnas, timezone, cobertura de fechas vía
+  `extract_era5_daily_dates`); el análisis de valores queda confinado a la ventana ya recortada
+  por etapa.
+- **H-04 (validación previa del entorno):** el entorno se capturaba recién al escribir
+  artefactos, después de entrenar, y `normative_deviations()` solo miraba semilla/réplicas.
+  `environment.validate_environment()` contrasta Python y las 7 dependencias directas contra
+  `docker/experiment-v4/constraints.txt` (vía `manifest_reference.py`) ANTES del primer ajuste;
+  en modo científico aborta con código de salida dedicado (4) ante incompatibilidad o paquete
+  ausente, sin llegar a importar el runner de entrenamiento. La condición normativa ahora
+  considera modo, entorno y desviaciones de semilla/réplicas. Se agrega un job de CI dedicado
+  (`experiment-v4-container`) que construye la imagen fijada y ejecuta allí la suite sintética.
+
+**9 archivos de test nuevos/actualizados**, incluidos dos archivos nuevos
+(`test_controlled_daily_v4_calendar_integrity.py`,
+`test_controlled_daily_v4_environment_validation.py`); suite `controlled_daily_v4` completa en
+verde; `ruff check`/`black --check` limpios sobre los archivos afectados; contenedor
+`docker/experiment-v4` reconstruido desde cero con `pip check` en verde y la suite sintética
+ejecutada dentro de él con éxito. No se ejecutó la Etapa A real, no se accedió a Pergamino ni a
+Balcarce, `controlled_daily_v3` sin alteración, ningún tag movido, y no se creó ningún PR.
+
+## Revisión externa del paquete de la corrección: 3 correcciones pendientes en H-02/H-03 (2026-09-12)
+
+La entrada anterior declaró H-02 y H-03 "corregidos" de forma prematura: una revisión externa
+sobre el paquete `controlled-daily-v4-stage-a-fix-review_20260912_222919.zip` reprodujo, con
+datos exclusivamente sintéticos, tres defectos que esa corrección no cubría todavía:
+
+- **H-03, aislamiento incompleto en la CLI:** `provenance.py` quedó correctamente acotado a lo
+  estructural, pero `cli.py` seguía invocando `aggregate_era5_daily(era5_df)` y
+  `replace_missing_sentinel(nasa_df)` sobre el CSV completo (2015-2025) **antes** de que
+  `stage_a_runner.py` recortara la serie ya unida — una prueba instrumentada observó una media
+  de humedad calculada para 2024-01-01 durante la preparación de la Etapa A (sin entrenar
+  ningún modelo). Corregido agregando `features.compute_stage_window_bounds()` (única fuente de
+  verdad para la ventana autorizada más la historia causal mínima, reutilizada también por
+  `restrict_to_stage_window`) e `ingestion.restrict_era5_hourly_to_window()` /
+  `restrict_nasa_power_daily_to_window()`, invocadas en `cli.py` **antes** de agregar/convertir
+  el centinela. Regresión: `test_cli_never_aggregates_or_processes_values_outside_the_authorized_window`
+  (instrumenta `aggregate_era5_daily`/`replace_missing_sentinel` con CSV sintéticos que cubren
+  fechas de A, B y C; confirma que ninguna de las dos funciones recibe una fila fuera de la
+  ventana, en modo `synthetic`). Se agrega también
+  `test_cli_scientific_mode_still_rejects_any_identity_change_after_isolation_fix` para
+  confirmar que este recorte no debilitó H-01.
+- **H-02, cobertura de lecturas horarias válidas incompleta:** `n_obs == 24` y
+  `n_unique_hours == 24` no bastan -- un día con 24 filas y 24 horas distintas puede tener una
+  única lectura de humedad ausente/no finita, invisible porque `groupby(...).mean()` la ignora
+  en silencio (`skipna=True`) y produce un promedio "completo" a partir de solo 23 lecturas.
+  Reproducido con un CSV ERA5 sintético construido exactamente así. Corregido agregando
+  `n_finite_<columna>` por columna de humedad de suelo en `aggregate_era5_daily`, y una
+  comprobación en `features.validate_continuous_daily_calendar` exclusiva de la profundidad
+  efectivamente evaluada (`depth_column`) — nunca de las profundidades excluidas ni de la otra
+  profundidad (principal/sensibilidad) que no participa de esa corrida. Regresiones: lectura
+  ausente y lectura infinita (`test_day_with_24_rows_and_24_hours_but_one_nan_reading_is_rejected`,
+  `test_day_with_an_infinite_hourly_reading_is_rejected`), verificación de que el rechazo ocurre
+  antes de cualquier `fit_estimator`
+  (`test_missing_hourly_reading_rejection_happens_before_any_model_fit`), y de que el control
+  está acotado a la profundidad analizada
+  (`test_finite_reading_check_only_applies_to_the_depth_actually_analyzed`).
+- **Columnas NASA ausentes sin control:** la ausencia de una columna requerida (p. ej. RH2M)
+  producía un `KeyError` sin manejar dentro de `load_nasa_power_daily_raw`, antes de que
+  `provenance.py` pudiera devolver su diagnóstico de columnas faltantes. Corregido validando las
+  columnas requeridas dentro de `load_nasa_power_daily_raw` y levantando `ValueError` con el
+  detalle de las columnas ausentes -- ya cubierto por el `except` existente de `provenance.py`,
+  sin capturas genéricas de excepciones. Regresión por CLI:
+  `test_cli_reports_a_controlled_error_when_a_required_nasa_column_is_missing` (exit code 3, sin
+  traceback, sin escribir artefactos).
+
+También se corrigió un comentario impreciso (`1e-4°` de tolerancia de coordenadas equivale a
+~11 m en el ecuador, no a ~1 cm) y se actualizó la documentación de `ingestion.py` para dejar de
+sugerir que la sola existencia de las funciones de agregación implicaba aislamiento por etapa.
+
+Verificación real ejecutada: suite `tests/test_controlled_daily_v4_*.py` completa en verde
+(**176 passed**, 8 tests nuevos sobre la base de 168); suite completa `tests/` en verde (**438
+passed**); suite sintética dentro del contenedor `docker/experiment-v4` reconstruido desde cero
+con estos cambios (`pip check` en verde, **176 passed** dentro del contenedor, idéntico al
+resultado local); `ruff check`/`black --check`/`git diff --check` limpios sobre el alcance
+afectado. No se leyó ningún CSV real de Pergamino/Balcarce, no se ejecutó A real ni B ni C, no se
+usó MLflow compartido, `controlled_daily_v3` sin alteración, ningún tag movido, y no se hizo
+push, PR ni merge.

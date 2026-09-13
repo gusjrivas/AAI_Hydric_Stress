@@ -146,3 +146,184 @@ def write_synthetic_pergamino_csv_pair(
     write_synthetic_era5_csv(era5_path, daily_frame)
     write_synthetic_nasa_power_csv(nasa_power_path, daily_frame)
     return era5_path, nasa_power_path
+
+
+_ERA5_DATA_START_LINE = 4
+"""2 líneas de metadatos + 1 línea en blanco + 1 encabezado tabular."""
+
+
+def _era5_day_line_range(day_index: int) -> tuple[int, int]:
+    start = _ERA5_DATA_START_LINE + 24 * day_index
+    return start, start + 24
+
+
+def drop_one_hourly_row(path: str | Path, day_index: int, hour: int = 12) -> None:
+    """Elimina una única fila horaria de un día (queda con 23 observaciones),
+    para reproducir el hallazgo H-02 ("día con 23 horas")."""
+    path = Path(path)
+    lines = path.read_text(encoding="utf-8").splitlines()
+    start, end = _era5_day_line_range(day_index)
+    del lines[start + hour]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def duplicate_hour_hiding_missing_hour(
+    path: str | Path, day_index: int, duplicated_hour: int = 6, missing_hour: int = 18
+) -> None:
+    """Reemplaza la fila de `missing_hour` por una copia de la de
+    `duplicated_hour`: el día conserva 24 filas (`n_obs == 24`) pero solo 23
+    horas distintas -- reproduce el hallazgo H-02 ("hora duplicada que
+    mantiene 24 filas pero oculta otra hora ausente")."""
+    path = Path(path)
+    lines = path.read_text(encoding="utf-8").splitlines()
+    start, _end = _era5_day_line_range(day_index)
+    lines[start + missing_hour] = lines[start + duplicated_hour]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def corrupt_era5_hourly_value(
+    path: str | Path,
+    day_index: int,
+    hour: int,
+    column_name: str,
+    raw_value: str,
+) -> None:
+    """Reemplaza el valor crudo de una única columna en una fila horaria
+    puntual (día/hora), preservando las otras 23 filas del día intactas --
+    reproduce el hallazgo H-02 ("lectura horaria faltante/no finita con
+    n_obs y n_unique_hours ambos en 24"). `raw_value` se escribe tal cual en
+    el CSV (p.ej. `""` para vacío/NaN, `"inf"` para infinito)."""
+    path = Path(path)
+    lines = path.read_text(encoding="utf-8").splitlines()
+    start, _end = _era5_day_line_range(day_index)
+    line_index = start + hour
+    fields = lines[line_index].split(",")
+    col_index = 1 + ERA5_SOIL_MOISTURE_RAW_COLUMNS.index(column_name)
+    fields[col_index] = raw_value
+    lines[line_index] = ",".join(fields)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def drop_nasa_power_column(path: str | Path, column_name: str) -> None:
+    """Elimina por completo una columna (encabezado tabular + todas las
+    filas) del CSV diario NASA POWER, para reproducir una entrada con una
+    columna requerida ausente (hallazgo H-03/validación de columnas)."""
+    path = Path(path)
+    lines = path.read_bytes().decode("ascii").split("\r\n")
+    header_idx = next(i for i, line in enumerate(lines) if line.startswith("YEAR,DOY"))
+    columns = lines[header_idx].split(",")
+    col_index = columns.index(column_name)
+    del columns[col_index]
+    lines[header_idx] = ",".join(columns)
+    for i in range(header_idx + 1, len(lines)):
+        if not lines[i].strip():
+            continue
+        fields = lines[i].split(",")
+        if len(fields) <= col_index:
+            continue
+        del fields[col_index]
+        lines[i] = ",".join(fields)
+    path.write_bytes("\r\n".join(lines).encode("ascii"))
+
+
+def remove_calendar_day(
+    era5_path: str | Path,
+    nasa_path: str | Path,
+    date,
+    *,
+    from_era5: bool = True,
+    from_nasa: bool = True,
+) -> None:
+    """Elimina por completo un día calendario de una o ambas fuentes, para
+    reproducir el hallazgo H-02 (día faltante oculto por el inner join)."""
+    date_str = str(date)
+    if from_era5:
+        era5_path = Path(era5_path)
+        lines = era5_path.read_text(encoding="utf-8").splitlines()
+        kept = [line for line in lines if not line.startswith(date_str)]
+        era5_path.write_text("\n".join(kept) + "\n", encoding="utf-8")
+    if from_nasa:
+        nasa_path = Path(nasa_path)
+        content_lines = nasa_path.read_bytes().decode("ascii").splitlines()
+        import pandas as pd
+
+        target = pd.Timestamp(date_str)
+        year, doy = target.year, target.dayofyear
+        prefix = f"{year},{doy},"
+        kept = [line for line in content_lines if not line.startswith(prefix)]
+        nasa_path.write_bytes(("\r\n".join(kept) + "\r\n").encode("ascii"))
+
+
+MANIFEST_REFERENCE_TEMPLATE = """\
+coordinates:
+  requested:
+    latitude: -33.89101
+    longitude: -60.57462
+  returned_era5_land:
+    latitude: {era5_lat}
+    longitude: {era5_lon}
+    elevation_m: {era5_elev}
+  returned_nasa_power:
+    latitude: {nasa_lat}
+    longitude: {nasa_lon}
+    elevation_m: {nasa_elev}
+
+sources:
+  era5_land:
+    raw_file:
+      size_bytes: {era5_size}
+      sha256: {era5_sha256}
+  nasa_power:
+    raw_file:
+      size_bytes: {nasa_size}
+      sha256: {nasa_sha256}
+
+aggregation_rules:
+  hourly_to_daily: placeholder
+
+environment:
+  status: TEST_ONLY
+  python_version: "{python_version} (referencia de test)"
+  numpy_version: "0.0.0"
+
+repository_state:
+  branch: test
+"""
+
+
+def write_manifest_reference_fixture(
+    path: str | Path,
+    *,
+    era5_sha256: str,
+    nasa_sha256: str,
+    era5_lat: float = -33.899998,
+    era5_lon: float = -60.6,
+    era5_elev: float = 70.0,
+    nasa_lat: float = -33.891,
+    nasa_lon: float = -60.5746,
+    nasa_elev: float = 69.07,
+    era5_size: int = 0,
+    nasa_size: int = 0,
+    python_version: str = "3.11.16",
+) -> Path:
+    """Manifiesto mínimo (mismos marcadores de bloque que el real) para
+    ejercitar `manifest_reference.py` sin depender del manifiesto real ni de
+    los CSV de Pergamino."""
+    path = Path(path)
+    path.write_text(
+        MANIFEST_REFERENCE_TEMPLATE.format(
+            era5_lat=era5_lat,
+            era5_lon=era5_lon,
+            era5_elev=era5_elev,
+            nasa_lat=nasa_lat,
+            nasa_lon=nasa_lon,
+            nasa_elev=nasa_elev,
+            era5_size=era5_size,
+            era5_sha256=era5_sha256,
+            nasa_size=nasa_size,
+            nasa_sha256=nasa_sha256,
+            python_version=python_version,
+        ),
+        encoding="utf-8",
+    )
+    return path
