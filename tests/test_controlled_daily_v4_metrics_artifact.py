@@ -363,6 +363,8 @@ def test_written_artifacts_are_all_strict_json_even_with_undefined_metrics(tmp_p
     written = write_stage_a_artifacts(
         tmp_path / "out",
         depth_column="soil_moisture_0_to_7cm",
+        input_mode="synthetic",
+        scientific_run=False,
         resolved_config={"stage": "A"},
         provenance_report={"era5_sha256": "abc"},
         environment_info=capture_environment(),

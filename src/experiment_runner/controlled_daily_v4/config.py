@@ -64,6 +64,19 @@ FAMILY_SIMPLICITY_ORDER = (
 WEIGHTING_NONE = "none"
 WEIGHTING_BALANCED = "sample_weight_balanced"
 WEIGHTING_MODES = (WEIGHTING_NONE, WEIGHTING_BALANCED)
+"""Balanceo de CLASES por familia base (protocolo, sección 7.1) -- concepto
+distinto y no relacionado con `SOFT_VOTING_COMBINATION_WEIGHT` (los pesos de
+COMBINACIÓN del ensamble, sección 7.5): `weighting` decide si una familia
+pondera sus propias muestras de entrenamiento por clase; el peso de
+combinación decide cuánto pesa la salida de esa familia dentro del promedio
+del Soft Voting. Nunca deben mezclarse ni derivarse uno del otro."""
+
+SOFT_VOTING_COMBINATION_WEIGHT = 1.0 / 3.0
+"""Peso normativo de combinación de cada una de las tres bases del Soft
+Voting (protocolo, sección 7.5: promedio simple de `predict_proba`, sin
+ponderar una familia más que otra). Fijo e igual para las tres -- no es un
+hiperparámetro ajustable por grilla."""
+SOFT_VOTING_COMBINATION_WEIGHT_TOLERANCE = 1e-9
 
 STAGE_A = "A"
 STAGE_B = "B"
@@ -81,6 +94,34 @@ manifiesto (hash, coordenadas por proveedor) y entorno validado contra
 y desarrollo con fixtures — nunca se activa automáticamente ante un fallo de
 validación formal, y toda salida producida en este modo queda marcada como no
 científica (hallazgo H-01)."""
+
+DEPTH_ROLE_PRIMARY = "primary_selection"
+DEPTH_ROLE_SENSITIVITY_ONLY = "sensitivity_only_no_selection_effect"
+DEPTH_ROLES = (DEPTH_ROLE_PRIMARY, DEPTH_ROLE_SENSITIVITY_ONLY)
+"""Rol de la profundidad analizada por una corrida de la Etapa A, registrado
+únicamente en `frozen_config.json` (contrato de transferencia A→B; ver
+`openspec/changes/implement-controlled-daily-v4-stage-b-c/proposal.md`,
+Decisión 4). Deliberadamente NO se duplica en `selection_decision.json`: es
+una decisión explícita de este *change*, no una omisión ni una aprobación
+atribuible a terceros. `primary_selection` es la única admisible como insumo
+de la Etapa B; `sensitivity_only_no_selection_effect` se rechaza siempre como
+error duro en el punto de consumo (`admissibility.py`), nunca en la lectura
+estructural (`transfer_contract.py`)."""
+
+
+def depth_role_for_column(depth_column: str) -> str:
+    """Deriva `depth_role` a partir de la columna de profundidad efectivamente
+    analizada (`--depth`) -- nunca se infiere del nombre de un archivo ni se
+    acepta como valor libre."""
+    if depth_column == PRIMARY_DEPTH_COLUMN:
+        return DEPTH_ROLE_PRIMARY
+    if depth_column == SENSITIVITY_DEPTH_COLUMN:
+        return DEPTH_ROLE_SENSITIVITY_ONLY
+    raise ValueError(
+        f"No se puede derivar depth_role: columna de profundidad no reconocida "
+        f"'{depth_column}' (se esperaba '{PRIMARY_DEPTH_COLUMN}' o "
+        f"'{SENSITIVITY_DEPTH_COLUMN}')"
+    )
 
 
 class CalendarIntegrityError(ValueError):

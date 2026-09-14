@@ -18,7 +18,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from experiment_runner.controlled_daily_v4.config import DECISION_THRESHOLD
+from experiment_runner.controlled_daily_v4.config import DECISION_THRESHOLD, depth_role_for_column
 from experiment_runner.controlled_daily_v4.metrics import (
     REASON_MONOCLASS,
     REASON_NO_OWN_GRID,
@@ -59,6 +59,17 @@ v4 (revisión externa 2026-09-13, cuatro hallazgos sobre el paquete v3):
   `ProtocolConfig` completo efectivamente consumido: fronteras temporales,
   horizonte, gap, folds, lags, ventanas móviles, umbral, margen práctico,
   parámetros de bootstrap y las tres grillas de hiperparámetros)."""
+
+TRANSFER_CONTRACT_SCHEMA_VERSION = "controlled_daily_v4_transfer_contract.v1"
+"""Versión propia del contrato de transferencia A→B serializado en
+`frozen_config.json` (`openspec/changes/implement-controlled-daily-v4-stage-b-c/`).
+Deliberadamente distinta de `ARTIFACT_SCHEMA_VERSION` (que versiona el paquete
+completo de artefactos de una corrida) y de `DATASET_FINGERPRINT_FORMAT_VERSION`
+(que versiona únicamente la huella del conjunto elegible): el contrato puede
+evolucionar de forma independiente de ambas. Un lector del contrato
+(`transfer_contract.load_frozen_config_contract`) rechaza cualquier
+`schema_version` que no reconozca explícitamente, en lugar de asumir una forma
+no verificada."""
 
 
 class OutputDirectoryNotEmptyError(FileExistsError):
@@ -240,6 +251,25 @@ def _frozen_config_to_json(frozen: Any) -> dict[str, Any]:
     }
 
 
+def _producer_identity_reference(
+    code_version: dict[str, Any] | None, dataset_fingerprint: dict[str, Any] | None
+) -> dict[str, Any]:
+    """Referencia inequívoca, embebida en `frozen_config.json`, a la evidencia
+    ya persistida por el productor (`code_version.json`, `dataset_fingerprint.json`)
+    -- derivada de los mismos objetos efectivos que esta corrida ya calculó y
+    escribió aparte, nunca recalculada ni inferida de un nombre de archivo."""
+    dataset_fingerprint = dataset_fingerprint or {}
+    return {
+        "code_identity": code_version or {},
+        "dataset_fingerprint_ref": {
+            "schema_version": dataset_fingerprint.get("schema_version"),
+            "sha256": dataset_fingerprint.get("sha256"),
+            "n_rows": dataset_fingerprint.get("n_rows"),
+            "scope": dataset_fingerprint.get("scope"),
+        },
+    }
+
+
 def _fold_boundaries(folds: list[Any]) -> list[dict[str, Any]]:
     """Límites/cantidades de una lista de folds ya generados (nunca
     recalculados): mismo formato que `outer_fold_boundaries` (hallazgo H-05)."""
@@ -262,6 +292,8 @@ def write_stage_a_artifacts(
     output_dir: str | Path,
     *,
     depth_column: str,
+    input_mode: str,
+    scientific_run: bool,
     resolved_config: dict[str, Any],
     provenance_report: Any,
     environment_info: dict[str, Any],
@@ -277,6 +309,7 @@ def write_stage_a_artifacts(
     dataset_fingerprint: dict[str, Any] | None = None,
     inner_fold_boundaries_by_outer: dict[int, list[Any]] | None = None,
     final_estimator_details: dict[str, Any] | None = None,
+    soft_voting_combination_weights: dict[str, float] | None = None,
     warnings_log: list[dict[str, Any]] | None = None,
     overwrite: bool = False,
 ) -> dict[str, Path]:
@@ -361,7 +394,25 @@ def write_stage_a_artifacts(
     written["selection_decision"] = output_dir / "selection_decision.json"
     _write_json(written["selection_decision"], _selection_result_to_json(selection_result))
 
-    frozen_payload: dict[str, Any] = {}
+    candidate_produced = frozen_single_family is not None or frozen_soft_voting_bases is not None
+    frozen_payload: dict[str, Any] = {
+        "schema_version": TRANSFER_CONTRACT_SCHEMA_VERSION,
+        "input_mode": input_mode,
+        "scientific_run": scientific_run,
+        "depth_column": depth_column,
+        "depth_role": depth_role_for_column(depth_column),
+        # Ausencia explícita (contrato de transferencia A→B): si la Etapa A no
+        # produjo candidato (`selection.selected_family is None`), este campo
+        # queda `false` y ningún `single_family`/`soft_voting_bases` se
+        # serializa -- nunca se fabrica una configuración congelada.
+        "candidate_produced": candidate_produced,
+        "selected_family": selection_result.selected_family,
+        # Referencias inequívocas a la evidencia ya persistida del productor
+        # (código + huella del conjunto derivado de A), para que la
+        # admisibilidad de un futuro consumidor de B pueda contrastarlas sin
+        # inferir identidades a partir de nombres de archivo.
+        "producer": _producer_identity_reference(code_version, dataset_fingerprint),
+    }
     freeze_folds: list[Any] | None = None
     if frozen_single_family is not None:
         frozen_payload["single_family"] = _frozen_config_to_json(frozen_single_family)
@@ -374,6 +425,14 @@ def write_stage_a_artifacts(
         # por lo que comparten exactamente los mismos folds (hallazgo H-05):
         # se registran una única vez, no por base.
         freeze_folds = next(iter(frozen_soft_voting_bases.values())).folds
+        # Pesos de COMBINACIÓN del ensamble (protocolo, sección 7.5) --
+        # concepto distinto de `weighting` (balanceo de clases por familia,
+        # ya dentro de cada `config.params`). Se persiste el diccionario
+        # EFECTIVAMENTE usado por el estimador ya ajustado
+        # (`SoftVotingClassifier.combination_weights()`), nunca un default
+        # inventado en la lectura -- si no se recibe, el campo queda `null`
+        # y la lectura estructural lo rechaza como incoherente.
+        frozen_payload["soft_voting_combination_weights"] = soft_voting_combination_weights
     frozen_payload["final_p20_train"] = final_p20_train
     # Regularización efectiva verificada por API del estimador congelado
     # (protocolo, sección 7.2): L2 real, no la declarada en la grilla.

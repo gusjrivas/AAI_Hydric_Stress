@@ -37,6 +37,14 @@ pérdida de precisión, invalidada por el hallazgo 2 de la revisión externa
 serializa con `repr()` de Python (round-trip exacto); primera versión que
 declara explícitamente `schema_version` en el propio artefacto."""
 
+FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS = "stage_a_eligible_rows_only"
+"""Único `scope` autorizado de una huella producida por esta función --
+tanto si la calcula la Etapa A sobre su propio `eligible_frame` como si la
+recalcula la Etapa B sobre el suyo (mismo período, protocolo): ambas
+describen el mismo tipo de conjunto ("filas elegibles"), nunca el holdout de
+la Etapa C. La admisibilidad de un futuro consumidor de B exige este valor
+exacto, no una coincidencia mutua entre huellas con un `scope` arbitrario."""
+
 FINGERPRINT_COLUMNS: tuple[str, ...] = (
     "feature_timestamp",
     "target_timestamp",
@@ -122,12 +130,13 @@ def compute_dataset_fingerprint(eligible_frame: pd.DataFrame) -> dict[str, Any]:
         "float_encoding": "python_repr_round_trip",
         "cell_separator": _CELL_SEPARATOR,
         "missing_value_policy": _MISSING_VALUE_POLICY,
-        "scope": "stage_a_eligible_rows_only",
+        "scope": FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS,
     }
 
 
 __all__ = [
     "DATASET_FINGERPRINT_FORMAT_VERSION",
     "FINGERPRINT_COLUMNS",
+    "FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS",
     "compute_dataset_fingerprint",
 ]

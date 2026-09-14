@@ -255,10 +255,16 @@ def main(argv: list[str] | None = None) -> int:
         environment_ok=environment_report.ok,
         code_identity_ok=code_identity_ok,
     )
+    # Única fuente de la bandera `scientific_run`: se calcula una vez aquí y
+    # se reutiliza tanto en `resolved_config.json` como en el contrato de
+    # transferencia A→B (`frozen_config.json`) -- nunca se duplica la lógica.
+    scientific_run = report.scientific and not deviations
 
     written = artifacts.write_stage_a_artifacts(
         args.output_dir,
         depth_column=depth_column,
+        input_mode=args.input_mode,
+        scientific_run=scientific_run,
         resolved_config={
             "stage": STAGE_A,
             "seed": args.seed,
@@ -268,7 +274,7 @@ def main(argv: list[str] | None = None) -> int:
             "normative_bootstrap_replicas": BOOTSTRAP_REPLICAS_DEFAULT,
             "normative_run": not deviations,
             "normative_deviations": deviations,
-            "scientific_run": report.scientific and not deviations,
+            "scientific_run": scientific_run,
             # Configuración experimental efectiva completa (hallazgo H-05,
             # revisión externa 2026-09-13, punto 3): el mismo objeto
             # `ProtocolConfig` pasado a `run_stage_a`, no una copia manual
@@ -304,6 +310,7 @@ def main(argv: list[str] | None = None) -> int:
         frozen_soft_voting_bases=results.frozen_soft_voting_bases,
         final_p20_train=results.final_p20_train,
         final_estimator_details=results.final_estimator_details,
+        soft_voting_combination_weights=results.soft_voting_combination_weights,
         warnings_log=results.warnings_log,
         overwrite=args.overwrite,
     )

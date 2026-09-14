@@ -1,6 +1,21 @@
 # Spec delta: experiment-runner (contrato A→B, baselines, marcado científico/sintético y de profundidad)
 
-> Estado de este delta: **propuesta, sin implementación de código todavía.** Complementa, sin duplicar, el delta ya mergeado en `openspec/changes/add-controlled-daily-v4-external-pergamino/specs/experiment-runner/spec.md`, que ya especifica los escenarios "Compuerta real de validación temporal antes de abrir el holdout" (Etapa B) y "El holdout no admite ajustes posteriores a su apertura" (Etapa C). Este delta agrega los requisitos de infraestructura que faltan para que esos dos escenarios sean implementables sin introducir una interpretación no autorizada del protocolo. No reemplaza ni modifica ningún requirement vigente de `controlled_daily_v3` ni de la Etapa A ya implementada.
+> Estado de este delta (actualizado 2026-09-13): los dos primeros requirements
+> ("Lectura y validación estructural del contrato de transferencia A→B" y
+> "Admisibilidad de un candidato congelado para una ejecución concreta", más el
+> requirement de "Compatibilidad de procedencia entre etapas" en su parte
+> aplicable a la Etapa B) están **implementados e integrados** (`transfer_contract.py`,
+> `admissibility.py`, extensión de `artifacts.py`/`config.py`/`cli.py`) y
+> verificados exclusivamente con pruebas sintéticas. Los requirements de
+> "Baselines del protocolo" y "Distinción verificable entre corrida principal y
+> de sensibilidad" (más la parte de compatibilidad de procedencia específica de
+> la Etapa C) siguen **sin implementar**. Complementa, sin duplicar, el delta ya
+> mergeado en `openspec/changes/add-controlled-daily-v4-external-pergamino/specs/experiment-runner/spec.md`,
+> que ya especifica los escenarios "Compuerta real de validación temporal antes
+> de abrir el holdout" (Etapa B) y "El holdout no admite ajustes posteriores a
+> su apertura" (Etapa C) -- esos dos escenarios (los runners de B/C en sí)
+> siguen sin implementar. No reemplaza ni modifica ningún requirement vigente
+> de `controlled_daily_v3` ni de la Etapa A ya implementada.
 
 ## ADDED Requirements
 
@@ -46,7 +61,7 @@ El sistema DEBE decidir, en el punto de consumo (el momento en que una etapa pos
 
 - **GIVEN** un `frozen_config.json` con `scientific_run=true`, consumido por una ejecución en modo científico
 - **WHEN** se evalúa su admisibilidad
-- **THEN** además de esa bandera se verifican, reutilizando los mecanismos ya existentes y sin duplicarlos: la integridad del autorreporte de identidad de código del productor (`code_identity`/`code_version.json` — commit presente, no marcado como inválido, árbol limpio); y la compatibilidad de procedencia con la ejecución consumidora, según la política del requirement "Compatibilidad de procedencia entre etapas" — un candidato que falle cualquiera de esos contrastes se rechaza igual que si `scientific_run` fuera `false`. Ninguno de estos contrastes compara el commit actual de la ejecución consumidora contra el commit histórico del productor: ambos commits pueden coincidir o diferir legítimamente, y ni la igualdad ni la diferencia entre ellos, por sí sola, certifica ni descarta la admisibilidad.
+- **THEN** además de esa bandera se verifican, reutilizando los mecanismos ya existentes y sin duplicarlos: la integridad del autorreporte de identidad de código del productor (`code_identity`/`code_version.json` — commit presente, no marcado como inválido, árbol limpio); la consistencia interna entre los propios artefactos del productor (`frozen_config.json` vs. `code_version.json` del mismo directorio, misma corrida); y la compatibilidad de procedencia con la ejecución consumidora, según la política del requirement "Compatibilidad de procedencia entre etapas" — un candidato que falle cualquiera de esos contrastes se rechaza igual que si `scientific_run` fuera `false`. **Corrección (revisión externa 2026-09-13):** la compatibilidad de procedencia SÍ compara explícitamente el commit de la ejecución consumidora contra el commit histórico del productor, recibido como contexto explícito de la ejecución consumidora — ambos commits pueden coincidir (caso normal) o diferir (por ejemplo, tras una corrección posterior a A); si difieren y no existe una política de compatibilidad documentada que acredite esa diferencia, la admisibilidad se rechaza explícitamente por "compatibilidad no acreditada". Esta comparación productor-consumidor es distinta e independiente de la consistencia interna del productor consigo mismo, y ninguna de las dos sustituye a la otra.
 
 #### Scenario: La restricción de profundidad se aplica en el punto de consumo, no en la lectura, y su rechazo es siempre un error duro
 

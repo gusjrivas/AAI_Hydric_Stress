@@ -1043,3 +1043,202 @@ sin alteración. `git diff --check`/`git diff --cached --check` limpios sobre
 el alcance afectado (9 archivos: 6 modificados, 3 nuevos, más este archivo).
 Commit `508fc24f99d3863398b61729398450cd934dfd44`; PR abierto contra `main`
 desde esta rama.
+
+## Contrato de transferencia A→B de controlled_daily_v4 (2026-09-13)
+
+Rama `feat/controlled-daily-v4-stage-a-b-transfer-contract`, base `origin/main`
+(`cb5b462c433fddf2dc459ee0671e08ed8414199e`, PR #191 ya integrado). Implementa
+la parte no bloqueada del *change* OpenSpec
+`implement-controlled-daily-v4-stage-b-c` (ver `tasks.md` de ese *change*, secciones
+"Contrato de transferencia A→B"): lectura/validación estructural de
+`frozen_config.json` y validación de admisibilidad para una ejecución concreta de
+la Etapa B, ambas separadas entre sí y del runner de B (que no se implementa).
+
+- `artifacts.py`: `frozen_config.json` agrega `schema_version` propio
+  (`TRANSFER_CONTRACT_SCHEMA_VERSION`, distinto de `ARTIFACT_SCHEMA_VERSION` y de
+  `DATASET_FINGERPRINT_FORMAT_VERSION`), `input_mode`, `scientific_run`,
+  `depth_role`, `candidate_produced` (ausencia explícita cuando A no selecciona
+  candidato, sin fabricar una configuración congelada) y una referencia a la
+  evidencia ya persistida del productor (`code_identity`, resumen del
+  `dataset_fingerprint`) -- todo derivado de los mismos objetos efectivos que la
+  Etapa A ya calculaba, sin copiar defaults del protocolo ni inferir identidades
+  de nombres de archivo.
+- `config.py`: `depth_role_for_column` deriva `DEPTH_ROLE_PRIMARY` /
+  `DEPTH_ROLE_SENSITIVITY_ONLY` desde `--depth`. **Decisión de este encargo**
+  (Decisión 4 del *change*, ubicación de `depth_role`): se registra únicamente en
+  `frozen_config.json`, deliberadamente sin duplicarse en `selection_decision.json`
+  -- decisión explícita del alcance de esta entrega, no una aprobación atribuible
+  a terceros.
+- `transfer_contract.py` (nuevo): `load_frozen_config_contract` -- lectura
+  tipada, sin entrenar ni seleccionar modelos ni abrir CSV crudos. Rechaza
+  `schema_version` no reconocido (`TransferContractSchemaError`) y JSON
+  inválido/campos ausentes/tipos incorrectos/valores no finitos/incoherencia
+  entre `candidate_produced` y el candidato serializado
+  (`TransferContractValidationError`). Admite por igual artefactos sintéticos y
+  de sensibilidad -- la autorización de uso se evalúa aparte.
+- `admissibility.py` (nuevo): `check_stage_b_admissibility`, independiente del
+  runner de B, con contexto explícito del consumidor. Rechaza siempre como
+  error duro un `depth_role` de sensibilidad; exige candidato presente; admite
+  sintético→sintético sin tocar ningún artefacto científico; para una
+  ejecución científica, `scientific_run=true` no basta por sí solo -- exige
+  además identidad de código íntegra del productor (commit válido,
+  `dirty=False`), evidencia de validación de entorno suficiente (no una
+  bandera aislada), e igualdad exacta de huella entre el entrenamiento
+  autorizado de B y el conjunto derivado de A (mismo período). Realiza **dos**
+  verificaciones de commit, deliberadamente distintas y no sustituibles entre
+  sí: **(a)** consistencia interna entre `frozen_config.json` y
+  `code_version.json` del mismo directorio del productor (misma corrida); y
+  **(b)** compatibilidad productor-consumidor, una comparación real entre el
+  commit histórico de A y el commit de la ejecución consumidora de B (recibido
+  explícitamente en `consumer_code_identity`, nunca calculado aquí) -- si
+  difieren y no hay política de compatibilidad documentada, se rechaza por
+  "compatibilidad no acreditada". Ver la corrección de 2026-09-13 (revisión
+  externa) más abajo: una versión anterior de este módulo omitía (b) por
+  completo.
+- `cli.py`: `scientific_run` se calcula una única vez y se reutiliza tanto en
+  `resolved_config.json` como en el contrato de transferencia, sin duplicar la
+  lógica.
+
+Pruebas nuevas, exclusivamente sintéticas: `tests/test_controlled_daily_v4_transfer_contract.py`
+y `tests/test_controlled_daily_v4_admissibility.py` (ver conteo final y
+corrección tras revisión externa en la entrada siguiente de esta misma
+bitácora). `ruff check`/`black --check`/`git diff --cached --check` limpios
+sobre el alcance afectado.
+
+No se implementaron baselines, runners de las Etapas B/C, ledger del holdout ni
+mecanismos de apertura del holdout -- quedan pendientes, según el alcance
+explícito de este encargo. No se accedió a ningún CSV real de
+Pergamino/Balcarce/holdout, no se ejecutó ningún experimento científico real ni
+se usó MLflow compartido, y `controlled_daily_v3`, la evidencia histórica, los
+tags de baseline, `backend/`, `frontend/` y `human_feedback/` quedan sin
+alteración. No se hizo merge ni se habilitó auto-merge.
+
+## Corrección de admisibilidad del contrato A→B tras revisión externa (2026-09-13)
+
+Revisión externa del commit `17a3a214b0e32f341820a41c00ab124ca6bf9091` (PR
+#192) reprodujo cuatro defectos que la entrega anterior de esta misma rama
+dejaba pasar indebidamente. Los cuatro quedan corregidos en este commit
+adicional, con regresión propia cada uno:
+
+1. **Coherencia de modo y profundidad** (`transfer_contract.py`): la lectura
+   estructural ahora rechaza explícitamente `input_mode=synthetic` con
+   `scientific_run=true` (incoherencia de modo), y `depth_role` que no
+   corresponda a `depth_column` según `config.depth_role_for_column` (el
+   mecanismo ya existente, reutilizado, no reemplazado). No se prohíbe
+   `input_mode=scientific` con `scientific_run=false`: sigue siendo una
+   corrida no normativa válida, simplemente no admisible como antecedente
+   científico (verificado aparte, en `admissibility.py`).
+2. **Configuración del candidato** (`transfer_contract.py`): se valida que
+   `selected_family` sea una familia reconocida y coincida con la familia del
+   candidato serializado (única o Soft Voting); que `family` coincida con
+   `config.family`; que cada clave de `soft_voting_bases` coincida con la
+   familia que declara su propio candidato; y que `config.params` declare
+   explícitamente los hiperparámetros requeridos de cada familia (incluido
+   `weighting`, los pesos normativos de balanceo) con el tipo/restricción
+   esperados -- derivados de los mismos campos que ya serializan
+   `models.iter_logistic_regression_configs`/`iter_random_forest_configs`/
+   `iter_hist_gradient_boosting_configs`, sin tocar esas grillas ni su
+   algoritmo. Un artefacto incompleto (`params={}`, o sin `weighting`) se
+   rechaza en vez de recibir un default inventado en la lectura.
+3. **Fingerprint obligatorio y verificable**: la lectura estructural exige que
+   `producer.dataset_fingerprint_ref` tenga SHA-256 completo y con formato
+   válido, `schema_version` reconocido, y metadatos requeridos
+   (`n_rows`/`scope`) -- un `{}` vacío ya no pasa por comparar `None==None`.
+   `admissibility.py` revalida por su cuenta (no asume que `contract` proviene
+   necesariamente del lector estructural, ya que es una función invocable de
+   forma independiente) tanto la referencia embebida como el archivo hermano
+   `dataset_fingerprint.json` y la huella recibida del consumidor, con la
+   misma validación reutilizada (`transfer_contract.validate_fingerprint_reference`).
+4. **Contexto real del consumidor** (`admissibility.py`): se agregan
+   `consumer_code_identity` y `consumer_environment_issues`, recibidos
+   explícitamente (nunca calculados ni asumidos). La verificación (b)
+   descrita en la entrada anterior -- compatibilidad productor-consumidor,
+   comparación real de commits, con rechazo explícito por "compatibilidad no
+   acreditada" si difieren sin política documentada -- es enteramente nueva:
+   la entrega anterior únicamente implementaba (a) y describía, de forma
+   incorrecta, que ambas verificaciones eran equivalentes o que (a) bastaba.
+   Esa afirmación ya está corregida tanto en el código como en esta bitácora
+   y en la descripción del PR. También se corrige la evidencia de entorno del
+   productor: `validated_before_training=true` aislado ya no basta -- se
+   exige además `constraints_identity` verificable y `packages` capturados
+   con contenido real.
+
+**Corrección adicional de una afirmación imprecisa de la entrega anterior:**
+agregar `input_mode`/`scientific_run` como argumentos obligatorios nuevos de
+`write_stage_a_artifacts` **no es retrocompatible** -- los llamadores
+existentes (`cli.py` y los tests que invocaban esta función) necesitaron
+actualizarse explícitamente para pasarlos; la entrega anterior lo describía
+incorrectamente como un cambio retrocompatible.
+
+Pruebas: se actualizaron los fixtures de ambos archivos de test para exigir
+hiperparámetros completos por familia y evidencia de entorno/fingerprint con
+forma válida, y se agregaron regresiones específicas para cada uno de los
+cuatro hallazgos, varias de ellas mediante el flujo completo escritura real
+(`artifacts.write_stage_a_artifacts`) → modificación del JSON en disco →
+lectura real (`transfer_contract.load_frozen_config_contract`) →
+admisibilidad -- no únicamente estados construidos a mano. Los casos válidos
+existentes (modelos individuales, Soft Voting, sintético→sintético,
+productor/consumidor compatibles) se mantienen en verde.
+
+No se amplió el alcance a baselines/B/C/ledger, no se accedió a datos
+reales/holdout/MLflow, y `controlled_daily_v3`/baselines históricos/
+`backend/`/`frontend/`/HITL quedan sin alteración. No se hizo merge, no se
+habilitó auto-merge, no se usó force-push ni se generó ningún ZIP.
+
+## Segunda corrección de admisibilidad del contrato A→B tras revisión externa (2026-09-13)
+
+Revisión externa del commit `1072899d21493cd80f0599290f1226e3a559db5e` (PR
+#192) confirmó las 26+21=47 pruebas en verde y CI verde en los 4 checks, pero
+reprodujo tres defectos adicionales:
+
+1. **Evidencia de entorno insuficiente**: `check_stage_b_admissibility` admitía
+   `constraints_identity={"exists": true, "sha256": "NOT_A_HASH"}` y
+   `packages={"invented": "invalid"}` mientras `validated_before_training=true`
+   y `validation_issues=[]` -- las dos banderas booleanas bastaban, sin
+   verificar el CONTENIDO. Corregido: `admissibility.py` ahora exige formato
+   real de SHA-256 en `constraints_identity` (reutilizando
+   `code_identity.is_valid_full_sha`), contraste contra el `constraints.txt`
+   real (`environment.capture_constraints_identity()`, mecanismo ya
+   existente), y revalidación normativa completa del entorno persistido
+   contra la referencia versionada (`environment.validate_environment`,
+   también ya existente) -- nunca sustituye el entorno HISTÓRICO del
+   productor por el de la ejecución que evalúa la admisibilidad.
+2. **Consistencia de fingerprint incompleta**: manteniendo el mismo `sha256`,
+   cambiar `n_rows`/`scope` en `dataset_fingerprint.json` seguía permitiendo
+   admisión -- solo se contrastaba el hash. Corregido: se contrastan los
+   cuatro metadatos requeridos (`schema_version`/`sha256`/`n_rows`/`scope`)
+   entre la referencia embebida, el archivo del productor y el contexto de
+   entrenamiento del consumidor; y `transfer_contract.validate_fingerprint_reference`
+   exige además el `scope` autorizado exacto
+   (`dataset_fingerprint.FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS`), no
+   cualquier valor no vacío.
+3. **Pesos de combinación de Soft Voting confundidos con `weighting`**: el
+   contrato nunca persistía los pesos de COMBINACIÓN del ensamble (protocolo,
+   sección 7.5 -- fijos e iguales, 1/3 por base), solo `weighting` (balanceo
+   de clases por familia, un concepto distinto). Corregido:
+   `SoftVotingClassifier.combination_weights()` (nuevo, en `models.py`, sin
+   tocar el algoritmo de ajuste) expone los pesos efectivamente usados
+   después de `fit`; `StageAResults.soft_voting_combination_weights` (nuevo,
+   en `stage_a_runner.py`) los captura; `frozen_config.json` los persiste
+   bajo `soft_voting_combination_weights` (nunca inventados por defecto al
+   leer un artefacto incompleto); y `transfer_contract.py` los exige
+   presentes y con el valor normativo exacto (`config.SOFT_VOTING_COMBINATION_WEIGHT`
+   = 1/3, con tolerancia de punto flotante) cuando hay Soft Voting, y
+   ausentes cuando no lo hay.
+
+Pruebas: se actualizaron los fixtures de entorno de ambos archivos de test
+para construirse a partir de `environment.load_environment_reference()` y
+`environment.capture_constraints_identity()` reales (no diccionarios
+inventados, ya que ahora se revalidan de verdad); se agregaron regresiones
+reales (escritura → modificación de JSON → lectura/admisibilidad) para cada
+uno de los tres hallazgos, incluyendo el caso de la reproducción exacta
+reportada. Suite dirigida (transfer_contract + admissibility): 56 passed.
+Suite ampliada (+ artifacts + metrics_artifact + cli + models + soft_voting +
+dataset_fingerprint + config): 142 passed. `ruff check`/`black --check`
+limpios sobre todo `src/experiment_runner/controlled_daily_v4/` y los tests
+afectados.
+
+No se amplió el alcance a baselines/B/C/ledger, no se accedió a datos
+reales/holdout/MLflow, y `controlled_daily_v3`/baselines históricos/
+`backend/`/`frontend/`/HITL quedan sin alteración. No se hizo merge, no se
+habilitó auto-merge, no se usó force-push ni se generó ningún ZIP.

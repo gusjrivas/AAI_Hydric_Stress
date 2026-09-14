@@ -188,6 +188,11 @@ class StageAResults:
     final_estimator: object = None
     final_p20_train: float | None = None
     final_estimator_details: dict[str, dict] | None = None
+    # Pesos de COMBINACIÓN del ensamble Soft Voting efectivamente usados
+    # (protocolo, sección 7.5) -- concepto distinto de `weighting` (balanceo
+    # de clases por familia base, ya dentro de cada `ModelConfig.params`).
+    # `None` cuando la familia seleccionada no es Soft Voting.
+    soft_voting_combination_weights: dict[str, float] | None = None
     # Huella determinista del conjunto diario elegible efectivamente usado
     # (hallazgo H-05); ver `dataset_fingerprint.compute_dataset_fingerprint`.
     dataset_fingerprint: dict[str, Any] = field(default_factory=dict)
@@ -339,6 +344,7 @@ def run_stage_a(
         with collect_context_warnings(warnings_log, phase="final_fit", family=FAMILY_SOFT_VOTING):
             results.final_estimator = fit_candidate(SoftVotingSpec(base_configs), X, y)
         results.final_p20_train = p20_train
+        results.soft_voting_combination_weights = results.final_estimator.combination_weights()
     else:
         family = selection.selected_family
         with collect_context_warnings(warnings_log, phase="freeze_tuning", family=family):

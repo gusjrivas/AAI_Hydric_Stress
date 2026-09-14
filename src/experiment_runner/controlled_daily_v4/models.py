@@ -291,6 +291,14 @@ class SoftVotingClassifier(ClassifierMixin, BaseEstimator):
         configs = self.base_configs or {}
         return {family: configs[family].config_id for family in self._ordered_families()}
 
+    def combination_weights(self) -> dict[str, float]:
+        """Pesos de COMBINACIÓN del ensamble efectivamente usados al ajustar
+        (`self.weights_`/`self.families_`, disponibles después de `fit`) --
+        concepto distinto de `base_weighting_modes` (balanceo de clases por
+        familia). Nunca se inventa un valor: requiere que `fit` ya haya
+        corrido."""
+        return dict(zip(self.families_, self.weights_, strict=True))
+
     def fit(self, X, y):
         configs = self.base_configs or {}
         if not configs:
