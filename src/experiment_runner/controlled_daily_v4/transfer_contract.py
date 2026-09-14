@@ -34,11 +34,14 @@ from experiment_runner.controlled_daily_v4.config import (
     FAMILY_SOFT_VOTING,
     INPUT_MODE_SYNTHETIC,
     INPUT_MODES,
+    SOFT_VOTING_COMBINATION_WEIGHT,
+    SOFT_VOTING_COMBINATION_WEIGHT_TOLERANCE,
     WEIGHTING_MODES,
     depth_role_for_column,
 )
 from experiment_runner.controlled_daily_v4.dataset_fingerprint import (
     DATASET_FINGERPRINT_FORMAT_VERSION,
+    FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS,
 )
 from experiment_runner.controlled_daily_v4.metrics import (
     METRIC_STATUS_DEFINED,
@@ -160,6 +163,7 @@ class FrozenConfigContract:
     selected_family: str | None
     single_family: FrozenCandidate | None
     soft_voting_bases: dict[str, FrozenCandidate] | None
+    soft_voting_combination_weights: dict[str, float] | None
     final_p20_train: float | None
     final_estimator_details: dict[str, Any]
     producer_code_identity: dict[str, Any]
@@ -254,8 +258,11 @@ def validate_fingerprint_reference(payload: Any, context: str) -> dict[str, Any]
             f"'{context}.n_rows'={n_rows!r} debe ser un entero >= 0"
         )
     scope = payload.get("scope")
-    if not isinstance(scope, str) or not scope:
-        raise TransferContractValidationError(f"'{context}.scope' debe ser una cadena no vacía")
+    if scope != FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS:
+        raise TransferContractValidationError(
+            f"'{context}.scope'={scope!r} no es el scope autorizado "
+            f"({FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS!r})"
+        )
     return payload
 
 
@@ -462,6 +469,47 @@ def load_frozen_config_contract(output_dir: str | Path) -> FrozenConfigContract:
             "a la vez"
         )
 
+    # Pesos de COMBINACIÓN del ensamble (protocolo, sección 7.5) -- concepto
+    # distinto de `weighting` (balanceo de clases por familia, ya validado
+    # dentro de cada `config.params`). Obligatorios y con valor normativo
+    # exacto cuando hay Soft Voting; ausentes cuando no lo hay -- nunca se
+    # infiere un default al leer un artefacto incompleto.
+    combination_weights_raw = raw.get("soft_voting_combination_weights")
+    soft_voting_combination_weights: dict[str, float] | None = None
+    if soft_voting_bases is not None:
+        if not isinstance(combination_weights_raw, dict) or set(combination_weights_raw) != set(
+            SOFT_VOTING_BASE_FAMILIES
+        ):
+            raise TransferContractValidationError(
+                f"'{path}': soft_voting_combination_weights debe declarar exactamente los pesos "
+                f"de las familias base {SOFT_VOTING_BASE_FAMILIES}"
+            )
+        soft_voting_combination_weights = {}
+        for family_key, weight in combination_weights_raw.items():
+            if (
+                not isinstance(weight, (int, float))
+                or isinstance(weight, bool)
+                or not math.isfinite(float(weight))
+            ):
+                raise TransferContractValidationError(
+                    f"'{path}': soft_voting_combination_weights.{family_key}={weight!r} debe ser "
+                    "numérico finito"
+                )
+            if abs(float(weight) - SOFT_VOTING_COMBINATION_WEIGHT) > (
+                SOFT_VOTING_COMBINATION_WEIGHT_TOLERANCE
+            ):
+                raise TransferContractValidationError(
+                    f"'{path}': soft_voting_combination_weights.{family_key}={weight!r} no "
+                    f"coincide con el peso normativo de combinación "
+                    f"({SOFT_VOTING_COMBINATION_WEIGHT!r})"
+                )
+            soft_voting_combination_weights[family_key] = float(weight)
+    elif combination_weights_raw is not None:
+        raise TransferContractValidationError(
+            f"'{path}': soft_voting_combination_weights={combination_weights_raw!r} declarado "
+            "sin 'soft_voting_bases' -- incoherencia estructural"
+        )
+
     final_p20_train_raw = raw.get("final_p20_train")
     final_p20_train: float | None = None
     if candidate_produced:
@@ -525,6 +573,7 @@ def load_frozen_config_contract(output_dir: str | Path) -> FrozenConfigContract:
         selected_family=selected_family,
         single_family=single_family,
         soft_voting_bases=soft_voting_bases,
+        soft_voting_combination_weights=soft_voting_combination_weights,
         final_p20_train=final_p20_train,
         final_estimator_details=final_estimator_details,
         producer_code_identity=producer_code_identity,

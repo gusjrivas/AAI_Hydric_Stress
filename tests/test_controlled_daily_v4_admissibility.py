@@ -53,16 +53,38 @@ _FINGERPRINT_REF = {
     "n_rows": 1000,
     "scope": "stage_a_eligible_rows_only",
 }
-_VALID_ENVIRONMENT = {
-    "validated_before_training": True,
-    "validation_issues": [],
-    "constraints_identity": {
-        "path": "docker/experiment-v4/constraints.txt",
-        "sha256": "c" * 64,
-        "exists": True,
-    },
-    "packages": {"numpy": "1.26.4", "pandas": "2.2.2"},
-}
+
+
+def _build_valid_environment_payload() -> dict:
+    """Un `environment.json` de productor que realmente valida contra la
+    referencia normativa versionada (`constraints.txt`/manifiesto), no un
+    diccionario inventado: se construye a partir de
+    `environment.load_environment_reference()` y
+    `environment.capture_constraints_identity()`, los mismos mecanismos que
+    `admissibility.py` reutiliza para revalidar. Así el test pasa
+    independientemente del intérprete que efectivamente esté ejecutando la
+    suite (que puede no coincidir con la versión fijada)."""
+    from experiment_runner.controlled_daily_v4.environment import (
+        TRACKED_PACKAGES,
+        capture_constraints_identity,
+        load_environment_reference,
+    )
+
+    reference = load_environment_reference()
+    module_to_display = {module: display for display, module in TRACKED_PACKAGES}
+    packages = {
+        module_to_display[module]: version for module, version in reference.packages.items()
+    }
+    return {
+        "python_version": reference.python_version,
+        "packages": packages,
+        "validated_before_training": True,
+        "validation_issues": [],
+        "constraints_identity": capture_constraints_identity(),
+    }
+
+
+_VALID_ENVIRONMENT = _build_valid_environment_payload()
 
 
 def _contract(
@@ -85,6 +107,7 @@ def _contract(
         selected_family=selected_family if candidate_produced else None,
         single_family=None,
         soft_voting_bases=None,
+        soft_voting_combination_weights=None,
         final_p20_train=0.3 if candidate_produced else None,
         final_estimator_details={},
         producer_code_identity=producer_code_identity or dict(_VALID_CODE_IDENTITY),
@@ -672,3 +695,103 @@ def test_regression_consumer_commit_mismatch_rejected_on_real_artifact(tmp_path)
             **_consumer_kwargs(consumer_code_identity={**_VALID_CODE_IDENTITY, "commit": "e" * 40}),
         )
     assert any("compatibilidad no acreditada" in reason for reason in exc.value.reasons)
+
+
+def test_regression_forged_constraints_sha256_format_rejected_on_real_artifact(tmp_path):
+    """Hallazgo 1 (revisión externa): `constraints_identity={"exists": true,
+    "sha256": "NOT_A_HASH"}` sobre un artefacto real, con `packages`
+    inventados, ya no debe admitirse -- ni el formato del hash ni el
+    contenido de `packages` bastan por sí solos."""
+    producer_dir = _write_real_producer_dir(tmp_path)
+    contract = load_frozen_config_contract(producer_dir)
+
+    environment_path = producer_dir / "environment.json"
+    environment_payload = json.loads(environment_path.read_text(encoding="utf-8"))
+    environment_payload["constraints_identity"] = {"exists": True, "sha256": "NOT_A_HASH"}
+    environment_payload["packages"] = {"invented": "invalid"}
+    environment_path.write_text(json.dumps(environment_payload), encoding="utf-8")
+
+    with pytest.raises(StageBAdmissibilityError) as exc:
+        check_stage_b_admissibility(contract, producer_dir=producer_dir, **_consumer_kwargs())
+    assert any("formato válido" in reason for reason in exc.value.reasons)
+
+
+def test_regression_constraints_sha256_not_matching_real_file_rejected(tmp_path):
+    """El SHA-256 registrado tiene formato válido pero no es el de
+    `constraints.txt` real -- también se rechaza (no solo se valida el
+    formato)."""
+    producer_dir = _write_real_producer_dir(tmp_path)
+    contract = load_frozen_config_contract(producer_dir)
+
+    environment_path = producer_dir / "environment.json"
+    environment_payload = json.loads(environment_path.read_text(encoding="utf-8"))
+    environment_payload["constraints_identity"] = {"exists": True, "sha256": "0" * 64}
+    environment_path.write_text(json.dumps(environment_payload), encoding="utf-8")
+
+    with pytest.raises(StageBAdmissibilityError) as exc:
+        check_stage_b_admissibility(contract, producer_dir=producer_dir, **_consumer_kwargs())
+    assert any(
+        "no coincide con el archivo de referencia real" in reason for reason in exc.value.reasons
+    )
+
+
+def test_regression_invented_packages_fail_normative_validation(tmp_path):
+    """Paquetes con contenido (no vacío) pero inventado -- que no coincide
+    con la referencia normativa -- también se rechaza: no alcanza con que
+    el diccionario tenga contenido."""
+    producer_dir = _write_real_producer_dir(tmp_path)
+    contract = load_frozen_config_contract(producer_dir)
+
+    environment_path = producer_dir / "environment.json"
+    environment_payload = json.loads(environment_path.read_text(encoding="utf-8"))
+    environment_payload["packages"] = {"numpy": "0.0.1-invented"}
+    environment_path.write_text(json.dumps(environment_payload), encoding="utf-8")
+
+    with pytest.raises(StageBAdmissibilityError) as exc:
+        check_stage_b_admissibility(contract, producer_dir=producer_dir, **_consumer_kwargs())
+    assert any("no valida contra la referencia normativa" in reason for reason in exc.value.reasons)
+
+
+def test_regression_fingerprint_n_rows_and_scope_mismatch_rejected_despite_matching_sha256(
+    tmp_path,
+):
+    """Hallazgo 2 (revisión externa): manteniendo el SHA-256 correcto, un
+    `dataset_fingerprint.json` con `n_rows`/`scope` distintos de la
+    referencia embebida en frozen_config.json ya no permite admisión -- se
+    contrastan los cuatro metadatos requeridos, no solo el hash."""
+    producer_dir = _write_real_producer_dir(tmp_path)
+    contract = load_frozen_config_contract(producer_dir)
+
+    fingerprint_path = producer_dir / "dataset_fingerprint.json"
+    fingerprint_payload = json.loads(fingerprint_path.read_text(encoding="utf-8"))
+    assert fingerprint_payload["sha256"] == _FINGERPRINT_REF["sha256"]
+    # Solo se altera `n_rows` (un metadato requerido distinto del hash): el
+    # `scope` se mantiene autorizado a propósito, para aislar el chequeo de
+    # consistencia de metadatos del chequeo de scope autorizado (ya cubierto
+    # por separado en transfer_contract).
+    fingerprint_payload["n_rows"] = fingerprint_payload["n_rows"] + 1
+    fingerprint_path.write_text(json.dumps(fingerprint_payload), encoding="utf-8")
+
+    with pytest.raises(StageBAdmissibilityError) as exc:
+        check_stage_b_admissibility(contract, producer_dir=producer_dir, **_consumer_kwargs())
+    assert any("indicio de" in reason and "mezcla" in reason for reason in exc.value.reasons)
+
+
+def test_regression_consumer_fingerprint_n_rows_mismatch_rejected_despite_matching_sha256(
+    tmp_path,
+):
+    """Variante del hallazgo 2 en el eje productor-consumidor: la huella del
+    consumidor coincide en `sha256` pero declara un `n_rows` distinto -- se
+    rechaza, no se acepta por coincidencia parcial."""
+    producer_dir = _write_real_producer_dir(tmp_path)
+    contract = load_frozen_config_contract(producer_dir)
+
+    tampered_consumer_fingerprint = {**_FINGERPRINT_REF, "n_rows": _FINGERPRINT_REF["n_rows"] + 1}
+
+    with pytest.raises(StageBAdmissibilityError) as exc:
+        check_stage_b_admissibility(
+            contract,
+            producer_dir=producer_dir,
+            **_consumer_kwargs(consumer_training_dataset_fingerprint=tampered_consumer_fingerprint),
+        )
+    assert any("huella del entrenamiento autorizado" in reason for reason in exc.value.reasons)

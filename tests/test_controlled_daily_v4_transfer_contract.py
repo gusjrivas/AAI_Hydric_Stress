@@ -105,6 +105,7 @@ def _write_contract(
     scientific_run=True,
     frozen_single_family=None,
     frozen_soft_voting_bases=None,
+    soft_voting_combination_weights=None,
     final_p20_train=None,
     selection_result=None,
     code_version=_CODE_VERSION,
@@ -128,11 +129,19 @@ def _write_contract(
         selection_result=selection_result or _selection_result(),
         frozen_single_family=frozen_single_family,
         frozen_soft_voting_bases=frozen_soft_voting_bases,
+        soft_voting_combination_weights=soft_voting_combination_weights,
         final_p20_train=final_p20_train,
         code_version=code_version,
         dataset_fingerprint=dataset_fingerprint,
     )
     return out_dir
+
+
+_EQUAL_COMBINATION_WEIGHTS = {
+    FAMILY_LOGISTIC_REGRESSION: 1.0 / 3.0,
+    FAMILY_RANDOM_FOREST: 1.0 / 3.0,
+    FAMILY_HIST_GRADIENT_BOOSTING: 1.0 / 3.0,
+}
 
 
 _VALID_PARAMS_BY_FAMILY = {
@@ -202,6 +211,7 @@ def test_round_trip_soft_voting_candidate(tmp_path):
     out_dir = _write_contract(
         tmp_path,
         frozen_soft_voting_bases=bases,
+        soft_voting_combination_weights=dict(_EQUAL_COMBINATION_WEIGHTS),
         final_p20_train=0.28,
         selection_result=_selection_result("soft_voting"),
     )
@@ -214,6 +224,7 @@ def test_round_trip_soft_voting_candidate(tmp_path):
         FAMILY_RANDOM_FOREST,
         FAMILY_HIST_GRADIENT_BOOSTING,
     }
+    assert contract.soft_voting_combination_weights == pytest.approx(_EQUAL_COMBINATION_WEIGHTS)
     for family, candidate in contract.soft_voting_bases.items():
         assert candidate.family == family
         assert candidate.params == _VALID_PARAMS_BY_FAMILY[family]
@@ -486,6 +497,82 @@ def test_rejects_empty_producer_fingerprint_reference(tmp_path):
     path = out_dir / "frozen_config.json"
     payload = json.loads(path.read_text(encoding="utf-8"))
     payload["producer"]["dataset_fingerprint_ref"] = {}
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_rejects_fingerprint_reference_with_unauthorized_scope(tmp_path):
+    """Hallazgo de revisión externa: el `scope` de la huella debe ser
+    exactamente el autorizado -- no basta con que las huellas coincidan
+    entre sí sobre un `scope` arbitrario."""
+    out_dir = _write_contract(
+        tmp_path, frozen_single_family=_single_frozen_config(), final_p20_train=0.4
+    )
+    path = out_dir / "frozen_config.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["producer"]["dataset_fingerprint_ref"]["scope"] = "stage_c_holdout_only"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def _soft_voting_bases():
+    return {
+        FAMILY_LOGISTIC_REGRESSION: _single_frozen_config(FAMILY_LOGISTIC_REGRESSION),
+        FAMILY_RANDOM_FOREST: _single_frozen_config(FAMILY_RANDOM_FOREST),
+        FAMILY_HIST_GRADIENT_BOOSTING: _single_frozen_config(FAMILY_HIST_GRADIENT_BOOSTING),
+    }
+
+
+def test_rejects_missing_soft_voting_combination_weights(tmp_path):
+    """Hallazgo de revisión externa: los pesos de COMBINACIÓN del ensamble
+    (distintos de `weighting`, balanceo de clases) son obligatorios cuando
+    hay Soft Voting -- no se infiere un default al leer un artefacto
+    incompleto."""
+    out_dir = _write_contract(
+        tmp_path,
+        frozen_soft_voting_bases=_soft_voting_bases(),
+        soft_voting_combination_weights=None,
+        final_p20_train=0.28,
+        selection_result=_selection_result("soft_voting"),
+    )
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_rejects_invented_soft_voting_combination_weights(tmp_path):
+    """Hallazgo de revisión externa: un peso de combinación que no coincide
+    con el valor normativo (1/3 por base) se rechaza -- no cualquier
+    distribución positiva es admisible."""
+    out_dir = _write_contract(
+        tmp_path,
+        frozen_soft_voting_bases=_soft_voting_bases(),
+        soft_voting_combination_weights={
+            FAMILY_LOGISTIC_REGRESSION: 0.5,
+            FAMILY_RANDOM_FOREST: 0.25,
+            FAMILY_HIST_GRADIENT_BOOSTING: 0.25,
+        },
+        final_p20_train=0.28,
+        selection_result=_selection_result("soft_voting"),
+    )
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_rejects_soft_voting_combination_weights_without_soft_voting(tmp_path):
+    """Coherencia inversa: `soft_voting_combination_weights` presente sin
+    `soft_voting_bases` es una incoherencia estructural."""
+    out_dir = _write_contract(
+        tmp_path, frozen_single_family=_single_frozen_config(), final_p20_train=0.4
+    )
+    path = out_dir / "frozen_config.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["soft_voting_combination_weights"] = dict(_EQUAL_COMBINATION_WEIGHTS)
     path.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(TransferContractValidationError):

@@ -309,6 +309,7 @@ def write_stage_a_artifacts(
     dataset_fingerprint: dict[str, Any] | None = None,
     inner_fold_boundaries_by_outer: dict[int, list[Any]] | None = None,
     final_estimator_details: dict[str, Any] | None = None,
+    soft_voting_combination_weights: dict[str, float] | None = None,
     warnings_log: list[dict[str, Any]] | None = None,
     overwrite: bool = False,
 ) -> dict[str, Path]:
@@ -424,6 +425,14 @@ def write_stage_a_artifacts(
         # por lo que comparten exactamente los mismos folds (hallazgo H-05):
         # se registran una única vez, no por base.
         freeze_folds = next(iter(frozen_soft_voting_bases.values())).folds
+        # Pesos de COMBINACIÓN del ensamble (protocolo, sección 7.5) --
+        # concepto distinto de `weighting` (balanceo de clases por familia,
+        # ya dentro de cada `config.params`). Se persiste el diccionario
+        # EFECTIVAMENTE usado por el estimador ya ajustado
+        # (`SoftVotingClassifier.combination_weights()`), nunca un default
+        # inventado en la lectura -- si no se recibe, el campo queda `null`
+        # y la lectura estructural lo rechaza como incoherente.
+        frozen_payload["soft_voting_combination_weights"] = soft_voting_combination_weights
     frozen_payload["final_p20_train"] = final_p20_train
     # Regularización efectiva verificada por API del estimador congelado
     # (protocolo, sección 7.2): L2 real, no la declarada en la grilla.

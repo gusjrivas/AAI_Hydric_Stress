@@ -1184,3 +1184,61 @@ No se amplió el alcance a baselines/B/C/ledger, no se accedió a datos
 reales/holdout/MLflow, y `controlled_daily_v3`/baselines históricos/
 `backend/`/`frontend/`/HITL quedan sin alteración. No se hizo merge, no se
 habilitó auto-merge, no se usó force-push ni se generó ningún ZIP.
+
+## Segunda corrección de admisibilidad del contrato A→B tras revisión externa (2026-09-13)
+
+Revisión externa del commit `1072899d21493cd80f0599290f1226e3a559db5e` (PR
+#192) confirmó las 26+21=47 pruebas en verde y CI verde en los 4 checks, pero
+reprodujo tres defectos adicionales:
+
+1. **Evidencia de entorno insuficiente**: `check_stage_b_admissibility` admitía
+   `constraints_identity={"exists": true, "sha256": "NOT_A_HASH"}` y
+   `packages={"invented": "invalid"}` mientras `validated_before_training=true`
+   y `validation_issues=[]` -- las dos banderas booleanas bastaban, sin
+   verificar el CONTENIDO. Corregido: `admissibility.py` ahora exige formato
+   real de SHA-256 en `constraints_identity` (reutilizando
+   `code_identity.is_valid_full_sha`), contraste contra el `constraints.txt`
+   real (`environment.capture_constraints_identity()`, mecanismo ya
+   existente), y revalidación normativa completa del entorno persistido
+   contra la referencia versionada (`environment.validate_environment`,
+   también ya existente) -- nunca sustituye el entorno HISTÓRICO del
+   productor por el de la ejecución que evalúa la admisibilidad.
+2. **Consistencia de fingerprint incompleta**: manteniendo el mismo `sha256`,
+   cambiar `n_rows`/`scope` en `dataset_fingerprint.json` seguía permitiendo
+   admisión -- solo se contrastaba el hash. Corregido: se contrastan los
+   cuatro metadatos requeridos (`schema_version`/`sha256`/`n_rows`/`scope`)
+   entre la referencia embebida, el archivo del productor y el contexto de
+   entrenamiento del consumidor; y `transfer_contract.validate_fingerprint_reference`
+   exige además el `scope` autorizado exacto
+   (`dataset_fingerprint.FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS`), no
+   cualquier valor no vacío.
+3. **Pesos de combinación de Soft Voting confundidos con `weighting`**: el
+   contrato nunca persistía los pesos de COMBINACIÓN del ensamble (protocolo,
+   sección 7.5 -- fijos e iguales, 1/3 por base), solo `weighting` (balanceo
+   de clases por familia, un concepto distinto). Corregido:
+   `SoftVotingClassifier.combination_weights()` (nuevo, en `models.py`, sin
+   tocar el algoritmo de ajuste) expone los pesos efectivamente usados
+   después de `fit`; `StageAResults.soft_voting_combination_weights` (nuevo,
+   en `stage_a_runner.py`) los captura; `frozen_config.json` los persiste
+   bajo `soft_voting_combination_weights` (nunca inventados por defecto al
+   leer un artefacto incompleto); y `transfer_contract.py` los exige
+   presentes y con el valor normativo exacto (`config.SOFT_VOTING_COMBINATION_WEIGHT`
+   = 1/3, con tolerancia de punto flotante) cuando hay Soft Voting, y
+   ausentes cuando no lo hay.
+
+Pruebas: se actualizaron los fixtures de entorno de ambos archivos de test
+para construirse a partir de `environment.load_environment_reference()` y
+`environment.capture_constraints_identity()` reales (no diccionarios
+inventados, ya que ahora se revalidan de verdad); se agregaron regresiones
+reales (escritura → modificación de JSON → lectura/admisibilidad) para cada
+uno de los tres hallazgos, incluyendo el caso de la reproducción exacta
+reportada. Suite dirigida (transfer_contract + admissibility): 56 passed.
+Suite ampliada (+ artifacts + metrics_artifact + cli + models + soft_voting +
+dataset_fingerprint + config): 142 passed. `ruff check`/`black --check`
+limpios sobre todo `src/experiment_runner/controlled_daily_v4/` y los tests
+afectados.
+
+No se amplió el alcance a baselines/B/C/ledger, no se accedió a datos
+reales/holdout/MLflow, y `controlled_daily_v3`/baselines históricos/
+`backend/`/`frontend/`/HITL quedan sin alteración. No se hizo merge, no se
+habilitó auto-merge, no se usó force-push ni se generó ningún ZIP.

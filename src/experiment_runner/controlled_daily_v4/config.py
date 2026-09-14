@@ -64,6 +64,19 @@ FAMILY_SIMPLICITY_ORDER = (
 WEIGHTING_NONE = "none"
 WEIGHTING_BALANCED = "sample_weight_balanced"
 WEIGHTING_MODES = (WEIGHTING_NONE, WEIGHTING_BALANCED)
+"""Balanceo de CLASES por familia base (protocolo, sección 7.1) -- concepto
+distinto y no relacionado con `SOFT_VOTING_COMBINATION_WEIGHT` (los pesos de
+COMBINACIÓN del ensamble, sección 7.5): `weighting` decide si una familia
+pondera sus propias muestras de entrenamiento por clase; el peso de
+combinación decide cuánto pesa la salida de esa familia dentro del promedio
+del Soft Voting. Nunca deben mezclarse ni derivarse uno del otro."""
+
+SOFT_VOTING_COMBINATION_WEIGHT = 1.0 / 3.0
+"""Peso normativo de combinación de cada una de las tres bases del Soft
+Voting (protocolo, sección 7.5: promedio simple de `predict_proba`, sin
+ponderar una familia más que otra). Fijo e igual para las tres -- no es un
+hiperparámetro ajustable por grilla."""
+SOFT_VOTING_COMBINATION_WEIGHT_TOLERANCE = 1e-9
 
 STAGE_A = "A"
 STAGE_B = "B"

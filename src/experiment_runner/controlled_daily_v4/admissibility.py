@@ -50,10 +50,16 @@ from experiment_runner.controlled_daily_v4.config import (
     INPUT_MODE_SCIENTIFIC,
     INPUT_MODE_SYNTHETIC,
 )
+from experiment_runner.controlled_daily_v4.environment import (
+    capture_constraints_identity,
+    validate_environment,
+)
 from experiment_runner.controlled_daily_v4.transfer_contract import (
     FrozenConfigContract,
     validate_fingerprint_reference,
 )
+
+_FINGERPRINT_CONSISTENCY_FIELDS = ("schema_version", "sha256", "n_rows", "scope")
 
 
 class StageBAdmissibilityError(ValueError):
@@ -85,13 +91,22 @@ def _load_producer_json(producer_dir: Path, filename: str) -> dict[str, Any]:
     return payload
 
 
+def _mismatched_fingerprint_fields(a: dict[str, Any], b: dict[str, Any]) -> list[str]:
+    """Campos requeridos (`schema_version`/`sha256`/`n_rows`/`scope`) donde
+    `a` y `b` difieren -- una coincidencia de `sha256` sola no basta: dos
+    huellas de la misma corrida deben coincidir en TODOS los metadatos
+    requeridos, no solo en el hash."""
+    return [field for field in _FINGERPRINT_CONSISTENCY_FIELDS if a.get(field) != b.get(field)]
+
+
 def _validate_producer_fingerprint(
     fingerprint_ref: dict[str, Any], producer_dir: Path
 ) -> dict[str, Any]:
     """Revalida (no asume ya validado) que la referencia embebida y el
     artefacto hermano `dataset_fingerprint.json` tengan forma y contenido
     verificable -- nunca compara valores ausentes/`None` entre sí como si
-    coincidieran."""
+    coincidieran, y nunca se conforma con que coincida únicamente el
+    `sha256`: los cuatro metadatos requeridos deben coincidir entre sí."""
     try:
         validate_fingerprint_reference(fingerprint_ref, "producer.dataset_fingerprint_ref")
     except ValueError as exc:
@@ -105,12 +120,13 @@ def _validate_producer_fingerprint(
     except ValueError as exc:
         raise StageBAdmissibilityError([str(exc)]) from exc
 
-    if fingerprint_payload["sha256"] != fingerprint_ref["sha256"]:
+    mismatched = _mismatched_fingerprint_fields(fingerprint_payload, fingerprint_ref)
+    if mismatched:
         raise StageBAdmissibilityError(
             [
                 "La huella de dataset embebida en frozen_config.json no coincide con "
-                f"'{producer_dir / 'dataset_fingerprint.json'}': indicio de mezcla de "
-                "artefactos de corridas distintas"
+                f"'{producer_dir / 'dataset_fingerprint.json'}' en {mismatched}: indicio de "
+                "mezcla de artefactos de corridas distintas"
             ]
         )
     return fingerprint_payload
@@ -285,25 +301,53 @@ def check_stage_b_admissibility(
             "El productor registra fallas de validación de entorno: "
             f"{environment_payload['validation_issues']}"
         )
-    # Una bandera aislada (`validated_before_training=True`) no alcanza:
-    # también se exige que la identidad del propio archivo de referencia
-    # contrastado esté presente y que el entorno capturado tenga contenido
-    # real, no solo afirmaciones booleanas sin sustento.
+    # Una bandera aislada (`validated_before_training=True`) no alcanza, ni
+    # tampoco que los diccionarios simplemente tengan contenido: se
+    # revalida, con los mecanismos ya existentes, que ese contenido sea
+    # REAL y coherente con la referencia normativa -- nunca sustituyendo el
+    # entorno HISTÓRICO del productor (el que quedó persistido) por el de
+    # esta ejecución.
     constraints_identity = environment_payload.get("constraints_identity")
-    if (
-        not isinstance(constraints_identity, dict)
-        or constraints_identity.get("exists") is not True
-        or not constraints_identity.get("sha256")
-    ):
+    if not isinstance(constraints_identity, dict) or constraints_identity.get("exists") is not True:
         reasons.append(
             "El productor no registra una identidad de 'constraints.txt' verificable "
             f"(constraints_identity={constraints_identity!r})"
         )
+    else:
+        recorded_sha256 = constraints_identity.get("sha256")
+        if not is_valid_full_sha(recorded_sha256):
+            reasons.append(
+                "El SHA-256 de 'constraints.txt' registrado por el productor no tiene formato "
+                f"válido (sha256={recorded_sha256!r})"
+            )
+        else:
+            current_constraints_identity = capture_constraints_identity()
+            if (
+                not current_constraints_identity["exists"]
+                or current_constraints_identity["sha256"] != recorded_sha256
+            ):
+                reasons.append(
+                    "El SHA-256 de 'constraints.txt' registrado por el productor "
+                    f"({recorded_sha256!r}) no coincide con el archivo de referencia real "
+                    f"({current_constraints_identity['sha256']!r})"
+                )
     if not environment_payload.get("packages"):
         reasons.append(
             "El productor no registra las versiones de paquetes efectivamente capturadas "
             "(evidencia de entorno insuficiente)"
         )
+    else:
+        # Reutiliza `environment.validate_environment` (mecanismo ya
+        # existente) sobre el propio entorno PERSISTIDO del productor,
+        # contrastado contra la referencia normativa versionada
+        # (manifiesto/constraints.txt) -- nunca contra el entorno de la
+        # ejecución que está evaluando la admisibilidad.
+        report = validate_environment(environment_payload)
+        if not report.ok:
+            reasons.append(
+                "El entorno persistido del productor no valida contra la referencia normativa "
+                f"versionada: {report.issues}"
+            )
 
     fingerprint_ref = contract.producer_dataset_fingerprint_ref
     try:
@@ -325,15 +369,22 @@ def check_stage_b_admissibility(
         except ValueError as exc:
             reasons.append(str(exc))
         else:
-            consumer_sha256 = consumer_training_dataset_fingerprint["sha256"]
-            producer_sha256 = fingerprint_ref.get("sha256")
-            if consumer_sha256 != producer_sha256:
+            # B reentrena sobre el mismo período que A (protocolo): el
+            # protocolo exige igualdad exacta de huella -- no solo del hash,
+            # sino de TODOS los metadatos requeridos (`schema_version`,
+            # `n_rows`, `scope`). Una discrepancia en cualquiera de ellos,
+            # aun con el mismo `sha256`, es una contradicción que se
+            # rechaza explícitamente, no una coincidencia parcial aceptable.
+            mismatched = _mismatched_fingerprint_fields(
+                consumer_training_dataset_fingerprint, fingerprint_ref
+            )
+            if mismatched:
                 reasons.append(
                     "La huella del entrenamiento autorizado de la Etapa B "
-                    f"({consumer_sha256!r}) difiere de la huella del conjunto derivado de A "
-                    f"({producer_sha256!r}): B reentrena sobre el mismo período que A "
-                    "(protocolo), por lo que el protocolo exige igualdad exacta de huella -- no "
-                    "una extensión de período como en la Etapa C"
+                    f"({consumer_training_dataset_fingerprint!r}) difiere de la huella del "
+                    f"conjunto derivado de A ({fingerprint_ref!r}) en {mismatched}: B reentrena "
+                    "sobre el mismo período que A (protocolo), por lo que se exige igualdad "
+                    "exacta -- no una extensión de período como en la Etapa C"
                 )
 
     if reasons:

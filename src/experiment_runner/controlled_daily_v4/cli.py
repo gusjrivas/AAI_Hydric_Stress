@@ -310,6 +310,7 @@ def main(argv: list[str] | None = None) -> int:
         frozen_soft_voting_bases=results.frozen_soft_voting_bases,
         final_p20_train=results.final_p20_train,
         final_estimator_details=results.final_estimator_details,
+        soft_voting_combination_weights=results.soft_voting_combination_weights,
         warnings_log=results.warnings_log,
         overwrite=args.overwrite,
     )
