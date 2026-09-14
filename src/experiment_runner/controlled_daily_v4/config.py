@@ -265,3 +265,27 @@ def require_stage_a(stage: str) -> None:
             "implementada; B y C requieren un candidato ya congelado y autorización "
             "explícita de apertura de holdout (ver protocolo, secciones 10-11)."
         )
+
+
+CLI_ENABLED_STAGES = (STAGE_A, STAGE_B)
+"""Etapas que la CLI de este paquete puede ejecutar (`cli.py`). Distinto y más
+amplio que `SUPPORTED_STAGES`/`require_stage_a` (que siguen significando
+"únicamente A", sin cambios, y se conservan tal cual para no alterar su
+contrato existente): la Etapa B ya cuenta con contrato de transferencia A→B,
+baselines y runner propio (`stage_b_runner.py`,
+`openspec/changes/implement-controlled-daily-v4-stage-b-c`), verificados con
+pruebas exclusivamente sintéticas. La Etapa C permanece fuera de alcance (ledger del
+holdout y secuencia de apertura, Decisión 2 del documento de decisiones
+pendientes) y `require_enabled_stage` la sigue rechazando explícitamente."""
+
+
+def require_enabled_stage(stage: str) -> None:
+    """Gate de la CLI (`cli.py`): acepta A y B, rechaza C (y cualquier otro
+    valor) con el mismo `UnsupportedStageError` ya usado por `require_stage_a`."""
+    if stage not in CLI_ENABLED_STAGES:
+        raise UnsupportedStageError(
+            f"Etapa '{stage}' no soportada por esta CLI. 'A' y 'B' están implementadas; "
+            "'C' requiere el ledger del holdout y la secuencia de apertura de la Decisión 2 "
+            "(docs/research/controlled-daily-v4-stage-b-c-decisiones-pendientes.md), "
+            "todavía sin resolver, y se rechaza explícitamente."
+        )

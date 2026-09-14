@@ -1242,3 +1242,130 @@ No se amplió el alcance a baselines/B/C/ledger, no se accedió a datos
 reales/holdout/MLflow, y `controlled_daily_v3`/baselines históricos/
 `backend/`/`frontend/`/HITL quedan sin alteración. No se hizo merge, no se
 habilitó auto-merge, no se usó force-push ni se generó ningún ZIP.
+
+## Baselines del protocolo y runner de la Etapa B de controlled_daily_v4 (2026-09-14)
+
+Rama `feat/controlled-daily-v4-stage-b`, base `origin/main`
+(`277aefd3a1c8bd36bd237ed85ff0b4a67ee33e4a`, PR #192 -- contrato de
+transferencia A→B -- ya integrado). Cierra la parte no bloqueada del *change*
+OpenSpec `implement-controlled-daily-v4-stage-b-c` que quedaba pendiente tras
+esa entrega: los tres baselines del protocolo (sección 13) y el runner completo
+de la Etapa B, reutilizando el contrato A→B integrado sin reabrirlo. Ninguna
+ejecución científica real se realizó en este encargo; Etapa C, su ledger y la
+apertura del holdout quedan explícitamente fuera de alcance (Decisiones 2 y 3
+del documento de decisiones pendientes, ambas todavía bloqueadas).
+
+**Decisión de bootstrap de la Etapa B (Decisión 1), adoptada para este encargo
+-- no atribuida a una aprobación académica externa:** las predicciones
+evaluables de 2023 se tratan como un único segmento temporal continuo para
+`bootstrap.paired_bootstrap_delta`; moving-block bootstrap pareado, no
+circular, bloques de 30 días, 5000 réplicas normativas, semilla `20250109`; los
+mismos índices remuestreados se aplican a candidato, persistencia y etiquetas;
+ningún bloque cruza discontinuidades ni incorpora observaciones externas al
+período autorizado; se reutilizan sin cambios las convenciones existentes para
+intervalos y réplicas con métricas indefinidas (`bootstrap.py`,
+`NoValidBootstrapReplicasError`, `discard_reasons` explícitos). Registrada como
+adoptada antes de implementar, en `openspec/changes/implement-controlled-daily-v4-stage-b-c/tasks.md`.
+No se encontró ninguna contradicción normativa material distinta de esta
+decisión durante la revisión acotada del protocolo/decisiones pendientes
+(salvo la inconsistencia documental sobre la actualización del spec canónico,
+ver más abajo).
+
+- `baselines.py` (nuevo): `predict_majority_class_baseline` (`argmax` del
+  conteo de clases del `train` autorizado; regla de desempate determinista
+  `MAJORITY_CLASS_TIE_BREAK=0`, definida y documentada explícitamente antes de
+  escribir los tests que la ejercitan -- el protocolo no documenta ninguna,
+  consistente con la convención de igualdad de `features.build_target`),
+  `predict_persistence_baseline_v4` (humedad **actual** vs. `P20_train`,
+  igualdad estricta -> clase 0, nunca consulta humedad futura de la fila
+  evaluada) y `predict_constant_stress_baseline` (predice `1` siempre, sin
+  ajustar ningún parámetro).
+- `stage_b_runner.py` (nuevo): `build_stage_b_training_frame` (mismo
+  procedimiento exacto de A -- `STAGE_A_BOUNDS`, `target_timestamp ≤
+  2022-12-31`, sin fuga hacia 2023 en ninguna etiqueta de entrenamiento),
+  `build_stage_b_evaluation_frame` (`STAGE_B_BOUNDS`,
+  `target_timestamp ∈ [2023-01-04, 2023-12-31]`), `refit_frozen_candidate`
+  (reentrena exactamente la familia/hiperparámetros/pesos de combinación ya
+  congelados por A, incluido Soft Voting vía `models.fit_candidate`/
+  `SoftVotingSpec` -- sin búsqueda de hiperparámetros ni selección
+  alternativa), `decide_stage_b_verdict` (regla exacta del protocolo, sección
+  10: `MCC_candidato_2023 > 0` **y** límite inferior del intervalo pareado de
+  `ΔMCC_B ≥ −0.05`, ambas desigualdades con la igualdad incluida en el
+  conjunto de aprobación) y `run_stage_b` (orquestador completo). Verifica
+  explícitamente la coherencia entre el `P20_train` recalculado y el del
+  contrato de A (`StageBTechnicalError` si difieren -- fallo técnico,
+  distinto de un veredicto experimental). Monoclase de entrenamiento o de
+  evaluación produce `CANDIDATE_NOT_VALIDATED` explícito, nunca una
+  aprobación ni una excepción no controlada.
+- `artifacts.py`: `write_stage_b_artifacts` (nuevo, `STAGE_B_ARTIFACT_SCHEMA_VERSION`
+  propio) persiste identidad de código/entorno de la ejecución consumidora,
+  referencia verificable al contrato y evidencia de A consumidos, huella del
+  entrenamiento de B, fronteras temporales efectivas, predicciones alineadas
+  de las cuatro referencias (candidato + 3 baselines), métricas, intervalo y
+  diagnóstico del bootstrap, decisión de B con motivos explícitos, y un
+  `holdout_status.json` derivado del veredicto real (antes literal constante
+  para A; en B, `stage_b_executed=true`/`stage_b_verdict=<veredicto>`,
+  `holdout_2024_2025_open` permanece `false` -- ningún mecanismo de este
+  encargo lo puede abrir). Nunca escribe dentro del directorio del productor;
+  respeta la misma política de `--overwrite` explícito que A.
+- `config.py`: `CLI_ENABLED_STAGES = (STAGE_A, STAGE_B)` y
+  `require_enabled_stage` (nuevo), usados por la CLI para habilitar B sin
+  alterar `SUPPORTED_STAGES`/`require_stage_a` (que se preservan exactamente
+  como estaban, junto con su test existente, para no debilitar su contrato).
+- `cli.py`: `--stage B` habilitado con `--producer-dir` explícito
+  (`_run_stage_b`). Orden estricto antes de entrenar: lectura estructural del
+  contrato → ingesta aislada por período (unión de las ventanas de A y B,
+  ninguna fila de 2024-2025 llega jamás a un agregador) → cálculo de la
+  huella de entrenamiento de B → `admissibility.check_stage_b_admissibility`
+  (identidad/integridad/compatibilidad, con contexto explícito del
+  consumidor) → recién entonces `run_stage_b`. `--stage A` sin cambios de
+  comportamiento. `--stage C` se sigue rechazando explícitamente.
+
+**Pruebas nuevas, exclusivamente sintéticas** (35 + 3 + extensión de CLI):
+`tests/test_controlled_daily_v4_baselines.py` (10 tests: las tres referencias
+incluido el caso de igualdad exacta con `P20_train`; ausencia de fuga hacia
+`future_soil_moisture`; invariancia ante cambios en las etiquetas de
+evaluación); `tests/test_controlled_daily_v4_stage_b_runner.py` (35 tests:
+fronteras temporales exactas y ausencia de fuga por horizonte; invariancia del
+entrenamiento ante cambios en 2023; invariancia de B ante cambios en
+2024-2025 -- tanto del frame de evaluación como del resultado completo;
+ausencia de tuning con espía sobre `tuning.select_best_config`; Soft Voting
+respetado con pesos de combinación exactos 1/3; los 4 cuadrantes del veredicto
+incluidas sus igualdades límite exactas; monoclase de entrenamiento y de
+evaluación distinguidos entre sí; fallo técnico de coherencia de `P20_train`
+distinguido de un veredicto `CANDIDATE_NOT_VALIDATED`; bootstrap de un único
+segmento con una verificación dedicada de la configuración normativa completa
+-- 5000 réplicas, sin repetirla en cada test); `tests/test_controlled_daily_v4_stage_b_integration.py`
+(3 tests: flujo sintético completo artefactos de A → contrato → B → artefactos
+y decisión vía CLI real; C todavía bloqueada tras A y B; rechazo previo al
+entrenamiento de un contrato inadmisible con espía sobre
+`stage_b_runner.run_stage_b`); `tests/test_controlled_daily_v4_cli.py`
+actualizado (se reemplaza el test que exigía el rechazo estático de `--stage
+B`, ya no vigente, por la verificación de que `--producer-dir` es requerido).
+
+Verificación real ejecutada (entorno Docker fijado
+`docker/experiment-v4/Dockerfile`, reconstruido desde cero con `.build_identity.json`
+capturado del mismo checkout -- `git rev-parse --show-object-format`/`HEAD`/
+`status --porcelain` reproducidos manualmente porque el host de esta sesión no
+tiene `python` disponible fuera del contenedor, siguiendo el mismo mecanismo
+que documenta `docker/experiment-v4/build.py`): suite dirigida nueva (baselines
++ stage_b_runner): **35 passed** en 6.90s; CLI completa: **14 passed** en
+52.20s; integración A→B: **3 passed** en 43.00s.
+
+**Contradicción documental encontrada, no resuelta en este encargo (reportada,
+no inventada su resolución):** `openspec/changes/implement-controlled-daily-v4-stage-b-c/tasks.md`
+pedía actualizar `openspec/specs/experiment-runner/spec.md` (canónico) "con el
+mismo criterio ya usado para la Etapa A" -- pero
+`openspec/changes/implement-controlled-daily-v4-stage-a/tasks.md` (línea 19)
+registra esa misma actualización para la propia Etapa A como pendiente de "una
+corrida real y de una decisión explícita de cuándo el spec canónico debe
+actualizarse". Es decir, el precedente real de la Etapa A no aplicó ese
+criterio. Se optó por NO actualizar el spec canónico en este encargo y dejar
+la tarea correspondiente explícitamente sin marcar, en vez de aplicar un
+criterio que el propio precedente contradice.
+
+No se leyeron datos reales de Pergamino/Balcarce/holdout 2024-2025, no se
+ejecutó ninguna etapa científica real ni la Etapa C, no se usó MLflow
+compartido, y `controlled_daily_v3`, la evidencia histórica, los tags de
+baseline, `backend/`, `frontend/` y `human_feedback/` quedan sin alteración.
+No se hizo merge ni se habilitó auto-merge.

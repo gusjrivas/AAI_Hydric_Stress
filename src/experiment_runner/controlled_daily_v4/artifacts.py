@@ -72,6 +72,14 @@ evolucionar de forma independiente de ambas. Un lector del contrato
 no verificada."""
 
 
+STAGE_B_ARTIFACT_SCHEMA_VERSION = "controlled_daily_v4_stage_b.v1"
+"""Esquema propio de los artefactos de la Etapa B (`write_stage_b_artifacts`),
+deliberadamente distinto de `ARTIFACT_SCHEMA_VERSION` (Etapa A) y de
+`TRANSFER_CONTRACT_SCHEMA_VERSION` (el contrato de transferencia A→B que B
+consume, no produce): B no reescribe ni sobreescribe ningún artefacto de A,
+persiste su propio directorio de salida con su propia versión de esquema."""
+
+
 class OutputDirectoryNotEmptyError(FileExistsError):
     """El directorio de salida ya contiene artefactos; usar `overwrite=True`
     de forma explícita para sobreescribir."""
@@ -460,6 +468,161 @@ def write_stage_a_artifacts(
             "stage_c_executed": False,
             "holdout_2024_2025_open": False,
             "note": "Ejecución de Stage A únicamente. B y C no implementadas en este runner.",
+        },
+    )
+
+    return written
+
+
+def _bootstrap_diagnostics_to_json(diagnostics: Any | None) -> dict[str, Any]:
+    if diagnostics is None:
+        return {}
+    return dataclasses.asdict(diagnostics)
+
+
+def _stage_b_predictions_frame(result: Any) -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "feature_timestamp": result.feature_timestamps,
+            "y_true": result.y_true,
+            "y_pred_candidate": result.y_pred_candidate,
+            "y_score_candidate": result.y_score_candidate,
+            "y_pred_persistence": result.y_pred_persistence,
+            "y_pred_majority_class": result.y_pred_majority_class,
+            "y_pred_constant_stress": result.y_pred_constant_stress,
+        }
+    )
+
+
+def write_stage_b_artifacts(
+    output_dir: str | Path,
+    *,
+    input_mode: str,
+    scientific_run: bool,
+    resolved_config: dict[str, Any],
+    producer_dir: str | Path,
+    producer_contract_raw: dict[str, Any],
+    consumer_code_identity: dict[str, Any],
+    consumer_environment_info: dict[str, Any],
+    consumer_environment_issues: list[str],
+    result: Any,
+    overwrite: bool = False,
+) -> dict[str, Path]:
+    """Serializa todos los artefactos de una corrida de la Etapa B. Nunca
+    escribe dentro de `producer_dir` (el directorio de artefactos de A que
+    consume): siempre un directorio de salida separado, explícito, con la
+    misma política de sobreescritura de `ensure_output_directory` que A."""
+    output_dir = ensure_output_directory(output_dir, overwrite=overwrite)
+    written: dict[str, Path] = {}
+
+    written["schema_version"] = output_dir / "schema_version.json"
+    _write_json(written["schema_version"], {"schema_version": STAGE_B_ARTIFACT_SCHEMA_VERSION})
+
+    written["resolved_config"] = output_dir / "resolved_config.json"
+    _write_json(
+        written["resolved_config"],
+        {"input_mode": input_mode, "scientific_run": scientific_run, **resolved_config},
+    )
+
+    written["producer_reference"] = output_dir / "producer_reference.json"
+    _write_json(
+        written["producer_reference"],
+        {
+            "producer_dir": str(producer_dir),
+            "producer_frozen_config": producer_contract_raw,
+        },
+    )
+
+    written["code_version"] = output_dir / "code_version.json"
+    _write_json(written["code_version"], consumer_code_identity)
+
+    written["environment"] = output_dir / "environment.json"
+    _write_json(
+        written["environment"],
+        {
+            **consumer_environment_info,
+            "validation_issues": consumer_environment_issues,
+            "validated_before_training": True,
+        },
+    )
+
+    written["training_dataset_fingerprint"] = output_dir / "training_dataset_fingerprint.json"
+    _write_json(written["training_dataset_fingerprint"], result.training_dataset_fingerprint)
+
+    written["temporal_boundaries"] = output_dir / "temporal_boundaries.json"
+    _write_json(
+        written["temporal_boundaries"],
+        {
+            "training_frame_n_rows": result.training_frame_n_rows,
+            "training_target_timestamp_cutoff": "2022-12-31",
+            "evaluation_frame_n_rows": result.evaluation_frame_n_rows,
+            "evaluation_target_timestamp_min": result.evaluation_target_timestamp_min,
+            "evaluation_target_timestamp_max": result.evaluation_target_timestamp_max,
+        },
+    )
+
+    written["p20_train"] = output_dir / "p20_train.json"
+    _write_json(written["p20_train"], {"p20_train": result.p20_train})
+
+    written["predictions"] = output_dir / "predictions_2023.csv"
+    _write_csv(written["predictions"], _stage_b_predictions_frame(result))
+
+    written["metrics"] = output_dir / "metrics.json"
+    _write_json(
+        written["metrics"],
+        {
+            "schema_version": STAGE_B_ARTIFACT_SCHEMA_VERSION,
+            "candidate": result.metrics_candidate,
+            "baseline_persistence": result.metrics_persistence,
+            "baseline_majority_class": result.metrics_majority_class,
+            "baseline_constant_stress": result.metrics_constant_stress,
+            "mcc_candidate": metric_envelope(result.mcc_candidate, REASON_MONOCLASS),
+            "mcc_persistence": metric_envelope(result.mcc_persistence, REASON_MONOCLASS),
+            "delta_mcc_point_estimate": metric_envelope(
+                result.delta_mcc_point_estimate, REASON_MONOCLASS
+            ),
+        },
+    )
+
+    written["bootstrap"] = output_dir / "bootstrap.json"
+    interval = (
+        result.bootstrap_result.interval if result.bootstrap_result is not None else (None, None)
+    )
+    _write_json(
+        written["bootstrap"],
+        {
+            "interval_lower": interval[0],
+            "interval_upper": interval[1],
+            "diagnostics": _bootstrap_diagnostics_to_json(result.bootstrap_diagnostics),
+        },
+    )
+
+    written["decision"] = output_dir / "decision.json"
+    _write_json(
+        written["decision"],
+        {
+            "verdict": result.verdict,
+            "reasons": result.verdict_reasons,
+            "rule": {
+                "mcc_candidate_must_be_positive": True,
+                "delta_mcc_lower_bound_minimum": -0.05,
+            },
+        },
+    )
+
+    written["holdout_status"] = output_dir / "holdout_status.json"
+    _write_json(
+        written["holdout_status"],
+        {
+            "stage_b_executed": True,
+            "stage_b_verdict": result.verdict,
+            "stage_c_executed": False,
+            "holdout_2024_2025_open": False,
+            "note": (
+                "Ejecución de Stage B. C no implementada en este runner; el veredicto de B "
+                "queda persistido aquí, pero ningún mecanismo de este paquete lo consume "
+                "todavía para habilitar C (Decisión 2, ledger del holdout, pendiente)."
+            ),
         },
     )
 

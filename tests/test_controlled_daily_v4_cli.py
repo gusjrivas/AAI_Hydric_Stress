@@ -13,7 +13,7 @@ from tests.controlled_daily_v4_fixtures import (
 )
 
 
-def test_cli_rejects_stage_b(tmp_path, capsys):
+def test_cli_stage_b_requires_producer_dir(tmp_path, capsys):
     era5, nasa = write_synthetic_pergamino_csv_pair(tmp_path, n_days=30, seed=1)
     exit_code = main(
         [
@@ -25,11 +25,13 @@ def test_cli_rejects_stage_b(tmp_path, capsys):
             str(nasa),
             "--output-dir",
             str(tmp_path / "out"),
+            "--input-mode",
+            "synthetic",
         ]
     )
     assert exit_code == 2
     captured = capsys.readouterr()
-    assert "no soportada" in captured.err
+    assert "--producer-dir" in captured.err
 
 
 def test_cli_rejects_stage_c(tmp_path):
