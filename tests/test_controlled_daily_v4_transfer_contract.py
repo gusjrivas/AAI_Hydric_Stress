@@ -21,10 +21,12 @@ from experiment_runner.controlled_daily_v4.config import (
     FAMILY_HIST_GRADIENT_BOOSTING,
     FAMILY_LOGISTIC_REGRESSION,
     FAMILY_RANDOM_FOREST,
+    FAMILY_SOFT_VOTING,
     INPUT_MODE_SCIENTIFIC,
     INPUT_MODE_SYNTHETIC,
     PRIMARY_DEPTH_COLUMN,
     SENSITIVITY_DEPTH_COLUMN,
+    WEIGHTING_NONE,
 )
 from experiment_runner.controlled_daily_v4.freezing import FrozenConfig
 from experiment_runner.controlled_daily_v4.models import ModelConfig
@@ -133,10 +135,38 @@ def _write_contract(
     return out_dir
 
 
+_VALID_PARAMS_BY_FAMILY = {
+    FAMILY_LOGISTIC_REGRESSION: {
+        "C": 1.0,
+        "weighting": WEIGHTING_NONE,
+        "solver": "lbfgs",
+        "max_iter": 2000,
+    },
+    FAMILY_RANDOM_FOREST: {
+        "n_estimators": 100,
+        "max_depth": 4,
+        "min_samples_leaf": 5,
+        "weighting": WEIGHTING_NONE,
+        "random_state": 42,
+        "n_jobs": 1,
+    },
+    FAMILY_HIST_GRADIENT_BOOSTING: {
+        "learning_rate": 0.1,
+        "max_iter": 100,
+        "max_leaf_nodes": 15,
+        "l2_regularization": 0.0,
+        "weighting": WEIGHTING_NONE,
+        "max_depth": None,
+        "early_stopping": False,
+        "random_state": 42,
+    },
+}
+
+
 def _single_frozen_config(family=FAMILY_LOGISTIC_REGRESSION) -> FrozenConfig:
     return FrozenConfig(
         family=family,
-        config=ModelConfig(family, {"C": 1.0}),
+        config=ModelConfig(family, dict(_VALID_PARAMS_BY_FAMILY[family])),
         median_mcc=0.42,
         fold_mcc=[0.3, 0.4, 0.5],
         folds=[],
@@ -155,7 +185,7 @@ def test_round_trip_single_family_candidate(tmp_path):
     assert contract.candidate_produced is True
     assert contract.single_family is not None
     assert contract.single_family.family == FAMILY_LOGISTIC_REGRESSION
-    assert contract.single_family.params == {"C": 1.0}
+    assert contract.single_family.params == _VALID_PARAMS_BY_FAMILY[FAMILY_LOGISTIC_REGRESSION]
     assert contract.single_family.median_mcc["value"] == pytest.approx(0.42)
     assert contract.final_p20_train == pytest.approx(0.31)
     assert contract.soft_voting_bases is None
@@ -186,7 +216,7 @@ def test_round_trip_soft_voting_candidate(tmp_path):
     }
     for family, candidate in contract.soft_voting_bases.items():
         assert candidate.family == family
-        assert candidate.params == {"C": 1.0}
+        assert candidate.params == _VALID_PARAMS_BY_FAMILY[family]
 
 
 def test_declares_input_mode_and_depth_role(tmp_path):
@@ -298,6 +328,164 @@ def test_rejects_non_finite_median_mcc(tmp_path):
     path = out_dir / "frozen_config.json"
     payload = json.loads(path.read_text(encoding="utf-8"))
     payload["single_family"]["median_mcc"] = {"value": "not-a-number", "status": "defined"}
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_rejects_synthetic_input_mode_with_scientific_run_true(tmp_path):
+    """Hallazgo de revisión externa: un artefacto sintético nunca puede
+    declararse `scientific_run=true` -- incoherencia de modo."""
+    out_dir = _write_contract(
+        tmp_path,
+        input_mode=INPUT_MODE_SYNTHETIC,
+        scientific_run=False,
+        frozen_single_family=_single_frozen_config(),
+        final_p20_train=0.4,
+    )
+    path = out_dir / "frozen_config.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["scientific_run"] = True
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_rejects_depth_role_not_matching_depth_column(tmp_path):
+    """Hallazgo de revisión externa: `depth_column` de sensibilidad con
+    `depth_role='primary_selection'` es una incoherencia de profundidad que
+    la lectura estructural debe rechazar, usando el mecanismo existente
+    (`config.depth_role_for_column`)."""
+    out_dir = _write_contract(
+        tmp_path,
+        depth_column=SENSITIVITY_DEPTH_COLUMN,
+        input_mode=INPUT_MODE_SYNTHETIC,
+        scientific_run=False,
+        frozen_single_family=_single_frozen_config(),
+        final_p20_train=0.4,
+    )
+    path = out_dir / "frozen_config.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["depth_role"] == DEPTH_ROLE_SENSITIVITY_ONLY
+    payload["depth_role"] = DEPTH_ROLE_PRIMARY
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_rejects_selected_family_not_recognized(tmp_path):
+    """Hallazgo de revisión externa: `selected_family="invented"` no debe
+    aceptarse."""
+    out_dir = _write_contract(
+        tmp_path, frozen_single_family=_single_frozen_config(), final_p20_train=0.4
+    )
+    path = out_dir / "frozen_config.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["selected_family"] = "invented"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_rejects_selected_family_not_matching_single_family(tmp_path):
+    out_dir = _write_contract(
+        tmp_path, frozen_single_family=_single_frozen_config(), final_p20_train=0.4
+    )
+    path = out_dir / "frozen_config.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["selected_family"] = FAMILY_RANDOM_FOREST
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_rejects_empty_params(tmp_path):
+    """Hallazgo de revisión externa: `single_family.config.params={}` no
+    debe aceptarse -- se exigen los hiperparámetros requeridos de la familia."""
+    out_dir = _write_contract(
+        tmp_path, frozen_single_family=_single_frozen_config(), final_p20_train=0.4
+    )
+    path = out_dir / "frozen_config.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["single_family"]["config"]["params"] = {}
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_rejects_family_not_matching_config_family(tmp_path):
+    """Hallazgo de revisión externa: `single_family.family != config.family`
+    no debe aceptarse."""
+    out_dir = _write_contract(
+        tmp_path, frozen_single_family=_single_frozen_config(), final_p20_train=0.4
+    )
+    path = out_dir / "frozen_config.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["single_family"]["config"]["family"] = FAMILY_RANDOM_FOREST
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_rejects_soft_voting_base_key_not_matching_its_family(tmp_path):
+    bases = {
+        FAMILY_LOGISTIC_REGRESSION: _single_frozen_config(FAMILY_LOGISTIC_REGRESSION),
+        FAMILY_RANDOM_FOREST: _single_frozen_config(FAMILY_RANDOM_FOREST),
+        FAMILY_HIST_GRADIENT_BOOSTING: _single_frozen_config(FAMILY_HIST_GRADIENT_BOOSTING),
+    }
+    out_dir = _write_contract(
+        tmp_path,
+        frozen_soft_voting_bases=bases,
+        final_p20_train=0.28,
+        selection_result=_selection_result(FAMILY_SOFT_VOTING),
+    )
+    path = out_dir / "frozen_config.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    # La base declarada bajo la clave "random_forest" pasa a autodeclararse
+    # "hist_gradient_boosting_classifier" -- incoherencia clave/familia.
+    payload["soft_voting_bases"][FAMILY_RANDOM_FOREST]["family"] = FAMILY_HIST_GRADIENT_BOOSTING
+    payload["soft_voting_bases"][FAMILY_RANDOM_FOREST]["config"][
+        "family"
+    ] = FAMILY_HIST_GRADIENT_BOOSTING
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_rejects_missing_weighting_in_params(tmp_path):
+    """Los pesos normativos (`weighting`) deben reconstruirse explícitamente
+    desde la configuración efectiva -- un artefacto que los omita se
+    rechaza, en vez de recibir un default inventado en la lectura."""
+    out_dir = _write_contract(
+        tmp_path, frozen_single_family=_single_frozen_config(), final_p20_train=0.4
+    )
+    path = out_dir / "frozen_config.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    del payload["single_family"]["config"]["params"]["weighting"]
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(TransferContractValidationError):
+        load_frozen_config_contract(out_dir)
+
+
+def test_rejects_empty_producer_fingerprint_reference(tmp_path):
+    """Hallazgo de revisión externa: `producer.dataset_fingerprint_ref={}`
+    no debe aceptarse -- se exige SHA-256 válido, versión de esquema
+    soportada y metadatos requeridos."""
+    out_dir = _write_contract(
+        tmp_path, frozen_single_family=_single_frozen_config(), final_p20_train=0.4
+    )
+    path = out_dir / "frozen_config.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["producer"]["dataset_fingerprint_ref"] = {}
     path.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(TransferContractValidationError):

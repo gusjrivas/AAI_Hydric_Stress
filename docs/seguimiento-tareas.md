@@ -1077,55 +1077,33 @@ la Etapa B, ambas separadas entre sí y del runner de B (que no se implementa).
   (`TransferContractValidationError`). Admite por igual artefactos sintéticos y
   de sensibilidad -- la autorización de uso se evalúa aparte.
 - `admissibility.py` (nuevo): `check_stage_b_admissibility`, independiente del
-  runner de B, con contexto explícito del consumidor (`consumer_input_mode`,
-  `consumer_training_dataset_fingerprint` recibido como parámetro, nunca
-  calculado aquí). Rechaza siempre como error duro un `depth_role` de
-  sensibilidad; exige candidato presente; admite sintético→sintético sin tocar
-  ningún artefacto científico; para una ejecución científica, `scientific_run=true`
-  no basta por sí solo -- exige además identidad de código íntegra del productor
-  (commit válido, `dirty=False`), evidencia de validación de entorno, e igualdad
-  exacta de huella entre el entrenamiento autorizado de B y el conjunto derivado
-  de A (mismo período). La única comparación de commit que realiza es una
-  verificación de consistencia interna entre `frozen_config.json` y
-  `code_version.json` del mismo directorio del productor (misma corrida) --
-  **nunca** compara el commit de la ejecución consumidora contra el del
-  productor (ninguna de las dos relaciones, por sí sola, certifica ni descarta
-  nada; ver el docstring de `admissibility.py` para la distinción exacta, ya
-  corregida en la entrega documental anterior de esta bitácora).
+  runner de B, con contexto explícito del consumidor. Rechaza siempre como
+  error duro un `depth_role` de sensibilidad; exige candidato presente; admite
+  sintético→sintético sin tocar ningún artefacto científico; para una
+  ejecución científica, `scientific_run=true` no basta por sí solo -- exige
+  además identidad de código íntegra del productor (commit válido,
+  `dirty=False`), evidencia de validación de entorno suficiente (no una
+  bandera aislada), e igualdad exacta de huella entre el entrenamiento
+  autorizado de B y el conjunto derivado de A (mismo período). Realiza **dos**
+  verificaciones de commit, deliberadamente distintas y no sustituibles entre
+  sí: **(a)** consistencia interna entre `frozen_config.json` y
+  `code_version.json` del mismo directorio del productor (misma corrida); y
+  **(b)** compatibilidad productor-consumidor, una comparación real entre el
+  commit histórico de A y el commit de la ejecución consumidora de B (recibido
+  explícitamente en `consumer_code_identity`, nunca calculado aquí) -- si
+  difieren y no hay política de compatibilidad documentada, se rechaza por
+  "compatibilidad no acreditada". Ver la corrección de 2026-09-13 (revisión
+  externa) más abajo: una versión anterior de este módulo omitía (b) por
+  completo.
 - `cli.py`: `scientific_run` se calcula una única vez y se reutiliza tanto en
   `resolved_config.json` como en el contrato de transferencia, sin duplicar la
   lógica.
 
-Interpretación explícita adoptada para reconciliar dos formulaciones del
-encargo que, leídas superficialmente, podrían parecer contradictorias: el
-encargo pide "si los commits [productor/consumidor] difieren y no hay política
-documentada, rechazar por compatibilidad no acreditada", mientras que el propio
-delta de spec de este *change* (`specs/experiment-runner/spec.md`, escenario
-"`scientific_run=true` por sí solo no basta") dice explícitamente que esta
-verificación "no compara el commit actual de la ejecución consumidora contra el
-commit histórico del productor". Ambas se satisfacen sin contradicción
-interpretando la comparación de commits como una verificación de consistencia
-interna entre los propios artefactos del productor (`frozen_config.json` vs.
-`code_version.json` del mismo directorio, misma corrida) -- nunca como una
-comparación productor-vs-consumidor. No se trata de una reinterpretación
-científica nueva: es la misma corrección ya registrada en la entrega documental
-previa de esta bitácora, aplicada ahora en código.
-
-Pruebas nuevas, exclusivamente sintéticas (`tests/test_controlled_daily_v4_transfer_contract.py`,
-12 tests; `tests/test_controlled_daily_v4_admissibility.py`, 12 tests): round-trip
-de familia única y Soft Voting; rechazo de `schema_version` desconocido, JSON
-inválido, campos ausentes, `depth_role` contradictorio, métricas no finitas;
-ausencia de candidato preservada explícitamente; admisión sintética y rechazo de
-sintético→científico; rechazo por `scientific_run=false`/árbol sucio aun con
-`scientific_run=true`; rechazo por huella de entrenamiento de B distinta de la de
-A; rechazo por ausencia de huella del consumidor; admisión/rechazo por
-commit coincidente/divergente entre artefactos del productor; rechazo de
-profundidad de sensibilidad como error duro; ausencia de candidato bloquea;
-centinela textual de que ningún módulo de carga/admisibilidad importa el runner
-de entrenamiento ni la ingesta de CSV crudos. Suite completa
-`-k controlled_daily_v4`: 279 tests pasan (255 preexistentes + 24 nuevos, 0
-fallos). `ruff check`/`black --check`/`git diff --cached --check` limpios sobre
-el alcance afectado.
+Pruebas nuevas, exclusivamente sintéticas: `tests/test_controlled_daily_v4_transfer_contract.py`
+y `tests/test_controlled_daily_v4_admissibility.py` (ver conteo final y
+corrección tras revisión externa en la entrada siguiente de esta misma
+bitácora). `ruff check`/`black --check`/`git diff --cached --check` limpios
+sobre el alcance afectado.
 
 No se implementaron baselines, runners de las Etapas B/C, ledger del holdout ni
 mecanismos de apertura del holdout -- quedan pendientes, según el alcance
@@ -1134,3 +1112,75 @@ Pergamino/Balcarce/holdout, no se ejecutó ningún experimento científico real 
 se usó MLflow compartido, y `controlled_daily_v3`, la evidencia histórica, los
 tags de baseline, `backend/`, `frontend/` y `human_feedback/` quedan sin
 alteración. No se hizo merge ni se habilitó auto-merge.
+
+## Corrección de admisibilidad del contrato A→B tras revisión externa (2026-09-13)
+
+Revisión externa del commit `17a3a214b0e32f341820a41c00ab124ca6bf9091` (PR
+#192) reprodujo cuatro defectos que la entrega anterior de esta misma rama
+dejaba pasar indebidamente. Los cuatro quedan corregidos en este commit
+adicional, con regresión propia cada uno:
+
+1. **Coherencia de modo y profundidad** (`transfer_contract.py`): la lectura
+   estructural ahora rechaza explícitamente `input_mode=synthetic` con
+   `scientific_run=true` (incoherencia de modo), y `depth_role` que no
+   corresponda a `depth_column` según `config.depth_role_for_column` (el
+   mecanismo ya existente, reutilizado, no reemplazado). No se prohíbe
+   `input_mode=scientific` con `scientific_run=false`: sigue siendo una
+   corrida no normativa válida, simplemente no admisible como antecedente
+   científico (verificado aparte, en `admissibility.py`).
+2. **Configuración del candidato** (`transfer_contract.py`): se valida que
+   `selected_family` sea una familia reconocida y coincida con la familia del
+   candidato serializado (única o Soft Voting); que `family` coincida con
+   `config.family`; que cada clave de `soft_voting_bases` coincida con la
+   familia que declara su propio candidato; y que `config.params` declare
+   explícitamente los hiperparámetros requeridos de cada familia (incluido
+   `weighting`, los pesos normativos de balanceo) con el tipo/restricción
+   esperados -- derivados de los mismos campos que ya serializan
+   `models.iter_logistic_regression_configs`/`iter_random_forest_configs`/
+   `iter_hist_gradient_boosting_configs`, sin tocar esas grillas ni su
+   algoritmo. Un artefacto incompleto (`params={}`, o sin `weighting`) se
+   rechaza en vez de recibir un default inventado en la lectura.
+3. **Fingerprint obligatorio y verificable**: la lectura estructural exige que
+   `producer.dataset_fingerprint_ref` tenga SHA-256 completo y con formato
+   válido, `schema_version` reconocido, y metadatos requeridos
+   (`n_rows`/`scope`) -- un `{}` vacío ya no pasa por comparar `None==None`.
+   `admissibility.py` revalida por su cuenta (no asume que `contract` proviene
+   necesariamente del lector estructural, ya que es una función invocable de
+   forma independiente) tanto la referencia embebida como el archivo hermano
+   `dataset_fingerprint.json` y la huella recibida del consumidor, con la
+   misma validación reutilizada (`transfer_contract.validate_fingerprint_reference`).
+4. **Contexto real del consumidor** (`admissibility.py`): se agregan
+   `consumer_code_identity` y `consumer_environment_issues`, recibidos
+   explícitamente (nunca calculados ni asumidos). La verificación (b)
+   descrita en la entrada anterior -- compatibilidad productor-consumidor,
+   comparación real de commits, con rechazo explícito por "compatibilidad no
+   acreditada" si difieren sin política documentada -- es enteramente nueva:
+   la entrega anterior únicamente implementaba (a) y describía, de forma
+   incorrecta, que ambas verificaciones eran equivalentes o que (a) bastaba.
+   Esa afirmación ya está corregida tanto en el código como en esta bitácora
+   y en la descripción del PR. También se corrige la evidencia de entorno del
+   productor: `validated_before_training=true` aislado ya no basta -- se
+   exige además `constraints_identity` verificable y `packages` capturados
+   con contenido real.
+
+**Corrección adicional de una afirmación imprecisa de la entrega anterior:**
+agregar `input_mode`/`scientific_run` como argumentos obligatorios nuevos de
+`write_stage_a_artifacts` **no es retrocompatible** -- los llamadores
+existentes (`cli.py` y los tests que invocaban esta función) necesitaron
+actualizarse explícitamente para pasarlos; la entrega anterior lo describía
+incorrectamente como un cambio retrocompatible.
+
+Pruebas: se actualizaron los fixtures de ambos archivos de test para exigir
+hiperparámetros completos por familia y evidencia de entorno/fingerprint con
+forma válida, y se agregaron regresiones específicas para cada uno de los
+cuatro hallazgos, varias de ellas mediante el flujo completo escritura real
+(`artifacts.write_stage_a_artifacts`) → modificación del JSON en disco →
+lectura real (`transfer_contract.load_frozen_config_contract`) →
+admisibilidad -- no únicamente estados construidos a mano. Los casos válidos
+existentes (modelos individuales, Soft Voting, sintético→sintético,
+productor/consumidor compatibles) se mantienen en verde.
+
+No se amplió el alcance a baselines/B/C/ledger, no se accedió a datos
+reales/holdout/MLflow, y `controlled_daily_v3`/baselines históricos/
+`backend/`/`frontend/`/HITL quedan sin alteración. No se hizo merge, no se
+habilitó auto-merge, no se usó force-push ni se generó ningún ZIP.

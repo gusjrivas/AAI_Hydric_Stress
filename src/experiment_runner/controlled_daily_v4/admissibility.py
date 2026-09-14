@@ -5,26 +5,38 @@ explícito del consumidor.
 Distinta e independiente de la lectura estructural (`transfer_contract.py`):
 un artefacto puede leerse correctamente y aun así resultar inadmisible para
 el modo de la ejecución que intenta consumirlo. Esta función no entrena, no
-selecciona modelos y no abre ningún CSV crudo -- el contexto de datos del
-consumidor (la huella de su propio conjunto de entrenamiento autorizado) se
-recibe explícitamente como parámetro, nunca se calcula aquí.
+selecciona modelos y no abre ningún CSV crudo -- el contexto de datos y de
+identidad del consumidor se recibe explícitamente como parámetro, nunca se
+calcula ni se infiere aquí.
 
 Distingue tres verificaciones que el protocolo exige no confundir:
 identidad, integridad y compatibilidad (ver
 `openspec/changes/implement-controlled-daily-v4-stage-b-c/proposal.md`,
-"Precisión de la procedencia entre etapas").
+"Precisión de la procedencia entre etapas"). Esta función NO confía en que
+`contract` provenga necesariamente de `transfer_contract.load_frozen_config_contract`
+(puede recibir un `FrozenConfigContract` construido directamente, como en los
+tests): revalida por sí misma la huella del productor en vez de asumir que ya
+fue validada.
 
-Sobre el commit del productor: esta función NUNCA compara el commit de la
-ejecución consumidora (Etapa B) contra el commit histórico del productor
-(Etapa A) -- ninguna de las dos relaciones (igualdad o diferencia) certifica
-ni descarta nada por sí sola (spec.md, escenario "`scientific_run=true` por
-sí solo no basta"). La única comparación de commit que SÍ realiza es una
-verificación de CONSISTENCIA INTERNA entre dos artefactos que el productor
-debería haber escrito en la misma corrida (`frozen_config.json` y
-`code_version.json` del mismo directorio): si difieren, es evidencia de una
-mezcla de artefactos de corridas distintas, no una comparación productor
-vs. consumidor -- de ahí que una diferencia sin política de compatibilidad
-documentada se rechace explícitamente."""
+Sobre el commit del productor -- DOS verificaciones distintas, que no deben
+confundirse ni sustituirse entre sí:
+
+(a) **Consistencia interna del productor**: el commit embebido en
+    `frozen_config.json` (vía `contract.producer_code_identity`) debe
+    coincidir con el de `code_version.json` en el mismo directorio -- ambos
+    archivos deberían provenir de la misma corrida de A. Si difieren, es
+    indicio de una mezcla de artefactos de corridas distintas.
+(b) **Compatibilidad productor-consumidor**: el commit del productor (A) se
+    compara explícitamente contra el commit de la ejecución consumidora (B),
+    recibido en `consumer_code_identity`. Los commits pueden coincidir
+    (caso normal) o diferir (por ejemplo, si B corre después de una
+    corrección); si difieren y no existe una política de compatibilidad
+    documentada que acredite esa diferencia, se rechaza explícitamente por
+    "compatibilidad no acreditada" -- nunca se admite un cambio arbitrario
+    solo porque el SHA tiene formato válido.
+
+Ninguna de las dos sustituye a la otra: (a) sin (b), o (b) sin (a), deja
+pasar exactamente el defecto que la otra existe para atrapar."""
 
 from __future__ import annotations
 
@@ -38,7 +50,10 @@ from experiment_runner.controlled_daily_v4.config import (
     INPUT_MODE_SCIENTIFIC,
     INPUT_MODE_SYNTHETIC,
 )
-from experiment_runner.controlled_daily_v4.transfer_contract import FrozenConfigContract
+from experiment_runner.controlled_daily_v4.transfer_contract import (
+    FrozenConfigContract,
+    validate_fingerprint_reference,
+)
 
 
 class StageBAdmissibilityError(ValueError):
@@ -70,11 +85,44 @@ def _load_producer_json(producer_dir: Path, filename: str) -> dict[str, Any]:
     return payload
 
 
+def _validate_producer_fingerprint(
+    fingerprint_ref: dict[str, Any], producer_dir: Path
+) -> dict[str, Any]:
+    """Revalida (no asume ya validado) que la referencia embebida y el
+    artefacto hermano `dataset_fingerprint.json` tengan forma y contenido
+    verificable -- nunca compara valores ausentes/`None` entre sí como si
+    coincidieran."""
+    try:
+        validate_fingerprint_reference(fingerprint_ref, "producer.dataset_fingerprint_ref")
+    except ValueError as exc:
+        raise StageBAdmissibilityError([str(exc)]) from exc
+
+    fingerprint_payload = _load_producer_json(producer_dir, "dataset_fingerprint.json")
+    try:
+        validate_fingerprint_reference(
+            fingerprint_payload, f"'{producer_dir / 'dataset_fingerprint.json'}'"
+        )
+    except ValueError as exc:
+        raise StageBAdmissibilityError([str(exc)]) from exc
+
+    if fingerprint_payload["sha256"] != fingerprint_ref["sha256"]:
+        raise StageBAdmissibilityError(
+            [
+                "La huella de dataset embebida en frozen_config.json no coincide con "
+                f"'{producer_dir / 'dataset_fingerprint.json'}': indicio de mezcla de "
+                "artefactos de corridas distintas"
+            ]
+        )
+    return fingerprint_payload
+
+
 def check_stage_b_admissibility(
     contract: FrozenConfigContract,
     *,
     producer_dir: str | Path,
     consumer_input_mode: str,
+    consumer_code_identity: dict[str, Any] | None = None,
+    consumer_environment_issues: list[str] | None = None,
     consumer_training_dataset_fingerprint: dict[str, Any] | None = None,
 ) -> None:
     """Decide si `contract` (ya leído estructuralmente) es admisible como
@@ -84,9 +132,19 @@ def check_stage_b_admissibility(
 
     Puede leer artefactos de evidencia ya persistidos por el productor
     (`code_version.json`, `environment.json`, `dataset_fingerprint.json`, en
-    `producer_dir`), pero nunca CSV crudos ni entrena nada. La huella del
-    entrenamiento autorizado del consumidor (`consumer_training_dataset_fingerprint`)
-    debe recibirse explícitamente -- esta función nunca la calcula."""
+    `producer_dir`), pero nunca CSV crudos ni entrena nada. El contexto de la
+    ejecución consumidora se recibe explícitamente y nunca se calcula aquí:
+
+    - `consumer_code_identity`: identidad de código de la propia ejecución de
+      B (misma forma que `code_identity.CodeIdentity`, serializada), exigida
+      para el camino científico.
+    - `consumer_environment_issues`: lista de incumplimientos de la
+      validación normativa del entorno de B (`[]` si está todo validado;
+      `None` significa "no se recibió", que se rechaza explícitamente, nunca
+      se asume vacío).
+    - `consumer_training_dataset_fingerprint`: huella del conjunto de
+      entrenamiento autorizado de B, ya calculada por quien invoca -- esta
+      función nunca la calcula ni abre CSV para obtenerla."""
     producer_dir = Path(producer_dir)
 
     # Restricción de profundidad: siempre error duro, verificado en este
@@ -129,44 +187,91 @@ def check_stage_b_admissibility(
 
     reasons: list[str] = []
 
-    # `scientific_run=true` por sí solo no basta (spec.md): se verifican,
-    # además, integridad del autorreporte del productor y compatibilidad de
-    # procedencia -- ninguna sustituye a la otra.
-    if not contract.scientific_run:
+    # `scientific_run=true` por sí solo no basta (spec.md): además de la
+    # bandera, se exige explícitamente que el MODO declarado sea científico
+    # (no solo que la bandera lo diga) -- un contrato con input_mode
+    # inconsistente ya se rechaza en la lectura estructural, pero esta
+    # función no depende de esa capa para su propia decisión.
+    if not contract.scientific_run or contract.input_mode != INPUT_MODE_SCIENTIFIC:
         reasons.append(
-            "El candidato tiene scientific_run=false: no admisible para una ejecución "
-            "científica de la Etapa B"
+            "El candidato no está marcado como científico en ambos ejes (scientific_run="
+            f"{contract.scientific_run!r}, input_mode={contract.input_mode!r}): no admisible "
+            "para una ejecución científica de la Etapa B"
         )
 
-    code_identity = contract.producer_code_identity
-    if not code_identity.get("available"):
+    producer_code_identity = contract.producer_code_identity
+    if not producer_code_identity.get("available"):
         reasons.append(
             "La identidad de código del productor no está disponible "
-            f"(reason={code_identity.get('reason')!r})"
+            f"(reason={producer_code_identity.get('reason')!r})"
         )
-    if code_identity.get("dirty") is not False:
+    if producer_code_identity.get("dirty") is not False:
         reasons.append(
             "La identidad de código del productor no reporta dirty=False "
-            f"(dirty={code_identity.get('dirty')!r}); una corrida científica exige árbol limpio"
+            f"(dirty={producer_code_identity.get('dirty')!r}); una corrida científica exige "
+            "árbol limpio"
         )
-    commit = code_identity.get("commit")
-    if not is_valid_full_sha(commit):
+    producer_commit = producer_code_identity.get("commit")
+    if not is_valid_full_sha(producer_commit):
         reasons.append(
-            f"La identidad de código del productor no tiene un commit válido (commit={commit!r})"
+            f"La identidad de código del productor no tiene un commit válido "
+            f"(commit={producer_commit!r})"
         )
 
-    # Consistencia interna entre dos artefactos que el productor escribió en
-    # la MISMA corrida (nunca una comparación contra el commit de esta
-    # ejecución consumidora -- ver docstring del módulo). Los commits
-    # 'pueden coincidir' (caso normal, misma corrida): si difieren, es
-    # evidencia de una mezcla de artefactos de corridas distintas, y sin una
-    # política de compatibilidad documentada que la acredite, se rechaza.
+    # (a) Consistencia INTERNA del productor: dos artefactos que A debería
+    # haber escrito en la misma corrida deben coincidir entre sí. Esto NO
+    # sustituye la comparación productor-consumidor de más abajo (b): ambas
+    # verifican cosas distintas y ambas deben pasar.
     sibling_code_version = _load_producer_json(producer_dir, "code_version.json")
-    if sibling_code_version != code_identity:
+    if sibling_code_version != producer_code_identity:
         reasons.append(
             "La identidad de código embebida en frozen_config.json no coincide con "
             f"'{producer_dir / 'code_version.json'}': indicio de mezcla de artefactos de "
-            "corridas distintas, sin política de compatibilidad documentada que la acredite"
+            "corridas distintas dentro del propio productor"
+        )
+
+    # (b) Compatibilidad PRODUCTOR-CONSUMIDOR: comparación real entre el
+    # commit histórico de A y el commit actual de la ejecución consumidora
+    # de B, recibido explícitamente -- nunca calculado ni sustituido por (a).
+    if consumer_code_identity is None:
+        reasons.append(
+            "No se recibió la identidad de código de la ejecución consumidora (contexto "
+            "explícito requerido; no se asume ni se omite esta verificación)"
+        )
+    else:
+        if not consumer_code_identity.get("available"):
+            reasons.append(
+                "La identidad de código de la ejecución consumidora no está disponible "
+                f"(reason={consumer_code_identity.get('reason')!r})"
+            )
+        if consumer_code_identity.get("dirty") is not False:
+            reasons.append(
+                "La identidad de código de la ejecución consumidora no reporta dirty=False "
+                f"(dirty={consumer_code_identity.get('dirty')!r})"
+            )
+        consumer_commit = consumer_code_identity.get("commit")
+        if not is_valid_full_sha(consumer_commit):
+            reasons.append(
+                "La identidad de código de la ejecución consumidora no tiene un commit válido "
+                f"(commit={consumer_commit!r})"
+            )
+        elif is_valid_full_sha(producer_commit) and consumer_commit != producer_commit:
+            reasons.append(
+                f"El commit del productor ({producer_commit!r}) difiere del commit de la "
+                f"ejecución consumidora ({consumer_commit!r}) y no existe una política de "
+                "compatibilidad documentada que acredite esa diferencia: se rechaza por "
+                "compatibilidad no acreditada"
+            )
+
+    if consumer_environment_issues is None:
+        reasons.append(
+            "No se recibió evidencia de validación normativa del entorno de la ejecución "
+            "consumidora (contexto explícito requerido)"
+        )
+    elif consumer_environment_issues:
+        reasons.append(
+            "La ejecución consumidora registra fallas de validación de entorno: "
+            f"{consumer_environment_issues}"
         )
 
     environment_payload = _load_producer_json(producer_dir, "environment.json")
@@ -180,15 +285,31 @@ def check_stage_b_admissibility(
             "El productor registra fallas de validación de entorno: "
             f"{environment_payload['validation_issues']}"
         )
-
-    fingerprint_payload = _load_producer_json(producer_dir, "dataset_fingerprint.json")
-    fingerprint_ref = contract.producer_dataset_fingerprint_ref
-    if fingerprint_payload.get("sha256") != fingerprint_ref.get("sha256"):
+    # Una bandera aislada (`validated_before_training=True`) no alcanza:
+    # también se exige que la identidad del propio archivo de referencia
+    # contrastado esté presente y que el entorno capturado tenga contenido
+    # real, no solo afirmaciones booleanas sin sustento.
+    constraints_identity = environment_payload.get("constraints_identity")
+    if (
+        not isinstance(constraints_identity, dict)
+        or constraints_identity.get("exists") is not True
+        or not constraints_identity.get("sha256")
+    ):
         reasons.append(
-            "La huella de dataset embebida en frozen_config.json no coincide con "
-            f"'{producer_dir / 'dataset_fingerprint.json'}': indicio de mezcla de artefactos "
-            "de corridas distintas"
+            "El productor no registra una identidad de 'constraints.txt' verificable "
+            f"(constraints_identity={constraints_identity!r})"
         )
+    if not environment_payload.get("packages"):
+        reasons.append(
+            "El productor no registra las versiones de paquetes efectivamente capturadas "
+            "(evidencia de entorno insuficiente)"
+        )
+
+    fingerprint_ref = contract.producer_dataset_fingerprint_ref
+    try:
+        _validate_producer_fingerprint(fingerprint_ref, producer_dir)
+    except StageBAdmissibilityError as exc:
+        reasons.extend(exc.reasons)
 
     if consumer_training_dataset_fingerprint is None:
         reasons.append(
@@ -197,16 +318,23 @@ def check_stage_b_admissibility(
             "recalcularse aquí)"
         )
     else:
-        consumer_sha256 = consumer_training_dataset_fingerprint.get("sha256")
-        producer_sha256 = fingerprint_ref.get("sha256")
-        if consumer_sha256 != producer_sha256:
-            reasons.append(
-                "La huella del entrenamiento autorizado de la Etapa B "
-                f"({consumer_sha256!r}) difiere de la huella del conjunto derivado de A "
-                f"({producer_sha256!r}): B reentrena sobre el mismo período que A "
-                "(protocolo), por lo que el protocolo exige igualdad exacta de huella -- no "
-                "una extensión de período como en la Etapa C"
+        try:
+            validate_fingerprint_reference(
+                consumer_training_dataset_fingerprint, "consumer_training_dataset_fingerprint"
             )
+        except ValueError as exc:
+            reasons.append(str(exc))
+        else:
+            consumer_sha256 = consumer_training_dataset_fingerprint["sha256"]
+            producer_sha256 = fingerprint_ref.get("sha256")
+            if consumer_sha256 != producer_sha256:
+                reasons.append(
+                    "La huella del entrenamiento autorizado de la Etapa B "
+                    f"({consumer_sha256!r}) difiere de la huella del conjunto derivado de A "
+                    f"({producer_sha256!r}): B reentrena sobre el mismo período que A "
+                    "(protocolo), por lo que el protocolo exige igualdad exacta de huella -- no "
+                    "una extensión de período como en la Etapa C"
+                )
 
     if reasons:
         raise StageBAdmissibilityError(reasons)
