@@ -1518,3 +1518,152 @@ sin relación con los cuatro hallazgos); `ruff check src tests` y
 Construcción del entorno experimental fijado
 (`docker/experiment-v4/build.py`) y suite dentro del contenedor: ver el
 cierre de esta entrada / la descripción del PR #193 para el resultado final.
+
+## Cierre de dos pendientes técnicos y un pendiente documental sobre la Etapa B de controlled_daily_v4 (2026-09-15)
+
+Rama `feat/controlled-daily-v4-stage-b` (mismo PR #193, commit auditado de esta
+ronda `c13b917d9dd79f91739fff1a15b9948ffd545ee7` -- HEAD local/remoto
+verificado idéntico al auditado antes de empezar, sin trabajo local ajeno que
+preservar). Cierra dos hallazgos técnicos concretos y un pendiente documental
+ya autorizado, sin repetir una auditoría general ni ampliar el alcance.
+
+**Pendiente técnico 1 (P20_train validado ANTES del reentrenamiento):**
+reproducido -- con `final_p20_train=999` en el contrato, `run_stage_b`
+rechazaba el contrato (`StageBTechnicalError`), pero DESPUÉS de una llamada
+efectiva a `refit_frozen_candidate` (el estimador ya se había ajustado antes
+de comparar el umbral). Corrección: `stage_b_runner.run_stage_b` calcula
+`P20_train` UNA sola vez sobre el `training_frame` autorizado y validado
+(`compute_p20_threshold`), lo compara contra `contract.final_p20_train` (misma
+tolerancia existente, `rel_tol=1e-9`/`abs_tol=1e-12`) ANTES de cualquier
+llamada a `refit_frozen_candidate`, y reutiliza ese mismo umbral ya validado
+-- nunca uno recalculado por separado -- tanto para construir las etiquetas de
+entrenamiento (chequeo de monoclase) como para reentrenar.
+`refit_frozen_candidate` gana un parámetro `p20_train` opcional (si se recibe,
+lo reutiliza tal cual; si no, lo calcula como antes, para no romper las
+llamadas directas de otros tests). No se cambió familia, hiperparámetros,
+criterios de aprobación, ni el tratamiento explícito de entrenamiento
+monoclase (que sigue devolviendo `p20_train=NaN` y `CANDIDATE_NOT_VALIDATED`
+sin intentar reentrenar). Pruebas nuevas (`tests/test_controlled_daily_v4_stage_b_runner.py`):
+`test_p20_train_mismatch_is_rejected_before_any_refit_call` (contrato con
+P20 inconsistente: `StageBTechnicalError` y cero llamadas a
+`refit_frozen_candidate`, verificado con un espía que aborta si llega a
+invocarse -- reproduce exactamente el hallazgo) y
+`test_p20_train_coherence_check_with_valid_contract_preserves_labels_and_behavior`
+(contrato válido: conserva `P20_train`, las etiquetas de evaluación resultan
+idénticas a las calculadas directamente con ese umbral, y el veredicto/las
+predicciones se comportan como antes). El rechazo se sigue propagando como
+`StageBTechnicalError` controlado por la CLI (código de salida `8`,
+`cli._run_stage_b`), sin cambios en ese punto.
+
+**Pendiente técnico 2 (coherencia de la bandera normativa del bootstrap):**
+reproducido -- una ejecución con 5 (o cualquier número distinto de 5000)
+réplicas persistía `replicas_requested=5` (o el valor pedido) y
+`normative=True` en `BootstrapDiagnostics`, porque `bootstrap.py` copiaba tal
+cual el argumento `normative` que le pasaba el llamador (que en la CLI de B
+nunca se parametriza y siempre llega en `True`) en vez de derivarlo de la
+configuración efectivamente consumida; el test existente
+(`test_diagnostics_record_the_full_provenance_of_the_procedure`, con
+`n_replicas=12`) solo verificaba el número de réplicas, nunca esa bandera.
+Corrección: `bootstrap.compute_is_normative_configuration(n_replicas, seed,
+block_length)` (nueva función pura) calcula la condición normativa real --
+`True` sii, simultáneamente, `n_replicas == BOOTSTRAP_REPLICAS_DEFAULT`
+(5000), `seed == BOOTSTRAP_SEED` (20250109) y
+`block_length == BOOTSTRAP_BLOCK_DAYS` (30) -- y `paired_bootstrap_delta` la
+usa para poblar `BootstrapDiagnostics.normative` en AMBOS puntos de
+construcción (réplicas válidas, y el caso de cero réplicas válidas dentro de
+`NoValidBootstrapReplicasError.diagnostics`), en vez de reenviar el argumento
+`normative` recibido. Ese argumento (`build_segment_plans`/`paired_bootstrap_delta`)
+conserva su responsabilidad original sin cambios -- exigir que `block_length`
+sea exactamente 30 salvo que se pase `normative=False` explícitamente (modo
+de test) -- ahora documentada como una responsabilidad de VALIDACIÓN,
+separada de la etiqueta de evidencia persistida (cambio mínimo: no se separó
+en dos parámetros distintos, se separó la fuente de la bandera de evidencia).
+Se verificó por separado la distinción científico/sintético: `scientific_run`/
+`input_mode` (`cli.py`, `admissibility.py`) no se tocaron, y cumplir la
+configuración normativa del bootstrap sigue sin convertir por sí solo una
+corrida sintética en científica. Alcance verificado explícitamente en
+`resolved_config.json` (`normative_run`, ya coherente antes de este cambio --
+depende de `seed`/`bootstrap_replicas` de la CLI, no de `bootstrap.py`),
+`bootstrap.json` (`diagnostics.normative`, la corrección real) y los
+diagnósticos del caso con cero réplicas válidas (misma corrección, mismo
+punto de construcción). No se debilitó la validación existente de
+`block_length` ni se cambió el algoritmo de remuestreo (`moving_block_bootstrap_indices`
+intacto). Pruebas nuevas (`tests/test_controlled_daily_v4_bootstrap.py`):
+`test_compute_is_normative_configuration_full_normative_configuration`,
+`_reduced_replicas`, `_non_normative_seed`, `_different_block_length` (unitarias
+sobre la función pura); `test_paired_bootstrap_delta_persists_normative_true_only_with_the_full_configuration`
+(réplicas reducidas con `normative=True` declarado: la bandera persistida es
+`False`); `test_paired_bootstrap_delta_persists_normative_flag_with_a_different_block_length`
+(bloques de 10 días en modo de prueba permitido, `normative=False`: la
+bandera persistida también es `False`); `test_zero_valid_replicas_with_non_normative_configuration_persists_normative_false`
+(cero réplicas válidas con réplicas reducidas: `NoValidBootstrapReplicasError.diagnostics.normative`
+es `False`). Pruebas nuevas en `tests/test_controlled_daily_v4_stage_b_runner.py`:
+`test_bootstrap_with_reduced_replicas_never_persists_normative_true` y
+`test_bootstrap_with_non_normative_seed_never_persists_normative_true` (ambas
+verifican la bandera EFECTIVAMENTE persistida en `StageBResult.bootstrap_diagnostics.normative`,
+no solo los valores numéricos), además de la aserción ya existente
+`test_bootstrap_uses_normative_configuration_when_requested`, extendida para
+verificar también `normative is True` con la configuración normativa
+completa. `tests/test_controlled_daily_v4_stage_b_integration.py`
+(`test_cli_reduced_bootstrap_configuration_is_never_labeled_normative`) se
+extendió con la misma verificación sobre `bootstrap.json` end-to-end vía CLI.
+
+**Corrección de dos aserciones preexistentes de la Etapa A (código compartido
+`bootstrap.py`), verificadas y actualizadas, no reescritas silenciosamente:**
+`tests/test_controlled_daily_v4_runner_artifacts.py::test_cli_selection_decision_records_bootstrap_provenance`
+(CLI real de A con `--bootstrap-replicas 10`) y
+`tests/test_controlled_daily_v4_bootstrap.py::test_diagnostics_record_the_full_provenance_of_the_procedure`
+(`n_replicas=12`) afirmaban `normative is True` pese a que ninguna de las dos
+configuraciones es la normativa (5000 réplicas) -- exactamente la
+manifestación del mismo defecto en A, antes sin verificar. Ambas aserciones
+se corrigieron a `normative is False` (comentario explícito en cada una,
+citando esta corrección) tras confirmar que ningún otro comportamiento de A
+depende de ese valor; el resto de la suite de A (`test_controlled_daily_v4_selection.py`
+y las demás suites de A dentro de la ejecución completa) se verificó en verde
+sobre el mismo cambio de `bootstrap.py`.
+
+**Pendiente documental (cierre ya autorizado):** `openspec/specs/experiment-runner/spec.md`
+(canónico) incorpora la nueva sección "Protocolo controlled_daily_v4_external_pergamino
+(Etapas A y B)", que distingue explícitamente: Etapa A implementada e
+integrada en `main`, verificada sintéticamente; Etapa B implementada y
+verificada sintéticamente en el PR #193, con su integración a `main`
+pendiente mientras ese PR siga abierto; las ejecuciones científicas reales de
+A y B y sus resultados cuantitativos, pendientes por separado (ninguna se
+afirma como obtenida); Etapa C y su ledger de holdout, sin implementar, fuera
+de alcance de este encargo. Esta actualización resuelve, con autorización
+explícita del encargo del 2026-09-15, la contradicción documental que hasta
+ahora bloqueaba la actualización del spec canónico: `openspec/changes/implement-controlled-daily-v4-stage-a/tasks.md`
+condicionaba esa actualización a una corrida científica real, y
+`openspec/changes/implement-controlled-daily-v4-stage-b-c/tasks.md` (línea
+104 original) se negaba a actualizar el spec solo para B citando ese mismo
+precedente sin resolverlo. Ambos archivos de tareas quedan actualizados con
+una nota de resolución que conserva, sin reescribir, el texto histórico de la
+contradicción -- la tarea de A que sigue pendiente por separado (persistir
+resultados reales de una corrida científica) no se marca completada ni se
+confunde con la actualización documental ahora resuelta. Ningún resultado
+histórico de `controlled_daily_v3` ni ninguna ejecución científica de
+`controlled_daily_v4` se reescribe ni se afirma como ocurrida.
+
+No se cambiaron familia, hiperparámetros, umbrales de decisión, el algoritmo
+de remuestreo del bootstrap, ni las fronteras temporales del protocolo. Solo
+datos sintéticos: no se leyó ningún CSV real de Pergamino/Balcarce ni el
+holdout real 2024-2025, no se ejecutó ninguna etapa científica real, no se
+usó MLflow compartido, y `controlled_daily_v3`, los baselines históricos,
+`backend/`, `frontend/` y `human_feedback/` quedan sin alteración. La Etapa C
+y su ledger siguen sin implementarse (fuera de alcance de este encargo). No
+se hizo merge ni se habilitó auto-merge.
+
+Verificación real ejecutada (contenedor `aai-hydric-v4-experiment:dev`, el
+mismo entorno experimental fijado del *change*, vía Docker, dado que el host
+de esta sesión no tiene `python` disponible fuera de contenedores): 11 tests
+nuevos (4 en `test_controlled_daily_v4_stage_b_runner.py`, 7 en
+`test_controlled_daily_v4_bootstrap.py`), 0 tests eliminados, 2 aserciones
+preexistentes corregidas (ver arriba); suite completa
+`tests/test_controlled_daily_v4_*.py`: **364 passed, 3 skipped** en 746.59s
+(los 3 `skipped` son los mismos preexistentes, sin relación con estos
+cambios; 364 = 353 del commit auditado `c13b917` + 11 tests nuevos de esta
+corrección); `ruff check src tests` limpio; `black --check src tests` limpio
+tras aplicar el formateo automático a `src/experiment_runner/controlled_daily_v4/bootstrap.py`
+y `tests/test_controlled_daily_v4_stage_b_runner.py` (solo diferencias de
+formato, sin cambios de comportamiento); `git diff --check` sin advertencias
+de espacios en blanco.

@@ -16,7 +16,8 @@
 - [ ] Ejecutar la Etapa A real sobre los CSV de Pergamino (`AAI_Hydric_Stress_external_data/raw/`) y congelar el candidato seleccionado. **No ejecutado en este *change*.**
 - [ ] Ejecutar la Etapa B (2023). **No implementada. No ejecutada.**
 - [ ] Abrir la Etapa C (2024–2025). **No implementada. Holdout permanece cerrado.**
-- [ ] Persistir resultados reales (predicciones OOF, métricas, dataset diario derivado con su propio SHA-256) y actualizar `openspec/specs/experiment-runner/spec.md` (canónico) reflejando la capacidad implementada. **Pendiente de una corrida real y de una decisión explícita de cuándo el spec canónico debe actualizarse.**
+- [ ] Persistir resultados reales (predicciones OOF, métricas, dataset diario derivado con su propio SHA-256) de una ejecución científica real de la Etapa A. **Pendiente de esa corrida real; sigue sin ejecutarse.**
+- [x] Actualizar `openspec/specs/experiment-runner/spec.md` (canónico) reflejando la capacidad implementada. **Resuelto (2026-09-15, encargo explícito sobre PR #193):** esta línea dejaba la actualización "pendiente de una corrida real y de una decisión explícita de cuándo el spec canónico debe actualizarse" -- redacción conservada aquí como registro histórico, no reescrita. El encargo del 2026-09-15 resolvió explícitamente esa decisión: documentar una capacidad ya implementada e integrada no depende de que exista una ejecución científica real (mismo criterio ya usado en el spec canónico para otras capacidades de HU7). El spec canónico ya refleja la Etapa A (y, con el mismo criterio, la Etapa B) en su nueva sección "Protocolo controlled_daily_v4_external_pergamino (Etapas A y B)", sin afirmar ninguna ejecución científica real ni resultado alguno que no haya ocurrido. La tarea anterior (persistir resultados reales) sigue pendiente por separado, sin relación con esta.
 
 ## Correcciones de la revisión técnica dirigida
 

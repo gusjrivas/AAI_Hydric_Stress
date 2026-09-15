@@ -17,11 +17,12 @@ from experiment_runner.controlled_daily_v4.bootstrap import (
     NoValidBootstrapReplicasError,
     SegmentTooShortForBlockError,
     build_segment_plans,
+    compute_is_normative_configuration,
     moving_block_bootstrap_indices,
     paired_bootstrap_delta,
     percentile_interval,
 )
-from experiment_runner.controlled_daily_v4.config import BOOTSTRAP_SEED
+from experiment_runner.controlled_daily_v4.config import BOOTSTRAP_REPLICAS_DEFAULT, BOOTSTRAP_SEED
 from experiment_runner.controlled_daily_v4.metrics import mcc_strict
 
 
@@ -185,9 +186,128 @@ def test_diagnostics_record_the_full_provenance_of_the_procedure():
     assert d.segment_sizes == {"outer_fold_1": 100, "outer_fold_2": 80}
     assert d.block_length == BOOTSTRAP_BLOCK_DAYS
     assert d.seed == BOOTSTRAP_SEED
-    assert d.normative is True
+    # Cierre de pendiente técnico (revisión dirigida sobre PR #193): 12
+    # réplicas no son las 5000 normativas del protocolo -- la bandera de
+    # evidencia refleja la configuración REALMENTE consumida, nunca una
+    # declaración fija del llamador (que aquí ni siquiera se pasó, y de
+    # haberse pasado `normative=True` tampoco alcanzaría para etiquetar
+    # esto como normativo).
+    assert d.normative is False
     assert d.interval_lower == pytest.approx(result.interval[0])
     assert d.interval_upper == pytest.approx(result.interval[1])
+
+
+# --------------------------------------------------------------------------
+# Coherencia de la bandera normativa de evidencia (cierre de pendiente
+# técnico, revisión dirigida sobre PR #193): `BootstrapDiagnostics.normative`
+# se calcula a partir de los valores REALMENTE consumidos (réplicas, semilla,
+# largo de bloque), nunca a partir de una declaración del llamador.
+# --------------------------------------------------------------------------
+
+
+def test_compute_is_normative_configuration_full_normative_configuration():
+    assert (
+        compute_is_normative_configuration(
+            n_replicas=BOOTSTRAP_REPLICAS_DEFAULT,
+            seed=BOOTSTRAP_SEED,
+            block_length=BOOTSTRAP_BLOCK_DAYS,
+        )
+        is True
+    )
+
+
+def test_compute_is_normative_configuration_reduced_replicas():
+    assert (
+        compute_is_normative_configuration(
+            n_replicas=40, seed=BOOTSTRAP_SEED, block_length=BOOTSTRAP_BLOCK_DAYS
+        )
+        is False
+    )
+
+
+def test_compute_is_normative_configuration_non_normative_seed():
+    assert (
+        compute_is_normative_configuration(
+            n_replicas=BOOTSTRAP_REPLICAS_DEFAULT, seed=1234, block_length=BOOTSTRAP_BLOCK_DAYS
+        )
+        is False
+    )
+
+
+def test_compute_is_normative_configuration_different_block_length():
+    assert (
+        compute_is_normative_configuration(
+            n_replicas=BOOTSTRAP_REPLICAS_DEFAULT, seed=BOOTSTRAP_SEED, block_length=10
+        )
+        is False
+    )
+
+
+def test_paired_bootstrap_delta_persists_normative_true_only_with_the_full_configuration():
+    """Un llamador que pasa `normative=True` (el default) con réplicas
+    reducidas no logra que la bandera de evidencia persistida diga
+    normativo: se calcula, no se declara."""
+    frame = _frame({"outer_fold_1": 100})
+    rng = np.random.default_rng(3)
+    n = len(frame)
+    y_true = (rng.random(n) < 0.4).astype(int)
+
+    result = paired_bootstrap_delta(
+        y_true,
+        y_true,
+        1 - y_true,
+        frame,
+        metric_fn=mcc_strict,
+        n_replicas=25,
+        seed=BOOTSTRAP_SEED,
+        normative=True,
+    )
+    assert result.diagnostics.normative is False
+
+
+def test_paired_bootstrap_delta_persists_normative_flag_with_a_different_block_length():
+    """Bloques distintos del protocolo (modo de prueba permitido con
+    `normative=False`) tampoco pueden persistirse como configuración
+    normativa, aun con réplicas y semilla normativas."""
+    frame = _frame({"outer_fold_1": 100})
+    rng = np.random.default_rng(4)
+    n = len(frame)
+    y_true = (rng.random(n) < 0.4).astype(int)
+
+    result = paired_bootstrap_delta(
+        y_true,
+        y_true,
+        1 - y_true,
+        frame,
+        metric_fn=mcc_strict,
+        n_replicas=BOOTSTRAP_REPLICAS_DEFAULT,
+        seed=BOOTSTRAP_SEED,
+        block_length=10,
+        normative=False,
+    )
+    assert result.diagnostics.block_length == 10
+    assert result.diagnostics.normative is False
+
+
+def test_zero_valid_replicas_with_non_normative_configuration_persists_normative_false():
+    """El caso de cero réplicas válidas (`NoValidBootstrapReplicasError`)
+    también debe reflejar la configuración REALMENTE consumida en su bandera
+    de evidencia -- nunca la declaración del llamador."""
+    frame = _frame({"outer_fold_1": 60})
+    y_true = np.zeros(len(frame), dtype=int)  # monoclase completo
+
+    with pytest.raises(NoValidBootstrapReplicasError) as exc:
+        paired_bootstrap_delta(
+            y_true,
+            y_true,
+            1 - y_true,
+            frame,
+            metric_fn=mcc_strict,
+            n_replicas=10,
+            seed=BOOTSTRAP_SEED,
+            normative=True,
+        )
+    assert exc.value.diagnostics.normative is False
 
 
 def test_no_valid_replica_raises_a_clear_error():

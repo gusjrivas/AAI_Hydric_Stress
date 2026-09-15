@@ -601,3 +601,8 @@ def test_cli_reduced_bootstrap_configuration_is_never_labeled_normative(tmp_path
     # como la normativa completa (5000 réplicas).
     assert diagnostics["replicas_requested"] == reduced_replicas
     assert diagnostics["replicas_requested"] != 5000
+    # Cierre de pendiente técnico (revisión dirigida sobre PR #193): la
+    # bandera de evidencia efectivamente persistida (`normative`), no solo
+    # el número de réplicas -- una corrida reducida nunca puede quedar
+    # etiquetada como normativa en `bootstrap.json`.
+    assert diagnostics["normative"] is False

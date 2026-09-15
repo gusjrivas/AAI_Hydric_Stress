@@ -132,6 +132,8 @@ def refit_frozen_candidate(
     contract: FrozenConfigContract,
     training_frame: pd.DataFrame,
     warnings_log: list[dict[str, Any]] | None = None,
+    *,
+    p20_train: float | None = None,
 ) -> tuple[Any, float]:
     """Reentrena, sobre `training_frame` (el conjunto de entrenamiento
     autorizado de B, EXACTAMENTE el mismo período que A), la familia,
@@ -142,12 +144,20 @@ def refit_frozen_candidate(
     Debe invocarse solo después de que `admissibility.check_stage_b_admissibility`
     ya haya aceptado el contrato: esta función no repite esa validación.
 
+    `p20_train`, si se recibe, es el umbral YA calculado y validado (contra
+    `contract.final_p20_train`) por quien invoca -- se reutiliza tal cual
+    para construir las etiquetas, sin recalcularlo aquí, para que el umbral
+    verificado y el efectivamente usado para reentrenar nunca puedan
+    divergir. Si no se recibe (por ejemplo, al invocar esta función
+    directamente en pruebas), se calcula aquí como antes.
+
     Si se recibe `warnings_log`, el ajuste queda envuelto en
     `warnings_capture.collect_context_warnings` (hallazgo H-05, evidencia de
     reproducibilidad de B): cualquier advertencia real emitida durante el
     ajuste queda registrada con contexto (`stage='B'`, `phase='refit'`,
     familia), en lugar de perderse en silencio."""
-    p20_train = compute_p20_threshold(training_frame["future_soil_moisture"])
+    if p20_train is None:
+        p20_train = compute_p20_threshold(training_frame["future_soil_moisture"])
     y = build_target(training_frame["future_soil_moisture"], p20_train).to_numpy()
     X = training_frame[list(FEATURE_COLUMNS)].to_numpy()
 
@@ -289,7 +299,15 @@ def run_stage_b(
     reconstruyen por separado más abajo, para que no puedan divergir. Todo
     error esperable de cobertura/calendario/valores se convierte en
     `StageBTechnicalError` (fallo técnico controlado por la CLI), nunca en un
-    veredicto experimental `CANDIDATE_NOT_VALIDATED`."""
+    veredicto experimental `CANDIDATE_NOT_VALIDATED`.
+
+    Cierre de pendiente técnico (revisión dirigida sobre PR #193): `P20_train`
+    se calcula UNA vez sobre el `training_frame` autorizado y se compara con
+    `contract.final_p20_train` ANTES de cualquier llamada efectiva a
+    `refit_frozen_candidate` -- una inconsistencia produce `StageBTechnicalError`
+    con cero llamadas de ajuste. Ese mismo umbral validado (nunca uno
+    recalculado por separado) es el que se reutiliza para construir las
+    etiquetas de entrenamiento y para reentrenar."""
     try:
         validate_stage_window_full_coverage(daily_series, STAGE_A_BOUNDS)
         validate_stage_window_full_coverage(daily_series, STAGE_B_BOUNDS)
@@ -332,9 +350,13 @@ def run_stage_b(
     training_fingerprint = compute_dataset_fingerprint(training_frame)
     warnings_log: list[dict[str, Any]] = []
 
+    # P20_train se calcula UNA sola vez sobre el training_frame autorizado y
+    # validado, y ese mismo valor es el que se reutiliza más abajo para
+    # construir las etiquetas de entrenamiento y para reentrenar -- nunca se
+    # recalcula por separado, para que no puedan divergir.
+    training_p20_train = compute_p20_threshold(training_frame["future_soil_moisture"])
     y_train_for_baselines = build_target(
-        training_frame["future_soil_moisture"],
-        compute_p20_threshold(training_frame["future_soil_moisture"]),
+        training_frame["future_soil_moisture"], training_p20_train
     ).to_numpy()
 
     if is_monoclass(y_train_for_baselines):
@@ -377,22 +399,28 @@ def run_stage_b(
             warnings_log=warnings_log,
         )
 
-    estimator, p20_train = refit_frozen_candidate(contract, training_frame, warnings_log)
-
     # Coherencia de P20_train (pedida explícitamente por el encargo): el
     # mismo conjunto de entrenamiento (misma huella) debe producir el mismo
     # P20_train que A ya registró en el contrato -- una discrepancia es
     # indicio de una inconsistencia entre el conjunto reentrenado aquí y el
     # que A efectivamente usó, un fallo técnico, no un resultado experimental.
+    # Se valida ANTES de cualquier llamada efectiva a `refit_frozen_candidate`
+    # (hallazgo reproducido: el rechazo ocurría recién después de haber
+    # ajustado el estimador).
     if contract.final_p20_train is not None and not math.isclose(
-        p20_train, contract.final_p20_train, rel_tol=1e-9, abs_tol=1e-12
+        training_p20_train, contract.final_p20_train, rel_tol=1e-9, abs_tol=1e-12
     ):
         raise StageBTechnicalError(
-            f"P20_train recalculado en B ({p20_train!r}) no coincide con "
+            f"P20_train calculado en B ({training_p20_train!r}) no coincide con "
             f"final_p20_train del contrato de A ({contract.final_p20_train!r}) pese a que "
             "la huella del conjunto de entrenamiento ya fue verificada como idéntica -- "
-            "inconsistencia técnica, no un resultado experimental"
+            "inconsistencia técnica, no un resultado experimental (verificado ANTES de "
+            "reentrenar: cero llamadas de ajuste en este caso)"
         )
+
+    estimator, p20_train = refit_frozen_candidate(
+        contract, training_frame, warnings_log, p20_train=training_p20_train
+    )
 
     if _evaluation_labels_are_monoclass(evaluation_frame, p20_train):
         y_eval = build_target(evaluation_frame["future_soil_moisture"], p20_train).to_numpy()

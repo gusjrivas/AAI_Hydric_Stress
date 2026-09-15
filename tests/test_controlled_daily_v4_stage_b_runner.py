@@ -337,6 +337,57 @@ def test_p20_train_coherence_check_rejects_mismatched_value_as_technical_error()
         run_stage_b(contract, daily_series, bootstrap_replicas=REDUCED_BOOTSTRAP_REPLICAS)
 
 
+def test_p20_train_mismatch_is_rejected_before_any_refit_call(monkeypatch):
+    """Reproduce el hallazgo: con `final_p20_train` inconsistente, el rechazo
+    debe ocurrir ANTES de cualquier llamada efectiva a
+    `refit_frozen_candidate` -- verificado con un espía que aborta si llega a
+    invocarse. `P20_train` se calcula sobre el `training_frame` autorizado y
+    se compara con el valor congelado del contrato antes de tocar el
+    estimador."""
+    import experiment_runner.controlled_daily_v4.stage_b_runner as sbr_module
+
+    def _boom(*_a, **_k):
+        raise AssertionError(
+            "no debía intentarse reentrenar: P20_train ya era inconsistente con el contrato"
+        )
+
+    monkeypatch.setattr(sbr_module, "refit_frozen_candidate", _boom)
+
+    daily_series = _daily_series()
+    contract = _contract(final_p20_train=999.0)
+    with pytest.raises(StageBTechnicalError):
+        run_stage_b(contract, daily_series, bootstrap_replicas=REDUCED_BOOTSTRAP_REPLICAS)
+
+
+def test_p20_train_coherence_check_with_valid_contract_preserves_labels_and_behavior():
+    """Con un contrato válido, el umbral P20_train validado antes del ajuste
+    debe ser exactamente el mismo que efectivamente se usa para construir las
+    etiquetas y reentrenar -- sin cálculos divergentes -- y el resultado debe
+    conservar el comportamiento esperado (evaluación completa, veredicto
+    definido)."""
+    daily_series = _daily_series()
+    training_frame = build_stage_b_training_frame(daily_series, PRIMARY_DEPTH_COLUMN)
+    exact_p20 = compute_p20_threshold(training_frame["future_soil_moisture"])
+    contract = _contract(final_p20_train=exact_p20)
+
+    result = run_stage_b(contract, daily_series, bootstrap_replicas=REDUCED_BOOTSTRAP_REPLICAS)
+
+    assert math.isclose(result.p20_train, exact_p20, rel_tol=1e-9)
+    expected_y_true = (
+        (
+            build_stage_b_evaluation_frame(daily_series, PRIMARY_DEPTH_COLUMN)[
+                "future_soil_moisture"
+            ]
+            < exact_p20
+        )
+        .astype(int)
+        .to_numpy()
+    )
+    np.testing.assert_array_equal(result.y_true, expected_y_true)
+    assert result.verdict in (STAGE_B_VERDICT_VALIDATED, STAGE_B_VERDICT_NOT_VALIDATED)
+    assert len(result.y_pred_candidate) == result.evaluation_frame_n_rows
+
+
 # --------------------------------------------------------------------------
 # Aprobación/rechazo de la regla, incluidas sus igualdades límite
 # --------------------------------------------------------------------------
@@ -606,6 +657,48 @@ def test_bootstrap_uses_normative_configuration_when_requested():
     assert result.bootstrap_diagnostics.replicas_requested == BOOTSTRAP_REPLICAS_DEFAULT
     assert result.bootstrap_diagnostics.block_length == BOOTSTRAP_BLOCK_DAYS
     assert result.bootstrap_diagnostics.seed == BOOTSTRAP_SEED
+    # Cierre de pendiente técnico (revisión dirigida sobre PR #193): la
+    # bandera de evidencia efectivamente persistida, no solo los valores
+    # numéricos -- con la configuración normativa completa debe ser True.
+    assert result.bootstrap_diagnostics.normative is True
+
+
+def test_bootstrap_with_reduced_replicas_never_persists_normative_true():
+    """Réplicas reducidas (40, no normativas): la bandera de evidencia
+    persistida debe ser `False` aunque `run_stage_b` reciba
+    `bootstrap_normative=True` (su default) -- ese parámetro controla
+    únicamente la validación del largo de bloque, no la etiqueta de
+    evidencia."""
+    daily_series = _daily_series()
+    contract = _contract()
+    result = run_stage_b(
+        contract,
+        daily_series,
+        bootstrap_replicas=REDUCED_BOOTSTRAP_REPLICAS,
+        bootstrap_seed=BOOTSTRAP_SEED,
+        bootstrap_block_days=BOOTSTRAP_BLOCK_DAYS,
+        bootstrap_normative=True,
+    )
+    assert result.bootstrap_diagnostics is not None
+    assert result.bootstrap_diagnostics.replicas_requested == REDUCED_BOOTSTRAP_REPLICAS
+    assert result.bootstrap_diagnostics.normative is False
+
+
+def test_bootstrap_with_non_normative_seed_never_persists_normative_true():
+    """Semilla no normativa con el resto de la configuración normativa: la
+    bandera de evidencia también debe quedar en `False`."""
+    daily_series = _daily_series()
+    contract = _contract()
+    result = run_stage_b(
+        contract,
+        daily_series,
+        bootstrap_replicas=REDUCED_BOOTSTRAP_REPLICAS,
+        bootstrap_seed=1234,
+        bootstrap_block_days=BOOTSTRAP_BLOCK_DAYS,
+    )
+    assert result.bootstrap_diagnostics is not None
+    assert result.bootstrap_diagnostics.seed == 1234
+    assert result.bootstrap_diagnostics.normative is False
 
 
 # --------------------------------------------------------------------------
