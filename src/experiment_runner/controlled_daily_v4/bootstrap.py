@@ -45,7 +45,17 @@ class SegmentTooShortForBlockError(ValueError):
 
 class NoValidBootstrapReplicasError(RuntimeError):
     """Ninguna réplica produjo una métrica definida; no hay intervalo que
-    reportar y el resultado no puede interpretarse como comparación válida."""
+    reportar y el resultado no puede interpretarse como comparación válida.
+
+    Revisión externa (2026-09-14), hallazgo sobre evidencia de
+    reproducibilidad de la Etapa B: lleva adjuntos los `diagnostics`
+    completos del intento (réplicas solicitadas/válidas/descartadas, motivos,
+    semilla, largo de bloque y segmentos) -- quien la captura nunca debe
+    perder esa evidencia ni reejecutar el bootstrap solo para reconstruirla."""
+
+    def __init__(self, message: str, diagnostics: BootstrapDiagnostics | None = None):
+        super().__init__(message)
+        self.diagnostics = diagnostics
 
 
 @dataclass(frozen=True)
@@ -203,10 +213,24 @@ def paired_bootstrap_delta(
 
     segment_sizes = {plan.segment_id: plan.size for plan in plans}
     if not valid:
+        zero_valid_diagnostics = BootstrapDiagnostics(
+            replicas_requested=n_replicas,
+            replicas_valid=0,
+            replicas_discarded=n_replicas,
+            n_segments=len(plans),
+            block_length=block_length,
+            seed=seed,
+            normative=normative,
+            segment_sizes=segment_sizes,
+            discard_reasons=discard_reasons,
+            interval_lower=None,
+            interval_upper=None,
+        )
         raise NoValidBootstrapReplicasError(
             f"Ninguna de las {n_replicas} réplicas produjo una métrica definida "
             f"(motivos: {discard_reasons or {DISCARD_UNDEFINED_METRIC: n_replicas}}). "
-            "No hay intervalo pareado que reportar."
+            "No hay intervalo pareado que reportar.",
+            diagnostics=zero_valid_diagnostics,
         )
 
     deltas = np.asarray(valid, dtype=float)

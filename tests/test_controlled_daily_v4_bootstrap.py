@@ -204,6 +204,18 @@ def test_no_valid_replica_raises_a_clear_error():
             seed=BOOTSTRAP_SEED,
         )
     assert "undefined_metric" in str(exc.value)
+    # Revisión externa (2026-09-14), hallazgo sobre evidencia de
+    # reproducibilidad de la Etapa B: la excepción lleva adjuntos los
+    # diagnósticos completos, aun sin ningún intervalo que reportar --
+    # replicas_valid=0 no es lo mismo que "diagnostics=None".
+    diagnostics = exc.value.diagnostics
+    assert diagnostics is not None
+    assert diagnostics.replicas_requested == 10
+    assert diagnostics.replicas_valid == 0
+    assert diagnostics.replicas_discarded == 10
+    assert diagnostics.interval_lower is None
+    assert diagnostics.interval_upper is None
+    assert diagnostics.discard_reasons == {"undefined_metric": 10}
 
 
 def test_percentile_interval_uses_the_valid_replicas():

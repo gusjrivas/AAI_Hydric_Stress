@@ -46,6 +46,7 @@ from experiment_runner.controlled_daily_v4.config import (
     DECISION_THRESHOLD,
     STAGE_A_BOUNDS,
     STAGE_B_BOUNDS,
+    CalendarIntegrityError,
 )
 from experiment_runner.controlled_daily_v4.dataset_fingerprint import compute_dataset_fingerprint
 from experiment_runner.controlled_daily_v4.features import (
@@ -55,6 +56,7 @@ from experiment_runner.controlled_daily_v4.features import (
     compute_p20_threshold,
     restrict_to_stage_window,
     select_eligible_rows,
+    validate_stage_window_full_coverage,
 )
 from experiment_runner.controlled_daily_v4.metrics import is_monoclass, mcc_strict, metrics_payload
 from experiment_runner.controlled_daily_v4.models import (
@@ -64,6 +66,7 @@ from experiment_runner.controlled_daily_v4.models import (
     fit_estimator,
 )
 from experiment_runner.controlled_daily_v4.transfer_contract import FrozenConfigContract
+from experiment_runner.controlled_daily_v4.warnings_capture import collect_context_warnings
 
 STAGE_B_BOOTSTRAP_SEGMENT_ID = "stage_b_2023"
 """Decisión 1 (adoptada para este encargo, no atribuida a una aprobación
@@ -126,7 +129,9 @@ def _model_config_from_candidate(candidate) -> ModelConfig:
 
 
 def refit_frozen_candidate(
-    contract: FrozenConfigContract, training_frame: pd.DataFrame
+    contract: FrozenConfigContract,
+    training_frame: pd.DataFrame,
+    warnings_log: list[dict[str, Any]] | None = None,
 ) -> tuple[Any, float]:
     """Reentrena, sobre `training_frame` (el conjunto de entrenamiento
     autorizado de B, EXACTAMENTE el mismo período que A), la familia,
@@ -135,7 +140,13 @@ def refit_frozen_candidate(
     búsqueda de hiperparámetros. Devuelve `(estimador_ajustado, p20_train)`.
 
     Debe invocarse solo después de que `admissibility.check_stage_b_admissibility`
-    ya haya aceptado el contrato: esta función no repite esa validación."""
+    ya haya aceptado el contrato: esta función no repite esa validación.
+
+    Si se recibe `warnings_log`, el ajuste queda envuelto en
+    `warnings_capture.collect_context_warnings` (hallazgo H-05, evidencia de
+    reproducibilidad de B): cualquier advertencia real emitida durante el
+    ajuste queda registrada con contexto (`stage='B'`, `phase='refit'`,
+    familia), en lugar de perderse en silencio."""
     p20_train = compute_p20_threshold(training_frame["future_soil_moisture"])
     y = build_target(training_frame["future_soil_moisture"], p20_train).to_numpy()
     X = training_frame[list(FEATURE_COLUMNS)].to_numpy()
@@ -145,7 +156,13 @@ def refit_frozen_candidate(
             family: _model_config_from_candidate(candidate)
             for family, candidate in contract.soft_voting_bases.items()
         }
-        estimator = fit_candidate(SoftVotingSpec(base_configs), X, y)
+        if warnings_log is not None:
+            with collect_context_warnings(
+                warnings_log, stage="B", phase="refit", family="soft_voting"
+            ):
+                estimator = fit_candidate(SoftVotingSpec(base_configs), X, y)
+        else:
+            estimator = fit_candidate(SoftVotingSpec(base_configs), X, y)
     else:
         if contract.single_family is None:
             raise StageBTechnicalError(
@@ -155,7 +172,13 @@ def refit_frozen_candidate(
                 "estructural del contrato)"
             )
         model_config = _model_config_from_candidate(contract.single_family)
-        estimator = fit_estimator(model_config.family, model_config.params, X, y)
+        if warnings_log is not None:
+            with collect_context_warnings(
+                warnings_log, stage="B", phase="refit", family=model_config.family
+            ):
+                estimator = fit_estimator(model_config.family, model_config.params, X, y)
+        else:
+            estimator = fit_estimator(model_config.family, model_config.params, X, y)
 
     return estimator, p20_train
 
@@ -186,6 +209,19 @@ class StageBResult:
     bootstrap_diagnostics: BootstrapDiagnostics | None
     verdict: str
     verdict_reasons: list[str] = field(default_factory=list)
+    # Revisión externa (2026-09-14), hallazgo sobre persistencia del
+    # resultado monoclase: `predictions_available=False` cuando el resultado
+    # no incluye predicciones del candidato (entrenamiento o evaluación
+    # monoclase) -- representación EXPLÍCITA de ausencia, nunca inferida por
+    # quien lea `len(y_pred_candidate) == 0`, y nunca predicciones fabricadas
+    # ni ceros en lugar de un valor indefinido.
+    predictions_available: bool = True
+    # Distingue "bootstrap no ejecutado" (monoclase, `False`) de "bootstrap
+    # ejecutado sin réplicas válidas" (`True`, con `bootstrap_diagnostics`
+    # igual poblado pero `bootstrap_result is None`) -- hallazgo H-05,
+    # evidencia de reproducibilidad de B.
+    bootstrap_executed: bool = False
+    warnings_log: list[dict[str, Any]] = field(default_factory=list)
 
 
 def _evaluation_labels_are_monoclass(evaluation_frame: pd.DataFrame, p20_train: float) -> bool:
@@ -241,9 +277,60 @@ def run_stage_b(
     admisibilidad, ni la revalidación de la huella de entrenamiento, aunque
     sí recalcula la huella del conjunto de entrenamiento efectivamente usado
     (para persistirla como evidencia; `run` debe pasarse la misma que ya se
-    validó antes de llegar aquí)."""
-    training_frame = build_stage_b_training_frame(daily_series, contract.depth_column)
+    validó antes de llegar aquí).
+
+    Revisión externa (2026-09-14), hallazgo sobre cobertura y validación
+    antes del ajuste: la cobertura/calendario COMPLETOS del período de
+    entrenamiento (A) y del período evaluable de B (incluida su historia
+    causal) se verifican aquí, ANTES de construir cualquier feature o de
+    tocar el estimador -- nunca después de una llamada efectiva a
+    `refit_frozen_candidate`. Ambos frames (entrenamiento y evaluación) se
+    construyen una única vez y se reutilizan de punta a punta: nunca se
+    reconstruyen por separado más abajo, para que no puedan divergir. Todo
+    error esperable de cobertura/calendario/valores se convierte en
+    `StageBTechnicalError` (fallo técnico controlado por la CLI), nunca en un
+    veredicto experimental `CANDIDATE_NOT_VALIDATED`."""
+    try:
+        validate_stage_window_full_coverage(daily_series, STAGE_A_BOUNDS)
+        validate_stage_window_full_coverage(daily_series, STAGE_B_BOUNDS)
+    except CalendarIntegrityError as exc:
+        raise StageBTechnicalError(
+            f"Cobertura insuficiente para ejecutar la Etapa B (fallo técnico, no un veredicto "
+            f"experimental): {exc}"
+        ) from exc
+
+    try:
+        training_frame = build_stage_b_training_frame(daily_series, contract.depth_column)
+        evaluation_frame = build_stage_b_evaluation_frame(daily_series, contract.depth_column)
+    except CalendarIntegrityError as exc:
+        raise StageBTechnicalError(
+            f"Integridad del calendario diario falló al construir los conjuntos de la Etapa B "
+            f"(fallo técnico, no un veredicto experimental; no se ajustó ningún estimador): {exc}"
+        ) from exc
+
+    # Cobertura EXACTA del período evaluable exigido por el protocolo
+    # (`STAGE_B_BOUNDS.target_start`..`target_end`, diario): una evaluación
+    # con menos filas que las esperadas por cobertura insuficiente es un
+    # fallo técnico, nunca un veredicto monoclase válido (que sí puede tener
+    # las filas completas del período).
+    expected_targets = pd.date_range(
+        STAGE_B_BOUNDS.target_start, STAGE_B_BOUNDS.target_end, freq="D"
+    )
+    actual_targets = pd.DatetimeIndex(
+        sorted(set(pd.to_datetime(evaluation_frame["target_timestamp"]).dt.normalize()))
+    )
+    missing_targets = expected_targets.difference(actual_targets)
+    if len(missing_targets):
+        missing_dates = [str(ts.date()) for ts in missing_targets[:10]]
+        raise StageBTechnicalError(
+            "Cobertura incompleta del período evaluable de la Etapa B "
+            f"({STAGE_B_BOUNDS.target_start}..{STAGE_B_BOUNDS.target_end}): faltan "
+            f"{len(missing_targets)} fecha(s) objetivo (fallo técnico, no un veredicto "
+            f"experimental), por ejemplo: {missing_dates}"
+        )
+
     training_fingerprint = compute_dataset_fingerprint(training_frame)
+    warnings_log: list[dict[str, Any]] = []
 
     y_train_for_baselines = build_target(
         training_frame["future_soil_moisture"],
@@ -254,7 +341,8 @@ def run_stage_b(
         # Entrenamiento monoclase (protocolo, sección 12): no se intenta
         # reentrenar un estimador que requiere dos clases -- veredicto
         # experimental explícito, no un fallo técnico ni una aprobación.
-        evaluation_frame = build_stage_b_evaluation_frame(daily_series, contract.depth_column)
+        # Sin predicciones del candidato (ausencia explícita, nunca
+        # fabricada): `predictions_available=False`.
         return StageBResult(
             training_frame_n_rows=len(training_frame),
             training_dataset_fingerprint=training_fingerprint,
@@ -284,9 +372,12 @@ def run_stage_b(
             bootstrap_diagnostics=None,
             verdict=STAGE_B_VERDICT_NOT_VALIDATED,
             verdict_reasons=[REASON_TRAINING_LABELS_MONOCLASS],
+            predictions_available=False,
+            bootstrap_executed=False,
+            warnings_log=warnings_log,
         )
 
-    estimator, p20_train = refit_frozen_candidate(contract, training_frame)
+    estimator, p20_train = refit_frozen_candidate(contract, training_frame, warnings_log)
 
     # Coherencia de P20_train (pedida explícitamente por el encargo): el
     # mismo conjunto de entrenamiento (misma huella) debe producir el mismo
@@ -302,8 +393,6 @@ def run_stage_b(
             "la huella del conjunto de entrenamiento ya fue verificada como idéntica -- "
             "inconsistencia técnica, no un resultado experimental"
         )
-
-    evaluation_frame = build_stage_b_evaluation_frame(daily_series, contract.depth_column)
 
     if _evaluation_labels_are_monoclass(evaluation_frame, p20_train):
         y_eval = build_target(evaluation_frame["future_soil_moisture"], p20_train).to_numpy()
@@ -332,6 +421,9 @@ def run_stage_b(
             bootstrap_diagnostics=None,
             verdict=STAGE_B_VERDICT_NOT_VALIDATED,
             verdict_reasons=[REASON_EVALUATION_LABELS_MONOCLASS],
+            predictions_available=False,
+            bootstrap_executed=False,
+            warnings_log=warnings_log,
         )
 
     X_eval = evaluation_frame[list(FEATURE_COLUMNS)].to_numpy()
@@ -363,6 +455,7 @@ def run_stage_b(
     ).sort_values("feature_timestamp")
 
     bootstrap_result: PairedBootstrapResult | None = None
+    bootstrap_diagnostics: BootstrapDiagnostics | None = None
     try:
         bootstrap_result = paired_bootstrap_delta(
             y_true=y_true,
@@ -375,8 +468,16 @@ def run_stage_b(
             block_length=bootstrap_block_days,
             normative=bootstrap_normative,
         )
-    except NoValidBootstrapReplicasError:
+        bootstrap_diagnostics = bootstrap_result.diagnostics
+    except NoValidBootstrapReplicasError as exc:
+        # Bootstrap EJECUTADO pero sin réplicas válidas: los diagnósticos
+        # completos (solicitadas/válidas/descartadas, motivos, semilla, largo
+        # de bloque y segmentos) viajan adjuntos a la excepción (hallazgo
+        # H-05) -- nunca se pierden ni se reejecuta el bootstrap para
+        # reconstruirlos. Distinto de `bootstrap_executed=False` (monoclase,
+        # bootstrap ni siquiera se intentó).
         bootstrap_result = None
+        bootstrap_diagnostics = exc.diagnostics
 
     verdict, verdict_reasons = decide_stage_b_verdict(mcc_candidate, bootstrap_result)
 
@@ -408,9 +509,12 @@ def run_stage_b(
         mcc_persistence=mcc_persistence,
         delta_mcc_point_estimate=delta_point_estimate,
         bootstrap_result=bootstrap_result,
-        bootstrap_diagnostics=bootstrap_result.diagnostics if bootstrap_result else None,
+        bootstrap_diagnostics=bootstrap_diagnostics,
         verdict=verdict,
         verdict_reasons=verdict_reasons,
+        predictions_available=True,
+        bootstrap_executed=True,
+        warnings_log=warnings_log,
     )
 
 

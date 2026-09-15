@@ -1,5 +1,23 @@
 # Tareas — implement-controlled-daily-v4-stage-b-c
 
+**Actualización (2026-09-14, corrección de revisión dirigida sobre el PR #193,
+commit auditado `d05f80e6`):** cuatro hallazgos concretos sobre el runner/CLI/
+escritor de la Etapa B (protección de los artefactos de A ante `--output-dir`
+efectivamente coincidente con `--producer-dir`; persistencia del veredicto
+`CANDIDATE_NOT_VALIDATED` con datos genuinamente monoclase, antes perdida por
+un `ValueError` en el escritor; cobertura/calendario completos del período
+evaluable verificados ANTES de tocar el estimador, antes solo parcialmente
+verificados; y evidencia de reproducibilidad de B -- `constraints_identity`,
+advertencias de ajuste, diagnósticos de bootstrap con cero réplicas válidas)
+fueron corregidos en la misma rama/PR, sin reabrir ninguna decisión bloqueada
+ni cambiar familia/hiperparámetros/bootstrap normativo/fronteras del
+protocolo. Ver `docs/seguimiento-tareas.md`, entrada "Corrección de cuatro
+hallazgos de revisión dirigida sobre la Etapa B de controlled_daily_v4
+(2026-09-14)", para el detalle completo y los conteos de pruebas. Esta
+corrección es documental/de manejo de casos límite sobre el código YA
+implementado descrito debajo -- no reemplaza, y no debe confundirse con, una
+ejecución científica real de la Etapa B (que sigue sin haberse realizado).
+
 **Estado (2026-09-14):** el contrato de transferencia A→B (lectura estructural +
 admisibilidad para una ejecución concreta) sigue implementado e integrado en la
 escritura de artefactos de la Etapa A, verificado con pruebas exclusivamente

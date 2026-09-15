@@ -92,6 +92,44 @@ def restrict_to_stage_window(
     return daily_series.loc[(index >= start_ts) & (index <= end_ts)]
 
 
+def validate_stage_window_full_coverage(
+    daily_series: pd.DataFrame,
+    stage_bounds: StageBounds,
+    lags: tuple[int, ...] = LAGS,
+    rolling_windows: tuple[int, ...] = ROLLING_WINDOWS,
+) -> None:
+    """Exige que `daily_series` (la serie diaria SIN recortar) cubra, sin
+    huecos, la ventana COMPLETA autorizada de la etapa -- incluida la
+    historia causal mínima necesaria para lags/rolling -- desde
+    `compute_stage_window_bounds` hasta su fin.
+
+    Revisión externa (2026-09-14), hallazgo sobre cobertura y validación de
+    la Etapa B antes del ajuste: distinta de `validate_continuous_daily_calendar`
+    (que solo verifica continuidad DENTRO del rango que efectivamente recibe,
+    nunca que ese rango llegue a cubrir las fronteras requeridas). Sin este
+    chequeo, `restrict_to_stage_window` recorta en silencio a lo que haya
+    disponible -- una serie truncada al inicio o al final produce un conjunto
+    más chico sin ningún rechazo explícito. Debe invocarse ANTES de construir
+    cualquier feature o de ajustar cualquier estimador, sobre la serie diaria
+    completa (no ya recortada), para ambas ventanas relevantes (entrenamiento
+    y evaluación) antes de tocar el estimador."""
+    window_start, window_end = compute_stage_window_bounds(stage_bounds, lags, rolling_windows)
+    start_ts, end_ts = pd.Timestamp(window_start), pd.Timestamp(window_end)
+
+    index = pd.to_datetime(daily_series.index)
+    in_window = index[(index >= start_ts) & (index <= end_ts)]
+    expected = pd.date_range(start_ts, end_ts, freq="D")
+    present = pd.DatetimeIndex(sorted(set(in_window)))
+    missing = expected.difference(present)
+    if len(missing):
+        missing_dates = [str(ts.date()) for ts in missing[:10]]
+        raise CalendarIntegrityError(
+            f"Falta cobertura diaria completa del período requerido "
+            f"({start_ts.date()}..{end_ts.date()}, incluida la historia causal mínima): "
+            f"{len(missing)} fecha(s) ausente(s), por ejemplo: {missing_dates}"
+        )
+
+
 def validate_continuous_daily_calendar(daily_series: pd.DataFrame, depth_column: str) -> None:
     """Exige, sobre el rango propio de `daily_series` (ya recortado a la
     ventana autorizada por quien llama), calendario diario único, ordenado y

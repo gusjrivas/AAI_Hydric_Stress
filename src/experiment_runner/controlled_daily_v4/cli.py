@@ -243,6 +243,7 @@ def main(argv: list[str] | None = None) -> int:
             environment_info=environment_info,
             environment_report=environment_report,
             code_identity=code_identity,
+            constraints_identity=constraints_identity,
         )
 
     # Recorte a la ventana autorizada de la Etapa A (más la historia causal
@@ -371,6 +372,7 @@ def _run_stage_b(
     environment_info: dict,
     environment_report: Any,
     code_identity: Any,
+    constraints_identity: dict,
 ) -> int:
     """Etapa B: reentrenamiento del candidato congelado por una corrida previa
     de A (`--producer-dir`) y compuerta temporal sobre 2023 (protocolo,
@@ -389,6 +391,18 @@ def _run_stage_b(
         restrict_nasa_power_daily_to_window,
     )
     from experiment_runner.controlled_daily_v4.stage_b_runner import run_stage_b
+
+    # Protección de los artefactos de A (hallazgo H-05, revisión externa
+    # 2026-09-14): verificada en la CLI ANTES de entrenar nada -- ni siquiera
+    # antes de leer el contrato -- y de nuevo, incondicionalmente, en el
+    # escritor antes de cualquier escritura (`write_stage_b_artifacts`, que
+    # no confía en que la CLI ya la haya aplicado). `--overwrite` nunca
+    # autoriza escribir en, ni dentro de, el directorio productor de A.
+    try:
+        artifacts.validate_stage_b_output_directory(args.output_dir, args.producer_dir)
+    except artifacts.StageBOutputDirectoryConflictsWithProducerError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 9
 
     try:
         contract = load_frozen_config_contract(args.producer_dir)
@@ -494,7 +508,14 @@ def _run_stage_b(
         producer_dir=args.producer_dir,
         producer_contract_raw=contract.raw,
         consumer_code_identity=consumer_code_identity,
-        consumer_environment_info=environment_info,
+        # Identidad real de 'constraints.txt' (hallazgo H-05, revisión
+        # externa 2026-09-14): capturada antes de entrenar (igual que en A),
+        # incorporada aquí al entorno persistido de B -- antes se capturaba
+        # pero nunca llegaba a `environment.json` de B.
+        consumer_environment_info={
+            **environment_info,
+            "constraints_identity": constraints_identity,
+        },
         consumer_environment_issues=environment_report.issues,
         result=result,
         overwrite=args.overwrite,

@@ -1369,3 +1369,152 @@ ejecutó ninguna etapa científica real ni la Etapa C, no se usó MLflow
 compartido, y `controlled_daily_v3`, la evidencia histórica, los tags de
 baseline, `backend/`, `frontend/` y `human_feedback/` quedan sin alteración.
 No se hizo merge ni se habilitó auto-merge.
+
+## Corrección de cuatro hallazgos de revisión dirigida sobre la Etapa B de controlled_daily_v4 (2026-09-14)
+
+Rama `feat/controlled-daily-v4-stage-b` (mismo PR #193, commit auditado
+`d05f80e6e4fb3402a67cac7b7416bebd2348b128` -- HEAD verificado idéntico al
+auditado antes de empezar, sin trabajo local ajeno que preservar). Corrige,
+en el mismo PR, cuatro hallazgos concretos de una revisión dirigida sobre ese
+commit -- ninguno rediseña la arquitectura del runner ni repite una auditoría
+general.
+
+**H-1 (protección de los artefactos de A):** `write_stage_b_artifacts(output_dir=producer_dir,
+producer_dir=producer_dir, overwrite=True)` reemplazaba `schema_version.json`
+(y el resto de la evidencia) de A por el esquema de B. Corrección:
+`artifacts.validate_stage_b_output_directory` (nuevo) rechaza `--output-dir`
+idéntico a `--producer-dir` tras normalizar ambas rutas con `Path.resolve()`
+(símlinks y `..` incluidos), y también el anidamiento en cualquier sentido
+(`output_dir` dentro de `producer_dir`, o viceversa) -- `--overwrite` nunca
+autoriza ninguno de estos casos. Verificada tanto en la CLI (`cli._run_stage_b`,
+antes de leer siquiera el contrato) como en el escritor (`write_stage_b_artifacts`,
+antes de `ensure_output_directory` y de cualquier escritura) -- ninguna de las
+dos confía en que la otra ya la haya aplicado. Nuevo código de salida `9`.
+Pruebas: `tests/test_controlled_daily_v4_artifacts.py` (5 tests unitarios
+sobre `validate_stage_b_output_directory` + 1 sobre el rechazo del escritor
+con verificación byte a byte); `tests/test_controlled_daily_v4_stage_b_integration.py`
+(4 tests por CLI real: coincidencia literal con `--overwrite`, coincidencia
+por ruta relativa normalizada, anidamiento, y conservación explícita del
+funcionamiento con directorios separados), todos con espía sobre
+`stage_b_runner.run_stage_b` que aborta si llega a invocarse.
+
+**H-2 (persistencia del resultado monoclase):** con humedad sintética de 2023
+fijada en un valor constante, `run_stage_b` ya calculaba correctamente
+`CANDIDATE_NOT_VALIDATED` con las 362 etiquetas de evaluación pero cero
+predicciones del candidato -- `write_stage_b_artifacts` fallaba con
+`ValueError: All arrays must be of the same length` al construir
+`predictions_2023.csv` y nunca llegaba a crear `decision.json`. Corrección:
+`StageBResult.predictions_available` (nuevo campo explícito, `False` en
+ambos casos monoclase -- entrenamiento y evaluación) y
+`artifacts._stage_b_predictions_frame` persiste, cuando no hay predicciones,
+únicamente los timestamps y (si están disponibles) las etiquetas verdaderas
+-- nunca fabrica una predicción ni sustituye la ausencia por ceros.
+`decision.json` incorpora `predictions_available` explícito y se persiste
+siempre, incluidos ambos casos monoclase. La cobertura insuficiente (Etapa
+evaluable vacía por truncamiento, no por monoclase genuina) se distingue
+como fallo técnico -- ver H-3. Pruebas: `tests/test_controlled_daily_v4_stage_b_runner.py`
+(datos genuinamente monoclase mediante humedad de 2023 fijada, sin
+monkeypatch de `is_monoclass`, recorriendo runner → escritor para ambos
+casos -- entrenamiento y evaluación monoclase); `tests/test_controlled_daily_v4_stage_b_integration.py`
+(caso end-to-end por CLI con datos realmente monoclase: `decision.json`
+existe con `CANDIDATE_NOT_VALIDATED` y C sigue bloqueada).
+
+**H-3 (cobertura y validación antes del ajuste):** (a) una serie terminada el
+30/06/2023 producía un resultado de B sobre 178 filas sin rechazar la falta
+del resto de 2023 (`validate_continuous_daily_calendar` solo verificaba
+continuidad DENTRO del rango recibido, nunca que ese rango llegara a cubrir
+las fronteras exigidas); (b) un NaN en `RH2M` del 15/06/2023 producía
+`CalendarIntegrityError` recién DESPUÉS de una llamada efectiva a
+`refit_frozen_candidate` (el frame de evaluación se construía después del
+reentrenamiento). Corrección: `features.validate_stage_window_full_coverage`
+(nuevo) exige que la serie diaria completa cubra, sin huecos, la ventana
+autorizada de cada etapa (incluida su historia causal), para el período de
+entrenamiento (`STAGE_A_BOUNDS`) y el evaluable de B (`STAGE_B_BOUNDS`) --
+verificado en `stage_b_runner.run_stage_b` ANTES de construir cualquier
+feature o de tocar el estimador. Los frames de entrenamiento y evaluación se
+construyen una única vez y se reutilizan de punta a punta (nunca se
+reconstruyen por separado más abajo). Se agrega además una verificación de
+cobertura EXACTA del período evaluable (`target_timestamp` 2023-01-04..2023-12-31,
+diario, sin huecos) que distingue una evaluación vacía por cobertura
+insuficiente (fallo técnico) de una evaluación monoclase válida (veredicto
+experimental, H-2). Todo error esperable de cobertura/calendario/valores se
+convierte en `StageBTechnicalError`, nunca en un veredicto experimental ni en
+una excepción no controlada que llegue a la CLI. El aislamiento de 2024-2025
+se conserva sin cambios (se verifica antes de tocar valores, como ya hacía la
+ingesta). Pruebas: `tests/test_controlled_daily_v4_features.py` (4 tests
+unitarios de `validate_stage_window_full_coverage`);
+`tests/test_controlled_daily_v4_stage_b_runner.py` (7 tests: ausencia de
+inicio/final del período de B, hueco interior, historia causal insuficiente
+exclusiva de B, valor no finito -- reproduce exactamente el hallazgo original
+--, evaluación vacía por cobertura insuficiente, y el caso completo que
+conserva exactamente las fronteras del protocolo, `2023-01-04..2023-12-31`,
+362 filas evaluables), cada rechazo previo verificado con un espía sobre
+`refit_frozen_candidate` que aborta si llega a invocarse.
+
+**H-4 (evidencia de reproducibilidad de B):** la CLI capturaba
+`constraints_identity` pero nunca lo incorporaba al `environment.json` de B
+(sí lo hacía para A); B no capturaba ni persistía advertencias de ajuste
+(`warnings_capture.py` ya existía y se usaba en A, pero no en B); si todas
+las réplicas bootstrap resultaban inválidas, `NoValidBootstrapReplicasError`
+no llevaba diagnósticos adjuntos y el runner los perdía por completo.
+Corrección: `cli._run_stage_b` incorpora `constraints_identity` al
+`consumer_environment_info` pasado a `write_stage_b_artifacts` (igual que en
+A); `stage_b_runner.refit_frozen_candidate` envuelve el ajuste con
+`warnings_capture.collect_context_warnings` (contexto `stage='B'`,
+`phase='refit'`, familia), y `StageBResult.warnings_log`/`write_stage_b_artifacts`
+persisten `warnings.json` (antes ausente en el esquema de B); `bootstrap.NoValidBootstrapReplicasError`
+ahora lleva `diagnostics` adjuntos (réplicas solicitadas/válidas/descartadas,
+motivos, semilla, largo de bloque y segmentos) construidos antes de
+lanzarse -- nunca se reejecuta el bootstrap para reconstruirlos.
+`StageBResult.bootstrap_executed` distingue "bootstrap no ejecutado"
+(monoclase) de "bootstrap ejecutado sin réplicas válidas" (diagnósticos
+poblados, `bootstrap_result=None`), persistido en `bootstrap.json`. Se
+verificó además que la configuración declarada (`resolved_config.json`,
+`bootstrap_replicas`) coincide exactamente con la efectivamente consumida
+(`bootstrap.json`, `diagnostics.replicas_requested`) incluso con una
+configuración reducida no normativa -- nunca etiquetada como la normativa
+completa. Pruebas: `tests/test_controlled_daily_v4_bootstrap.py` (extensión
+del test existente de cero réplicas válidas, con verificación completa de
+los diagnósticos adjuntos); `tests/test_controlled_daily_v4_stage_b_runner.py`
+(diagnósticos completos con cero réplicas válidas vía espía sobre
+`paired_bootstrap_delta`; advertencia REAL de ajuste -- regresión logística
+con `max_iter` insuficiente para converger, no fabricada -- capturada con
+contexto y persistida por el escritor); `tests/test_controlled_daily_v4_stage_b_integration.py`
+(`constraints_identity` de B contrastado por CLI contra el SHA-256 real de
+`constraints.txt`; coherencia de una configuración de bootstrap reducida
+declarada vs. efectivamente consumida).
+
+**Extensión, sin cambiar su comportamiento, de una excepción compartida con
+A:** `bootstrap.NoValidBootstrapReplicasError` gana un parámetro
+`diagnostics` opcional (default `None`); no se tocó su uso en `selection.py`
+(Etapa A, que no la captura) ni su mensaje. Se verificó explícitamente que la
+suite completa de la Etapa A (`test_controlled_daily_v4_selection.py`,
+`test_controlled_daily_v4_stage_a_integration.py`, entre otras) sigue en
+verde tras el cambio.
+
+No se cambiaron familia, hiperparámetros, umbrales de decisión, bootstrap
+normativo (5000 réplicas/bloques de 30 días/semilla `20250109`) ni las
+fronteras temporales del protocolo (`STAGE_A_BOUNDS`/`STAGE_B_BOUNDS`
+intactas) -- las cuatro correcciones son estrictamente de manejo de casos
+límite, protección de evidencia y persistencia de diagnósticos, verificadas
+con el mismo runner y el mismo protocolo ya congelados. Solo datos
+sintéticos: no se leyó ningún CSV real de Pergamino/Balcarce ni el holdout
+real 2024-2025, no se ejecutó ninguna etapa científica real, no se usó
+MLflow compartido, y `controlled_daily_v3`, los baselines históricos,
+`backend/`, `frontend/` y `human_feedback/` quedan sin alteración. La Etapa C
+y su ledger siguen sin implementarse (fuera de alcance de este encargo). No
+se hizo merge ni se habilitó auto-merge.
+
+Verificación real ejecutada (contenedor `python:3.11-slim` con `pip install
+-e ".[dev]"`, dado que el host de esta sesión no tiene `python` disponible
+fuera de Docker): suite dirigida (`test_controlled_daily_v4_stage_b_runner.py`
++ `test_controlled_daily_v4_stage_b_integration.py` + `test_controlled_daily_v4_artifacts.py`
++ `test_controlled_daily_v4_features.py` + `test_controlled_daily_v4_bootstrap.py`,
+existentes + los 31 tests nuevos de estos cuatro hallazgos): **88 passed** en
+192.07s; suite completa `tests/test_controlled_daily_v4_*.py`: **353 passed,
+3 skipped** en 828.13s (los 3 `skipped` ya existían antes de esta corrección,
+sin relación con los cuatro hallazgos); `ruff check src tests` y
+`black --check src tests` limpios tras aplicar el formateo automático.
+Construcción del entorno experimental fijado
+(`docker/experiment-v4/build.py`) y suite dentro del contenedor: ver el
+cierre de esta entrada / la descripción del PR #193 para el resultado final.

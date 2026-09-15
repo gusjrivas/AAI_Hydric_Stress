@@ -265,3 +265,339 @@ def test_cli_rejects_inadmissible_contract_before_training_with_spy(tmp_path, mo
     )
     assert exit_code == 7
     assert not stage_b_out.exists()
+
+
+# --------------------------------------------------------------------------
+# Hallazgo 1 (revisión externa 2026-09-14): protección de los artefactos de A
+# ante --output-dir == --producer-dir (con --overwrite), rutas relativas
+# distintas que resuelven al mismo destino, y anidamiento. La CLI rechaza
+# ANTES de entrenar (espía sobre `run_stage_b`) y ningún archivo del
+# productor cambia -- verificado byte a byte.
+# --------------------------------------------------------------------------
+
+
+def _file_bytes(directory):
+    return {
+        p.relative_to(directory): p.read_bytes()
+        for p in sorted(directory.rglob("*"))
+        if p.is_file()
+    }
+
+
+def test_cli_rejects_output_dir_identical_to_producer_dir_even_with_overwrite(
+    tmp_path, monkeypatch
+):
+    import experiment_runner.controlled_daily_v4.stage_b_runner as stage_b_runner_module
+
+    def _spy(*_a, **_k):
+        raise AssertionError(
+            "run_stage_b no debía invocarse: --output-dir coincide con --producer-dir"
+        )
+
+    monkeypatch.setattr(stage_b_runner_module, "run_stage_b", _spy)
+
+    era5, nasa = write_synthetic_pergamino_csv_pair(
+        tmp_path, n_days=_N_DAYS_THROUGH_2023, seed=2023
+    )
+    producer_dir = _write_synthetic_producer_dir(tmp_path, era5, nasa)
+    before = _file_bytes(producer_dir)
+
+    exit_code = main(
+        [
+            "--stage",
+            "B",
+            "--era5-csv",
+            str(era5),
+            "--nasa-power-csv",
+            str(nasa),
+            "--output-dir",
+            str(producer_dir),
+            "--producer-dir",
+            str(producer_dir),
+            "--input-mode",
+            "synthetic",
+            "--bootstrap-replicas",
+            "20",
+            "--overwrite",
+        ]
+    )
+
+    assert exit_code == 9
+    after = _file_bytes(producer_dir)
+    assert before == after, "los artefactos de A no deben cambiar ni un byte ante el rechazo"
+
+
+def test_cli_rejects_output_dir_equal_via_relative_path_and_trailing_segments(
+    tmp_path, monkeypatch
+):
+    """La coincidencia se detecta también cuando `--output-dir` llega
+    expresada de forma distinta a `--producer-dir` (aquí, con un `..` que
+    normaliza al mismo destino real), no solo por comparación literal de
+    cadenas."""
+    import experiment_runner.controlled_daily_v4.stage_b_runner as stage_b_runner_module
+
+    def _spy(*_a, **_k):
+        raise AssertionError("run_stage_b no debía invocarse: rutas equivalentes normalizadas")
+
+    monkeypatch.setattr(stage_b_runner_module, "run_stage_b", _spy)
+
+    era5, nasa = write_synthetic_pergamino_csv_pair(
+        tmp_path, n_days=_N_DAYS_THROUGH_2023, seed=2023
+    )
+    producer_dir = _write_synthetic_producer_dir(tmp_path, era5, nasa)
+    before = _file_bytes(producer_dir)
+
+    equivalent_output_dir = producer_dir / ".." / producer_dir.name
+
+    exit_code = main(
+        [
+            "--stage",
+            "B",
+            "--era5-csv",
+            str(era5),
+            "--nasa-power-csv",
+            str(nasa),
+            "--output-dir",
+            str(equivalent_output_dir),
+            "--producer-dir",
+            str(producer_dir),
+            "--input-mode",
+            "synthetic",
+            "--bootstrap-replicas",
+            "20",
+            "--overwrite",
+        ]
+    )
+
+    assert exit_code == 9
+    after = _file_bytes(producer_dir)
+    assert before == after
+
+
+def test_cli_rejects_output_dir_nested_inside_producer_dir(tmp_path, monkeypatch):
+    import experiment_runner.controlled_daily_v4.stage_b_runner as stage_b_runner_module
+
+    def _spy(*_a, **_k):
+        raise AssertionError("run_stage_b no debía invocarse: output_dir anidado en producer_dir")
+
+    monkeypatch.setattr(stage_b_runner_module, "run_stage_b", _spy)
+
+    era5, nasa = write_synthetic_pergamino_csv_pair(
+        tmp_path, n_days=_N_DAYS_THROUGH_2023, seed=2023
+    )
+    producer_dir = _write_synthetic_producer_dir(tmp_path, era5, nasa)
+    before = _file_bytes(producer_dir)
+    nested_output_dir = producer_dir / "nested_stage_b_out"
+
+    exit_code = main(
+        [
+            "--stage",
+            "B",
+            "--era5-csv",
+            str(era5),
+            "--nasa-power-csv",
+            str(nasa),
+            "--output-dir",
+            str(nested_output_dir),
+            "--producer-dir",
+            str(producer_dir),
+            "--input-mode",
+            "synthetic",
+            "--bootstrap-replicas",
+            "20",
+        ]
+    )
+
+    assert exit_code == 9
+    assert not nested_output_dir.exists()
+    after = _file_bytes(producer_dir)
+    assert before == after
+
+
+def test_cli_still_allows_separate_output_and_producer_directories(tmp_path):
+    """Conserva el funcionamiento normal: directorios separados (el caso de
+    todos los demás tests de este archivo) nunca se rechazan por esta
+    verificación."""
+    era5, nasa = write_synthetic_pergamino_csv_pair(
+        tmp_path, n_days=_N_DAYS_THROUGH_2023, seed=2023
+    )
+    producer_dir = _write_synthetic_producer_dir(tmp_path, era5, nasa)
+    stage_b_out = tmp_path / "stage_b_out_separate"
+
+    exit_code = main(
+        [
+            "--stage",
+            "B",
+            "--era5-csv",
+            str(era5),
+            "--nasa-power-csv",
+            str(nasa),
+            "--output-dir",
+            str(stage_b_out),
+            "--producer-dir",
+            str(producer_dir),
+            "--input-mode",
+            "synthetic",
+            "--bootstrap-replicas",
+            "20",
+        ]
+    )
+    assert exit_code == 0
+    assert (stage_b_out / "decision.json").exists()
+
+
+# --------------------------------------------------------------------------
+# Hallazgo 2 (revisión externa 2026-09-14): al menos un caso end-to-end por
+# CLI con datos REALMENTE monoclase (humedad de 2023 fijada), sin recurrir a
+# `is_monoclass` monkeypatcheado -- `decision.json` debe existir con
+# `CANDIDATE_NOT_VALIDATED` y C debe seguir bloqueada.
+# --------------------------------------------------------------------------
+
+
+def test_cli_end_to_end_with_genuinely_monoclass_2023_data_still_persists_decision(tmp_path):
+    from tests.controlled_daily_v4_fixtures import (
+        make_synthetic_daily_frame,
+        write_synthetic_era5_csv,
+        write_synthetic_nasa_power_csv,
+    )
+
+    daily_frame = make_synthetic_daily_frame(n_days=_N_DAYS_THROUGH_2023, seed=2023)
+    mask_2023 = (daily_frame.index >= "2023-01-01") & (daily_frame.index <= "2023-12-31")
+    daily_frame.loc[mask_2023, "soil_moisture_0_to_7cm"] = 0.9
+
+    era5 = tmp_path / "pergamino_era5land_soil_hourly_2015_2025.csv"
+    nasa = tmp_path / "pergamino_nasa_power_daily_2015_2025.csv"
+    write_synthetic_era5_csv(era5, daily_frame)
+    write_synthetic_nasa_power_csv(nasa, daily_frame)
+
+    producer_dir = _write_synthetic_producer_dir(tmp_path, era5, nasa)
+    stage_b_out = tmp_path / "stage_b_out_monoclass"
+
+    exit_code = main(
+        [
+            "--stage",
+            "B",
+            "--era5-csv",
+            str(era5),
+            "--nasa-power-csv",
+            str(nasa),
+            "--output-dir",
+            str(stage_b_out),
+            "--producer-dir",
+            str(producer_dir),
+            "--input-mode",
+            "synthetic",
+            "--bootstrap-replicas",
+            "20",
+        ]
+    )
+
+    assert exit_code == 0
+    decision = json.loads((stage_b_out / "decision.json").read_text(encoding="utf-8"))
+    assert decision["verdict"] == "CANDIDATE_NOT_VALIDATED"
+
+    holdout_status = json.loads((stage_b_out / "holdout_status.json").read_text(encoding="utf-8"))
+    assert holdout_status["stage_c_executed"] is False
+
+    # `predictions_2023.csv` existe pero sin columnas de predicción del
+    # candidato -- ausencia explícita, nunca fabricada.
+    import pandas as pd
+
+    predictions = pd.read_csv(stage_b_out / "predictions_2023.csv")
+    assert "y_pred_candidate" not in predictions.columns
+
+
+# --------------------------------------------------------------------------
+# Hallazgo 4 (revisión externa 2026-09-14): evidencia de reproducibilidad de
+# B -- `constraints_identity` en `environment.json`, y coherencia entre la
+# configuración declarada (`resolved_config.json`) y la efectivamente
+# consumida (`bootstrap.json`), incluso con una configuración reducida (no
+# normativa) explícitamente etiquetada como tal.
+# --------------------------------------------------------------------------
+
+
+def test_cli_stage_b_environment_json_includes_constraints_identity_matching_real_file(tmp_path):
+    from experiment_runner.controlled_daily_v4.manifest_reference import (
+        DEFAULT_CONSTRAINTS_PATH,
+    )
+    from experiment_runner.controlled_daily_v4.provenance import compute_sha256
+
+    era5, nasa = write_synthetic_pergamino_csv_pair(
+        tmp_path, n_days=_N_DAYS_THROUGH_2023, seed=2023
+    )
+    producer_dir = _write_synthetic_producer_dir(tmp_path, era5, nasa)
+    stage_b_out = tmp_path / "stage_b_out_constraints"
+
+    exit_code = main(
+        [
+            "--stage",
+            "B",
+            "--era5-csv",
+            str(era5),
+            "--nasa-power-csv",
+            str(nasa),
+            "--output-dir",
+            str(stage_b_out),
+            "--producer-dir",
+            str(producer_dir),
+            "--input-mode",
+            "synthetic",
+            "--bootstrap-replicas",
+            "20",
+        ]
+    )
+    assert exit_code == 0
+
+    environment = json.loads((stage_b_out / "environment.json").read_text(encoding="utf-8"))
+    constraints_identity = environment.get("constraints_identity")
+    assert (
+        constraints_identity is not None
+    ), "environment.json de B debe incorporar constraints_identity, igual que A"
+    if DEFAULT_CONSTRAINTS_PATH.exists():
+        assert constraints_identity["exists"] is True
+        assert constraints_identity["sha256"] == compute_sha256(DEFAULT_CONSTRAINTS_PATH)
+    else:
+        assert constraints_identity["exists"] is False
+        assert constraints_identity["sha256"] is None
+
+
+def test_cli_reduced_bootstrap_configuration_is_never_labeled_normative(tmp_path):
+    era5, nasa = write_synthetic_pergamino_csv_pair(
+        tmp_path, n_days=_N_DAYS_THROUGH_2023, seed=2023
+    )
+    producer_dir = _write_synthetic_producer_dir(tmp_path, era5, nasa)
+    stage_b_out = tmp_path / "stage_b_out_reduced"
+
+    reduced_replicas = 20
+    exit_code = main(
+        [
+            "--stage",
+            "B",
+            "--era5-csv",
+            str(era5),
+            "--nasa-power-csv",
+            str(nasa),
+            "--output-dir",
+            str(stage_b_out),
+            "--producer-dir",
+            str(producer_dir),
+            "--input-mode",
+            "synthetic",
+            "--bootstrap-replicas",
+            str(reduced_replicas),
+        ]
+    )
+    assert exit_code == 0
+
+    resolved_config = json.loads((stage_b_out / "resolved_config.json").read_text(encoding="utf-8"))
+    assert resolved_config["bootstrap_replicas"] == reduced_replicas
+    assert resolved_config["normative_run"] is False
+    assert "bootstrap_replicas" in resolved_config["normative_deviations"]
+
+    bootstrap_payload = json.loads((stage_b_out / "bootstrap.json").read_text(encoding="utf-8"))
+    diagnostics = bootstrap_payload["diagnostics"]
+    # La configuración REDUCIDA declarada coincide exactamente con la
+    # efectivamente consumida por el bootstrap -- nunca aparece etiquetada
+    # como la normativa completa (5000 réplicas).
+    assert diagnostics["replicas_requested"] == reduced_replicas
+    assert diagnostics["replicas_requested"] != 5000

@@ -85,6 +85,49 @@ class OutputDirectoryNotEmptyError(FileExistsError):
     de forma explícita para sobreescribir."""
 
 
+class StageBOutputDirectoryConflictsWithProducerError(ValueError):
+    """`--output-dir` de la Etapa B coincide con, está contenido dentro de, o
+    contiene al `producer_dir` (el directorio de evidencia de A que B
+    consume) -- ya sea de forma literal, por rutas relativas distintas que
+    normalizan al mismo destino real, o por un enlace simbólico.
+
+    Revisión externa (2026-09-14), hallazgo sobre protección de los
+    artefactos de A: `--overwrite` nunca autoriza modificar la evidencia de
+    A, sin excepción. Esta verificación se aplica incondicionalmente, tanto
+    en la CLI (antes de entrenar nada) como en `write_stage_b_artifacts`
+    (antes de escribir cualquier archivo) -- ninguna de las dos confía en que
+    la otra ya la haya hecho."""
+
+
+def validate_stage_b_output_directory(output_dir: str | Path, producer_dir: str | Path) -> None:
+    """Rechaza toda coincidencia efectiva entre `output_dir` (destino de B) y
+    `producer_dir` (evidencia de A), tras normalizar ambas rutas (incluidos
+    enlaces simbólicos) con `Path.resolve()`: nunca compara las cadenas
+    crudas recibidas, que pueden diferir (relativa vs. absoluta, `..`,
+    mayúsculas de unidad en Windows) y aun así resolver al mismo destino."""
+    output_resolved = Path(output_dir).resolve()
+    producer_resolved = Path(producer_dir).resolve()
+
+    if output_resolved == producer_resolved:
+        raise StageBOutputDirectoryConflictsWithProducerError(
+            f"--output-dir ('{output_dir}') coincide con --producer-dir ('{producer_dir}') "
+            "una vez normalizadas ambas rutas (enlaces simbólicos incluidos): la Etapa B "
+            "nunca escribe en el directorio productor de A, ni siquiera con --overwrite."
+        )
+    if output_resolved.is_relative_to(producer_resolved):
+        raise StageBOutputDirectoryConflictsWithProducerError(
+            f"--output-dir ('{output_dir}') está contenido dentro de --producer-dir "
+            f"('{producer_dir}'): la Etapa B nunca escribe dentro del directorio productor "
+            "de A, ni siquiera con --overwrite."
+        )
+    if producer_resolved.is_relative_to(output_resolved):
+        raise StageBOutputDirectoryConflictsWithProducerError(
+            f"--producer-dir ('{producer_dir}') está contenido dentro de --output-dir "
+            f"('{output_dir}'): la Etapa B nunca escribe en un directorio que contenga la "
+            "evidencia de A, ni siquiera con --overwrite."
+        )
+
+
 def normalize_for_json(value: Any) -> Any:
     """Normaliza recursivamente un payload a tipos JSON estrictamente estándar.
 
@@ -481,17 +524,34 @@ def _bootstrap_diagnostics_to_json(diagnostics: Any | None) -> dict[str, Any]:
 
 
 def _stage_b_predictions_frame(result: Any) -> pd.DataFrame:
-    return pd.DataFrame(
-        {
-            "feature_timestamp": result.feature_timestamps,
-            "y_true": result.y_true,
-            "y_pred_candidate": result.y_pred_candidate,
-            "y_score_candidate": result.y_score_candidate,
-            "y_pred_persistence": result.y_pred_persistence,
-            "y_pred_majority_class": result.y_pred_majority_class,
-            "y_pred_constant_stress": result.y_pred_constant_stress,
-        }
-    )
+    """`predictions_2023.csv` (protocolo, sección 10/13).
+
+    Revisión externa (2026-09-14), hallazgo sobre persistencia del resultado
+    monoclase: cuando `result.predictions_available` es `False` (entrenamiento
+    o evaluación monoclase; ver `stage_b_runner.run_stage_b`), los vectores de
+    predicción del candidato y de los tres baselines están genuinamente
+    AUSENTES -- de longitud distinta a `y_true`/`feature_timestamps`, nunca
+    reconciliable en un único DataFrame de columnas iguales. En ese caso se
+    persisten únicamente los timestamps y (si están disponibles) las
+    etiquetas verdaderas: nunca se fabrica una predicción, ni se reemplaza la
+    ausencia por ceros o por `NaN` disfrazado de predicción real. El motivo
+    de la ausencia queda en `decision.json` (`reasons`), no aquí."""
+    if result.predictions_available:
+        return pd.DataFrame(
+            {
+                "feature_timestamp": result.feature_timestamps,
+                "y_true": result.y_true,
+                "y_pred_candidate": result.y_pred_candidate,
+                "y_score_candidate": result.y_score_candidate,
+                "y_pred_persistence": result.y_pred_persistence,
+                "y_pred_majority_class": result.y_pred_majority_class,
+                "y_pred_constant_stress": result.y_pred_constant_stress,
+            }
+        )
+    data: dict[str, Any] = {"feature_timestamp": result.feature_timestamps}
+    if len(result.y_true) == len(result.feature_timestamps):
+        data["y_true"] = result.y_true
+    return pd.DataFrame(data)
 
 
 def write_stage_b_artifacts(
@@ -511,7 +571,16 @@ def write_stage_b_artifacts(
     """Serializa todos los artefactos de una corrida de la Etapa B. Nunca
     escribe dentro de `producer_dir` (el directorio de artefactos de A que
     consume): siempre un directorio de salida separado, explícito, con la
-    misma política de sobreescritura de `ensure_output_directory` que A."""
+    misma política de sobreescritura de `ensure_output_directory` que A.
+
+    Revisión externa (2026-09-14), hallazgo sobre protección de los
+    artefactos de A: `validate_stage_b_output_directory` se verifica aquí,
+    ANTES de `ensure_output_directory` y de cualquier escritura -- ante un
+    rechazo, ningún archivo del productor (ni del propio `output_dir`) se
+    toca. Esta verificación es incondicional: `overwrite=True` nunca la
+    omite, y la CLI la repite por su cuenta antes de entrenar (no confía en
+    que el escritor sea quien la aplique)."""
+    validate_stage_b_output_directory(output_dir, producer_dir)
     output_dir = ensure_output_directory(output_dir, overwrite=overwrite)
     written: dict[str, Path] = {}
 
@@ -545,6 +614,9 @@ def write_stage_b_artifacts(
             "validated_before_training": True,
         },
     )
+
+    written["warnings"] = output_dir / "warnings.json"
+    _write_json(written["warnings"], getattr(result, "warnings_log", None) or [])
 
     written["training_dataset_fingerprint"] = output_dir / "training_dataset_fingerprint.json"
     _write_json(written["training_dataset_fingerprint"], result.training_dataset_fingerprint)
@@ -591,6 +663,15 @@ def write_stage_b_artifacts(
     _write_json(
         written["bootstrap"],
         {
+            # Distingue "bootstrap no ejecutado" (entrenamiento/evaluación
+            # monoclase: `False`) de "bootstrap ejecutado sin réplicas
+            # válidas" (`True`, con `diagnostics` igual poblado pero
+            # `interval_lower`/`interval_upper` en `null`) -- hallazgo H-05,
+            # evidencia de reproducibilidad de B: nunca se reejecuta el
+            # bootstrap solo para reconstruir estos diagnósticos.
+            "bootstrap_executed": getattr(
+                result, "bootstrap_executed", result.bootstrap_result is not None
+            ),
             "interval_lower": interval[0],
             "interval_upper": interval[1],
             "diagnostics": _bootstrap_diagnostics_to_json(result.bootstrap_diagnostics),
@@ -603,6 +684,12 @@ def write_stage_b_artifacts(
         {
             "verdict": result.verdict,
             "reasons": result.verdict_reasons,
+            # Ausencia explícita de predicciones (hallazgo H-05, persistencia
+            # del resultado monoclase): `false` cuando el entrenamiento o la
+            # evaluación resultaron monoclase (ver
+            # `stage_b_runner.StageBResult.predictions_available`) -- nunca
+            # se infiere de la longitud de `predictions_2023.csv`.
+            "predictions_available": getattr(result, "predictions_available", True),
             "rule": {
                 "mcc_candidate_must_be_positive": True,
                 "delta_mcc_lower_bound_minimum": -0.05,

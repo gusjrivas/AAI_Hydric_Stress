@@ -15,6 +15,7 @@ verifica que la configuración normativa completa (5000 réplicas, bloques de
 
 from __future__ import annotations
 
+import json
 import math
 
 import numpy as np
@@ -440,6 +441,140 @@ def test_technical_failure_is_distinct_from_experimental_not_validated():
 
 
 # --------------------------------------------------------------------------
+# Persistencia del resultado monoclase con datos REALMENTE monoclase
+# (revisión externa 2026-09-14, hallazgo sobre persistencia del resultado
+# monoclase): reproduce la humedad de 2023 fijada, sin monkeypatch de
+# `is_monoclass`, y verifica que `run_stage_b` produzca un `StageBResult`
+# internamente consistente (arrays sin longitudes divergentes) que
+# `write_stage_b_artifacts` pueda serializar sin lanzar `ValueError`.
+# --------------------------------------------------------------------------
+
+
+def _daily_series_with_constant_2023_moisture(value=0.9):
+    """Misma serie de `_daily_series()`, con la humedad de suelo de TODO 2023
+    fijada a `value` -- reproduce exactamente la humedad sintética de 2023
+    fijada en 0.9 de la revisión externa: `future_soil_moisture` queda
+    constante para toda fila evaluable de B, por lo que su target binario
+    (`build_target`) también resulta constante (monoclase), sin necesidad de
+    inyectar ningún fake/monkeypatch sobre `is_monoclass`."""
+    daily_series = _daily_series()
+    mask_2023 = (daily_series.index >= pd.Timestamp("2023-01-01")) & (
+        daily_series.index <= pd.Timestamp("2023-12-31")
+    )
+    mutated = daily_series.copy()
+    mutated.loc[mask_2023, PRIMARY_DEPTH_COLUMN] = value
+    return mutated
+
+
+def test_run_stage_b_with_genuinely_monoclass_evaluation_data_has_no_predictions():
+    daily_series = _daily_series_with_constant_2023_moisture(0.9)
+    contract = _contract()
+
+    result = run_stage_b(contract, daily_series, bootstrap_replicas=REDUCED_BOOTSTRAP_REPLICAS)
+
+    assert result.verdict == STAGE_B_VERDICT_NOT_VALIDATED
+    assert REASON_EVALUATION_LABELS_MONOCLASS in result.verdict_reasons
+    assert result.predictions_available is False
+    assert result.bootstrap_executed is False
+    assert result.bootstrap_result is None
+    assert result.bootstrap_diagnostics is None
+    # La evidencia de la evaluación (timestamps y etiquetas verdaderas) sigue
+    # completa -- 362 filas del período evaluable de 2023, no una evaluación
+    # vacía por cobertura insuficiente (eso es un fallo técnico distinto, ver
+    # los tests de cobertura más abajo).
+    assert result.evaluation_frame_n_rows > 0
+    assert len(result.y_true) == result.evaluation_frame_n_rows
+    assert len(result.feature_timestamps) == result.evaluation_frame_n_rows
+    assert len(result.y_pred_candidate) == 0
+
+
+def test_write_stage_b_artifacts_persists_decision_for_genuinely_monoclass_result(tmp_path):
+    """Recorre runner -> escritor con datos realmente monoclase: antes de la
+    corrección, `write_stage_b_artifacts` fallaba con
+    `ValueError: All arrays must be of the same length` y nunca llegaba a
+    crear `decision.json`."""
+    from experiment_runner.controlled_daily_v4 import artifacts
+
+    daily_series = _daily_series_with_constant_2023_moisture(0.9)
+    contract = _contract()
+    result = run_stage_b(contract, daily_series, bootstrap_replicas=REDUCED_BOOTSTRAP_REPLICAS)
+    assert result.verdict == STAGE_B_VERDICT_NOT_VALIDATED  # precondición del test
+
+    output_dir = tmp_path / "stage_b_monoclass"
+    written = artifacts.write_stage_b_artifacts(
+        output_dir,
+        input_mode="scientific",
+        scientific_run=False,
+        resolved_config={"stage": "B"},
+        producer_dir=tmp_path / "producer_unused",
+        producer_contract_raw={},
+        consumer_code_identity={
+            "available": False,
+            "source": "unavailable",
+            "commit": None,
+            "dirty": None,
+        },
+        consumer_environment_info={},
+        consumer_environment_issues=[],
+        result=result,
+    )
+
+    assert written["decision"].exists()
+    decision = json.loads(written["decision"].read_text(encoding="utf-8"))
+    assert decision["verdict"] == STAGE_B_VERDICT_NOT_VALIDATED
+    assert REASON_EVALUATION_LABELS_MONOCLASS in decision["reasons"]
+    assert decision["predictions_available"] is False
+
+    holdout_status = json.loads(written["holdout_status"].read_text(encoding="utf-8"))
+    assert holdout_status["stage_c_executed"] is False
+
+    predictions = pd.read_csv(written["predictions"])
+    assert len(predictions) == result.evaluation_frame_n_rows
+    assert "y_pred_candidate" not in predictions.columns
+
+    bootstrap_payload = json.loads(written["bootstrap"].read_text(encoding="utf-8"))
+    assert bootstrap_payload["bootstrap_executed"] is False
+
+
+def test_write_stage_b_artifacts_persists_decision_for_monoclass_training(tmp_path, monkeypatch):
+    """Mismo recorrido runner -> escritor, ahora con entrenamiento monoclase
+    (evaluation_frame puede tener filas, pero sin `p20_train` ni predicciones
+    de ningún tipo)."""
+    import experiment_runner.controlled_daily_v4.stage_b_runner as sbr_module
+    from experiment_runner.controlled_daily_v4 import artifacts
+
+    monkeypatch.setattr(sbr_module, "is_monoclass", lambda *_a, **_k: True)
+    daily_series = _daily_series()
+    contract = _contract()
+    result = run_stage_b(contract, daily_series, bootstrap_replicas=REDUCED_BOOTSTRAP_REPLICAS)
+
+    assert result.verdict_reasons == [REASON_TRAINING_LABELS_MONOCLASS]
+    assert result.predictions_available is False
+
+    output_dir = tmp_path / "stage_b_training_monoclass"
+    written = artifacts.write_stage_b_artifacts(
+        output_dir,
+        input_mode="scientific",
+        scientific_run=False,
+        resolved_config={"stage": "B"},
+        producer_dir=tmp_path / "producer_unused",
+        producer_contract_raw={},
+        consumer_code_identity={
+            "available": False,
+            "source": "unavailable",
+            "commit": None,
+            "dirty": None,
+        },
+        consumer_environment_info={},
+        consumer_environment_issues=[],
+        result=result,
+    )
+    decision = json.loads(written["decision"].read_text(encoding="utf-8"))
+    assert decision["verdict"] == STAGE_B_VERDICT_NOT_VALIDATED
+    assert decision["predictions_available"] is False
+
+
+# --------------------------------------------------------------------------
 # Bootstrap pareado y no circular, con aislamiento de segmentos (Decisión 1)
 # --------------------------------------------------------------------------
 
@@ -499,4 +634,226 @@ def test_persistence_baseline_is_the_formal_comparator_of_delta_mcc():
     expected_mcc_persistence = mcc_strict(result.y_true, result.y_pred_persistence)
     assert math.isclose(result.mcc_persistence, expected_mcc_persistence, rel_tol=1e-9) or (
         math.isnan(result.mcc_persistence) and math.isnan(expected_mcc_persistence)
+    )
+
+
+# --------------------------------------------------------------------------
+# Cobertura y validación ANTES del ajuste (revisión externa 2026-09-14):
+# ausencia de inicio/final del período evaluable de B, hueco interior,
+# historia causal insuficiente, evaluación vacía por cobertura insuficiente y
+# valor no finito -- todos como `StageBTechnicalError` (fallo técnico
+# controlado), nunca como un veredicto experimental, y siempre ANTES de
+# invocar `refit_frozen_candidate` (verificado con un espía). El caso
+# completo (sin mutar nada) conserva exactamente las fronteras del protocolo.
+# --------------------------------------------------------------------------
+
+
+def _assert_rejected_before_refitting(monkeypatch, daily_series, contract):
+    import experiment_runner.controlled_daily_v4.stage_b_runner as sbr_module
+
+    def _boom(*_a, **_k):
+        raise AssertionError("no debía intentarse reentrenar: la cobertura ya era insuficiente")
+
+    monkeypatch.setattr(sbr_module, "refit_frozen_candidate", _boom)
+    with pytest.raises(StageBTechnicalError):
+        run_stage_b(contract, daily_series, bootstrap_replicas=REDUCED_BOOTSTRAP_REPLICAS)
+
+
+def test_series_truncated_before_end_of_2023_is_a_technical_failure_not_a_partial_result(
+    monkeypatch,
+):
+    """Una serie que termina el 30/06/2023 (protocolo, sección 5: se exige
+    el período evaluable completo hasta el 2023-12-31) debe rechazarse como
+    fallo técnico -- nunca producir, en silencio, un resultado de B sobre
+    menos filas de las que exige el protocolo."""
+    daily_series = _daily_series()
+    truncated = daily_series.loc[daily_series.index <= pd.Timestamp("2023-06-30")]
+    contract = _contract()
+    _assert_rejected_before_refitting(monkeypatch, truncated, contract)
+
+
+def test_series_starting_after_stage_a_window_start_is_a_technical_failure(monkeypatch):
+    """Una serie cuyo inicio es posterior al arranque de la ventana
+    autorizada de A (incluida su historia causal) tampoco puede completar B
+    en silencio con menos historia de la exigida."""
+    daily_series = _daily_series()
+    truncated = daily_series.loc[daily_series.index >= pd.Timestamp("2015-06-01")]
+    contract = _contract()
+    _assert_rejected_before_refitting(monkeypatch, truncated, contract)
+
+
+def test_interior_gap_in_2023_is_a_technical_failure(monkeypatch):
+    """Un hueco interior dentro del período evaluable de B (un día calendario
+    completo ausente) debe rechazarse como fallo técnico, sin llegar nunca a
+    reentrenar."""
+    daily_series = _daily_series()
+    with_gap = daily_series.drop(pd.Timestamp("2023-06-15"))
+    contract = _contract()
+    _assert_rejected_before_refitting(monkeypatch, with_gap, contract)
+
+
+def test_insufficient_causal_history_for_stage_b_is_a_technical_failure(monkeypatch):
+    """Un hueco calendario dentro de la historia causal exclusiva de B (entre
+    el fin de la ventana de A y el inicio de las etiquetas evaluables de B,
+    2023-01-02, que no forma parte de la ventana de entrenamiento de A) debe
+    rechazarse como fallo técnico -- la historia causal de B se verifica de
+    forma independiente de la de A."""
+    daily_series = _daily_series()
+    with_gap = daily_series.drop(pd.Timestamp("2023-01-02"))
+    contract = _contract()
+    _assert_rejected_before_refitting(monkeypatch, with_gap, contract)
+
+
+def test_non_finite_value_in_2023_is_a_technical_failure_not_a_crash_after_refit(monkeypatch):
+    """Reproduce el hallazgo original: un NaN en una columna requerida
+    (`RH2M`) dentro de 2023 debía producir `CalendarIntegrityError` recién
+    DESPUÉS de una llamada efectiva a `refit_frozen_candidate`. Tras la
+    corrección, la validación de la evaluación ocurre antes: el espía
+    confirma que el reentrenamiento nunca se invoca."""
+    daily_series = _daily_series()
+    with_nan = daily_series.copy()
+    with_nan.loc[pd.Timestamp("2023-06-15"), "RH2M"] = float("nan")
+    contract = _contract()
+    _assert_rejected_before_refitting(monkeypatch, with_nan, contract)
+
+
+def test_empty_evaluation_by_insufficient_coverage_is_a_technical_failure(monkeypatch):
+    """Cobertura insuficiente que deja la evaluación totalmente vacía (serie
+    cortada antes de que empiece siquiera el período evaluable de B) es un
+    fallo técnico -- nunca un veredicto experimental "monoclase" ni un
+    resultado vacío presentado como corrida terminada."""
+    daily_series = _daily_series()
+    truncated = daily_series.loc[daily_series.index <= pd.Timestamp("2022-12-31")]
+    contract = _contract()
+    _assert_rejected_before_refitting(monkeypatch, truncated, contract)
+
+
+def test_complete_case_preserves_exact_protocol_boundaries():
+    """El caso completo (sin truncar ni mutar nada) conserva exactamente las
+    fronteras del protocolo: entrenamiento hasta 2022-12-31, evaluación
+    2023-01-04..2023-12-31, sin que la validación agregada de cobertura
+    recorte ni un día de más."""
+    daily_series = _daily_series()
+    contract = _contract()
+    result = run_stage_b(contract, daily_series, bootstrap_replicas=REDUCED_BOOTSTRAP_REPLICAS)
+
+    assert result.evaluation_target_timestamp_min == "2023-01-04 00:00:00"
+    assert result.evaluation_target_timestamp_max == "2023-12-31 00:00:00"
+    # 2023 tiene 362 días evaluables (365 - 3 días de horizonte que exceden
+    # el año, protocolo sección 5/10).
+    assert result.evaluation_frame_n_rows == 362
+
+
+# --------------------------------------------------------------------------
+# Evidencia de reproducibilidad de B (revisión externa 2026-09-14): la
+# excepción de cero réplicas válidas de bootstrap conserva sus diagnósticos
+# completos, y `refit_frozen_candidate` captura advertencias reales de ajuste
+# con contexto.
+# --------------------------------------------------------------------------
+
+
+def test_zero_valid_bootstrap_replicas_preserves_full_diagnostics(monkeypatch):
+    """Si todas las réplicas bootstrap resultan inválidas, el runner no debe
+    perder los diagnósticos: distingue `bootstrap_executed=True` (se
+    intentó) de `bootstrap_result=None` (sin intervalo por reportar), y
+    conserva las cantidades solicitadas/válidas/descartadas, la semilla, el
+    largo de bloque y los segmentos -- sin reejecutar el bootstrap."""
+    import experiment_runner.controlled_daily_v4.stage_b_runner as sbr_module
+    from experiment_runner.controlled_daily_v4.bootstrap import (
+        BootstrapDiagnostics,
+        NoValidBootstrapReplicasError,
+    )
+
+    fake_diagnostics = BootstrapDiagnostics(
+        replicas_requested=REDUCED_BOOTSTRAP_REPLICAS,
+        replicas_valid=0,
+        replicas_discarded=REDUCED_BOOTSTRAP_REPLICAS,
+        n_segments=1,
+        block_length=30,
+        seed=BOOTSTRAP_SEED,
+        normative=False,
+        segment_sizes={"stage_b_2023": 362},
+        discard_reasons={"undefined_metric": REDUCED_BOOTSTRAP_REPLICAS},
+        interval_lower=None,
+        interval_upper=None,
+    )
+
+    def _fake_paired_bootstrap_delta(*_a, **_k):
+        raise NoValidBootstrapReplicasError("ninguna réplica válida", diagnostics=fake_diagnostics)
+
+    monkeypatch.setattr(sbr_module, "paired_bootstrap_delta", _fake_paired_bootstrap_delta)
+
+    daily_series = _daily_series()
+    contract = _contract()
+    result = run_stage_b(contract, daily_series, bootstrap_replicas=REDUCED_BOOTSTRAP_REPLICAS)
+
+    assert result.bootstrap_executed is True
+    assert result.bootstrap_result is None
+    assert result.bootstrap_diagnostics is fake_diagnostics
+    assert result.bootstrap_diagnostics.replicas_requested == REDUCED_BOOTSTRAP_REPLICAS
+    assert result.bootstrap_diagnostics.replicas_valid == 0
+    assert result.bootstrap_diagnostics.replicas_discarded == REDUCED_BOOTSTRAP_REPLICAS
+    assert result.bootstrap_diagnostics.segment_sizes == {"stage_b_2023": 362}
+    assert REASON_BOOTSTRAP_NO_VALID_REPLICAS in result.verdict_reasons
+
+
+def test_refit_captures_real_fitting_warnings_with_context():
+    """Provoca una advertencia REAL de ajuste (no fabricada): regresión
+    logística con `max_iter` insuficiente para converger sobre los datos
+    sintéticos de este módulo. `refit_frozen_candidate` debe capturarla en
+    `warnings_log` con contexto de etapa/familia, y `run_stage_b` debe
+    propagar ese log en el resultado."""
+    daily_series = _daily_series()
+    training_frame = build_stage_b_training_frame(daily_series, PRIMARY_DEPTH_COLUMN)
+    contract = _contract(params={**_LOGISTIC_PARAMS, "max_iter": 1})
+
+    warnings_log: list = []
+    refit_frozen_candidate(contract, training_frame, warnings_log)
+
+    assert len(warnings_log) >= 1
+    assert all(
+        entry.get("stage") == "B" and entry.get("phase") == "refit" for entry in warnings_log
+    )
+
+
+def test_run_stage_b_propagates_warnings_log():
+    daily_series = _daily_series()
+    contract = _contract(params={**_LOGISTIC_PARAMS, "max_iter": 1})
+    result = run_stage_b(contract, daily_series, bootstrap_replicas=REDUCED_BOOTSTRAP_REPLICAS)
+    assert isinstance(result.warnings_log, list)
+    assert len(result.warnings_log) >= 1
+
+
+def test_write_stage_b_artifacts_persists_real_fitting_warnings(tmp_path):
+    from experiment_runner.controlled_daily_v4 import artifacts
+
+    daily_series = _daily_series()
+    contract = _contract(params={**_LOGISTIC_PARAMS, "max_iter": 1})
+    result = run_stage_b(contract, daily_series, bootstrap_replicas=REDUCED_BOOTSTRAP_REPLICAS)
+    assert len(result.warnings_log) >= 1  # precondición del test
+
+    output_dir = tmp_path / "stage_b_warnings"
+    written = artifacts.write_stage_b_artifacts(
+        output_dir,
+        input_mode="scientific",
+        scientific_run=False,
+        resolved_config={"stage": "B"},
+        producer_dir=tmp_path / "producer_unused",
+        producer_contract_raw={},
+        consumer_code_identity={
+            "available": False,
+            "source": "unavailable",
+            "commit": None,
+            "dirty": None,
+        },
+        consumer_environment_info={},
+        consumer_environment_issues=[],
+        result=result,
+    )
+
+    assert written["warnings"].exists()
+    warnings_payload = json.loads(written["warnings"].read_text(encoding="utf-8"))
+    assert len(warnings_payload) >= 1
+    assert all(
+        entry.get("stage") == "B" and entry.get("phase") == "refit" for entry in warnings_payload
     )
