@@ -8,6 +8,7 @@ salida explícito y rechaza sobreescritura accidental salvo `overwrite=True`.
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import json
 import os
 import tempfile
@@ -79,10 +80,19 @@ deliberadamente distinto de `ARTIFACT_SCHEMA_VERSION` (Etapa A) y de
 consume, no produce): B no reescribe ni sobreescribe ningún artefacto de A,
 persiste su propio directorio de salida con su propia versión de esquema."""
 
-STAGE_C_ARTIFACT_SCHEMA_VERSION = "controlled_daily_v4_stage_c.v1"
+STAGE_C_ARTIFACT_SCHEMA_VERSION = "controlled_daily_v4_stage_c.v2"
 """Esquema propio de los artefactos de la Etapa C (`write_stage_c_artifacts`),
 distinto de los anteriores por la misma razón que B: C nunca reescribe
-artefactos de A ni de B, persiste su propio directorio de salida exclusivo."""
+artefactos de A ni de B, persiste su propio directorio de salida exclusivo.
+
+v2 (revisión dirigida, hallazgos 2 y 5): agrega `integrity_manifest.json`
+(sha256 de cada artefacto realmente escrito, calculado DESPUÉS de escribir
+todo lo demás -- soporte de una recuperación de solo lectura que nunca
+declara éxito sobre evidencia faltante/corrupta/de otro intento) y agrega
+`target_timestamp` a `predictions_2024_2025.csv` (alineado con
+`feature_timestamp` y el horizonte del protocolo -- v1 solo persistía
+`feature_timestamp`, lo que dejaba la trazabilidad temporal del conjunto
+evaluado incompleta)."""
 
 
 class OutputDirectoryNotEmptyError(FileExistsError):
@@ -325,6 +335,21 @@ def build_metrics_payload(
         "decision_threshold": DECISION_THRESHOLD,
         "by_family": by_family,
     }
+
+
+def check_output_directory_not_occupied(output_dir: str | Path) -> None:
+    """Verifica que `output_dir` no esté ya ocupado, SIN crearlo (a
+    diferencia de `ensure_output_directory`). Revisión dirigida (hallazgo 3):
+    permite rechazar una salida ya ocupada ANTES de reservar el ledger de la
+    Etapa C, sin el efecto secundario de crear un directorio vacío por una
+    corrida que en realidad va a recuperar un resultado ya finalizado (con
+    otro `--output-dir`) en vez de escribir uno nuevo."""
+    output_dir = Path(output_dir)
+    if output_dir.exists() and any(output_dir.iterdir()):
+        raise OutputDirectoryNotEmptyError(
+            f"'{output_dir}' ya contiene archivos. La Etapa C nunca acepta --overwrite "
+            "(Decisión 3): usar un --output-dir distinto y vacío."
+        )
 
 
 def ensure_output_directory(output_dir: str | Path, overwrite: bool = False) -> Path:
@@ -778,11 +803,17 @@ def _stage_c_predictions_frame(result: Any) -> pd.DataFrame:
     que `_stage_b_predictions_frame`: ante entrenamiento/evaluación monoclase
     (`predictions_available=False`), nunca se fabrica una predicción ni se
     reemplaza la ausencia por ceros -- solo se persisten los timestamps y (si
-    están disponibles) las etiquetas verdaderas."""
+    están disponibles) las etiquetas verdaderas.
+
+    Revisión dirigida (hallazgo 5): incluye `target_timestamp` (además de
+    `feature_timestamp`, ya presente desde v1), alineado uno a uno con el
+    horizonte del protocolo -- sin este campo, la trazabilidad temporal del
+    conjunto evaluado de C queda incompleta."""
     if result.predictions_available:
         return pd.DataFrame(
             {
                 "feature_timestamp": result.feature_timestamps,
+                "target_timestamp": result.target_timestamps,
                 "y_true": result.y_true,
                 "y_pred_candidate": result.y_pred_candidate,
                 "y_score_candidate": result.y_score_candidate,
@@ -792,6 +823,9 @@ def _stage_c_predictions_frame(result: Any) -> pd.DataFrame:
             }
         )
     data: dict[str, Any] = {"feature_timestamp": result.feature_timestamps}
+    target_timestamps = getattr(result, "target_timestamps", None)
+    if target_timestamps is not None and len(target_timestamps) == len(result.feature_timestamps):
+        data["target_timestamp"] = target_timestamps
     if len(result.y_true) == len(result.feature_timestamps):
         data["y_true"] = result.y_true
     return pd.DataFrame(data)
@@ -968,4 +1002,108 @@ def write_stage_c_artifacts(
         },
     )
 
+    # Manifiesto de integridad: ÚLTIMO artefacto escrito (revisión dirigida,
+    # hallazgo 2), calculado sobre el contenido REAL ya persistido de todo lo
+    # anterior -- nunca sobre valores en memoria que podrían diferir de lo
+    # que efectivamente quedó en disco. `result_reference` es la ruta
+    # RESUELTA (absoluta, símlinks incluidos) de `output_dir`, estable e
+    # independiente del directorio de trabajo desde el que se invoque una
+    # recuperación posterior -- una referencia relativa se rompería si la
+    # CLI se ejecuta desde otro cwd."""
+    manifest_files = {
+        path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in written.values()
+    }
+    written["integrity_manifest"] = output_dir / "integrity_manifest.json"
+    _write_json(
+        written["integrity_manifest"],
+        {
+            "schema_version": STAGE_C_ARTIFACT_SCHEMA_VERSION,
+            "result_reference": str(output_dir.resolve()),
+            "holdout_identity_key": holdout_identity_key,
+            "attempt_id": attempt_id,
+            "files": manifest_files,
+        },
+    )
+
     return written
+
+
+class StageCRecoveryError(ValueError):
+    """La recuperación de solo lectura de una corrida finalizada de la Etapa
+    C no es válida: `reasons` enumera todos los motivos verificados, no solo
+    el primero. Nunca se levanta como excusa para reentrenar ni para acceder
+    al holdout crudo de nuevo -- quien la recibe debe informar el estado y
+    mantener bloqueada la reevaluación (revisión dirigida, hallazgo 2)."""
+
+    def __init__(self, reasons: list[str]):
+        self.reasons = list(reasons)
+        super().__init__("; ".join(self.reasons) if self.reasons else "recuperación inválida")
+
+
+def verify_stage_c_recovery(
+    output_dir: str | Path, *, holdout_identity_key: str, attempt_id: str
+) -> None:
+    """Recuperación de SOLO LECTURA de una corrida finalizada de la Etapa C
+    (revisión dirigida, hallazgo 2): nunca reentrena, nunca lee el holdout
+    crudo. Antes de declarar la recuperación satisfactoria, comprueba (en
+    este orden, acumulando TODOS los motivos de rechazo, no solo el
+    primero): que `output_dir` exista, que contenga un
+    `integrity_manifest.json` legible, que ese manifiesto corresponda al
+    mismo holdout y al mismo intento que lo finalizó (nunca a otro), y que
+    cada artefacto listado exista con exactamente el sha256 persistido
+    (contenido alterado, ausente, o de un intento distinto se rechaza por
+    igual). No repara nada: levanta `StageCRecoveryError` con la lista
+    completa de motivos si cualquiera de estas comprobaciones falla."""
+    output_dir = Path(output_dir)
+    if not output_dir.is_dir():
+        raise StageCRecoveryError(
+            [f"'{output_dir}' no existe o no es un directorio: no hay evidencia que recuperar"]
+        )
+    manifest_path = output_dir / "integrity_manifest.json"
+    if not manifest_path.exists():
+        raise StageCRecoveryError(
+            [f"Falta '{manifest_path}': no hay manifiesto de integridad verificable"]
+        )
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise StageCRecoveryError([f"No se pudo leer '{manifest_path}': {exc}"]) from exc
+    except json.JSONDecodeError as exc:
+        raise StageCRecoveryError([f"'{manifest_path}' no es JSON válido: {exc}"]) from exc
+    if not isinstance(manifest, dict):
+        raise StageCRecoveryError([f"'{manifest_path}': el JSON raíz debe ser un objeto"])
+
+    reasons: list[str] = []
+    if manifest.get("holdout_identity_key") != holdout_identity_key:
+        reasons.append(
+            f"'{manifest_path}'.holdout_identity_key={manifest.get('holdout_identity_key')!r} "
+            f"no coincide con el holdout_key esperado ({holdout_identity_key!r})"
+        )
+    if manifest.get("attempt_id") != attempt_id:
+        reasons.append(
+            f"'{manifest_path}'.attempt_id={manifest.get('attempt_id')!r} no coincide con el "
+            f"intento que finalizó este holdout ({attempt_id!r})"
+        )
+
+    files = manifest.get("files")
+    if not isinstance(files, dict) or not files:
+        reasons.append(f"'{manifest_path}'.files ausente o vacío: no hay artefactos verificables")
+    else:
+        for name, expected_sha256 in files.items():
+            candidate = output_dir / name
+            if not candidate.exists():
+                reasons.append(f"Falta el artefacto requerido '{candidate}'")
+                continue
+            try:
+                actual_sha256 = hashlib.sha256(candidate.read_bytes()).hexdigest()
+            except OSError as exc:
+                reasons.append(f"No se pudo leer '{candidate}' para verificar su integridad: {exc}")
+                continue
+            if actual_sha256 != expected_sha256:
+                reasons.append(
+                    f"'{candidate}' no coincide con el sha256 persistido en el manifiesto "
+                    "(contenido alterado, o corresponde a otro intento)"
+                )
+
+    if reasons:
+        raise StageCRecoveryError(reasons)

@@ -19,6 +19,10 @@ from experiment_runner.controlled_daily_v4.config import (
     PRIMARY_DEPTH_COLUMN,
     WEIGHTING_NONE,
 )
+from experiment_runner.controlled_daily_v4.dataset_fingerprint import (
+    FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS,
+    FINGERPRINT_SCOPE_STAGE_C_EXTENDED_TRAINING,
+)
 from experiment_runner.controlled_daily_v4.stage_c_runner import (
     REASON_EVALUATION_LABELS_MONOCLASS,
     REASON_TRAINING_LABELS_MONOCLASS,
@@ -157,6 +161,44 @@ def test_p20_train_is_recomputed_over_extended_training_never_compared_to_contra
     result = run_stage_c(contract, daily_series, bootstrap_replicas=REDUCED_BOOTSTRAP_REPLICAS)
     assert result.predictions_available is True
     assert result.p20_train != -999.0
+
+
+# --------------------------------------------------------------------------
+# Trazabilidad del conjunto de C (revisión dirigida, hallazgo 5)
+# --------------------------------------------------------------------------
+
+
+def test_training_fingerprint_scope_identifies_extended_c_training():
+    """El entrenamiento extendido de C (hasta 2023) nunca se etiqueta con el
+    `scope` de A/B ('stage_a_eligible_rows_only'): describe un conjunto
+    distinto y más amplio, que además nunca se compara por igualdad de
+    huella contra A/B."""
+    daily_series = _daily_series()
+    contract = _contract()
+    result = run_stage_c(contract, daily_series, bootstrap_replicas=REDUCED_BOOTSTRAP_REPLICAS)
+    assert (
+        result.training_dataset_fingerprint["scope"] == FINGERPRINT_SCOPE_STAGE_C_EXTENDED_TRAINING
+    )
+    assert result.training_dataset_fingerprint["scope"] != FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS
+
+
+def test_result_target_timestamps_align_with_evaluation_frame():
+    """`target_timestamp` debe persistirse alineado 1:1 con `feature_timestamp`
+    y con el horizonte del protocolo (D+3): sin este campo, el conjunto
+    evaluado de C no es trazable por fecha objetivo."""
+    daily_series = _daily_series()
+    contract = _contract()
+    result = run_stage_c(contract, daily_series, bootstrap_replicas=REDUCED_BOOTSTRAP_REPLICAS)
+    evaluation_frame = build_stage_c_evaluation_frame(daily_series, PRIMARY_DEPTH_COLUMN)
+
+    assert len(result.target_timestamps) == len(result.feature_timestamps)
+    assert len(result.target_timestamps) == result.evaluation_frame_n_rows
+    np.testing.assert_array_equal(
+        pd.to_datetime(result.target_timestamps),
+        pd.to_datetime(evaluation_frame["target_timestamp"].to_numpy()),
+    )
+    horizon = pd.to_datetime(result.target_timestamps) - pd.to_datetime(result.feature_timestamps)
+    assert set(horizon.days) == {3}
 
 
 # --------------------------------------------------------------------------

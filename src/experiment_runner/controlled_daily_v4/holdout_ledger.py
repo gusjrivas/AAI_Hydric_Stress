@@ -107,6 +107,29 @@ class HoldoutReservationLostError(HoldoutLedgerError):
     reintento automático: requiere revisión humana explícita."""
 
 
+class HoldoutLedgerSchemaError(HoldoutLedgerError):
+    """`ledger_meta.schema_version` no es el esquema reconocido por este
+    módulo (`LEDGER_SCHEMA_VERSION`), o el registro persistido es incoherente
+    de otra forma verificable (por ejemplo, `mode` con un valor fuera de
+    `LEDGER_MODES`). Revisión dirigida: un esquema desconocido NUNCA puede
+    habilitar `reserve_holdout`/`confirm_holdout_open`/`finalize_holdout` --
+    se rechaza explícitamente en cada una de las cuatro operaciones (lectura
+    incluida, donde se traduce a `INDETERMINADA`, nunca a `AUSENTE`)."""
+
+
+class HoldoutFinalizationOwnershipError(HoldoutLedgerError):
+    """`finalize_holdout` exige el mismo `attempt_id` que ganó la reserva (y
+    la confirmación): un intento distinto nunca puede finalizar -- ni
+    reemplazar -- el resultado de otro intento."""
+
+
+class HoldoutAlreadyFinalizedError(HoldoutLedgerError):
+    """Ya existe una finalización persistida (`finalized_at` no nulo) para
+    este `holdout_key`. Una segunda llamada a `finalize_holdout` nunca
+    reemplaza en silencio la referencia de un resultado ya finalizado --
+    incluso si la invoca el mismo `attempt_id`."""
+
+
 def compute_holdout_identity_key(
     *, protocol_id: str, site: str, depth_column: str, period_start: str, period_end: str
 ) -> str:
@@ -231,17 +254,39 @@ class HoldoutLedgerState:
     confirmed_at: float | None = None
     finalized_at: float | None = None
     finalized_result_reference: str | None = None
+    reserved_by_attempt_id: str | None = None
+    """`attempt_id` que ganó la reserva/confirmación vigente (revisión
+    dirigida, hallazgo 2): quien recupera un resultado finalizado lo usa para
+    verificar que el manifiesto de integridad persistido corresponde
+    exactamente al intento que abrió y finalizó este holdout, no a otro."""
 
     @property
     def finalized(self) -> bool:
         return self.finalized_at is not None
 
 
-def _validate_mode(conn: sqlite3.Connection, path: Path, expected_mode: str) -> None:
-    row = conn.execute("SELECT mode FROM ledger_meta").fetchone()
+def _validate_ledger_meta(conn: sqlite3.Connection, path: Path, expected_mode: str) -> None:
+    """Validación CENTRALIZADA de esquema + metadatos + modo, aplicada por
+    igual en lectura, reserva, confirmación y finalización (revisión
+    dirigida, hallazgo 4): un `schema_version` desconocido, o un `mode`
+    persistido fuera de `LEDGER_MODES`, nunca habilita ninguna de las cuatro
+    operaciones -- se levanta `HoldoutLedgerSchemaError` antes de examinar
+    el registro de `holdout_registry`."""
+    row = conn.execute("SELECT schema_version, mode FROM ledger_meta").fetchone()
     if row is None:
-        raise HoldoutLedgerError(f"'{path}': tabla 'ledger_meta' sin fila -- ledger corrupto")
-    stored_mode = row[0]
+        raise HoldoutLedgerSchemaError(f"'{path}': tabla 'ledger_meta' sin fila -- ledger corrupto")
+    schema_version, stored_mode = row
+    if schema_version != LEDGER_SCHEMA_VERSION:
+        raise HoldoutLedgerSchemaError(
+            f"'{path}': schema_version persistido ('{schema_version}') no es el esquema "
+            f"reconocido por este módulo ('{LEDGER_SCHEMA_VERSION}'). Un esquema desconocido "
+            "nunca habilita la apertura del holdout ni se trata como equivalente a AUSENTE."
+        )
+    if stored_mode not in LEDGER_MODES:
+        raise HoldoutLedgerSchemaError(
+            f"'{path}': mode persistido ('{stored_mode}') no es uno de los valores válidos "
+            f"{LEDGER_MODES} -- registro de ledger_meta incoherente."
+        )
     if stored_mode != expected_mode:
         raise HoldoutLedgerModeMismatchError(
             f"'{path}' fue inicializado con mode='{stored_mode}', pero esta operación exige "
@@ -275,14 +320,20 @@ def read_holdout_state(
         )
     try:
         with _connect(path) as conn:
-            _validate_mode(conn, path, expected_mode)
+            _validate_ledger_meta(conn, path, expected_mode)
             row = conn.execute(
                 "SELECT state, authorized_by, confirmed_at, finalized_at, "
-                "finalized_result_reference, detail FROM holdout_registry WHERE holdout_key = ?",
+                "finalized_result_reference, detail, reserved_by_attempt_id FROM "
+                "holdout_registry WHERE holdout_key = ?",
                 (holdout_key,),
             ).fetchone()
     except HoldoutLedgerModeMismatchError:
         raise
+    except HoldoutLedgerSchemaError as exc:
+        return HoldoutLedgerState(
+            state=STATE_INDETERMINATE,
+            detail=f"'{path}': esquema/metadatos de ledger no reconocidos: {exc}",
+        )
     except sqlite3.DatabaseError as exc:
         return HoldoutLedgerState(
             state=STATE_INDETERMINATE,
@@ -298,7 +349,7 @@ def read_holdout_state(
                 "con esa identidad ya presente (estado inicial AUSENTE)."
             ),
         )
-    state, authorized_by, confirmed_at, finalized_at, finalized_ref, detail = row
+    state, authorized_by, confirmed_at, finalized_at, finalized_ref, detail, owner_attempt_id = row
     if state not in STATES:
         return HoldoutLedgerState(
             state=STATE_INDETERMINATE,
@@ -311,6 +362,7 @@ def read_holdout_state(
         confirmed_at=confirmed_at,
         finalized_at=finalized_at,
         finalized_result_reference=finalized_ref,
+        reserved_by_attempt_id=owner_attempt_id,
     )
 
 
@@ -335,7 +387,7 @@ def reserve_holdout(path: str | Path, holdout_key: str, *, mode: str, attempt_id
     with _connect(path) as conn:
         conn.execute("BEGIN IMMEDIATE")
         try:
-            _validate_mode(conn, path, mode)
+            _validate_ledger_meta(conn, path, mode)
             row = conn.execute(
                 "SELECT state FROM holdout_registry WHERE holdout_key = ?", (holdout_key,)
             ).fetchone()
@@ -395,10 +447,18 @@ def confirm_holdout_open(
             "autoriza la apertura, protocolo sección 11) -- sin valor por defecto."
         )
     path = Path(path)
+    if not path.exists():
+        # `sqlite3.connect` crea un archivo vacío de forma implícita si no
+        # existe -- revisión dirigida (hallazgo 4): nunca se crea una base
+        # vacía por la ausencia del archivo esperado durante una operación.
+        raise HoldoutLedgerNotInitializedError(
+            f"No existe ningún ledger en '{path}': init_ledger debe ejecutarse explícitamente "
+            "antes de poder confirmar cualquier apertura."
+        )
     with _connect(path) as conn:
         conn.execute("BEGIN IMMEDIATE")
         try:
-            _validate_mode(conn, path, mode)
+            _validate_ledger_meta(conn, path, mode)
             row = conn.execute(
                 "SELECT state, reserved_by_attempt_id FROM holdout_registry WHERE holdout_key = ?",
                 (holdout_key,),
@@ -437,6 +497,7 @@ def finalize_holdout(
     holdout_key: str,
     *,
     mode: str,
+    attempt_id: str,
     result_reference: str,
 ) -> None:
     """Marca de finalización (documento de decisiones, Decisión 2, paso 5),
@@ -444,20 +505,53 @@ def finalize_holdout(
     (nunca finaliza un registro que no llegó a confirmarse). Su ausencia no
     significa que el holdout siga cerrado -- la confirmación (paso 3) ya lo
     abrió de forma permanente -- significa únicamente que todavía no hay un
-    resultado recuperable."""
+    resultado recuperable.
+
+    Revisión dirigida (hallazgo 4): exige el mismo `attempt_id` que ganó la
+    reserva/confirmación (`HoldoutFinalizationOwnershipError` si no coincide
+    -- un intento distinto nunca finaliza el resultado de otro), y rechaza
+    una segunda finalización (`HoldoutAlreadyFinalizedError` si
+    `finalized_at` ya está presente) en vez de reemplazar en silencio la
+    referencia de un resultado ya finalizado."""
     path = Path(path)
+    if not path.exists():
+        # Mismo motivo que en `confirm_holdout_open`: `sqlite3.connect` crea
+        # un archivo vacío si no existe -- nunca se crea una base vacía por
+        # la ausencia del archivo esperado durante una operación.
+        raise HoldoutLedgerNotInitializedError(
+            f"No existe ningún ledger en '{path}': init_ledger debe ejecutarse explícitamente "
+            "antes de poder finalizar cualquier apertura."
+        )
     with _connect(path) as conn:
         conn.execute("BEGIN IMMEDIATE")
         try:
-            _validate_mode(conn, path, mode)
+            _validate_ledger_meta(conn, path, mode)
             row = conn.execute(
-                "SELECT state FROM holdout_registry WHERE holdout_key = ?", (holdout_key,)
+                "SELECT state, reserved_by_attempt_id, finalized_at FROM holdout_registry "
+                "WHERE holdout_key = ?",
+                (holdout_key,),
             ).fetchone()
             if row is None or row[0] != STATE_CONFIRMED:
                 conn.execute("ROLLBACK")
                 raise HoldoutLedgerError(
                     f"'{path}': no se puede finalizar holdout_key='{holdout_key}' -- estado "
                     f"actual={row[0] if row else None!r} (se exige CONFIRMADA)"
+                )
+            owner_attempt_id, finalized_at = row[1], row[2]
+            if owner_attempt_id != attempt_id:
+                conn.execute("ROLLBACK")
+                raise HoldoutFinalizationOwnershipError(
+                    f"'{path}': finalize_holdout invocado con attempt_id='{attempt_id}', pero "
+                    f"la reserva/confirmación vigente pertenece a attempt_id="
+                    f"'{owner_attempt_id}'. Un intento distinto nunca finaliza el resultado de "
+                    "otro."
+                )
+            if finalized_at is not None:
+                conn.execute("ROLLBACK")
+                raise HoldoutAlreadyFinalizedError(
+                    f"'{path}': holdout_key='{holdout_key}' ya fue finalizado en "
+                    f"{finalized_at!r}. Una segunda finalización nunca reemplaza en silencio "
+                    "la referencia de un resultado ya finalizado."
                 )
             conn.execute(
                 "UPDATE holdout_registry SET finalized_at = ?, finalized_result_reference = ? "
@@ -483,11 +577,14 @@ __all__ = [
     "STATE_CONFIRMED",
     "STATE_INDETERMINATE",
     "STATES",
+    "HoldoutAlreadyFinalizedError",
     "HoldoutAlreadyProtectedError",
+    "HoldoutFinalizationOwnershipError",
     "HoldoutLedgerAlreadyInitializedError",
     "HoldoutLedgerError",
     "HoldoutLedgerModeMismatchError",
     "HoldoutLedgerNotInitializedError",
+    "HoldoutLedgerSchemaError",
     "HoldoutLedgerState",
     "HoldoutReservationLostError",
     "compute_holdout_identity_key",

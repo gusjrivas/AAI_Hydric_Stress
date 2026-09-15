@@ -92,6 +92,14 @@ def _contract(*, depth_role=DEPTH_ROLE_PRIMARY, input_mode="scientific", scienti
     )
 
 
+def _valid_diagnostics(*, replicas_valid=200, replicas_requested=200, replicas_discarded=0):
+    return {
+        "replicas_valid": replicas_valid,
+        "replicas_requested": replicas_requested,
+        "replicas_discarded": replicas_discarded,
+    }
+
+
 def _write_stage_b_evidence(
     stage_b_dir,
     producer_dir,
@@ -100,19 +108,28 @@ def _write_stage_b_evidence(
     predictions_available=True,
     mcc_candidate=0.4,
     interval_lower=0.0,
+    interval_upper=0.4,
+    diagnostics=None,
     bootstrap_executed=True,
     scientific_run=True,
+    input_mode=None,
     code_identity=None,
     validation_issues=None,
     embedded_frozen_config_raw=None,
     referenced_producer_dir=None,
 ):
+    resolved_input_mode = (
+        input_mode
+        if input_mode is not None
+        else (INPUT_MODE_SCIENTIFIC if scientific_run else INPUT_MODE_SYNTHETIC)
+    )
     stage_b_dir.mkdir(parents=True, exist_ok=True)
     (stage_b_dir / "schema_version.json").write_text(
         json.dumps({"schema_version": STAGE_B_ARTIFACT_SCHEMA_VERSION}), encoding="utf-8"
     )
     (stage_b_dir / "resolved_config.json").write_text(
-        json.dumps({"scientific_run": scientific_run}), encoding="utf-8"
+        json.dumps({"scientific_run": scientific_run, "input_mode": resolved_input_mode}),
+        encoding="utf-8",
     )
     (stage_b_dir / "decision.json").write_text(
         json.dumps({"verdict": verdict, "predictions_available": predictions_available}),
@@ -123,7 +140,14 @@ def _write_stage_b_evidence(
         encoding="utf-8",
     )
     (stage_b_dir / "bootstrap.json").write_text(
-        json.dumps({"bootstrap_executed": bootstrap_executed, "interval_lower": interval_lower}),
+        json.dumps(
+            {
+                "bootstrap_executed": bootstrap_executed,
+                "interval_lower": interval_lower,
+                "interval_upper": interval_upper,
+                "diagnostics": diagnostics if diagnostics is not None else _valid_diagnostics(),
+            }
+        ),
         encoding="utf-8",
     )
     (stage_b_dir / "code_version.json").write_text(
@@ -178,7 +202,7 @@ def test_synthetic_flow_admitted_without_full_evidence(tmp_path):
         json.dumps({"schema_version": STAGE_B_ARTIFACT_SCHEMA_VERSION}), encoding="utf-8"
     )
     (stage_b_dir / "resolved_config.json").write_text(
-        json.dumps({"scientific_run": False}), encoding="utf-8"
+        json.dumps({"scientific_run": False, "input_mode": "synthetic"}), encoding="utf-8"
     )
     (stage_b_dir / "decision.json").write_text(
         json.dumps({"verdict": "CANDIDATE_VALIDATED", "predictions_available": True}),
@@ -188,7 +212,15 @@ def test_synthetic_flow_admitted_without_full_evidence(tmp_path):
         json.dumps({"mcc_candidate": {"value": 0.4, "status": "defined"}}), encoding="utf-8"
     )
     (stage_b_dir / "bootstrap.json").write_text(
-        json.dumps({"bootstrap_executed": True, "interval_lower": 0.0}), encoding="utf-8"
+        json.dumps(
+            {
+                "bootstrap_executed": True,
+                "interval_lower": 0.0,
+                "interval_upper": 0.4,
+                "diagnostics": _valid_diagnostics(),
+            }
+        ),
+        encoding="utf-8",
     )
 
     check_stage_c_admissibility(
@@ -375,6 +407,144 @@ def test_missing_consumer_code_identity_is_rejected(tmp_path):
             consumer_environment_issues=[],
         )
     assert any("identidad de código" in reason for reason in exc.value.reasons)
+
+
+def test_inconsistent_input_mode_scientific_run_is_rejected(tmp_path):
+    """Revisión dirigida (hallazgo 1): B con input_mode='synthetic' y
+    scientific_run=True es internamente incoherente -- nunca es admisible
+    como antecedente científico, aunque scientific_run diga True."""
+    producer_dir = tmp_path / "producer_a"
+    stage_b_dir = tmp_path / "stage_b"
+    _write_stage_b_evidence(stage_b_dir, producer_dir, scientific_run=True, input_mode="synthetic")
+
+    with pytest.raises(StageCAdmissibilityError) as exc:
+        check_stage_c_admissibility(
+            _contract(),
+            stage_b_dir=stage_b_dir,
+            producer_dir=producer_dir,
+            consumer_input_mode=INPUT_MODE_SCIENTIFIC,
+            consumer_code_identity=_CONSUMER_CODE_IDENTITY,
+            consumer_environment_issues=[],
+        )
+    assert any("input_mode" in reason for reason in exc.value.reasons)
+
+
+def test_infinite_mcc_is_rejected(tmp_path):
+    """Revisión dirigida (hallazgo 1): un MCC no finito nunca sustenta
+    CANDIDATE_VALIDATED, aunque sea > 0 en apariencia (inf > 0 es True)."""
+    producer_dir = tmp_path / "producer_a"
+    stage_b_dir = tmp_path / "stage_b"
+    _write_stage_b_evidence(stage_b_dir, producer_dir, mcc_candidate=float("inf"))
+
+    with pytest.raises(StageCAdmissibilityError) as exc:
+        check_stage_c_admissibility(
+            _contract(),
+            stage_b_dir=stage_b_dir,
+            producer_dir=producer_dir,
+            consumer_input_mode=INPUT_MODE_SCIENTIFIC,
+            consumer_code_identity=_CONSUMER_CODE_IDENTITY,
+            consumer_environment_issues=[],
+        )
+    assert any("no es finito" in reason for reason in exc.value.reasons)
+
+
+def test_boolean_mcc_is_rejected(tmp_path):
+    """Revisión dirigida (hallazgo 1): un booleano nunca es una métrica MCC
+    válida, aunque `isinstance(True, (int, float))` sea verdadero en Python."""
+    producer_dir = tmp_path / "producer_a"
+    stage_b_dir = tmp_path / "stage_b"
+    _write_stage_b_evidence(stage_b_dir, producer_dir, mcc_candidate=True)
+
+    with pytest.raises(StageCAdmissibilityError) as exc:
+        check_stage_c_admissibility(
+            _contract(),
+            stage_b_dir=stage_b_dir,
+            producer_dir=producer_dir,
+            consumer_input_mode=INPUT_MODE_SCIENTIFIC,
+            consumer_code_identity=_CONSUMER_CODE_IDENTITY,
+            consumer_environment_issues=[],
+        )
+    assert any("no es un valor numérico válido" in reason for reason in exc.value.reasons)
+
+
+def test_inverted_bootstrap_interval_is_rejected(tmp_path):
+    """Revisión dirigida (hallazgo 1): interval_lower > interval_upper es un
+    intervalo invertido, sin importar que interval_lower solo cumpla >= -0.05."""
+    producer_dir = tmp_path / "producer_a"
+    stage_b_dir = tmp_path / "stage_b"
+    _write_stage_b_evidence(stage_b_dir, producer_dir, interval_lower=0.5, interval_upper=0.1)
+
+    with pytest.raises(StageCAdmissibilityError) as exc:
+        check_stage_c_admissibility(
+            _contract(),
+            stage_b_dir=stage_b_dir,
+            producer_dir=producer_dir,
+            consumer_input_mode=INPUT_MODE_SCIENTIFIC,
+            consumer_code_identity=_CONSUMER_CODE_IDENTITY,
+            consumer_environment_issues=[],
+        )
+    assert any("invertido" in reason for reason in exc.value.reasons)
+
+
+def test_zero_valid_bootstrap_replicas_is_rejected(tmp_path):
+    """Revisión dirigida (hallazgo 1): diagnostics.replicas_valid=0 nunca
+    sustenta un intervalo bootstrap, aunque bootstrap_executed sea True y el
+    intervalo persistido tenga forma numérica válida."""
+    producer_dir = tmp_path / "producer_a"
+    stage_b_dir = tmp_path / "stage_b"
+    _write_stage_b_evidence(
+        stage_b_dir,
+        producer_dir,
+        diagnostics=_valid_diagnostics(
+            replicas_valid=0, replicas_requested=200, replicas_discarded=200
+        ),
+    )
+
+    with pytest.raises(StageCAdmissibilityError) as exc:
+        check_stage_c_admissibility(
+            _contract(),
+            stage_b_dir=stage_b_dir,
+            producer_dir=producer_dir,
+            consumer_input_mode=INPUT_MODE_SCIENTIFIC,
+            consumer_code_identity=_CONSUMER_CODE_IDENTITY,
+            consumer_environment_issues=[],
+        )
+    assert any("replicas_valid" in reason for reason in exc.value.reasons)
+
+
+def test_rejected_stage_c_case_never_touches_holdout(tmp_path, monkeypatch):
+    """Spy: ningún caso rechazado por `check_stage_c_admissibility` reserva el
+    ledger ni accede a datos del holdout -- esta función nunca debe llamar a
+    `holdout_ledger.reserve_holdout` ni a ninguna función de carga/hash/
+    agregación del holdout por sí misma."""
+    import experiment_runner.controlled_daily_v4.holdout_ledger as holdout_ledger_module
+    import experiment_runner.controlled_daily_v4.ingestion as ingestion_module
+
+    spy_calls: list[str] = []
+    for name in ("reserve_holdout", "confirm_holdout_open"):
+        monkeypatch.setattr(
+            holdout_ledger_module,
+            name,
+            lambda *a, __n=name, **k: spy_calls.append(__n),
+        )
+    for name in ("load_era5_hourly_raw", "load_nasa_power_daily_raw", "aggregate_era5_daily"):
+        monkeypatch.setattr(ingestion_module, name, lambda *a, __n=name, **k: spy_calls.append(__n))
+
+    producer_dir = tmp_path / "producer_a"
+    stage_b_dir = tmp_path / "stage_b"
+    _write_stage_b_evidence(stage_b_dir, producer_dir, mcc_candidate=float("inf"))
+
+    with pytest.raises(StageCAdmissibilityError):
+        check_stage_c_admissibility(
+            _contract(),
+            stage_b_dir=stage_b_dir,
+            producer_dir=producer_dir,
+            consumer_input_mode=INPUT_MODE_SCIENTIFIC,
+            consumer_code_identity=_CONSUMER_CODE_IDENTITY,
+            consumer_environment_issues=[],
+        )
+
+    assert spy_calls == []
 
 
 def test_consumer_environment_issues_present_is_rejected(tmp_path):

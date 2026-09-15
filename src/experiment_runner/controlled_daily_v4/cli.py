@@ -288,7 +288,12 @@ def main(argv: list[str] | None = None) -> int:
                 ("--holdout-ledger-path", args.holdout_ledger_path),
                 ("--authorized-by", args.authorized_by),
             )
-            if value is None
+            # Revisión dirigida (hallazgo 3): una autorización VACÍA
+            # ('--authorized-by ""') es tan inválida como ausente -- se
+            # rechaza en este mismo punto (antes de reservar/acceder a
+            # ningún dato), no recién dentro de `confirm_holdout_open`
+            # (después de reservar el ledger).
+            if value is None or (isinstance(value, str) and value.strip() == "")
         ]
         if missing:
             print(
@@ -309,6 +314,22 @@ def main(argv: list[str] | None = None) -> int:
                 "provenance implica hashear el CSV completo, que ya incluye el holdout "
                 "2024-2025 -- esa operación solo puede ocurrir después de confirmar la "
                 "apertura durable del holdout, nunca como una validación aislada previa.",
+                file=sys.stderr,
+            )
+            return 2
+        if args.input_mode == INPUT_MODE_SCIENTIFIC and (
+            args.seed != BOOTSTRAP_SEED or args.bootstrap_replicas != BOOTSTRAP_REPLICAS_DEFAULT
+        ):
+            # Revisión dirigida (hallazgo 3): una invocación CIENTÍFICA con
+            # configuración no normativa (semilla/réplicas reducidas) se
+            # rechaza ANTES de acceder al holdout -- las configuraciones
+            # reducidas pertenecen exclusivamente al modo sintético
+            # (--input-mode synthetic), nunca a una apertura científica real.
+            print(
+                "ERROR: --stage C con --input-mode scientific exige la semilla y las réplicas "
+                f"normativas (seed={BOOTSTRAP_SEED}, bootstrap_replicas="
+                f"{BOOTSTRAP_REPLICAS_DEFAULT}); una configuración reducida pertenece "
+                "exclusivamente al modo sintético (--input-mode synthetic).",
                 file=sys.stderr,
             )
             return 2
@@ -738,6 +759,22 @@ def _run_stage_c(
         print(f"ERROR: {exc}", file=sys.stderr)
         return 9
 
+    # Revisión dirigida (hallazgo 3): una salida YA OCUPADA se rechaza aquí,
+    # antes de reservar el ledger -- `write_stage_c_artifacts` repite esta
+    # misma verificación más tarde (defensa en profundidad), pero si se
+    # difiere únicamente a ese punto, una salida ocupada deja el holdout ya
+    # confirmado/evaluado antes de fallar. `--overwrite` no existe para C
+    # (ya rechazado en `main`), por lo que esta comprobación es siempre
+    # incondicional. Nunca crea `output_dir` (a diferencia de
+    # `ensure_output_directory`): una recuperación con otro `--output-dir`
+    # no debe dejar un directorio vacío como efecto secundario de esta
+    # verificación previa.
+    try:
+        artifacts.check_output_directory_not_occupied(args.output_dir)
+    except artifacts.OutputDirectoryNotEmptyError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 9
+
     try:
         contract = load_frozen_config_contract(args.producer_dir)
     except (TransferContractSchemaError, TransferContractValidationError) as exc:
@@ -774,11 +811,33 @@ def _run_stage_c(
 
     if ledger_state.state == holdout_ledger.STATE_CONFIRMED and ledger_state.finalized:
         # Recuperación de solo lectura (documento de decisiones, Decisión 2):
-        # nunca se reentrena ni se accede al holdout crudo de nuevo.
+        # nunca se reentrena ni se accede al holdout crudo de nuevo. Revisión
+        # dirigida (hallazgo 2): nunca se declara éxito solo porque el
+        # ledger dice 'finalizado' -- se verifica el manifiesto de
+        # integridad y la correspondencia con este holdout/intento ANTES de
+        # imprimir cualquier artefacto.
         result_dir = Path(ledger_state.finalized_result_reference)
+        try:
+            artifacts.verify_stage_c_recovery(
+                result_dir,
+                holdout_identity_key=holdout_key,
+                attempt_id=ledger_state.reserved_by_attempt_id,
+            )
+        except artifacts.StageCRecoveryError as exc:
+            print(
+                "ERROR: el holdout de esta identidad ya fue finalizado, pero la evidencia "
+                f"persistida en '{result_dir}' no se pudo recuperar de forma verificable "
+                "(faltante, corrupta, o de otro intento). El holdout permanece bloqueado -- "
+                "nunca se reentrena ni se repara reevaluando:",
+                file=sys.stderr,
+            )
+            for reason in exc.reasons:
+                print(f"  - {reason}", file=sys.stderr)
+            return 16
         print(
             "El holdout de esta identidad ya fue evaluado y finalizado. Recuperando el "
-            f"resultado existente (solo lectura, sin reentrenar): {result_dir}"
+            f"resultado existente (solo lectura, verificado por integridad, sin reentrenar): "
+            f"{result_dir}"
         )
         for name in ("schema_version.json", "outcome.json", "metrics.json"):
             candidate = result_dir / name
@@ -947,7 +1006,13 @@ def _run_stage_c(
         args.holdout_ledger_path,
         holdout_key,
         mode=ledger_mode,
-        result_reference=str(args.output_dir),
+        attempt_id=attempt_id,
+        # Ruta RESUELTA (absoluta, símlinks incluidos), estable e
+        # independiente del directorio de trabajo desde el que se invoque
+        # una recuperación posterior (revisión dirigida, hallazgo 2) --
+        # coincide exactamente con `result_reference` del propio manifiesto
+        # de integridad escrito por `write_stage_c_artifacts`.
+        result_reference=str(Path(args.output_dir).resolve()),
     )
 
     print(f"Etapa C completada. Artefactos escritos en: {args.output_dir}")

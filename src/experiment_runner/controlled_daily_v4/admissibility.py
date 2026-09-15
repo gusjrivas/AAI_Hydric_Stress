@@ -41,6 +41,7 @@ pasar exactamente el defecto que la otra existe para atrapar."""
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -93,6 +94,31 @@ def _load_producer_json(
     if not isinstance(payload, dict):
         raise error_cls([f"'{path}': el JSON raíz debe ser un objeto"])
     return payload
+
+
+def _validate_bounded_metric(
+    value: Any, label: str, reasons: list[str], *, lower: float = -1.0, upper: float = 1.0
+) -> float | None:
+    """Valida ESTRUCTURALMENTE un valor antes de interpretarlo como métrica
+    numérica (hallazgo de revisión dirigida: 'validá estructuralmente los
+    artefactos antes de interpretar sus valores'). Rechaza explícitamente:
+    booleanos (`bool` es subclase de `int` en Python -- `isinstance(True, (int,
+    float))` es verdadero y `True > 0` también, lo que aceptaba un booleano
+    como si fuera un MCC válido), valores no numéricos, valores no finitos
+    (`inf`/`-inf`/`nan`) y valores fuera del dominio matemático de la métrica
+    (`[-1, 1]` para MCC/límites de intervalo). Devuelve el valor numérico
+    validado, o `None` si se rechazó (y ya dejó el motivo en `reasons`)."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        reasons.append(f"{label} no es un valor numérico válido (recibido {value!r})")
+        return None
+    numeric = float(value)
+    if not math.isfinite(numeric):
+        reasons.append(f"{label} no es finito (recibido {value!r})")
+        return None
+    if not (lower <= numeric <= upper):
+        reasons.append(f"{label}={numeric!r} está fuera del dominio válido [{lower}, {upper}]")
+        return None
+    return numeric
 
 
 def _mismatched_fingerprint_fields(a: dict[str, Any], b: dict[str, Any]) -> list[str]:
@@ -506,37 +532,103 @@ def check_stage_c_admissibility(
     # aprobación desde los números persistidos, nunca se confía únicamente en
     # el campo 'verdict' de decision.json (no aceptar un decision.json
     # aislado como evidencia suficiente).
-    mcc_candidate_envelope = metrics_payload_b.get("mcc_candidate", {})
-    if mcc_candidate_envelope.get("status") != "defined" or not (
-        isinstance(mcc_candidate_envelope.get("value"), (int, float))
-        and mcc_candidate_envelope["value"] > 0
-    ):
+    mcc_candidate_envelope = metrics_payload_b.get("mcc_candidate")
+    if not isinstance(mcc_candidate_envelope, dict):
         reasons.append(
-            f"'{stage_b_dir / 'metrics.json'}'.mcc_candidate no sustenta "
-            "MCC_candidato_2023 > 0 requerido por 'CANDIDATE_VALIDATED'"
+            f"'{stage_b_dir / 'metrics.json'}'.mcc_candidate no es un objeto estructurado "
+            f"válido (recibido {mcc_candidate_envelope!r})"
         )
+    elif mcc_candidate_envelope.get("status") != "defined":
+        reasons.append(
+            f"'{stage_b_dir / 'metrics.json'}'.mcc_candidate.status="
+            f"{mcc_candidate_envelope.get('status')!r} no es 'defined': no sustenta "
+            "'CANDIDATE_VALIDATED'"
+        )
+    else:
+        mcc_value = _validate_bounded_metric(
+            mcc_candidate_envelope.get("value"),
+            f"'{stage_b_dir / 'metrics.json'}'.mcc_candidate.value",
+            reasons,
+        )
+        if mcc_value is not None and mcc_value <= 0:
+            reasons.append(
+                f"'{stage_b_dir / 'metrics.json'}'.mcc_candidate.value={mcc_value!r} no cumple "
+                "MCC_candidato_2023 > 0 requerido por 'CANDIDATE_VALIDATED'"
+            )
+
     if bootstrap_payload.get("bootstrap_executed") is not True:
         reasons.append(
             f"'{stage_b_dir / 'bootstrap.json'}'.bootstrap_executed no es True: no hay "
             "intervalo bootstrap que sustente 'CANDIDATE_VALIDATED'"
         )
     else:
-        lower_bound = bootstrap_payload.get("interval_lower")
-        if not (isinstance(lower_bound, (int, float)) and lower_bound >= -0.05):
+        lower_bound = _validate_bounded_metric(
+            bootstrap_payload.get("interval_lower"),
+            f"'{stage_b_dir / 'bootstrap.json'}'.interval_lower",
+            reasons,
+        )
+        upper_bound = _validate_bounded_metric(
+            bootstrap_payload.get("interval_upper"),
+            f"'{stage_b_dir / 'bootstrap.json'}'.interval_upper",
+            reasons,
+        )
+        if lower_bound is not None and upper_bound is not None:
+            if lower_bound > upper_bound:
+                reasons.append(
+                    f"'{stage_b_dir / 'bootstrap.json'}': intervalo invertido "
+                    f"(interval_lower={lower_bound!r} > interval_upper={upper_bound!r})"
+                )
+            elif lower_bound < -0.05:
+                reasons.append(
+                    f"'{stage_b_dir / 'bootstrap.json'}'.interval_lower={lower_bound!r} no "
+                    "cumple el límite inferior >= -0.05 exigido por 'CANDIDATE_VALIDATED'"
+                )
+
+        diagnostics = bootstrap_payload.get("diagnostics")
+        if not isinstance(diagnostics, dict):
             reasons.append(
-                f"'{stage_b_dir / 'bootstrap.json'}'.interval_lower={lower_bound!r} no cumple "
-                "el límite inferior >= -0.05 exigido por 'CANDIDATE_VALIDATED'"
+                f"'{stage_b_dir / 'bootstrap.json'}'.diagnostics ausente o no estructurado: "
+                "no hay contabilidad de réplicas verificable que sustente el intervalo"
             )
+        else:
+            replicas_valid = diagnostics.get("replicas_valid")
+            replicas_requested = diagnostics.get("replicas_requested")
+            replicas_discarded = diagnostics.get("replicas_discarded")
+            if (
+                isinstance(replicas_valid, bool)
+                or not isinstance(replicas_valid, int)
+                or replicas_valid <= 0
+            ):
+                reasons.append(
+                    f"'{stage_b_dir / 'bootstrap.json'}'.diagnostics.replicas_valid="
+                    f"{replicas_valid!r} no reporta réplicas válidas (> 0) que sustenten el "
+                    "intervalo bootstrap"
+                )
+            if (
+                not isinstance(replicas_valid, bool)
+                and isinstance(replicas_valid, int)
+                and not isinstance(replicas_requested, bool)
+                and isinstance(replicas_requested, int)
+                and not isinstance(replicas_discarded, bool)
+                and isinstance(replicas_discarded, int)
+                and replicas_valid + replicas_discarded != replicas_requested
+            ):
+                reasons.append(
+                    f"'{stage_b_dir / 'bootstrap.json'}'.diagnostics: contabilidad de réplicas "
+                    f"inconsistente (valid={replicas_valid!r} + discarded="
+                    f"{replicas_discarded!r} != requested={replicas_requested!r})"
+                )
 
     if consumer_input_mode == INPUT_MODE_SYNTHETIC:
         if (
             contract.input_mode != INPUT_MODE_SYNTHETIC
             or resolved_config.get("scientific_run") is not False
+            or resolved_config.get("input_mode") != INPUT_MODE_SYNTHETIC
         ):
             reasons.append(
                 "Una ejecución de integración sintética de la Etapa C solo admite un candidato "
                 "de A y una corrida de B ambos sintéticos (input_mode='synthetic', "
-                "scientific_run=False)"
+                "scientific_run=False), con coherencia explícita entre ambos campos de B"
             )
         if reasons:
             raise StageCAdmissibilityError(reasons)
@@ -548,11 +640,22 @@ def check_stage_c_admissibility(
         )
 
     # Una aprobación SINTÉTICA nunca habilita una Etapa C científica (decisión
-    # operativa de este encargo, "Sobrescritura y autorización").
+    # operativa de este encargo, "Sobrescritura y autorización"). Se exige
+    # coherencia EXPLÍCITA entre 'scientific_run' e 'input_mode' de la propia
+    # ejecución de B -- un antecedente con input_mode='synthetic' pero
+    # scientific_run=True (o viceversa) es internamente incoherente y nunca
+    # habilita una Etapa C científica, aunque la bandera booleana sola diga
+    # lo contrario (hallazgo de revisión dirigida).
     if resolved_config.get("scientific_run") is not True:
         reasons.append(
             f"'{stage_b_dir / 'resolved_config.json'}'.scientific_run no es True: una "
             "aprobación sintética de la Etapa B nunca habilita una Etapa C científica"
+        )
+    if resolved_config.get("input_mode") != INPUT_MODE_SCIENTIFIC:
+        reasons.append(
+            f"'{stage_b_dir / 'resolved_config.json'}'.input_mode="
+            f"{resolved_config.get('input_mode')!r} no es 'scientific': incoherente con "
+            "scientific_run declarado, no admisible como antecedente científico"
         )
     if contract.input_mode != INPUT_MODE_SCIENTIFIC or not contract.scientific_run:
         reasons.append(

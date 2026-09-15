@@ -274,7 +274,7 @@ def _write_forced_validated_stage_b_dir(stage_b_out, producer_dir):
         json.dumps({"schema_version": STAGE_B_ARTIFACT_SCHEMA_VERSION}), encoding="utf-8"
     )
     (stage_b_out / "resolved_config.json").write_text(
-        json.dumps({"scientific_run": False}), encoding="utf-8"
+        json.dumps({"scientific_run": False, "input_mode": "synthetic"}), encoding="utf-8"
     )
     (stage_b_out / "decision.json").write_text(
         json.dumps({"verdict": "CANDIDATE_VALIDATED", "predictions_available": True}),
@@ -284,7 +284,19 @@ def _write_forced_validated_stage_b_dir(stage_b_out, producer_dir):
         json.dumps({"mcc_candidate": {"value": 0.4, "status": "defined"}}), encoding="utf-8"
     )
     (stage_b_out / "bootstrap.json").write_text(
-        json.dumps({"bootstrap_executed": True, "interval_lower": 0.0}), encoding="utf-8"
+        json.dumps(
+            {
+                "bootstrap_executed": True,
+                "interval_lower": 0.0,
+                "interval_upper": 0.4,
+                "diagnostics": {
+                    "replicas_valid": 20,
+                    "replicas_requested": 20,
+                    "replicas_discarded": 0,
+                },
+            }
+        ),
+        encoding="utf-8",
     )
     (stage_b_out / "producer_reference.json").write_text(
         json.dumps(
@@ -503,3 +515,136 @@ def test_ledger_never_initialized_is_indeterminate_and_rejected_before_data_acce
         output_dir=tmp_path / "stage_c_out",
     )
     assert exit_code == 11
+
+
+# --------------------------------------------------------------------------
+# Prevalidación antes de reservar (revisión dirigida, hallazgo 3)
+# --------------------------------------------------------------------------
+
+
+def test_occupied_output_dir_is_rejected_before_reserving(tmp_path, monkeypatch):
+    """Una salida YA OCUPADA se rechaza antes de reservar el ledger: cero
+    reservas, cero acceso al holdout, el ledger permanece AUSENTE."""
+    era5, nasa = write_synthetic_pergamino_csv_pair(tmp_path, n_days=_N_DAYS_THROUGH_2025, seed=7)
+    producer_dir = _write_synthetic_producer_dir(tmp_path, era5, nasa)
+    stage_b_out = tmp_path / "stage_b_out"
+    _run_stage_b_cli(era5, nasa, producer_dir, stage_b_out)
+    ledger_path, holdout_key = _init_ledger(tmp_path)
+
+    occupied_output = tmp_path / "already_occupied_output"
+    occupied_output.mkdir()
+    (occupied_output / "pre_existing_file.txt").write_text("stale", encoding="utf-8")
+
+    import experiment_runner.controlled_daily_v4.holdout_ledger as holdout_ledger_module
+    import experiment_runner.controlled_daily_v4.ingestion as ingestion_module
+
+    def _spy(*_a, **_k):
+        raise AssertionError("no debía tocarse ningún CSV ni el ledger: salida ya ocupada")
+
+    monkeypatch.setattr(ingestion_module, "load_era5_hourly_raw", _spy)
+    monkeypatch.setattr(holdout_ledger_module, "reserve_holdout", _spy)
+
+    exit_code = _run_stage_c_cli(
+        era5=era5,
+        nasa=nasa,
+        producer_dir=producer_dir,
+        stage_b_dir=stage_b_out,
+        ledger_path=ledger_path,
+        output_dir=occupied_output,
+    )
+    assert exit_code == 9
+    assert (occupied_output / "pre_existing_file.txt").read_text(encoding="utf-8") == "stale"
+
+    state = holdout_ledger.read_holdout_state(
+        ledger_path, holdout_key, expected_mode=holdout_ledger.LEDGER_MODE_SYNTHETIC
+    )
+    assert state.state == holdout_ledger.STATE_ABSENT
+
+
+def test_empty_authorized_by_is_rejected_before_data_access(tmp_path, monkeypatch):
+    era5, nasa = write_synthetic_pergamino_csv_pair(tmp_path, n_days=_N_DAYS_THROUGH_2025, seed=7)
+    producer_dir = _write_synthetic_producer_dir(tmp_path, era5, nasa)
+    stage_b_out = tmp_path / "stage_b_out"
+    _run_stage_b_cli(era5, nasa, producer_dir, stage_b_out)
+    ledger_path, holdout_key = _init_ledger(tmp_path)
+
+    import experiment_runner.controlled_daily_v4.holdout_ledger as holdout_ledger_module
+    import experiment_runner.controlled_daily_v4.ingestion as ingestion_module
+
+    def _spy(*_a, **_k):
+        raise AssertionError("no debía tocarse ningún CSV ni el ledger: --authorized-by vacío")
+
+    monkeypatch.setattr(ingestion_module, "load_era5_hourly_raw", _spy)
+    monkeypatch.setattr(holdout_ledger_module, "reserve_holdout", _spy)
+
+    exit_code = _run_stage_c_cli(
+        era5=era5,
+        nasa=nasa,
+        producer_dir=producer_dir,
+        stage_b_dir=stage_b_out,
+        ledger_path=ledger_path,
+        output_dir=tmp_path / "stage_c_out",
+        authorized_by="",
+    )
+    assert exit_code == 2
+
+    state = holdout_ledger.read_holdout_state(
+        ledger_path, holdout_key, expected_mode=holdout_ledger.LEDGER_MODE_SYNTHETIC
+    )
+    assert state.state == holdout_ledger.STATE_ABSENT
+
+
+def test_scientific_invocation_with_non_normative_config_is_rejected_before_data_access(
+    tmp_path, monkeypatch
+):
+    """Una invocación --input-mode scientific con réplicas/semilla reducidas
+    (configuración no normativa) se rechaza antes de acceder al holdout --
+    las configuraciones reducidas pertenecen exclusivamente al modo
+    sintético."""
+    era5, nasa = write_synthetic_pergamino_csv_pair(tmp_path, n_days=_N_DAYS_THROUGH_2025, seed=7)
+    producer_dir = _write_synthetic_producer_dir(tmp_path, era5, nasa)
+    stage_b_out = tmp_path / "stage_b_out"
+    _run_stage_b_cli(era5, nasa, producer_dir, stage_b_out)
+    ledger_path, holdout_key = _init_ledger(tmp_path)
+
+    import experiment_runner.controlled_daily_v4.holdout_ledger as holdout_ledger_module
+    import experiment_runner.controlled_daily_v4.ingestion as ingestion_module
+
+    def _spy(*_a, **_k):
+        raise AssertionError(
+            "no debía tocarse ningún CSV ni el ledger: configuración científica no normativa"
+        )
+
+    monkeypatch.setattr(ingestion_module, "load_era5_hourly_raw", _spy)
+    monkeypatch.setattr(holdout_ledger_module, "reserve_holdout", _spy)
+
+    exit_code = main(
+        [
+            "--stage",
+            "C",
+            "--era5-csv",
+            str(era5),
+            "--nasa-power-csv",
+            str(nasa),
+            "--output-dir",
+            str(tmp_path / "stage_c_out"),
+            "--producer-dir",
+            str(producer_dir),
+            "--stage-b-dir",
+            str(stage_b_out),
+            "--holdout-ledger-path",
+            str(ledger_path),
+            "--authorized-by",
+            "tester",
+            "--input-mode",
+            "scientific",
+            "--bootstrap-replicas",
+            "20",
+        ]
+    )
+    assert exit_code == 2
+
+    state = holdout_ledger.read_holdout_state(
+        ledger_path, holdout_key, expected_mode=holdout_ledger.LEDGER_MODE_SYNTHETIC
+    )
+    assert state.state == holdout_ledger.STATE_ABSENT

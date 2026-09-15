@@ -57,7 +57,10 @@ from experiment_runner.controlled_daily_v4.config import (
     STAGE_C_TRAINING_BOUNDS,
     CalendarIntegrityError,
 )
-from experiment_runner.controlled_daily_v4.dataset_fingerprint import compute_dataset_fingerprint
+from experiment_runner.controlled_daily_v4.dataset_fingerprint import (
+    FINGERPRINT_SCOPE_STAGE_C_EXTENDED_TRAINING,
+    compute_dataset_fingerprint,
+)
 from experiment_runner.controlled_daily_v4.features import (
     FEATURE_COLUMNS,
     build_feature_frame,
@@ -182,6 +185,7 @@ class StageCResult:
     evaluation_target_timestamp_min: str | None
     evaluation_target_timestamp_max: str | None
     feature_timestamps: np.ndarray
+    target_timestamps: np.ndarray
     y_true: np.ndarray
     y_pred_candidate: np.ndarray
     y_score_candidate: np.ndarray
@@ -265,7 +269,9 @@ def run_stage_c(
             f"{missing_dates}"
         )
 
-    training_fingerprint = compute_dataset_fingerprint(training_frame)
+    training_fingerprint = compute_dataset_fingerprint(
+        training_frame, scope=FINGERPRINT_SCOPE_STAGE_C_EXTENDED_TRAINING
+    )
     warnings_log: list[dict[str, Any]] = []
 
     # P20_train recalculado EXCLUSIVAMENTE sobre el entrenamiento extendido de
@@ -290,6 +296,7 @@ def run_stage_c(
                 str(evaluation_frame["target_timestamp"].max()) if len(evaluation_frame) else None
             ),
             feature_timestamps=np.array([]),
+            target_timestamps=np.array([]),
             y_true=np.array([]),
             y_pred_candidate=np.array([]),
             y_score_candidate=np.array([]),
@@ -327,6 +334,7 @@ def run_stage_c(
             evaluation_target_timestamp_min=str(evaluation_frame["target_timestamp"].min()),
             evaluation_target_timestamp_max=str(evaluation_frame["target_timestamp"].max()),
             feature_timestamps=evaluation_frame["feature_timestamp"].to_numpy(),
+            target_timestamps=evaluation_frame["target_timestamp"].to_numpy(),
             y_true=y_eval,
             y_pred_candidate=np.array([]),
             y_score_candidate=np.array([]),
@@ -405,6 +413,7 @@ def run_stage_c(
         evaluation_target_timestamp_min=str(evaluation_frame["target_timestamp"].min()),
         evaluation_target_timestamp_max=str(evaluation_frame["target_timestamp"].max()),
         feature_timestamps=evaluation_frame["feature_timestamp"].to_numpy(),
+        target_timestamps=evaluation_frame["target_timestamp"].to_numpy(),
         y_true=y_true,
         y_pred_candidate=y_pred_candidate,
         y_score_candidate=y_score_candidate,

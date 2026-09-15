@@ -91,7 +91,11 @@ def test_reserve_then_confirm_then_finalize_happy_path(tmp_path):
     assert not state.finalized
 
     hl.finalize_holdout(
-        path, key, mode=hl.LEDGER_MODE_SYNTHETIC, result_reference="/tmp/stage_c_out"
+        path,
+        key,
+        mode=hl.LEDGER_MODE_SYNTHETIC,
+        attempt_id="attempt-1",
+        result_reference="/tmp/stage_c_out",
     )
     state = hl.read_holdout_state(path, key, expected_mode=hl.LEDGER_MODE_SYNTHETIC)
     assert state.state == hl.STATE_CONFIRMED
@@ -195,7 +199,116 @@ def test_finalize_requires_confirmed_state(tmp_path):
     key = _key()
     hl.init_ledger(path, mode=hl.LEDGER_MODE_SYNTHETIC, holdout_key=key)
     with pytest.raises(hl.HoldoutLedgerError):
-        hl.finalize_holdout(path, key, mode=hl.LEDGER_MODE_SYNTHETIC, result_reference="/x")
+        hl.finalize_holdout(
+            path, key, mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="a1", result_reference="/x"
+        )
+
+
+def _tamper_ledger_meta(path, **columns):
+    import sqlite3 as _sqlite3
+
+    assignments = ", ".join(f"{col} = ?" for col in columns)
+    with _sqlite3.connect(str(path)) as conn:
+        conn.execute(f"UPDATE ledger_meta SET {assignments}", list(columns.values()))
+        conn.commit()
+
+
+def test_unknown_schema_version_is_indeterminate_and_blocks_reservation(tmp_path):
+    """Revisión dirigida (hallazgo 4): un `schema_version` desconocido nunca
+    habilita `read_holdout_state` a devolver AUSENTE ni `reserve_holdout` a
+    reservar -- ambas deben rechazar/bloquear explícitamente."""
+    path = tmp_path / "ledger.sqlite3"
+    key = _key()
+    hl.init_ledger(path, mode=hl.LEDGER_MODE_SYNTHETIC, holdout_key=key)
+    _tamper_ledger_meta(path, schema_version="UNKNOWN_SCHEMA")
+
+    state = hl.read_holdout_state(path, key, expected_mode=hl.LEDGER_MODE_SYNTHETIC)
+    assert state.state == hl.STATE_INDETERMINATE
+
+    with pytest.raises(hl.HoldoutLedgerSchemaError):
+        hl.reserve_holdout(path, key, mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="a1")
+
+
+def test_incoherent_mode_metadata_is_indeterminate_and_blocks_reservation(tmp_path):
+    path = tmp_path / "ledger.sqlite3"
+    key = _key()
+    hl.init_ledger(path, mode=hl.LEDGER_MODE_SYNTHETIC, holdout_key=key)
+    _tamper_ledger_meta(path, mode="not_a_real_mode")
+
+    state = hl.read_holdout_state(path, key, expected_mode=hl.LEDGER_MODE_SYNTHETIC)
+    assert state.state == hl.STATE_INDETERMINATE
+
+    with pytest.raises(hl.HoldoutLedgerSchemaError):
+        hl.reserve_holdout(path, key, mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="a1")
+
+
+def test_incoherent_registry_state_is_indeterminate(tmp_path):
+    """Un valor de `state` fuera de `STATES` (registro corrupto/tamperado) se
+    trata como INDETERMINADA, nunca como uno de los estados válidos."""
+    import sqlite3 as _sqlite3
+
+    path = tmp_path / "ledger.sqlite3"
+    key = _key()
+    hl.init_ledger(path, mode=hl.LEDGER_MODE_SYNTHETIC, holdout_key=key)
+    with _sqlite3.connect(str(path)) as conn:
+        conn.execute("UPDATE holdout_registry SET state = ? WHERE holdout_key = ?", ("BOGUS", key))
+        conn.commit()
+
+    state = hl.read_holdout_state(path, key, expected_mode=hl.LEDGER_MODE_SYNTHETIC)
+    assert state.state == hl.STATE_INDETERMINATE
+
+
+def test_confirm_and_finalize_never_create_ledger_implicitly_when_missing(tmp_path):
+    """Ni `confirm_holdout_open` ni `finalize_holdout` deben crear un archivo
+    de ledger vacío cuando el esperado no existe (`sqlite3.connect` lo haría
+    de forma implícita si no se verifica antes)."""
+    path = tmp_path / "never_initialized.sqlite3"
+    with pytest.raises(hl.HoldoutLedgerNotInitializedError):
+        hl.confirm_holdout_open(
+            path, _key(), mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="a1", authorized_by="tester"
+        )
+    assert not path.exists()
+
+    with pytest.raises(hl.HoldoutLedgerNotInitializedError):
+        hl.finalize_holdout(
+            path, _key(), mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="a1", result_reference="/x"
+        )
+    assert not path.exists()
+
+
+def test_finalize_rejects_wrong_attempt_id(tmp_path):
+    path = tmp_path / "ledger.sqlite3"
+    key = _key()
+    hl.init_ledger(path, mode=hl.LEDGER_MODE_SYNTHETIC, holdout_key=key)
+    hl.reserve_holdout(path, key, mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="a1")
+    hl.confirm_holdout_open(
+        path, key, mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="a1", authorized_by="tester"
+    )
+    with pytest.raises(hl.HoldoutFinalizationOwnershipError):
+        hl.finalize_holdout(
+            path, key, mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="a2", result_reference="/x"
+        )
+    state = hl.read_holdout_state(path, key, expected_mode=hl.LEDGER_MODE_SYNTHETIC)
+    assert not state.finalized
+
+
+def test_second_finalization_never_silently_replaces_reference(tmp_path):
+    path = tmp_path / "ledger.sqlite3"
+    key = _key()
+    hl.init_ledger(path, mode=hl.LEDGER_MODE_SYNTHETIC, holdout_key=key)
+    hl.reserve_holdout(path, key, mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="a1")
+    hl.confirm_holdout_open(
+        path, key, mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="a1", authorized_by="tester"
+    )
+    hl.finalize_holdout(
+        path, key, mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="a1", result_reference="/original"
+    )
+    with pytest.raises(hl.HoldoutAlreadyFinalizedError):
+        hl.finalize_holdout(
+            path, key, mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="a1", result_reference="/replaced"
+        )
+    state = hl.read_holdout_state(path, key, expected_mode=hl.LEDGER_MODE_SYNTHETIC)
+    assert state.finalized_result_reference == "/original"
 
 
 # --------------------------------------------------------------------------

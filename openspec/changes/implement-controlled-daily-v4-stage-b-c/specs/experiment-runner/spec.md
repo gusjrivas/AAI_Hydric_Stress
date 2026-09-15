@@ -38,6 +38,37 @@
 > este cierre** -- toda verificación es exclusivamente sintética, y la
 > integración a `main` queda pendiente mientras el PR correspondiente esté
 > abierto.
+>
+> **Revisión dirigida sobre este mismo cierre (2026-09-15), cinco hallazgos
+> corregidos con evidencia sintética verificable, sin reabrir la Decisión 4
+> (`depth_role`):** (1) `check_stage_c_admissibility` ahora valida
+> ESTRUCTURALMENTE los artefactos de B antes de interpretar sus valores --
+> rechaza booleanos como métrica (`bool` es subclase de `int` en Python),
+> valores no finitos, un intervalo bootstrap invertido, réplicas bootstrap
+> válidas insuficientes (`diagnostics.replicas_valid`), y una incoherencia
+> interna entre `input_mode` y `scientific_run` de la propia corrida de B.
+> (2) la recuperación de solo lectura de un resultado finalizado
+> (`artifacts.verify_stage_c_recovery`) exige un `integrity_manifest.json`
+> con el sha256 de cada artefacto realmente escrito y la correspondencia de
+> `holdout_identity_key`/`attempt_id`, escrito como ÚLTIMO artefacto de
+> `write_stage_c_artifacts` -- nunca declara éxito sobre un directorio
+> ausente, un artefacto faltante, contenido alterado, o evidencia de otro
+> intento. (3) la CLI rechaza, ANTES de reservar el ledger, una salida ya
+> ocupada, una `--authorized-by` vacía, y una invocación científica con
+> semilla/réplicas no normativas (antes solo se detectaban, respectivamente,
+> dentro de `write_stage_c_artifacts`, dentro de `confirm_holdout_open`, o
+> nunca). (4) la validación de esquema/metadatos del ledger
+> (`holdout_ledger._validate_ledger_meta`) ahora es una única función
+> reutilizada en lectura, reserva, confirmación y finalización: un
+> `schema_version` o `mode` desconocido nunca habilita ninguna de las cuatro
+> operaciones; `confirm_holdout_open`/`finalize_holdout` verifican
+> explícitamente que el archivo exista (nunca dejan que `sqlite3.connect` cree
+> uno vacío implícito); `finalize_holdout` exige el mismo `attempt_id` que
+> ganó la reserva y rechaza una segunda finalización en vez de reemplazar en
+> silencio la referencia ya persistida. (5) el entrenamiento extendido de C
+> se huella con un `scope` propio (`FINGERPRINT_SCOPE_STAGE_C_EXTENDED_TRAINING`,
+> nunca el de A/B) y `predictions_2024_2025.csv` incorpora `target_timestamp`
+> (esquema de artefactos de C: `controlled_daily_v4_stage_c.v2`).
 
 ## ADDED Requirements
 
