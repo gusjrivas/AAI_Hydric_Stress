@@ -224,4 +224,8 @@ def test_cli_selection_decision_records_bootstrap_provenance(cli_output):
         assert diagnostics["block_length"] == 30
         assert diagnostics["replicas_requested"] == 10
         assert diagnostics["segment_sizes"]
-        assert diagnostics["normative"] is True
+        # Cierre de pendiente técnico (revisión dirigida sobre PR #193): 10
+        # réplicas no son las 5000 normativas -- la bandera de evidencia
+        # persistida debe reflejar la configuración REALMENTE consumida, no
+        # una declaración fija del llamador.
+        assert diagnostics["normative"] is False

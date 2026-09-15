@@ -1,16 +1,64 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 
-from experiment_runner.controlled_daily_v4.config import STAGE_A_BOUNDS
+from experiment_runner.controlled_daily_v4.config import (
+    STAGE_A_BOUNDS,
+    STAGE_B_BOUNDS,
+    CalendarIntegrityError,
+)
 from experiment_runner.controlled_daily_v4.features import (
     FEATURE_COLUMNS,
     build_feature_frame,
     build_target,
     compute_p20_threshold,
+    compute_stage_window_bounds,
     select_eligible_rows,
+    validate_stage_window_full_coverage,
 )
 from tests.controlled_daily_v4_fixtures import make_synthetic_daily_frame
+
+
+def _continuous_daily_series(start, end):
+    dates = pd.date_range(start, end, freq="D")
+    return pd.DataFrame({"value": range(len(dates))}, index=dates)
+
+
+# --------------------------------------------------------------------------
+# validate_stage_window_full_coverage (revisión externa 2026-09-14, hallazgo
+# sobre cobertura y validación antes del ajuste): distinta de
+# validate_continuous_daily_calendar, que solo verifica continuidad DENTRO
+# del rango que efectivamente recibe.
+# --------------------------------------------------------------------------
+
+
+def test_validate_stage_window_full_coverage_accepts_series_covering_the_full_window():
+    window_start, window_end = compute_stage_window_bounds(STAGE_B_BOUNDS)
+    series = _continuous_daily_series(window_start, window_end)
+    validate_stage_window_full_coverage(series, STAGE_B_BOUNDS)  # no debe lanzar
+
+
+def test_validate_stage_window_full_coverage_rejects_series_truncated_at_the_end():
+    window_start, window_end = compute_stage_window_bounds(STAGE_B_BOUNDS)
+    series = _continuous_daily_series(window_start, window_end - pd.Timedelta(days=30))
+    with pytest.raises(CalendarIntegrityError):
+        validate_stage_window_full_coverage(series, STAGE_B_BOUNDS)
+
+
+def test_validate_stage_window_full_coverage_rejects_series_truncated_at_the_start():
+    window_start, window_end = compute_stage_window_bounds(STAGE_B_BOUNDS)
+    series = _continuous_daily_series(window_start + pd.Timedelta(days=10), window_end)
+    with pytest.raises(CalendarIntegrityError):
+        validate_stage_window_full_coverage(series, STAGE_B_BOUNDS)
+
+
+def test_validate_stage_window_full_coverage_rejects_interior_gap():
+    window_start, window_end = compute_stage_window_bounds(STAGE_B_BOUNDS)
+    series = _continuous_daily_series(window_start, window_end)
+    series = series.drop(pd.Timestamp("2023-06-15"))
+    with pytest.raises(CalendarIntegrityError):
+        validate_stage_window_full_coverage(series, STAGE_B_BOUNDS)
 
 
 def test_target_is_strictly_less_than_p20():

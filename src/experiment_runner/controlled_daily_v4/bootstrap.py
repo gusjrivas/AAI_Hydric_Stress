@@ -18,7 +18,11 @@ from dataclasses import dataclass, field
 import numpy as np
 import pandas as pd
 
-from experiment_runner.controlled_daily_v4.config import BOOTSTRAP_BLOCK_DAYS, BOOTSTRAP_SEED
+from experiment_runner.controlled_daily_v4.config import (
+    BOOTSTRAP_BLOCK_DAYS,
+    BOOTSTRAP_REPLICAS_DEFAULT,
+    BOOTSTRAP_SEED,
+)
 
 MetricFn = Callable[[np.ndarray, np.ndarray], float]
 
@@ -32,6 +36,7 @@ __all__ = [
     "SegmentPlan",
     "SegmentTooShortForBlockError",
     "build_segment_plans",
+    "compute_is_normative_configuration",
     "moving_block_bootstrap_indices",
     "paired_bootstrap_delta",
     "percentile_interval",
@@ -45,7 +50,17 @@ class SegmentTooShortForBlockError(ValueError):
 
 class NoValidBootstrapReplicasError(RuntimeError):
     """Ninguna réplica produjo una métrica definida; no hay intervalo que
-    reportar y el resultado no puede interpretarse como comparación válida."""
+    reportar y el resultado no puede interpretarse como comparación válida.
+
+    Revisión externa (2026-09-14), hallazgo sobre evidencia de
+    reproducibilidad de la Etapa B: lleva adjuntos los `diagnostics`
+    completos del intento (réplicas solicitadas/válidas/descartadas, motivos,
+    semilla, largo de bloque y segmentos) -- quien la captura nunca debe
+    perder esa evidencia ni reejecutar el bootstrap solo para reconstruirla."""
+
+    def __init__(self, message: str, diagnostics: BootstrapDiagnostics | None = None):
+        super().__init__(message)
+        self.diagnostics = diagnostics
 
 
 @dataclass(frozen=True)
@@ -63,7 +78,19 @@ class SegmentPlan:
 
 @dataclass(frozen=True)
 class BootstrapDiagnostics:
-    """Provenance completa del procedimiento, para serializar como evidencia."""
+    """Provenance completa del procedimiento, para serializar como evidencia.
+
+    `normative` (cierre de pendiente técnico, revisión dirigida sobre PR #193):
+    NUNCA es una declaración del llamador tomada al pie de la letra -- se
+    calcula (`compute_is_normative_configuration`) a partir de los valores
+    REALMENTE consumidos por esta réplica concreta (`replicas_requested`,
+    `seed`, `block_length`) contra los valores normativos del protocolo
+    (5000 réplicas, semilla 20250109, bloques de 30 días). Una configuración
+    reducida o con semilla/bloques distintos nunca puede quedar etiquetada
+    como normativa solo porque quien invocó pasó `normative=True` -- ese
+    parámetro de las funciones de este módulo controla exclusivamente la
+    validación del largo de bloque (ver `build_segment_plans`), una
+    responsabilidad distinta de esta etiqueta de evidencia."""
 
     replicas_requested: int
     replicas_valid: int
@@ -76,6 +103,20 @@ class BootstrapDiagnostics:
     discard_reasons: dict[str, int] = field(default_factory=dict)
     interval_lower: float | None = None
     interval_upper: float | None = None
+
+
+def compute_is_normative_configuration(n_replicas: int, seed: int, block_length: int) -> bool:
+    """Condición normativa real (evidencia), calculada exclusivamente a
+    partir de los valores efectivamente consumidos por el bootstrap -- nunca
+    a partir de una bandera declarada por quien invoca. `True` sii
+    `n_replicas == BOOTSTRAP_REPLICAS_DEFAULT` (5000) Y
+    `seed == BOOTSTRAP_SEED` (20250109) Y
+    `block_length == BOOTSTRAP_BLOCK_DAYS` (30), simultáneamente."""
+    return (
+        n_replicas == BOOTSTRAP_REPLICAS_DEFAULT
+        and seed == BOOTSTRAP_SEED
+        and block_length == BOOTSTRAP_BLOCK_DAYS
+    )
 
 
 @dataclass(frozen=True)
@@ -180,6 +221,17 @@ def paired_bootstrap_delta(
     monoclase) se descartan, pero se contabilizan explícitamente en las
     diagnósticas: nunca se descartan en silencio. Si ninguna réplica resulta
     válida se levanta `NoValidBootstrapReplicasError`.
+
+    `normative` controla EXCLUSIVAMENTE si `build_segment_plans` exige que
+    `block_length` sea exactamente el del protocolo (30 días) -- una
+    responsabilidad de validación, no de evidencia. La bandera
+    `BootstrapDiagnostics.normative` que queda persistida (aquí y en el caso
+    de cero réplicas válidas) NUNCA reutiliza este argumento tal cual: se
+    calcula por separado (`compute_is_normative_configuration`) a partir de
+    `n_replicas`, `seed` y `block_length` REALMENTE consumidos (cierre de
+    pendiente técnico, revisión dirigida sobre PR #193) -- una configuración
+    reducida o con semilla/bloques no normativos nunca queda etiquetada como
+    normativa solo porque este parámetro llegó en `True`.
     """
     y_true = np.asarray(y_true)
     y_pred_a = np.asarray(y_pred_a)
@@ -189,6 +241,10 @@ def paired_bootstrap_delta(
         frame_with_segment_id, block_length=block_length, normative=normative
     )
     replicas = moving_block_bootstrap_indices(plans, n_replicas=n_replicas, seed=seed)
+
+    is_normative_configuration = compute_is_normative_configuration(
+        n_replicas=n_replicas, seed=seed, block_length=block_length
+    )
 
     valid: list[float] = []
     discard_reasons: dict[str, int] = {}
@@ -203,10 +259,24 @@ def paired_bootstrap_delta(
 
     segment_sizes = {plan.segment_id: plan.size for plan in plans}
     if not valid:
+        zero_valid_diagnostics = BootstrapDiagnostics(
+            replicas_requested=n_replicas,
+            replicas_valid=0,
+            replicas_discarded=n_replicas,
+            n_segments=len(plans),
+            block_length=block_length,
+            seed=seed,
+            normative=is_normative_configuration,
+            segment_sizes=segment_sizes,
+            discard_reasons=discard_reasons,
+            interval_lower=None,
+            interval_upper=None,
+        )
         raise NoValidBootstrapReplicasError(
             f"Ninguna de las {n_replicas} réplicas produjo una métrica definida "
             f"(motivos: {discard_reasons or {DISCARD_UNDEFINED_METRIC: n_replicas}}). "
-            "No hay intervalo pareado que reportar."
+            "No hay intervalo pareado que reportar.",
+            diagnostics=zero_valid_diagnostics,
         )
 
     deltas = np.asarray(valid, dtype=float)
@@ -218,7 +288,7 @@ def paired_bootstrap_delta(
         n_segments=len(plans),
         block_length=block_length,
         seed=seed,
-        normative=normative,
+        normative=is_normative_configuration,
         segment_sizes=segment_sizes,
         discard_reasons=discard_reasons,
         interval_lower=interval[0],

@@ -1,13 +1,53 @@
 # Tareas — implement-controlled-daily-v4-stage-b-c
 
-**Estado (2026-09-13):** el contrato de transferencia A→B (lectura estructural +
-admisibilidad para una ejecución concreta) está implementado e integrado en la
-escritura de artefactos de la Etapa A, y verificado con pruebas exclusivamente
-sintéticas -- ver la sección "Contrato de transferencia A→B" más abajo. Los
-baselines del protocolo, los runners de las Etapas B y C, y el resto de las tareas
-de "Integración y documentación" siguen sin implementar. Las tareas marcadas
+**Actualización (2026-09-14, corrección de revisión dirigida sobre el PR #193,
+commit auditado `d05f80e6`):** cuatro hallazgos concretos sobre el runner/CLI/
+escritor de la Etapa B (protección de los artefactos de A ante `--output-dir`
+efectivamente coincidente con `--producer-dir`; persistencia del veredicto
+`CANDIDATE_NOT_VALIDATED` con datos genuinamente monoclase, antes perdida por
+un `ValueError` en el escritor; cobertura/calendario completos del período
+evaluable verificados ANTES de tocar el estimador, antes solo parcialmente
+verificados; y evidencia de reproducibilidad de B -- `constraints_identity`,
+advertencias de ajuste, diagnósticos de bootstrap con cero réplicas válidas)
+fueron corregidos en la misma rama/PR, sin reabrir ninguna decisión bloqueada
+ni cambiar familia/hiperparámetros/bootstrap normativo/fronteras del
+protocolo. Ver `docs/seguimiento-tareas.md`, entrada "Corrección de cuatro
+hallazgos de revisión dirigida sobre la Etapa B de controlled_daily_v4
+(2026-09-14)", para el detalle completo y los conteos de pruebas. Esta
+corrección es documental/de manejo de casos límite sobre el código YA
+implementado descrito debajo -- no reemplaza, y no debe confundirse con, una
+ejecución científica real de la Etapa B (que sigue sin haberse realizado).
+
+**Estado (2026-09-14):** el contrato de transferencia A→B (lectura estructural +
+admisibilidad para una ejecución concreta) sigue implementado e integrado en la
+escritura de artefactos de la Etapa A, verificado con pruebas exclusivamente
+sintéticas -- ver la sección "Contrato de transferencia A→B" más abajo. Los tres
+baselines del protocolo (sección 13) y el runner completo de la Etapa B (reentrenamiento
+del candidato congelado, evaluación única sobre 2023, bootstrap pareado y veredicto)
+quedan implementados e integrados en este cierre, reutilizando la Decisión 1 del
+documento de decisiones pendientes -- adoptada para este encargo, ver
+`docs/research/controlled-daily-v4-stage-b-c-decisiones-pendientes.md` y la nota de
+adopción al pie de esta sección -- y verificados exclusivamente con pruebas
+sintéticas (`tests/test_controlled_daily_v4_baselines.py`,
+`tests/test_controlled_daily_v4_stage_b_runner.py`,
+`tests/test_controlled_daily_v4_stage_b_integration.py`, más las extensiones de
+`tests/test_controlled_daily_v4_cli.py`). La CLI habilita `--stage B` con
+`--producer-dir` explícito y sigue rechazando `--stage C`. Ninguna ejecución
+científica real de la Etapa B se realizó en este cierre; el runner de la Etapa C
+(Decisiones 2 y 3, ambas bloqueadas) sigue sin implementar. Las tareas marcadas
 **[BLOQUEADA]** no deben iniciarse hasta que exista una decisión explícita
 registrada en `docs/research/controlled-daily-v4-stage-b-c-decisiones-pendientes.md`.
+
+**Nota de adopción de la Decisión 1 (2026-09-14):** para este encargo se adopta la
+propuesta técnica ya descrita en la Decisión 1 de ese documento -- las predicciones
+evaluables de 2023 constituyen un único segmento temporal continuo para
+`bootstrap.paired_bootstrap_delta` (`segment_id` constante,
+`stage_b_runner.STAGE_B_BOOTSTRAP_SEGMENT_ID`), moving-block bootstrap pareado no
+circular, bloques de 30 días, 5000 réplicas normativas, semilla `20250109`, los
+mismos índices remuestreados aplicados a candidato, persistencia y etiquetas, sin
+que ningún bloque cruce discontinuidades ni incorpore observaciones externas al
+período autorizado. Esta adopción es una decisión de implementación de este
+encargo, no una aprobación académica externa: se registra aquí exactamente como tal.
 
 ## Contrato de transferencia A→B
 
@@ -34,17 +74,17 @@ Dividido en dos partes que no deben mezclarse en una sola función: lectura/vali
 
 ## Baselines del protocolo (sección 13)
 
-- [ ] Implementar `predict_majority_class_baseline` (aprende exclusivamente de las etiquetas del `train` autorizado — acceso legítimo y requerido, no una fuga), `predict_persistence_baseline_v4` (usa la humedad actual y `P20_train`; nunca consulta la humedad futura de la fila evaluada) y `predict_constant_stress_baseline` (predice `1` siempre, sin ajustar ningún parámetro), parametrizados por el `train` autorizado de cualquier etapa.
-- [ ] Tests sintéticos: clase mayoritaria coincide con `argmax` del conteo de etiquetas de `train` (verificando que el acceso a esas etiquetas ocurre y es correcto, no prohibiéndolo); igualdad exacta con `P20_train` produce clase 0 en persistencia; ninguno de los tres baselines consulta `future_soil_moisture` de la fila evaluada; ninguno de los tres cambia su regla al variar las etiquetas del conjunto de evaluación (manteniendo fijas las de `train`).
+- [x] Implementar `predict_majority_class_baseline` (aprende exclusivamente de las etiquetas del `train` autorizado — acceso legítimo y requerido, no una fuga), `predict_persistence_baseline_v4` (usa la humedad actual y `P20_train`; nunca consulta la humedad futura de la fila evaluada) y `predict_constant_stress_baseline` (predice `1` siempre, sin ajustar ningún parámetro), parametrizados por el `train` autorizado de cualquier etapa. Implementado en `src/experiment_runner/controlled_daily_v4/baselines.py`. Regla de desempate de clase mayoritaria: el protocolo no la documenta; se define y documenta explícitamente `MAJORITY_CLASS_TIE_BREAK = 0` (predice ausencia de estrés ante empate exacto, consistente con la convención de igualdad ya usada por `features.build_target`), adoptada antes de escribir cualquier test que la ejercite, no elegida según resultados.
+- [x] Tests sintéticos: clase mayoritaria coincide con `argmax` del conteo de etiquetas de `train` (verificando que el acceso a esas etiquetas ocurre y es correcto, no prohibiéndolo); igualdad exacta con `P20_train` produce clase 0 en persistencia; ninguno de los tres baselines consulta `future_soil_moisture` de la fila evaluada; ninguno de los tres cambia su regla al variar las etiquetas del conjunto de evaluación (manteniendo fijas las de `train`). `tests/test_controlled_daily_v4_baselines.py`.
 
 ## Etapa B
 
-- [ ] **[BLOQUEADA — decisión 1]** Implementar el bootstrap de `ΔMCC_B` reutilizando `bootstrap.paired_bootstrap_delta` sobre las predicciones evaluables de 2023, según la interpretación de segmentación que se apruebe.
-- [ ] Implementar el reentrenamiento del candidato congelado (leído vía el contrato de transferencia) con `target_timestamp ≤ 2022-12-31`, evaluación única sobre 2023.
-- [ ] Implementar el veredicto `CANDIDATE_VALIDATED`/`CANDIDATE_NOT_VALIDATED` exacto (protocolo, sección 10): `MCC_candidato_2023 > 0` **y** límite inferior del intervalo pareado de `ΔMCC_B ≥ −0.05`; monoclase en OOF de A o en 2023 ⇒ no validable.
-- [ ] Reemplazar `holdout_status.json` (hoy literal constante) por un estado derivado real del veredicto persistido.
-- [ ] Habilitar `--stage B` en la CLI, condicionado a la existencia de un `frozen_config.json` válido.
-- [ ] Tests sintéticos: los 4 cuadrantes del veredicto; caso monoclase en 2023; verificación de que un `CANDIDATE_NOT_VALIDATED` deja el holdout cerrado de forma verificable; centinela de que ningún dato de 2024–2025 se toca durante la Etapa B.
+- [x] Implementar el bootstrap de `ΔMCC_B` reutilizando `bootstrap.paired_bootstrap_delta` sobre las predicciones evaluables de 2023, según la Decisión 1 -- adoptada para este encargo (ver la nota de adopción arriba): un único segmento temporal continuo (`STAGE_B_BOOTSTRAP_SEGMENT_ID`).
+- [x] Implementar el reentrenamiento del candidato congelado (leído vía el contrato de transferencia) con `target_timestamp ≤ 2022-12-31`, evaluación única sobre 2023. Implementado en `src/experiment_runner/controlled_daily_v4/stage_b_runner.py` (`build_stage_b_training_frame`, `build_stage_b_evaluation_frame`, `refit_frozen_candidate`, `run_stage_b`): reutiliza exactamente familia/hiperparámetros/pesos de combinación congelados por A (incluido Soft Voting vía `models.fit_candidate`/`SoftVotingSpec`), sin búsqueda de hiperparámetros ni selección alternativa; verifica la coherencia de `P20_train` recalculado contra el del contrato (`StageBTechnicalError` si difieren).
+- [x] Implementar el veredicto `CANDIDATE_VALIDATED`/`CANDIDATE_NOT_VALIDATED` exacto (protocolo, sección 10): `MCC_candidato_2023 > 0` **y** límite inferior del intervalo pareado de `ΔMCC_B ≥ −0.05`; monoclase en el `train` reentrenado o en la evaluación de 2023 ⇒ `CANDIDATE_NOT_VALIDATED` explícito (`decide_stage_b_verdict`), nunca una aprobación ni un fallo técnico.
+- [x] Reemplazar `holdout_status.json` (antes literal constante) por un estado derivado real del veredicto persistido (`artifacts.write_stage_b_artifacts`: `stage_b_executed=true`, `stage_b_verdict=<veredicto>`; `holdout_2024_2025_open` permanece `false` -- ningún mecanismo de este *change* lo puede abrir, la Etapa C sigue sin implementar).
+- [x] Habilitar `--stage B` en la CLI, condicionado a la existencia de un `frozen_config.json` válido (`--producer-dir` explícito, `cli.py::_run_stage_b`): lectura estructural → admisibilidad de la ejecución concreta (antes de tocar cualquier dato de humedad) → reentrenamiento/evaluación → artefactos. `--stage A` sin cambios de comportamiento; `--stage C` se sigue rechazando (`config.require_enabled_stage`, `config.CLI_ENABLED_STAGES = (STAGE_A, STAGE_B)`; `config.require_stage_a`/`config.SUPPORTED_STAGES` se conservan sin alterar, con su propio test existente intacto).
+- [x] Tests sintéticos: los 4 cuadrantes del veredicto incluidas sus igualdades límite; caso monoclase de entrenamiento y de evaluación; distinción explícita entre `CANDIDATE_NOT_VALIDATED` (resultado experimental) y `StageBTechnicalError` (fallo técnico, p. ej. inconsistencia de `P20_train`); centinela de que ningún dato de 2024–2025 se toca durante la Etapa B (invariancia del resultado completo, no solo del frame de evaluación); rechazo previo al entrenamiento de un contrato inadmisible con espía sobre `run_stage_b`; ausencia de tuning (espía sobre `tuning.select_best_config`); Soft Voting respetado (pesos de combinación exactos 1/3); bootstrap con un único segmento y verificación explícita de la configuración normativa completa (5000 réplicas) en un test dedicado; CLI de B operativa de punta a punta (A sintético → contrato → B → artefactos y decisión) y C todavía bloqueada tras A y B. `tests/test_controlled_daily_v4_stage_b_runner.py`, `tests/test_controlled_daily_v4_stage_b_integration.py`, extensiones de `tests/test_controlled_daily_v4_cli.py`.
 
 ## Etapa C
 
@@ -59,6 +99,6 @@ Dividido en dos partes que no deben mezclarse en una sola función: lectura/vali
 
 ## Integración y documentación
 
-- [ ] Test de integración sintética de punta a punta A→B→C (con fixtures sintéticas, sin CSV reales) verificando que un `CANDIDATE_NOT_VALIDATED` en B detiene la cadena antes de tocar cualquier dato de 2024–2025.
+- [x] Test de integración sintética de punta a punta A→B (con fixtures sintéticas, sin CSV reales): artefactos de A → contrato → admisibilidad → B → artefactos y decisión, con CLI operativa de punta a punta y C todavía bloqueada tras A y B (`tests/test_controlled_daily_v4_stage_b_integration.py`). La cadena completa A→B→C (con `CANDIDATE_NOT_VALIDATED` en B deteniendo el acceso a 2024–2025) sigue sin poder implementarse en este *change*, porque C no existe todavía (Decisiones 2 y 3, bloqueadas): esta tarea queda re-etiquetada a su alcance real (A→B) en vez de marcarse completada sobre una cadena que no existe.
 - [ ] Completar los campos `stage_b_result`/`stage_c_result` del manifiesto de provenance (hoy `PENDING_BEFORE_EXECUTION`) únicamente cuando exista una ejecución real que los sustente — no antes.
-- [ ] Actualizar `openspec/specs/experiment-runner/spec.md` (canónico) para reflejar las capacidades de B y C una vez que el código de este *change* esté integrado y verificado con pruebas sintéticas — el mismo criterio de "implementado" ya usado para la Etapa A (código integrado + verificación sintética, siguiendo el flujo OpenSpec del repositorio), **no** condicionado a que exista una ejecución científica real. Las ejecuciones científicas de A, B y C y sus resultados siguen pendientes por separado (ver la tarea anterior) y se documentan como tales independientemente de esta actualización — esta tarea no cierra ni da por completada ninguna ejecución real, solo el estado de implementación del código.
+- [x] Actualizar `openspec/specs/experiment-runner/spec.md` (canónico) para reflejar las capacidades de B (y, con el mismo criterio, de A) una vez que el código de este *change* esté integrado y verificado con pruebas sintéticas — el mismo criterio de "implementado" ya usado para otras capacidades de HU7 en este documento (código integrado/verificado + verificación sintética), **no** condicionado a que exista una ejecución científica real. **Resuelto (2026-09-15, encargo explícito sobre PR #193):** esta tarea documentaba una contradicción, no resuelta en su momento -- la tarea equivalente de `implement-controlled-daily-v4-stage-a/tasks.md` (línea 19 original, conservada allí como registro histórico) dejaba la actualización del spec canónico "pendiente de una corrida real y de una decisión explícita de cuándo el spec canónico debe actualizarse", por lo que actualizar el spec solo para B habría sido inconsistente con ese precedente. El encargo del 2026-09-15 resolvió esa decisión explícitamente para A y B a la vez (no se inventa aquí): documentar una capacidad implementada e integrada (A) o implementada y verificada sintéticamente en un PR todavía abierto (B) no depende de una ejecución científica real. El spec canónico incorpora la nueva sección "Protocolo controlled_daily_v4_external_pergamino (Etapas A y B)", que distingue explícitamente: A implementada e integrada; B implementada y verificada sintéticamente en el PR #193, con su integración a `main` pendiente mientras ese PR siga abierto; las ejecuciones científicas reales de A y B, sus resultados, y la Etapa C con su ledger, todos pendientes/sin implementar por separado (ver la tarea anterior, sobre `stage_b_result`/`stage_c_result`, y la sección "Etapa C" de este archivo) -- ninguno de ellos se documenta como obtenido ni implementado por esta actualización.

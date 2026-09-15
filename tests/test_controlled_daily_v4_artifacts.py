@@ -8,8 +8,10 @@ import pytest
 
 from experiment_runner.controlled_daily_v4.artifacts import (
     OutputDirectoryNotEmptyError,
+    StageBOutputDirectoryConflictsWithProducerError,
     ensure_output_directory,
     oof_to_dataframe,
+    validate_stage_b_output_directory,
     write_stage_a_artifacts,
 )
 from experiment_runner.controlled_daily_v4.provenance import ProvenanceReport
@@ -144,3 +146,115 @@ def test_write_stage_a_artifacts_rejects_overwrite_by_default(tmp_path):
             frozen_soft_voting_bases=None,
             final_p20_train=0.3,
         )
+
+
+# --------------------------------------------------------------------------
+# Hallazgo 1 (revisión externa 2026-09-14): protección de los artefactos de A
+# ante --output-dir/--producer-dir efectivamente coincidentes (unit-level;
+# ver test_controlled_daily_v4_stage_b_integration.py para el equivalente por
+# CLI, con espía y verificación byte a byte).
+# --------------------------------------------------------------------------
+
+
+def test_validate_stage_b_output_directory_rejects_identical_paths(tmp_path):
+    producer_dir = tmp_path / "producer"
+    producer_dir.mkdir()
+    with pytest.raises(StageBOutputDirectoryConflictsWithProducerError):
+        validate_stage_b_output_directory(producer_dir, producer_dir)
+
+
+def test_validate_stage_b_output_directory_rejects_relative_paths_resolving_to_same_target(
+    tmp_path,
+):
+    producer_dir = tmp_path / "producer"
+    producer_dir.mkdir()
+    equivalent = tmp_path / "producer" / ".." / "producer"
+    with pytest.raises(StageBOutputDirectoryConflictsWithProducerError):
+        validate_stage_b_output_directory(equivalent, producer_dir)
+
+
+def test_validate_stage_b_output_directory_rejects_output_nested_inside_producer(tmp_path):
+    producer_dir = tmp_path / "producer"
+    producer_dir.mkdir()
+    nested_output = producer_dir / "nested_out"
+    with pytest.raises(StageBOutputDirectoryConflictsWithProducerError):
+        validate_stage_b_output_directory(nested_output, producer_dir)
+
+
+def test_validate_stage_b_output_directory_rejects_producer_nested_inside_output(tmp_path):
+    output_dir = tmp_path / "out"
+    output_dir.mkdir()
+    nested_producer = output_dir / "nested_producer"
+    with pytest.raises(StageBOutputDirectoryConflictsWithProducerError):
+        validate_stage_b_output_directory(output_dir, nested_producer)
+
+
+def test_validate_stage_b_output_directory_allows_separate_sibling_directories(tmp_path):
+    producer_dir = tmp_path / "producer"
+    output_dir = tmp_path / "stage_b_out"
+    producer_dir.mkdir()
+    validate_stage_b_output_directory(output_dir, producer_dir)  # no debe lanzar
+
+
+def test_write_stage_b_artifacts_rejects_output_dir_equal_to_producer_dir_before_writing(
+    tmp_path,
+):
+    """Ante el rechazo, ningún archivo del `producer_dir` cambia: se
+    verifica byte a byte antes/después del intento fallido."""
+    import dataclasses
+
+    from experiment_runner.controlled_daily_v4 import artifacts
+    from experiment_runner.controlled_daily_v4.bootstrap import BootstrapDiagnostics
+
+    producer_dir = tmp_path / "producer"
+    producer_dir.mkdir()
+    schema_path = producer_dir / "schema_version.json"
+    schema_path.write_text('{"schema_version": "controlled_daily_v4_stage_a.v4"}\n')
+    before = schema_path.read_bytes()
+
+    @dataclasses.dataclass
+    class _FakeResult:
+        training_frame_n_rows: int = 0
+        training_dataset_fingerprint: dict = dataclasses.field(default_factory=dict)
+        p20_train: float = float("nan")
+        evaluation_frame_n_rows: int = 0
+        evaluation_target_timestamp_min: str | None = None
+        evaluation_target_timestamp_max: str | None = None
+        feature_timestamps: object = None
+        y_true: object = None
+        y_pred_candidate: object = None
+        y_score_candidate: object = None
+        y_pred_persistence: object = None
+        y_pred_majority_class: object = None
+        y_pred_constant_stress: object = None
+        metrics_candidate: dict = dataclasses.field(default_factory=dict)
+        metrics_persistence: dict = dataclasses.field(default_factory=dict)
+        metrics_majority_class: dict = dataclasses.field(default_factory=dict)
+        metrics_constant_stress: dict = dataclasses.field(default_factory=dict)
+        mcc_candidate: float = float("nan")
+        mcc_persistence: float = float("nan")
+        delta_mcc_point_estimate: float = float("nan")
+        bootstrap_result: object = None
+        bootstrap_diagnostics: BootstrapDiagnostics | None = None
+        verdict: str = "CANDIDATE_NOT_VALIDATED"
+        verdict_reasons: list = dataclasses.field(default_factory=list)
+        predictions_available: bool = False
+        bootstrap_executed: bool = False
+        warnings_log: list = dataclasses.field(default_factory=list)
+
+    with pytest.raises(StageBOutputDirectoryConflictsWithProducerError):
+        artifacts.write_stage_b_artifacts(
+            producer_dir,
+            input_mode="synthetic",
+            scientific_run=False,
+            resolved_config={"stage": "B"},
+            producer_dir=producer_dir,
+            producer_contract_raw={},
+            consumer_code_identity={},
+            consumer_environment_info={},
+            consumer_environment_issues=[],
+            result=_FakeResult(feature_timestamps=[], y_true=[], y_pred_candidate=[]),
+            overwrite=True,
+        )
+
+    assert schema_path.read_bytes() == before

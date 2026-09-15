@@ -1,8 +1,12 @@
-"""CLI explícita de la Etapa A de controlled_daily_v4_external_pergamino.
+"""CLI explícita de las Etapas A y B de controlled_daily_v4_external_pergamino.
 
-Únicamente `--stage A`. No expone ninguna ruta oculta al dataset formal de
-`controlled_daily_v3` ni a ningún servidor MLflow — no registra nada en
-MLflow, no lo integra en absoluto.
+`--stage A` y `--stage B` (esta última reutilizando el candidato congelado por
+una corrida previa de A vía `--producer-dir`). `--stage C` se rechaza
+explícitamente (ledger del holdout y secuencia de apertura, Decisión 2,
+pendiente -- ver `docs/research/controlled-daily-v4-stage-b-c-decisiones-pendientes.md`).
+No expone ninguna ruta oculta al dataset formal de `controlled_daily_v3` ni a
+ningún servidor MLflow — no registra nada en MLflow, no lo integra en
+absoluto.
 """
 
 from __future__ import annotations
@@ -11,7 +15,12 @@ import argparse
 import dataclasses
 import sys
 from pathlib import Path
+from typing import Any
 
+from experiment_runner.controlled_daily_v4.admissibility import (
+    StageBAdmissibilityError,
+    check_stage_b_admissibility,
+)
 from experiment_runner.controlled_daily_v4.code_identity import capture_code_identity
 from experiment_runner.controlled_daily_v4.config import (
     BOOTSTRAP_REPLICAS_DEFAULT,
@@ -23,10 +32,12 @@ from experiment_runner.controlled_daily_v4.config import (
     SENSITIVITY_DEPTH_COLUMN,
     STAGE_A,
     STAGE_A_BOUNDS,
+    STAGE_B,
+    STAGE_B_BOUNDS,
     CalendarIntegrityError,
     ProtocolConfig,
     UnsupportedStageError,
-    require_stage_a,
+    require_enabled_stage,
 )
 from experiment_runner.controlled_daily_v4.environment import (
     capture_constraints_identity,
@@ -35,6 +46,15 @@ from experiment_runner.controlled_daily_v4.environment import (
 )
 from experiment_runner.controlled_daily_v4.manifest_reference import DEFAULT_CONSTRAINTS_PATH
 from experiment_runner.controlled_daily_v4.provenance import validate_pergamino_provenance
+from experiment_runner.controlled_daily_v4.stage_b_runner import (
+    StageBTechnicalError,
+    build_stage_b_training_frame,
+)
+from experiment_runner.controlled_daily_v4.transfer_contract import (
+    TransferContractSchemaError,
+    TransferContractValidationError,
+    load_frozen_config_contract,
+)
 
 DEPTH_CHOICES = {"primary": PRIMARY_DEPTH_COLUMN, "sensitivity": SENSITIVITY_DEPTH_COLUMN}
 
@@ -77,14 +97,23 @@ def normative_deviations(
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="controlled-daily-v4-stage-a",
-        description="Runner de la Etapa A de controlled_daily_v4_external_pergamino. "
-        "No implementa ni acepta las etapas B o C.",
+        description="Runner de las Etapas A y B de controlled_daily_v4_external_pergamino. "
+        "No implementa ni acepta la Etapa C.",
     )
     parser.add_argument(
         "--stage",
         required=True,
         choices=["A", "B", "C"],
-        help="Únicamente 'A' está implementada. 'B' y 'C' se rechazan explícitamente.",
+        help="'A' y 'B' están implementadas. 'C' se rechaza explícitamente.",
+    )
+    parser.add_argument(
+        "--producer-dir",
+        type=Path,
+        default=None,
+        help=(
+            "Requerido con --stage B: directorio de salida de una corrida previa de la "
+            "Etapa A (debe contener 'frozen_config.json' y su evidencia asociada)."
+        ),
     )
     parser.add_argument(
         "--era5-csv", required=True, type=Path, help="Ruta al CSV horario ERA5-Land de Pergamino."
@@ -149,9 +178,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        require_stage_a(args.stage)
+        require_enabled_stage(args.stage)
     except UnsupportedStageError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
+
+    if args.stage == STAGE_B and args.producer_dir is None:
+        print("ERROR: --stage B requiere --producer-dir explícito.", file=sys.stderr)
         return 2
 
     report = validate_pergamino_provenance(args.era5_csv, args.nasa_power_csv, mode=args.input_mode)
@@ -202,6 +235,16 @@ def main(argv: list[str] | None = None) -> int:
         restrict_nasa_power_daily_to_window,
     )
     from experiment_runner.controlled_daily_v4.stage_a_runner import run_stage_a
+
+    if args.stage == STAGE_B:
+        return _run_stage_b(
+            args,
+            report=report,
+            environment_info=environment_info,
+            environment_report=environment_report,
+            code_identity=code_identity,
+            constraints_identity=constraints_identity,
+        )
 
     # Recorte a la ventana autorizada de la Etapa A (más la historia causal
     # mínima) ANTES de agregar humedad o convertir el centinela -- ningún
@@ -317,6 +360,171 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"Etapa A completada. Artefactos escritos en: {args.output_dir}")
     print(f"Selección: {results.selection.outcome} -> {results.selection.selected_family}")
+    for name, path in written.items():
+        print(f"  {name}: {path}")
+    return 0
+
+
+def _run_stage_b(
+    args: argparse.Namespace,
+    *,
+    report: Any,
+    environment_info: dict,
+    environment_report: Any,
+    code_identity: Any,
+    constraints_identity: dict,
+) -> int:
+    """Etapa B: reentrenamiento del candidato congelado por una corrida previa
+    de A (`--producer-dir`) y compuerta temporal sobre 2023 (protocolo,
+    sección 10). Nunca entrena nada antes de que la lectura estructural del
+    contrato y la admisibilidad de esta ejecución concreta hayan sido
+    verificadas -- ambas ocurren antes de tocar cualquier dato de humedad."""
+    from experiment_runner.controlled_daily_v4 import artifacts
+    from experiment_runner.controlled_daily_v4.features import compute_stage_window_bounds
+    from experiment_runner.controlled_daily_v4.ingestion import (
+        aggregate_era5_daily,
+        build_daily_joined_series,
+        load_era5_hourly_raw,
+        load_nasa_power_daily_raw,
+        replace_missing_sentinel,
+        restrict_era5_hourly_to_window,
+        restrict_nasa_power_daily_to_window,
+    )
+    from experiment_runner.controlled_daily_v4.stage_b_runner import run_stage_b
+
+    # Protección de los artefactos de A (hallazgo H-05, revisión externa
+    # 2026-09-14): verificada en la CLI ANTES de entrenar nada -- ni siquiera
+    # antes de leer el contrato -- y de nuevo, incondicionalmente, en el
+    # escritor antes de cualquier escritura (`write_stage_b_artifacts`, que
+    # no confía en que la CLI ya la haya aplicado). `--overwrite` nunca
+    # autoriza escribir en, ni dentro de, el directorio productor de A.
+    try:
+        artifacts.validate_stage_b_output_directory(args.output_dir, args.producer_dir)
+    except artifacts.StageBOutputDirectoryConflictsWithProducerError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 9
+
+    try:
+        contract = load_frozen_config_contract(args.producer_dir)
+    except (TransferContractSchemaError, TransferContractValidationError) as exc:
+        print(f"ERROR: contrato de transferencia A→B inválido: {exc}", file=sys.stderr)
+        return 6
+
+    # Ingesta recortada a la UNIÓN de la ventana de A (entrenamiento,
+    # incluida su historia causal) y la ventana de B (evaluación 2023,
+    # incluida su propia historia causal): ninguna fila de 2024-2025 llega
+    # jamás a un agregador ni a un procesador de valores, sin importar qué
+    # fechas traigan los CSV recibidos (hallazgo H-03, extendido a B).
+    ingestion_window_start, _ = compute_stage_window_bounds(STAGE_A_BOUNDS)
+    _, ingestion_window_end = compute_stage_window_bounds(STAGE_B_BOUNDS)
+
+    _era5_meta, era5_df = load_era5_hourly_raw(args.era5_csv)
+    era5_df = restrict_era5_hourly_to_window(era5_df, ingestion_window_start, ingestion_window_end)
+    era5_daily = aggregate_era5_daily(era5_df)
+
+    _nasa_meta, nasa_df = load_nasa_power_daily_raw(args.nasa_power_csv)
+    nasa_df = restrict_nasa_power_daily_to_window(
+        nasa_df, ingestion_window_start, ingestion_window_end
+    )
+    nasa_df = replace_missing_sentinel(nasa_df)
+
+    daily_series = build_daily_joined_series(era5_daily, nasa_df)
+
+    try:
+        training_frame = build_stage_b_training_frame(daily_series, contract.depth_column)
+    except CalendarIntegrityError as exc:
+        print(
+            "ERROR: integridad del calendario diario falló (no se entrenó nada):",
+            file=sys.stderr,
+        )
+        print(f"  - {exc}", file=sys.stderr)
+        return 5
+
+    from experiment_runner.controlled_daily_v4.dataset_fingerprint import (
+        compute_dataset_fingerprint,
+    )
+
+    consumer_training_dataset_fingerprint = compute_dataset_fingerprint(training_frame)
+    consumer_code_identity = dataclasses.asdict(code_identity)
+
+    try:
+        check_stage_b_admissibility(
+            contract,
+            producer_dir=args.producer_dir,
+            consumer_input_mode=args.input_mode,
+            consumer_code_identity=consumer_code_identity,
+            consumer_environment_issues=environment_report.issues,
+            consumer_training_dataset_fingerprint=consumer_training_dataset_fingerprint,
+        )
+    except StageBAdmissibilityError as exc:
+        print("ERROR: candidato no admisible para esta ejecución de la Etapa B:", file=sys.stderr)
+        for reason in exc.reasons:
+            print(f"  - {reason}", file=sys.stderr)
+        return 7
+
+    try:
+        result = run_stage_b(
+            contract,
+            daily_series,
+            bootstrap_replicas=args.bootstrap_replicas,
+            bootstrap_seed=args.seed,
+        )
+    except StageBTechnicalError as exc:
+        print(
+            f"ERROR: fallo técnico de la Etapa B (no es un veredicto experimental): {exc}",
+            file=sys.stderr,
+        )
+        return 8
+
+    deviations = normative_deviations(
+        args.seed,
+        args.bootstrap_replicas,
+        input_mode=args.input_mode,
+        environment_ok=environment_report.ok,
+        code_identity_ok=consumer_code_identity.get("available") is True
+        and consumer_code_identity.get("dirty") is False,
+    )
+    scientific_run = (
+        contract.scientific_run
+        and report.scientific
+        and not deviations
+        and args.input_mode == INPUT_MODE_SCIENTIFIC
+    )
+
+    written = artifacts.write_stage_b_artifacts(
+        args.output_dir,
+        input_mode=args.input_mode,
+        scientific_run=scientific_run,
+        resolved_config={
+            "stage": STAGE_B,
+            "producer_dir": str(args.producer_dir),
+            "seed": args.seed,
+            "bootstrap_replicas": args.bootstrap_replicas,
+            "normative_seed": BOOTSTRAP_SEED,
+            "normative_bootstrap_replicas": BOOTSTRAP_REPLICAS_DEFAULT,
+            "normative_run": not deviations,
+            "normative_deviations": deviations,
+        },
+        producer_dir=args.producer_dir,
+        producer_contract_raw=contract.raw,
+        consumer_code_identity=consumer_code_identity,
+        # Identidad real de 'constraints.txt' (hallazgo H-05, revisión
+        # externa 2026-09-14): capturada antes de entrenar (igual que en A),
+        # incorporada aquí al entorno persistido de B -- antes se capturaba
+        # pero nunca llegaba a `environment.json` de B.
+        consumer_environment_info={
+            **environment_info,
+            "constraints_identity": constraints_identity,
+        },
+        consumer_environment_issues=environment_report.issues,
+        result=result,
+        overwrite=args.overwrite,
+    )
+
+    print(f"Etapa B completada. Artefactos escritos en: {args.output_dir}")
+    print(f"Veredicto: {result.verdict} (motivos: {result.verdict_reasons or 'ninguno'})")
+    if not scientific_run:
+        print("[NO CIENTÍFICO] Esta corrida de Etapa B no habilita la Etapa C.")
     for name, path in written.items():
         print(f"  {name}: {path}")
     return 0

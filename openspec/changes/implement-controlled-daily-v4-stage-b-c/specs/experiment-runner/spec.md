@@ -1,21 +1,26 @@
 # Spec delta: experiment-runner (contrato A→B, baselines, marcado científico/sintético y de profundidad)
 
-> Estado de este delta (actualizado 2026-09-13): los dos primeros requirements
-> ("Lectura y validación estructural del contrato de transferencia A→B" y
-> "Admisibilidad de un candidato congelado para una ejecución concreta", más el
-> requirement de "Compatibilidad de procedencia entre etapas" en su parte
-> aplicable a la Etapa B) están **implementados e integrados** (`transfer_contract.py`,
-> `admissibility.py`, extensión de `artifacts.py`/`config.py`/`cli.py`) y
-> verificados exclusivamente con pruebas sintéticas. Los requirements de
-> "Baselines del protocolo" y "Distinción verificable entre corrida principal y
-> de sensibilidad" (más la parte de compatibilidad de procedencia específica de
-> la Etapa C) siguen **sin implementar**. Complementa, sin duplicar, el delta ya
-> mergeado en `openspec/changes/add-controlled-daily-v4-external-pergamino/specs/experiment-runner/spec.md`,
-> que ya especifica los escenarios "Compuerta real de validación temporal antes
-> de abrir el holdout" (Etapa B) y "El holdout no admite ajustes posteriores a
-> su apertura" (Etapa C) -- esos dos escenarios (los runners de B/C en sí)
-> siguen sin implementar. No reemplaza ni modifica ningún requirement vigente
-> de `controlled_daily_v3` ni de la Etapa A ya implementada.
+> Estado de este delta (actualizado 2026-09-14): el contrato de transferencia
+> A→B (lectura estructural y admisibilidad de una ejecución concreta, más la
+> parte de "Compatibilidad de procedencia entre etapas" aplicable a la Etapa B)
+> sigue **implementado e integrado** (`transfer_contract.py`, `admissibility.py`,
+> extensión de `artifacts.py`/`config.py`/`cli.py`). El requirement de
+> "Baselines del protocolo" y el escenario "Compuerta real de validación
+> temporal antes de abrir el holdout" (Etapa B, ya especificado en
+> `add-controlled-daily-v4-external-pergamino/specs/experiment-runner/spec.md`,
+> no repetido aquí) quedan **implementados e integrados en este cierre**
+> (`baselines.py`, `stage_b_runner.py`, extensión de `artifacts.py`/`config.py`/`cli.py`
+> — `--stage B` operativo), verificados exclusivamente con pruebas sintéticas.
+> El requirement "Distinción verificable entre corrida principal y de
+> sensibilidad" sigue sin cambios respecto de la versión anterior de este delta
+> (ya implementado desde el contrato de transferencia). La parte de
+> "Compatibilidad de procedencia entre etapas" específica de la Etapa C, y el
+> escenario "El holdout no admite ajustes posteriores a su apertura" (el runner
+> de C en sí), siguen **sin implementar** -- Etapa C queda explícitamente fuera
+> de alcance de este cierre (Decisiones 2 y 3 del documento de decisiones
+> pendientes, ambas bloqueadas). No reemplaza ni modifica ningún requirement
+> vigente de `controlled_daily_v3` ni de la Etapa A ya implementada. Ninguna
+> ejecución científica real de la Etapa B se realizó en este cierre.
 
 ## ADDED Requirements
 
