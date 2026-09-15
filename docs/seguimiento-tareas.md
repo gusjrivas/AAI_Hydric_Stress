@@ -1667,3 +1667,134 @@ tras aplicar el formateo automático a `src/experiment_runner/controlled_daily_v
 y `tests/test_controlled_daily_v4_stage_b_runner.py` (solo diferencias de
 formato, sin cambios de comportamiento); `git diff --check` sin advertencias
 de espacios en blanco.
+
+## Etapa C y ledger de protección del holdout de controlled_daily_v4 (2026-09-15)
+
+Encargo explícito: implementar la Etapa C (holdout final 2024-2025) y el
+ledger transaccional de protección contra una segunda apertura del holdout,
+adoptando como decisiones operativas de este encargo (no atribuidas a una
+aprobación académica externa) las Decisiones 2 y 3 de
+`docs/research/controlled-daily-v4-stage-b-c-decisiones-pendientes.md`
+(documento actualizado con el detalle completo de la adopción). Base:
+`origin/main` en `caa9fc93854aa704a48252b49796108c0318595c` (PR #193 ya
+mergeado, verificado antes de empezar). Rama:
+`feat/controlled-daily-v4-stage-c-holdout-ledger`.
+
+**Componentes nuevos:**
+
+- `src/experiment_runner/controlled_daily_v4/holdout_ledger.py`: ledger
+  transaccional SQLite (biblioteca estándar), en una ubicación explícita y
+  persistente fuera de `--output-dir`. Identidad del holdout independiente de
+  commit/candidato/directorio/intento (`compute_holdout_identity_key`); tres
+  estados (`AUSENTE`/`CONFIRMADA`/`INDETERMINADA`); inicialización explícita
+  y separada de la ejecución (`init_ledger`, rechaza reemplazar un ledger
+  existente); secuencia de apertura de dos fases con `fsync` explícito del
+  archivo y, cuando la plataforma lo permite, del directorio contenedor
+  (`reserve_holdout` marca `INDETERMINADA` de forma durable; `confirm_holdout_open`
+  la promueve a `CONFIRMADA`, también de forma durable, antes de cualquier
+  acceso al holdout); `finalize_holdout` como marca separada al terminar de
+  serializar resultados; ledgers sintético/científico separados por `mode`,
+  con rechazo explícito de cualquier cruce.
+- `src/experiment_runner/controlled_daily_v4/stage_c_runner.py`: runner de
+  evaluación única del holdout (`target_timestamp` 2024-01-04..2025-12-31),
+  reentrenamiento del candidato ya congelado por A y aprobado por B con
+  `target_timestamp <= 2023-12-31` y `P20_train` recalculado exclusivamente
+  sobre ese rango extendido (deliberadamente sin comparar ese `P20_train`
+  contra el de A/B, a diferencia de B). Sin selección, tuning, calibración ni
+  ajuste de umbrales. Reutiliza los tres baselines y el mecanismo de bootstrap
+  ya normativos (aquí exclusivamente diagnóstico: C no tiene compuerta de
+  aprobación/rechazo). Monoclase/indefinido tratado igual que en B: ausencia
+  explícita de predicciones, nunca fabricadas.
+- `admissibility.check_stage_c_admissibility` (extensión de `admissibility.py`):
+  revalida la coherencia entre `decision.json`, `metrics.json` y
+  `bootstrap.json` de B (nunca confía en un `decision.json` aislado), el
+  linaje verificable hasta el `frozen_config.json` de A (releído fresco, no
+  solo la copia embebida en `producer_reference.json` de B), la identidad de
+  código de B y de la ejecución consumidora de C (mismo patrón de dos
+  verificaciones ya usado en B→A), el entorno persistido de B, y rechaza
+  siempre `depth_role` de sensibilidad. Nunca accede a ningún CSV crudo.
+- `artifacts.write_stage_c_artifacts` / `validate_stage_c_output_directory`
+  (extensión de `artifacts.py`): directorio de salida exclusivo de C,
+  protegido frente a coincidencia/anidamiento/alias con el directorio de A,
+  el de B y el archivo del ledger; sin parámetro `overwrite` (Decisión 3).
+  Persiste identidades de holdout/intento/ledger, referencias verificables a
+  A y B, fingerprint del entrenamiento extendido, fronteras temporales
+  efectivas, predicciones con baselines, métricas/bootstrap diagnóstico, y un
+  `outcome.json` deliberadamente sin campo `verdict`.
+- `cli.py`: `--stage C` (secuencia completa: admisibilidad sin tocar el
+  holdout → reserva → confirmación durable → recién entonces provenance/CSV
+  → evaluación → artefactos → finalización), `--init-holdout-ledger`
+  (inicialización explícita, separada de cualquier ejecución),
+  `--authorized-by` (sin valor por defecto), `--stage-b-dir`,
+  `--holdout-ledger-path`; `--overwrite` rechazado incondicionalmente con
+  `--stage C`; recuperación de solo lectura cuando el ledger ya está
+  `CONFIRMADA` y finalizado (sin reentrenar ni leer CSV).
+- `config.py`: `STAGE_C_TRAINING_BOUNDS` (unión exacta de A+B, hasta
+  2023-12-31), `PROTOCOL_ID`/`HOLDOUT_SITE`, `CLI_ENABLED_STAGES` extendido a
+  incluir `C`.
+
+**Pruebas nuevas (exclusivamente sintéticas, sin CSV reales de
+Pergamino/Balcarce ni el holdout real):**
+
+- `tests/test_controlled_daily_v4_holdout_ledger.py` (18 tests): identidad
+  independiente de commit/candidato/output-dir; inicialización explícita y
+  rechazo de reinicialización; ledger ausente/corrupto tratado como
+  `INDETERMINADA` nunca `AUSENTE`; cruce de modo rechazado; ciclo completo
+  reserva→confirmación→finalización; segunda reserva rechazada en
+  `CONFIRMADA`; cambio de intento nunca bypassa un holdout confirmado;
+  interrupción entre reserva y confirmación deja `INDETERMINADA` sin
+  reinicializarse; confirmación con intento equivocado; reserva sin
+  inicialización previa; finalización sin confirmación previa; **dos
+  procesos reales del sistema operativo** (no mocks) compitiendo por la misma
+  reserva -- solo uno la obtiene; reinicio de proceso simulado (nueva
+  conexión desde cero) sigue protegiendo el holdout.
+- `tests/test_controlled_daily_v4_stage_c_runner.py` (13 tests): fronteras
+  temporales exactas y cobertura completa del período evaluable; invariancia
+  del entrenamiento ante cambios en 2024-2025; `P20_train` recalculado sin
+  comparación contra el contrato de A; ausencia de tuning (espía sobre
+  `tuning.select_best_config`); preservación exacta de hiperparámetros
+  (espía sobre `fit_estimator`); monoclase de entrenamiento y de evaluación
+  con ausencia explícita de predicciones; persistencia nunca usa humedad
+  futura de la fila evaluada; bootstrap diagnóstico con la configuración
+  efectivamente consumida; ausencia de un campo `verdict` en `StageCResult`.
+- `tests/test_controlled_daily_v4_stage_c_admissibility.py` (12 tests):
+  camino feliz científico y sintético; una aprobación sintética nunca
+  habilita C científica; `depth_role` de sensibilidad siempre rechazado;
+  veredicto no validado rechazado; coherencia decisión/métricas/bootstrap
+  (rechazo cuando `decision.json` dice `CANDIDATE_VALIDATED` pero
+  `metrics.json`/`bootstrap.json` no lo sustentan); evidencia incompleta
+  (archivo faltante); linaje a A roto por referencia de directorio incorrecta
+  o por `frozen_config.json` con drift respecto de lo embebido en B; commit
+  no acreditado; identidad de código del consumidor ausente; entorno de C con
+  fallas de validación.
+- `tests/test_controlled_daily_v4_stage_c_integration.py` (8 tests): flujo
+  A→B→C completo mediante los contratos reales (CLI real, ledger real en
+  disco); B no validada nunca toca el holdout (espía sobre
+  `ingestion.load_era5_hourly_raw`); segunda evaluación con `--output-dir`
+  distinto queda bloqueada (espía sobre `stage_c_runner.run_stage_c`);
+  recuperación de solo lectura de un resultado ya finalizado sin reentrenar;
+  `--overwrite` rechazado incondicionalmente; conflicto de `--output-dir` con
+  `--producer-dir`; autorización ausente y ledger nunca inicializado
+  rechazados antes de tocar cualquier CSV.
+
+**Comandos realmente ejecutados** (contenedor `aai-hydric-v4-experiment:dev`,
+reconstruido en esta sesión con `docker build`, `.build_identity.json`
+generado manualmente con el commit base `caa9fc93...` y `dirty=true` porque
+el árbol tenía cambios sin commitear al momento del build -- no se usó
+`docker/experiment-v4/build.py` porque el host de esta sesión no tiene
+`python` fuera de contenedores):
+
+- `pytest -q tests/test_controlled_daily_v4_holdout_ledger.py tests/test_controlled_daily_v4_stage_c_runner.py tests/test_controlled_daily_v4_stage_c_admissibility.py` → **43 passed** en ~12s (18 + 13 + 12).
+- `pytest -q tests/test_controlled_daily_v4_stage_c_integration.py` → **8 passed** en ~380s (incluye entrenamiento real de Stage A/B con grillas reducidas dentro de cada test).
+- Suite completa `tests/test_controlled_daily_v4_*.py` ANTES de agregar los archivos nuevos (regresión pura sobre A/B existentes tras los cambios de `admissibility.py`/`artifacts.py`/`cli.py`/`config.py`): **364 passed, 3 skipped** en 1321.58s -- idéntico al baseline del commit `caa9fc9` (PR #193), sin regresiones.
+- Suite completa `tests/test_controlled_daily_v4_*.py` CON los 4 archivos de tests nuevos incluidos: **415 passed, 3 skipped, 4 warnings** en 1734.60s (0:28:54) -- 415 = 364 + 51 tests nuevos (18 ledger + 13 stage_c_runner + 12 stage_c_admissibility + 8 stage_c_integration); los 3 `skipped` y los 4 `warnings` son los mismos preexistentes, sin relación con este cambio; 0 fallidos.
+- `ruff check src tests` → limpio (tras corregir 17 hallazgos: imports sin usar y líneas >100 columnas, incluida una corrección posterior de dos líneas largas adicionales detectadas en una segunda pasada).
+- `black src tests` → 6 archivos reformateados (`holdout_ledger.py`, `admissibility.py`, `artifacts.py`, `cli.py`, `test_controlled_daily_v4_stage_c_runner.py`, `test_controlled_daily_v4_stage_c_integration.py`); `black --check` limpio después.
+- `git diff --check` (con `git add -N` para incluir los archivos nuevos en el diff) → solo avisos de conversión LF→CRLF de `core.autocrlf=true` (mismos para cualquier archivo del repositorio en Windows), sin advertencias reales de espacios en blanco.
+
+Solo datos sintéticos: no se leyó ningún CSV real de Pergamino/Balcarce ni el
+holdout real 2024-2025, no se ejecutó ninguna etapa científica real, no se
+abrió ningún holdout real, no se usó MLflow compartido, y `controlled_daily_v3`,
+los baselines históricos, `backend/`, `frontend/` y `human_feedback/` quedan
+sin alteración. No existe ningún ledger científico inicializado en este
+repositorio. No se hizo merge ni se habilitó auto-merge.

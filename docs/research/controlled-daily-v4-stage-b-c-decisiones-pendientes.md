@@ -1,6 +1,40 @@
 # Decisiones abiertas — Etapas B y C de controlled_daily_v4_external_pergamino
 
-Estado: **cuatro propuestas de implementación pendientes de decisión.** Ninguna fue aprobada todavía por nadie — este documento no atribuye una aprobación al usuario, al director del trabajo final ni a ningún otro rol; solo enumera qué requiere una decisión explícita antes de poder codificarse. Ninguna de las cuatro debe codificarse antes de esa decisión. Este documento no modifica ni reinterpreta `docs/research/controlled-daily-v4-external-pergamino-protocol.md`, `ADR-0011` ni `ADR-0010`; para cada punto, separa (a) el requisito ya establecido por el protocolo, de (b) la propuesta técnica de implementación, de (c) lo que efectivamente permanece como decisión pendiente — las tres categorías no se mezclan.
+Estado: **cuatro propuestas de implementación, de las cuales las Decisiones 1, 2 y 3
+fueron adoptadas como decisiones OPERATIVAS de sendos encargos de implementación
+(2026-09-14 para la Decisión 1; 2026-09-15 para las Decisiones 2 y 3), nunca
+como una aprobación académica externa.** La Decisión 4 permanece con su
+pregunta de ubicación exacta sin resolver (ver sección correspondiente). Este
+documento no modifica ni reinterpreta `docs/research/controlled-daily-v4-external-pergamino-protocol.md`,
+`ADR-0011` ni `ADR-0010`; para cada punto, separa (a) el requisito ya
+establecido por el protocolo, de (b) la propuesta técnica de implementación,
+de (c) lo que efectivamente permanece como decisión pendiente — las tres
+categorías no se mezclan.
+
+**Adopción de las Decisiones 2 y 3 (2026-09-15, encargo "Etapa C y ledger de
+protección del holdout"):** se adopta, como decisión operativa de ese
+encargo, la propuesta técnica completa ya descrita en la Decisión 2 de este
+documento -- ledger transaccional SQLite (biblioteca estándar), ubicación
+explícita fuera de `--output-dir`, identidad del holdout independiente de
+commit/candidato/directorio/intento, secuencia de apertura exacta (verificar
+→ reservar → confirmar con `fsync` → acceder → finalizar), tres estados
+(`AUSENTE`/`CONFIRMADA`/`INDETERMINADA`), inicialización explícita separada
+de la ejecución, y ledgers sintético/científico separados -- implementada en
+`src/experiment_runner/controlled_daily_v4/holdout_ledger.py`. Y de la
+Decisión 3: `--overwrite` queda prohibido incondicionalmente para `--stage C`
+(`cli.py`), como defensa en profundidad sobre el ledger. Ninguna de las dos
+adopciones se atribuye a una aprobación académica externa: son decisiones de
+implementación de ese encargo, registradas aquí exactamente como tal, con el
+mismo criterio ya usado para la Decisión 1 (ver la nota de adopción original,
+más abajo, y `openspec/changes/implement-controlled-daily-v4-stage-b-c/tasks.md`).
+Una diferencia respecto de la propuesta técnica original de la Decisión 2: se
+elige explícitamente SQLite en vez de un archivo YAML versionado en Git para
+el registro persistente -- ambas opciones seguían abiertas en la propuesta
+original ("si el ledger debe vivir en un archivo versionado en Git ... o en
+un mecanismo distinto"); esta adopción resuelve esa pregunta a favor de
+SQLite, por ser transaccional nativamente (sin necesitar reimplementar
+control de concurrencia sobre un archivo de texto) y no requerir un commit
+de Git por cada intento de apertura del holdout.
 
 Preparado como parte del diagnóstico de cierre de `controlled_daily_v4` (sesión del 2026-09-13, sobre `653dc0d1b15af87cfe2008c5b5ea5583512c1324`). Revisión de una segunda ronda (2026-09-13, posterior al paquete `controlled-daily-v4-docs-close-out-review.zip`, SHA-256 `8073FA9308593C23D4385F28B5BEBE1E6CD466A9B0B2828AD9E16BE6F237935F`) que corrige: (1) el momento y la secuencia de apertura de la Etapa C, que antes permitía repetir el acceso al holdout si la escritura de resultados fallaba después de haberlo consultado; (2) la confusión entre la identidad del holdout protegido y la identidad de cada intento de ejecución, que antes se renovaba incorrectamente al cambiar de commit, candidato o directorio de salida; (3) una exigencia genérica de que la huella del conjunto de A coincidiera con la del entrenamiento de C, que contradice al propio protocolo (C incorpora 2023 y recalcula `P20_train`); y (4) la severidad del rechazo de `depth_role`, antes presentada como abierta entre "error duro" y "advertencia", cuando una advertencia no satisface la separación exigida por el protocolo. Una tercera revisión (2026-09-13, previa a la apertura del PR) corrige además: (5) el commit del productor A y el de la ejecución consumidora pueden coincidir o diferir — ninguna de las dos relaciones se exige ni certifica nada por sí sola (Decisión 2, y las correcciones equivalentes en `proposal.md`/`specs/experiment-runner/spec.md`/`tasks.md`); (6) un registro de apertura de la Etapa C existente, incompleto o incierto (estado `INDETERMINADA`) debe bloquear el acceso automático igual que uno confirmado, sin borrarse ni reinicializarse solo, distinto de un fallo previo a cualquier reserva (estado `AUSENTE`); y (7) el reemplazo atómico de un archivo (`os.replace` en `artifacts.py`) no garantiza durabilidad ante una caída del sistema por sí solo — el registro de apertura exige además `fsync` explícito, una garantía que el código actual de la Etapa A no provee y que esta propuesta no le atribuye. Referenciado desde `openspec/changes/implement-controlled-daily-v4-stage-b-c/proposal.md`.
 
@@ -81,6 +115,28 @@ Antes de esta revisión, la propuesta solo distinguía "ya hay una apertura" de 
 - Si corresponde una autorización adicional específicamente para el *primer* intento (apertura del holdout en sí, protocolo sección 11) distinta de la autorización de cada intento individual.
 - Cuál es el procedimiento exacto (manual, fuera de la CLI) para resolver un registro en estado `INDETERMINADA`: quién puede declararlo resuelto, qué evidencia debe registrar esa resolución, y si queda un rastro auditable de que ocurrió.
 
+**Resuelto (2026-09-15, encargo "Etapa C y ledger de protección del
+holdout"):** el mecanismo de persistencia es SQLite (biblioteca estándar), no
+un archivo versionado en Git -- ver la nota de adopción al comienzo de esta
+sección. El registro de intento (`holdout_registry`, `reserved_by_attempt_id`)
+incluye un identificador de intento arbitrario (UUID por invocación), pero
+deliberadamente NO incluye la identidad del conjunto de datos de C como
+condición de exclusión (la exclusión es exclusivamente por `holdout_key`,
+independiente del intento) -- la identidad de fuente de C sí se verifica por
+separado, después de la apertura confirmada, como condición de admisibilidad
+de esa evaluación concreta (ver `cli.py::_run_stage_c`), no como parte de la
+clave del ledger. La autorización (`--authorized-by`) se exige en cada
+invocación científica de `--stage C`, sin distinguir "primer intento" de
+intentos posteriores -- una vez `CONFIRMADA`, no hay intento posterior
+posible para la misma identidad de holdout, por lo que esa distinción no
+tiene efecto práctico bajo este diseño. El procedimiento para resolver un
+registro `INDETERMINADA` sigue siendo manual y fuera de la CLI: no se
+implementó (ni se propone) ningún comando automático de la CLI para
+inspeccionar, resetear o liberar una fila del ledger -- una intervención
+directa sobre el archivo SQLite (por ejemplo, con la herramienta `sqlite3`)
+queda fuera del alcance de este paquete, documentada aquí como límite
+explícito, no como automatización pendiente.
+
 ## Decisión 3 — Política de `--overwrite` para la Etapa C
 
 ### Requisito a preservar
@@ -98,6 +154,13 @@ Que, específicamente para `--stage C`, la CLI rechace incondicionalmente el fla
 ### Qué permanece pendiente de decisión
 
 Si esta prohibición incondicional es necesaria además del ledger (defensa en profundidad) o redundante (y por lo tanto innecesaria) una vez que el ledger de la Decisión 2 esté aprobado e implementado.
+
+**Resuelto (2026-09-15, encargo "Etapa C y ledger de protección del
+holdout"):** se adopta la prohibición incondicional como defensa en
+profundidad, no porque el ledger de la Decisión 2 pudiera evadirse sin ella
+(no puede: la exclusión es por `holdout_key`, no por `--output-dir`), sino
+para no depender de un único mecanismo -- `cli.py` rechaza `--overwrite` con
+`--stage C` antes de cualquier otra verificación, incondicionalmente.
 
 ## Decisión 4 — Ubicación de `depth_role` en los artefactos
 

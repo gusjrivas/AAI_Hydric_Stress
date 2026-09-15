@@ -44,6 +44,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from experiment_runner.controlled_daily_v4.artifacts import STAGE_B_ARTIFACT_SCHEMA_VERSION
 from experiment_runner.controlled_daily_v4.code_identity import is_valid_full_sha
 from experiment_runner.controlled_daily_v4.config import (
     DEPTH_ROLE_PRIMARY,
@@ -72,22 +73,25 @@ class StageBAdmissibilityError(ValueError):
         super().__init__("; ".join(self.reasons) if self.reasons else "candidato no admisible")
 
 
-def _load_producer_json(producer_dir: Path, filename: str) -> dict[str, Any]:
+def _load_producer_json(
+    producer_dir: Path, filename: str, error_cls: type[ValueError] = None
+) -> dict[str, Any]:
+    error_cls = error_cls or StageBAdmissibilityError
     path = producer_dir / filename
     try:
         text = path.read_text(encoding="utf-8")
     except FileNotFoundError:
-        raise StageBAdmissibilityError(
+        raise error_cls(
             [f"Falta el artefacto de evidencia del productor requerido: '{path}'"]
         ) from None
     except OSError as exc:
-        raise StageBAdmissibilityError([f"No se pudo leer '{path}': {exc}"]) from exc
+        raise error_cls([f"No se pudo leer '{path}': {exc}"]) from exc
     try:
         payload = json.loads(text)
     except json.JSONDecodeError as exc:
-        raise StageBAdmissibilityError([f"'{path}' no es JSON válido: {exc}"]) from exc
+        raise error_cls([f"'{path}' no es JSON válido: {exc}"]) from exc
     if not isinstance(payload, dict):
-        raise StageBAdmissibilityError([f"'{path}': el JSON raíz debe ser un objeto"])
+        raise error_cls([f"'{path}': el JSON raíz debe ser un objeto"])
     return payload
 
 
@@ -391,4 +395,285 @@ def check_stage_b_admissibility(
         raise StageBAdmissibilityError(reasons)
 
 
-__all__ = ["StageBAdmissibilityError", "check_stage_b_admissibility"]
+class StageCAdmissibilityError(ValueError):
+    """El veredicto de la Etapa B (y/o la evidencia que lo sustenta) no es
+    admisible como habilitación de una ejecución concreta de la Etapa C.
+    `reasons` enumera todos los motivos verificados, no solo el primero.
+
+    Nunca se toca ningún dato de 2024-2025 desde este módulo: solo lee
+    artefactos ya persistidos de A (vía `producer_dir`) y de B (vía
+    `stage_b_dir`)."""
+
+    def __init__(self, reasons: list[str]):
+        self.reasons = list(reasons)
+        super().__init__("; ".join(self.reasons) if self.reasons else "Etapa B no admisible")
+
+
+def check_stage_c_admissibility(
+    contract: FrozenConfigContract,
+    *,
+    stage_b_dir: str | Path,
+    producer_dir: str | Path,
+    consumer_input_mode: str,
+    consumer_code_identity: dict[str, Any] | None = None,
+    consumer_environment_issues: list[str] | None = None,
+) -> None:
+    """Decide si el veredicto `CANDIDATE_VALIDATED` de una corrida de la Etapa
+    B (en `stage_b_dir`) habilita una ejecución concreta de la Etapa C sobre
+    el candidato `contract` (leído estructuralmente desde `producer_dir`, el
+    directorio de A referenciado por `stage_b_dir/producer_reference.json`).
+
+    No entrena nada, no abre ningún ledger y NUNCA lee un CSV crudo: toda la
+    evidencia que consulta ya está persistida localmente por A y B. La
+    apertura efectiva del holdout (reserva + confirmación durable del ledger)
+    es responsabilidad exclusiva de quien invoca, después de que esta función
+    ya haya aceptado sin excepción.
+
+    No acepta un `decision.json` aislado como evidencia suficiente: revalida
+    la coherencia entre `decision.json`, `metrics.json` y `bootstrap.json` de
+    B (recalcula la regla de aprobación desde los números persistidos, no
+    confía únicamente en el campo `verdict`), y el linaje hasta el contrato
+    congelado de A (`producer_reference.json` debe referenciar exactamente el
+    mismo `frozen_config.json` que `contract` reconstruye)."""
+    stage_b_dir = Path(stage_b_dir)
+    producer_dir = Path(producer_dir)
+    reasons: list[str] = []
+
+    if contract.depth_role != DEPTH_ROLE_PRIMARY:
+        raise StageCAdmissibilityError(
+            [
+                f"depth_role='{contract.depth_role}' no es admisible como insumo de la Etapa C: "
+                "únicamente 'primary_selection' puede evaluarse en C"
+            ]
+        )
+    if not contract.candidate_produced:
+        raise StageCAdmissibilityError(
+            [
+                "La Etapa A no produjo ningún candidato congelado: la ausencia de candidato "
+                "impide continuar"
+            ]
+        )
+
+    producer_reference = _load_producer_json(
+        stage_b_dir, "producer_reference.json", StageCAdmissibilityError
+    )
+    referenced_producer_dir = producer_reference.get("producer_dir")
+    if referenced_producer_dir != str(producer_dir):
+        reasons.append(
+            f"'{stage_b_dir / 'producer_reference.json'}'.producer_dir="
+            f"{referenced_producer_dir!r} no coincide con el directorio de A efectivamente "
+            f"provisto ({str(producer_dir)!r}): el linaje hasta A no es verificable"
+        )
+    embedded_frozen_config = producer_reference.get("producer_frozen_config")
+    if embedded_frozen_config != contract.raw:
+        reasons.append(
+            f"'{stage_b_dir / 'producer_reference.json'}'.producer_frozen_config no coincide "
+            f"con el 'frozen_config.json' leído fresco desde '{producer_dir}': indicio de "
+            "mezcla de artefactos de corridas distintas o de un directorio de A modificado "
+            "después de que B consumiera el candidato"
+        )
+
+    schema_payload = _load_producer_json(
+        stage_b_dir, "schema_version.json", StageCAdmissibilityError
+    )
+    if schema_payload.get("schema_version") != STAGE_B_ARTIFACT_SCHEMA_VERSION:
+        reasons.append(
+            f"'{stage_b_dir}': schema_version de B "
+            f"({schema_payload.get('schema_version')!r}) no reconocido "
+            f"(esperado {STAGE_B_ARTIFACT_SCHEMA_VERSION!r})"
+        )
+
+    resolved_config = _load_producer_json(
+        stage_b_dir, "resolved_config.json", StageCAdmissibilityError
+    )
+    decision_payload = _load_producer_json(stage_b_dir, "decision.json", StageCAdmissibilityError)
+    metrics_payload_b = _load_producer_json(stage_b_dir, "metrics.json", StageCAdmissibilityError)
+    bootstrap_payload = _load_producer_json(stage_b_dir, "bootstrap.json", StageCAdmissibilityError)
+
+    if decision_payload.get("verdict") != "CANDIDATE_VALIDATED":
+        reasons.append(
+            f"'{stage_b_dir / 'decision.json'}'.verdict="
+            f"{decision_payload.get('verdict')!r} no es 'CANDIDATE_VALIDATED': la Etapa C no "
+            "puede habilitarse (protocolo, sección 10)"
+        )
+    if decision_payload.get("predictions_available") is not True:
+        reasons.append(
+            f"'{stage_b_dir / 'decision.json'}'.predictions_available no es True: un veredicto "
+            "CANDIDATE_VALIDATED sin predicciones disponibles es incoherente"
+        )
+
+    # Coherencia decisión/métricas/bootstrap: se RECALCULA la regla de
+    # aprobación desde los números persistidos, nunca se confía únicamente en
+    # el campo 'verdict' de decision.json (no aceptar un decision.json
+    # aislado como evidencia suficiente).
+    mcc_candidate_envelope = metrics_payload_b.get("mcc_candidate", {})
+    if mcc_candidate_envelope.get("status") != "defined" or not (
+        isinstance(mcc_candidate_envelope.get("value"), (int, float))
+        and mcc_candidate_envelope["value"] > 0
+    ):
+        reasons.append(
+            f"'{stage_b_dir / 'metrics.json'}'.mcc_candidate no sustenta "
+            "MCC_candidato_2023 > 0 requerido por 'CANDIDATE_VALIDATED'"
+        )
+    if bootstrap_payload.get("bootstrap_executed") is not True:
+        reasons.append(
+            f"'{stage_b_dir / 'bootstrap.json'}'.bootstrap_executed no es True: no hay "
+            "intervalo bootstrap que sustente 'CANDIDATE_VALIDATED'"
+        )
+    else:
+        lower_bound = bootstrap_payload.get("interval_lower")
+        if not (isinstance(lower_bound, (int, float)) and lower_bound >= -0.05):
+            reasons.append(
+                f"'{stage_b_dir / 'bootstrap.json'}'.interval_lower={lower_bound!r} no cumple "
+                "el límite inferior >= -0.05 exigido por 'CANDIDATE_VALIDATED'"
+            )
+
+    if consumer_input_mode == INPUT_MODE_SYNTHETIC:
+        if (
+            contract.input_mode != INPUT_MODE_SYNTHETIC
+            or resolved_config.get("scientific_run") is not False
+        ):
+            reasons.append(
+                "Una ejecución de integración sintética de la Etapa C solo admite un candidato "
+                "de A y una corrida de B ambos sintéticos (input_mode='synthetic', "
+                "scientific_run=False)"
+            )
+        if reasons:
+            raise StageCAdmissibilityError(reasons)
+        return
+
+    if consumer_input_mode != INPUT_MODE_SCIENTIFIC:
+        raise StageCAdmissibilityError(
+            [f"input_mode de la ejecución consumidora desconocido: '{consumer_input_mode}'"]
+        )
+
+    # Una aprobación SINTÉTICA nunca habilita una Etapa C científica (decisión
+    # operativa de este encargo, "Sobrescritura y autorización").
+    if resolved_config.get("scientific_run") is not True:
+        reasons.append(
+            f"'{stage_b_dir / 'resolved_config.json'}'.scientific_run no es True: una "
+            "aprobación sintética de la Etapa B nunca habilita una Etapa C científica"
+        )
+    if contract.input_mode != INPUT_MODE_SCIENTIFIC or not contract.scientific_run:
+        reasons.append(
+            "El candidato de A no está marcado como científico en ambos ejes "
+            f"(scientific_run={contract.scientific_run!r}, input_mode={contract.input_mode!r})"
+        )
+
+    b_code_identity = _load_producer_json(
+        stage_b_dir, "code_version.json", StageCAdmissibilityError
+    )
+    if not b_code_identity.get("available"):
+        reasons.append(
+            "La identidad de código de la ejecución de B no está disponible "
+            f"(reason={b_code_identity.get('reason')!r})"
+        )
+    if b_code_identity.get("dirty") is not False:
+        reasons.append(
+            "La identidad de código de la ejecución de B no reporta dirty=False "
+            f"(dirty={b_code_identity.get('dirty')!r})"
+        )
+    b_commit = b_code_identity.get("commit")
+    if not is_valid_full_sha(b_commit):
+        reasons.append(
+            f"La identidad de código de B no tiene un commit válido (commit={b_commit!r})"
+        )
+
+    if consumer_code_identity is None:
+        reasons.append(
+            "No se recibió la identidad de código de la ejecución consumidora de C (contexto "
+            "explícito requerido)"
+        )
+    else:
+        if not consumer_code_identity.get("available"):
+            reasons.append(
+                "La identidad de código de la ejecución consumidora de C no está disponible "
+                f"(reason={consumer_code_identity.get('reason')!r})"
+            )
+        if consumer_code_identity.get("dirty") is not False:
+            reasons.append(
+                "La identidad de código de la ejecución consumidora de C no reporta "
+                f"dirty=False (dirty={consumer_code_identity.get('dirty')!r})"
+            )
+        consumer_commit = consumer_code_identity.get("commit")
+        if not is_valid_full_sha(consumer_commit):
+            reasons.append(
+                "La identidad de código de la ejecución consumidora de C no tiene un commit "
+                f"válido (commit={consumer_commit!r})"
+            )
+        elif is_valid_full_sha(b_commit) and consumer_commit != b_commit:
+            reasons.append(
+                f"El commit de la ejecución de B ({b_commit!r}) difiere del commit de la "
+                f"ejecución consumidora de C ({consumer_commit!r}) y no existe una política de "
+                "compatibilidad documentada que acredite esa diferencia: se rechaza por "
+                "compatibilidad no acreditada"
+            )
+
+    if consumer_environment_issues is None:
+        reasons.append(
+            "No se recibió evidencia de validación normativa del entorno de la ejecución "
+            "consumidora de C (contexto explícito requerido)"
+        )
+    elif consumer_environment_issues:
+        reasons.append(
+            f"La ejecución consumidora de C registra fallas de validación de entorno: "
+            f"{consumer_environment_issues}"
+        )
+
+    b_environment = _load_producer_json(stage_b_dir, "environment.json", StageCAdmissibilityError)
+    if not b_environment.get("validated_before_training"):
+        reasons.append(
+            "La ejecución de B no registra validación normativa del entorno previa al "
+            "entrenamiento"
+        )
+    if b_environment.get("validation_issues"):
+        reasons.append(
+            "La ejecución de B registra fallas de validación de entorno: "
+            f"{b_environment['validation_issues']}"
+        )
+    constraints_identity = b_environment.get("constraints_identity")
+    if not isinstance(constraints_identity, dict) or constraints_identity.get("exists") is not True:
+        reasons.append(
+            f"La ejecución de B no registra una identidad de 'constraints.txt' verificable "
+            f"(constraints_identity={constraints_identity!r})"
+        )
+    else:
+        recorded_sha256 = constraints_identity.get("sha256")
+        if not is_valid_full_sha(recorded_sha256):
+            reasons.append(
+                f"El SHA-256 de 'constraints.txt' registrado por B no tiene formato válido "
+                f"(sha256={recorded_sha256!r})"
+            )
+        else:
+            current_constraints_identity = capture_constraints_identity()
+            if (
+                not current_constraints_identity["exists"]
+                or current_constraints_identity["sha256"] != recorded_sha256
+            ):
+                reasons.append(
+                    f"El SHA-256 de 'constraints.txt' registrado por B ({recorded_sha256!r}) no "
+                    f"coincide con el archivo de referencia real "
+                    f"({current_constraints_identity['sha256']!r})"
+                )
+    if not b_environment.get("packages"):
+        reasons.append(
+            "La ejecución de B no registra las versiones de paquetes efectivamente capturadas"
+        )
+    else:
+        report = validate_environment(b_environment)
+        if not report.ok:
+            reasons.append(
+                f"El entorno persistido de B no valida contra la referencia normativa "
+                f"versionada: {report.issues}"
+            )
+
+    if reasons:
+        raise StageCAdmissibilityError(reasons)
+
+
+__all__ = [
+    "StageBAdmissibilityError",
+    "StageCAdmissibilityError",
+    "check_stage_b_admissibility",
+    "check_stage_c_admissibility",
+]

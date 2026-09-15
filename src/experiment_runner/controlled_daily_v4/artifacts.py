@@ -79,6 +79,11 @@ deliberadamente distinto de `ARTIFACT_SCHEMA_VERSION` (Etapa A) y de
 consume, no produce): B no reescribe ni sobreescribe ningún artefacto de A,
 persiste su propio directorio de salida con su propia versión de esquema."""
 
+STAGE_C_ARTIFACT_SCHEMA_VERSION = "controlled_daily_v4_stage_c.v1"
+"""Esquema propio de los artefactos de la Etapa C (`write_stage_c_artifacts`),
+distinto de los anteriores por la misma razón que B: C nunca reescribe
+artefactos de A ni de B, persiste su propio directorio de salida exclusivo."""
+
 
 class OutputDirectoryNotEmptyError(FileExistsError):
     """El directorio de salida ya contiene artefactos; usar `overwrite=True`
@@ -126,6 +131,58 @@ def validate_stage_b_output_directory(output_dir: str | Path, producer_dir: str 
             f"('{output_dir}'): la Etapa B nunca escribe en un directorio que contenga la "
             "evidencia de A, ni siquiera con --overwrite."
         )
+
+
+class StageCOutputDirectoryConflictError(ValueError):
+    """`--output-dir` de la Etapa C coincide con, está contenido dentro de, o
+    contiene a alguno de los directorios protegidos (evidencia de A, de B, o
+    el archivo del ledger del holdout) -- de forma literal, por rutas
+    relativas distintas que normalizan al mismo destino, o por un enlace
+    simbólico. `--overwrite` no existe para la Etapa C (Decisión 3 del
+    documento de decisiones, adoptada para este encargo: prohibición
+    incondicional), por lo que esta verificación es, en la práctica, siempre
+    incondicional."""
+
+
+def _reject_path_overlap(output_dir: Path, protected_path: Path, protected_label: str) -> None:
+    output_resolved = output_dir.resolve()
+    protected_resolved = protected_path.resolve()
+    if output_resolved == protected_resolved:
+        raise StageCOutputDirectoryConflictError(
+            f"--output-dir ('{output_dir}') coincide con {protected_label} "
+            f"('{protected_path}') una vez normalizadas ambas rutas (enlaces simbólicos "
+            "incluidos): la Etapa C nunca escribe en un directorio/archivo protegido."
+        )
+    if output_resolved.is_relative_to(protected_resolved):
+        raise StageCOutputDirectoryConflictError(
+            f"--output-dir ('{output_dir}') está contenido dentro de {protected_label} "
+            f"('{protected_path}'): la Etapa C nunca escribe dentro de un directorio protegido."
+        )
+    if protected_resolved.is_relative_to(output_resolved):
+        raise StageCOutputDirectoryConflictError(
+            f"{protected_label} ('{protected_path}') está contenido dentro de --output-dir "
+            f"('{output_dir}'): la Etapa C nunca escribe en un directorio que contenga "
+            "evidencia protegida."
+        )
+
+
+def validate_stage_c_output_directory(
+    output_dir: str | Path,
+    *,
+    producer_dir: str | Path,
+    stage_b_dir: str | Path,
+    ledger_path: str | Path,
+) -> None:
+    """Rechaza toda coincidencia efectiva (literal, por anidamiento, o por
+    enlace simbólico) entre `output_dir` (destino de C) y CUALQUIERA de:
+    `producer_dir` (evidencia de A), `stage_b_dir` (evidencia de B), o
+    `ledger_path` (el archivo del ledger del holdout) -- protección explícita
+    pedida para C, análoga a `validate_stage_b_output_directory` pero
+    extendida a tres rutas protegidas en vez de una."""
+    output_dir = Path(output_dir)
+    _reject_path_overlap(output_dir, Path(producer_dir), "--producer-dir (evidencia de A)")
+    _reject_path_overlap(output_dir, Path(stage_b_dir), "--stage-b-dir (evidencia de B)")
+    _reject_path_overlap(output_dir, Path(ledger_path), "--holdout-ledger-path (ledger)")
 
 
 def normalize_for_json(value: Any) -> Any:
@@ -709,6 +766,204 @@ def write_stage_b_artifacts(
                 "Ejecución de Stage B. C no implementada en este runner; el veredicto de B "
                 "queda persistido aquí, pero ningún mecanismo de este paquete lo consume "
                 "todavía para habilitar C (Decisión 2, ledger del holdout, pendiente)."
+            ),
+        },
+    )
+
+    return written
+
+
+def _stage_c_predictions_frame(result: Any) -> pd.DataFrame:
+    """`predictions_2024_2025.csv` (protocolo, sección 11/13). Mismo criterio
+    que `_stage_b_predictions_frame`: ante entrenamiento/evaluación monoclase
+    (`predictions_available=False`), nunca se fabrica una predicción ni se
+    reemplaza la ausencia por ceros -- solo se persisten los timestamps y (si
+    están disponibles) las etiquetas verdaderas."""
+    if result.predictions_available:
+        return pd.DataFrame(
+            {
+                "feature_timestamp": result.feature_timestamps,
+                "y_true": result.y_true,
+                "y_pred_candidate": result.y_pred_candidate,
+                "y_score_candidate": result.y_score_candidate,
+                "y_pred_persistence": result.y_pred_persistence,
+                "y_pred_majority_class": result.y_pred_majority_class,
+                "y_pred_constant_stress": result.y_pred_constant_stress,
+            }
+        )
+    data: dict[str, Any] = {"feature_timestamp": result.feature_timestamps}
+    if len(result.y_true) == len(result.feature_timestamps):
+        data["y_true"] = result.y_true
+    return pd.DataFrame(data)
+
+
+def write_stage_c_artifacts(
+    output_dir: str | Path,
+    *,
+    input_mode: str,
+    scientific_run: bool,
+    resolved_config: dict[str, Any],
+    producer_dir: str | Path,
+    producer_contract_raw: dict[str, Any],
+    stage_b_dir: str | Path,
+    stage_b_decision_raw: dict[str, Any],
+    ledger_path: str | Path,
+    holdout_identity_key: str,
+    attempt_id: str,
+    authorized_by: str,
+    consumer_code_identity: dict[str, Any],
+    consumer_environment_info: dict[str, Any],
+    consumer_environment_issues: list[str],
+    result: Any,
+) -> dict[str, Path]:
+    """Serializa todos los artefactos de una corrida de la Etapa C. Nunca
+    escribe dentro de `producer_dir` (A), `stage_b_dir` (B) ni en el archivo
+    de `ledger_path` -- `validate_stage_c_output_directory` se verifica aquí,
+    ANTES de `ensure_output_directory` y de cualquier escritura, exactamente
+    igual que en B. La Etapa C nunca acepta `overwrite`: cada apertura del
+    holdout es un evento único, por lo que esta función no expone ese
+    parámetro (a diferencia de A y B) -- `ensure_output_directory` se invoca
+    siempre con `overwrite=False`."""
+    validate_stage_c_output_directory(
+        output_dir, producer_dir=producer_dir, stage_b_dir=stage_b_dir, ledger_path=ledger_path
+    )
+    output_dir = ensure_output_directory(output_dir, overwrite=False)
+    written: dict[str, Path] = {}
+
+    written["schema_version"] = output_dir / "schema_version.json"
+    _write_json(written["schema_version"], {"schema_version": STAGE_C_ARTIFACT_SCHEMA_VERSION})
+
+    written["resolved_config"] = output_dir / "resolved_config.json"
+    _write_json(
+        written["resolved_config"],
+        {"input_mode": input_mode, "scientific_run": scientific_run, **resolved_config},
+    )
+
+    written["producer_reference"] = output_dir / "producer_reference.json"
+    _write_json(
+        written["producer_reference"],
+        {
+            "producer_dir": str(producer_dir),
+            "producer_frozen_config": producer_contract_raw,
+            "stage_b_dir": str(stage_b_dir),
+            "stage_b_decision": stage_b_decision_raw,
+        },
+    )
+
+    written["holdout_ledger_reference"] = output_dir / "holdout_ledger_reference.json"
+    _write_json(
+        written["holdout_ledger_reference"],
+        {
+            "ledger_path": str(ledger_path),
+            "holdout_identity_key": holdout_identity_key,
+            "attempt_id": attempt_id,
+            "authorized_by": authorized_by,
+        },
+    )
+
+    written["code_version"] = output_dir / "code_version.json"
+    _write_json(written["code_version"], consumer_code_identity)
+
+    written["environment"] = output_dir / "environment.json"
+    _write_json(
+        written["environment"],
+        {
+            **consumer_environment_info,
+            "validation_issues": consumer_environment_issues,
+            "validated_before_training": True,
+        },
+    )
+
+    written["warnings"] = output_dir / "warnings.json"
+    _write_json(written["warnings"], getattr(result, "warnings_log", None) or [])
+
+    written["training_dataset_fingerprint"] = output_dir / "training_dataset_fingerprint.json"
+    _write_json(written["training_dataset_fingerprint"], result.training_dataset_fingerprint)
+
+    written["temporal_boundaries"] = output_dir / "temporal_boundaries.json"
+    _write_json(
+        written["temporal_boundaries"],
+        {
+            "training_frame_n_rows": result.training_frame_n_rows,
+            "training_target_timestamp_cutoff": "2023-12-31",
+            "evaluation_frame_n_rows": result.evaluation_frame_n_rows,
+            "evaluation_target_timestamp_min": result.evaluation_target_timestamp_min,
+            "evaluation_target_timestamp_max": result.evaluation_target_timestamp_max,
+        },
+    )
+
+    written["p20_train"] = output_dir / "p20_train.json"
+    _write_json(written["p20_train"], {"p20_train": result.p20_train})
+
+    written["predictions"] = output_dir / "predictions_2024_2025.csv"
+    _write_csv(written["predictions"], _stage_c_predictions_frame(result))
+
+    written["metrics"] = output_dir / "metrics.json"
+    _write_json(
+        written["metrics"],
+        {
+            "schema_version": STAGE_C_ARTIFACT_SCHEMA_VERSION,
+            "candidate": result.metrics_candidate,
+            "baseline_persistence": result.metrics_persistence,
+            "baseline_majority_class": result.metrics_majority_class,
+            "baseline_constant_stress": result.metrics_constant_stress,
+            "mcc_candidate": metric_envelope(result.mcc_candidate, REASON_MONOCLASS),
+            "mcc_persistence": metric_envelope(result.mcc_persistence, REASON_MONOCLASS),
+            "delta_mcc_point_estimate": metric_envelope(
+                result.delta_mcc_point_estimate, REASON_MONOCLASS
+            ),
+        },
+    )
+
+    written["bootstrap"] = output_dir / "bootstrap.json"
+    interval = (
+        result.bootstrap_result.interval if result.bootstrap_result is not None else (None, None)
+    )
+    _write_json(
+        written["bootstrap"],
+        {
+            # Exclusivamente DIAGNÓSTICO en C (ver stage_c_runner.py):
+            # ningún umbral de aprobación se deriva de este intervalo -- la
+            # Etapa C no tiene compuerta de aceptación/rechazo.
+            "bootstrap_executed": getattr(
+                result, "bootstrap_executed", result.bootstrap_result is not None
+            ),
+            "interval_lower": interval[0],
+            "interval_upper": interval[1],
+            "diagnostics": _bootstrap_diagnostics_to_json(result.bootstrap_diagnostics),
+        },
+    )
+
+    written["outcome"] = output_dir / "outcome.json"
+    _write_json(
+        written["outcome"],
+        {
+            # Deliberadamente SIN campo 'verdict': la Etapa C no produce un
+            # veredicto de aprobación/rechazo (esa compuerta es exclusiva de
+            # B, protocolo sección 10) -- un resultado desfavorable de C
+            # nunca autoriza repetir la evaluación (protocolo, sección 11).
+            "predictions_available": getattr(result, "predictions_available", True),
+            "reasons": getattr(result, "outcome_reasons", []),
+            "classification": {
+                "stage": "C",
+                "permits": "Validación temporal final de un único modelo ya congelado",
+                "does_not_permit": "Selección, recalibración, nueva comparación de familias",
+            },
+        },
+    )
+
+    written["holdout_status"] = output_dir / "holdout_status.json"
+    _write_json(
+        written["holdout_status"],
+        {
+            "stage_b_executed": True,
+            "stage_c_executed": True,
+            "holdout_2024_2025_open": True,
+            "note": (
+                "Ejecución de Stage C: el holdout 2024-2025 fue abierto de forma durable y "
+                "permanente por esta corrida (ver holdout_ledger_reference.json). Este campo "
+                "describe la evidencia de ESTA corrida -- el estado autoritativo de exclusión "
+                "vive en el ledger (holdout_ledger.py), no en este archivo."
             ),
         },
     )
