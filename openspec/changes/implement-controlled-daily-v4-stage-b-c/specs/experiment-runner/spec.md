@@ -1,26 +1,126 @@
-# Spec delta: experiment-runner (contrato A→B, baselines, marcado científico/sintético y de profundidad)
+# Spec delta: experiment-runner (contrato A→B, baselines, marcado científico/sintético y de profundidad, ledger y runner de la Etapa C)
 
-> Estado de este delta (actualizado 2026-09-14): el contrato de transferencia
+> Estado de este delta (actualizado 2026-09-15): el contrato de transferencia
 > A→B (lectura estructural y admisibilidad de una ejecución concreta, más la
 > parte de "Compatibilidad de procedencia entre etapas" aplicable a la Etapa B)
 > sigue **implementado e integrado** (`transfer_contract.py`, `admissibility.py`,
 > extensión de `artifacts.py`/`config.py`/`cli.py`). El requirement de
-> "Baselines del protocolo" y el escenario "Compuerta real de validación
+> "Baselines del protocolo", el escenario "Compuerta real de validación
 > temporal antes de abrir el holdout" (Etapa B, ya especificado en
-> `add-controlled-daily-v4-external-pergamino/specs/experiment-runner/spec.md`,
-> no repetido aquí) quedan **implementados e integrados en este cierre**
-> (`baselines.py`, `stage_b_runner.py`, extensión de `artifacts.py`/`config.py`/`cli.py`
-> — `--stage B` operativo), verificados exclusivamente con pruebas sintéticas.
-> El requirement "Distinción verificable entre corrida principal y de
-> sensibilidad" sigue sin cambios respecto de la versión anterior de este delta
-> (ya implementado desde el contrato de transferencia). La parte de
-> "Compatibilidad de procedencia entre etapas" específica de la Etapa C, y el
-> escenario "El holdout no admite ajustes posteriores a su apertura" (el runner
-> de C en sí), siguen **sin implementar** -- Etapa C queda explícitamente fuera
-> de alcance de este cierre (Decisiones 2 y 3 del documento de decisiones
-> pendientes, ambas bloqueadas). No reemplaza ni modifica ningún requirement
-> vigente de `controlled_daily_v3` ni de la Etapa A ya implementada. Ninguna
-> ejecución científica real de la Etapa B se realizó en este cierre.
+> `add-controlled-daily-v4-external-pergamino/specs/experiment-runner/spec.md`),
+> el requirement "Distinción verificable entre corrida principal y de
+> sensibilidad", y la parte de "Compatibilidad de procedencia entre etapas"
+> aplicable a la Etapa B siguen **implementados e integrados**
+> (`baselines.py`, `stage_b_runner.py` — `--stage B` operativo).
+>
+> **Nuevo en este cierre (2026-09-15, encargo "Etapa C y ledger de protección
+> del holdout"):** el ledger transaccional de protección del holdout
+> (`holdout_ledger.py`), la admisibilidad de C sobre el veredicto de B
+> (`admissibility.check_stage_c_admissibility`), el runner de la Etapa C
+> (`stage_c_runner.py`), sus artefactos exclusivos (`artifacts.write_stage_c_artifacts`)
+> y `--stage C` en la CLI quedan **implementados e integrados en este cierre**,
+> verificados exclusivamente con pruebas sintéticas -- ver los requirements
+> "Ledger de protección del holdout de la Etapa C" y "Runner y evaluación
+> única de la Etapa C" agregados más abajo, y el escenario "El holdout no
+> admite ajustes posteriores a su apertura" (ya especificado en
+> `add-controlled-daily-v4-external-pergamino/specs/experiment-runner/spec.md`),
+> ahora con implementación real que lo satisface. La parte de "Compatibilidad
+> de procedencia entre etapas" específica de la Etapa C también queda
+> implementada (`cli.py::_run_stage_c`, verificación de identidad de fuente
+> DESPUÉS de la apertura confirmada del holdout). Las Decisiones 2 y 3 del
+> documento de decisiones pendientes fueron adoptadas como decisiones
+> operativas de este encargo (no atribuidas a una aprobación académica
+> externa; ver `docs/research/controlled-daily-v4-stage-b-c-decisiones-pendientes.md`).
+>
+> No reemplaza ni modifica ningún requirement vigente de `controlled_daily_v3`
+> ni de las Etapas A/B ya implementadas. **Ninguna ejecución científica real
+> de ninguna etapa, ni apertura real del holdout 2024-2025, se realizó en
+> este cierre** -- toda verificación es exclusivamente sintética, y la
+> integración a `main` queda pendiente mientras el PR correspondiente esté
+> abierto.
+>
+> **Revisión dirigida sobre este mismo cierre (2026-09-15), cinco hallazgos
+> corregidos con evidencia sintética verificable, sin reabrir la Decisión 4
+> (`depth_role`):** (1) `check_stage_c_admissibility` ahora valida
+> ESTRUCTURALMENTE los artefactos de B antes de interpretar sus valores --
+> rechaza booleanos como métrica (`bool` es subclase de `int` en Python),
+> valores no finitos, un intervalo bootstrap invertido, réplicas bootstrap
+> válidas insuficientes (`diagnostics.replicas_valid`), y una incoherencia
+> interna entre `input_mode` y `scientific_run` de la propia corrida de B.
+> (2) la recuperación de solo lectura de un resultado finalizado
+> (`artifacts.verify_stage_c_recovery`) exige un `integrity_manifest.json`
+> con el sha256 de cada artefacto realmente escrito y la correspondencia de
+> `holdout_identity_key`/`attempt_id`, escrito como ÚLTIMO artefacto de
+> `write_stage_c_artifacts` -- nunca declara éxito sobre un directorio
+> ausente, un artefacto faltante, contenido alterado, o evidencia de otro
+> intento. (3) la CLI rechaza, ANTES de reservar el ledger, una salida ya
+> ocupada, una `--authorized-by` vacía, y una invocación científica con
+> semilla/réplicas no normativas (antes solo se detectaban, respectivamente,
+> dentro de `write_stage_c_artifacts`, dentro de `confirm_holdout_open`, o
+> nunca). (4) la validación de esquema/metadatos del ledger
+> (`holdout_ledger._validate_ledger_meta`) ahora es una única función
+> reutilizada en lectura, reserva, confirmación y finalización: un
+> `schema_version` o `mode` desconocido nunca habilita ninguna de las cuatro
+> operaciones; `confirm_holdout_open`/`finalize_holdout` verifican
+> explícitamente que el archivo exista (nunca dejan que `sqlite3.connect` cree
+> uno vacío implícito); `finalize_holdout` exige el mismo `attempt_id` que
+> ganó la reserva y rechaza una segunda finalización en vez de reemplazar en
+> silencio la referencia ya persistida. (5) el entrenamiento extendido de C
+> se huella con un `scope` propio (`FINGERPRINT_SCOPE_STAGE_C_EXTENDED_TRAINING`,
+> nunca el de A/B) y `predictions_2024_2025.csv` incorpora `target_timestamp`
+> (esquema de artefactos de C: `controlled_daily_v4_stage_c.v2`).
+>
+> **Segunda revisión dirigida sobre este mismo cierre (2026-09-15), cinco
+> reproducciones adicionales corregidas (esquema de artefactos de C bumpeado
+> a `controlled_daily_v4_stage_c.v3`):** (1) `check_stage_c_admissibility`
+> ahora exige los tres contadores de `diagnostics` presentes y coherentes
+> (`replicas_requested>0`, `replicas_valid>0`, `valid+discarded==requested`,
+> ningún contador ausente asumido `0`), `diagnostics.normative is True` para
+> el camino científico, y la existencia/validez estructural de
+> `training_dataset_fingerprint.json` de B (sin exigirle igualdad con el
+> fingerprint EXTENDIDO de C). (2) el dominio de validación de
+> `interval_lower`/`interval_upper` de `bootstrap.json` se corrige a `[-2, 2]`
+> (una DIFERENCIA de dos MCC, nunca el `[-1, 1]` de un MCC aislado — la
+> primera corrección había introducido este error, que rechazaba
+> incorrectamente intervalos válidos). (3) `verify_stage_c_recovery` exige
+> además `schema_version` reconocido, el conjunto COMPLETO de artefactos
+> obligatorios del esquema, confinamiento de cada ruta declarada dentro de
+> `output_dir` (rechaza rutas absolutas, `..`, o enlaces simbólicos que
+> escapen), y coherencia estructural mínima de los artefactos recuperados; la
+> CLI además ahora distingue "recuperar el propio directorio ya finalizado"
+> (funciona aunque ese directorio esté ocupado) de "iniciar una ejecución
+> nueva sobre una salida ocupada" (se sigue rechazando), leyendo el estado
+> del ledger antes de aplicar el rechazo de salida ocupada. (4) la coherencia
+> de TODAS las columnas de un registro del ledger (no solo `schema_version`)
+> se valida en las cuatro operaciones -- un registro `AUSENTE` con columnas
+> de confirmación/finalización ya pobladas (o cualquier otra combinación
+> contradictoria) se bloquea como `INDETERMINADA`/error explícito, nunca se
+> repara. (5) se agrega `evaluation_dataset_fingerprint.json`, huella propia
+> y separada del conjunto EFECTIVAMENTE evaluado del holdout (calculada
+> exclusivamente después de la apertura autorizada), incluida en el
+> manifiesto de integridad.
+>
+> **Tercera revisión dirigida sobre este mismo cierre (2026-09-16), tres
+> pendientes reproducidos y corregidos (esquema de artefactos de C bumpeado
+> a `controlled_daily_v4_stage_c.v4`):** (1) `check_stage_c_admissibility`
+> ya no confía en la bandera `diagnostics.normative` declarada: recalcula
+> `bootstrap.compute_is_normative_configuration` sobre los parámetros
+> efectivos REALMENTE persistidos (`replicas_requested`, `seed`,
+> `block_length`) y la contrasta contra la bandera; exige además que
+> `seed`/`block_length` sean enteros presentes (nunca asumidos) y cruza
+> `resolved_config.json` contra esos mismos valores. (2) se agrega la
+> revalidación del vínculo HISTÓRICO A→B, reutilizando
+> `check_stage_b_admissibility` (el mismo validador de la transición real
+> A→B) contra la evidencia PERSISTIDA de A (`producer_dir`) y de B como
+> "consumidor histórico" -- antes, esa evidencia nunca se releía, por lo que
+> un `training_dataset_fingerprint.json` de B con `sha256` distinto del de A,
+> o la ausencia completa de `code_version.json`/`environment.json`/
+> `dataset_fingerprint.json` en `producer_dir`, no se detectaban. (3) C ahora
+> persiste `provenance.json`/`input_hashes.json` (mismos nombres ya
+> establecidos por A) con la identidad REAL de los CSV de entrada
+> efectivamente consumidos por esa corrida, calculada después de la apertura
+> autorizada y nunca copiada de A; ambos artefactos se agregan al conjunto
+> obligatorio que `verify_stage_c_recovery` exige.
 
 ## ADDED Requirements
 
@@ -134,6 +234,98 @@ El sistema DEBE dejar registrado, en los artefactos de cada corrida, si la profu
 - **WHEN** se inspeccionan sus artefactos de salida
 - **THEN** `depth_role` queda registrado como `sensitivity_only_no_selection_effect`, distinto del valor `primary_selection` de una corrida principal
 
+### Requirement: Ledger de protección del holdout de la Etapa C
+
+El sistema DEBE mantener un registro persistente y transaccional que impida, a través del flujo normal de la CLI, que el holdout de 2024-2025 se abra más de una vez para una misma identidad de holdout (protocolo + sitio + profundidad + período — nunca por commit, candidato congelado, `--output-dir` o identificador de intento). El registro DEBE distinguir tres estados (`AUSENTE`, `CONFIRMADA`, `INDETERMINADA`), inicializarse mediante una operación explícita y separada de cualquier ejecución, y nunca crearse ni reinicializarse implícitamente. Es un control operativo del flujo normal de la herramienta, no una garantía criptográfica ni a prueba de manipulación manual deliberada del archivo del registro.
+
+#### Scenario: La identidad del holdout es independiente del intento que lo consulta
+
+- **GIVEN** dos invocaciones de `--stage C` con distinto commit, candidato congelado o `--output-dir`, mismo protocolo/sitio/profundidad/período
+- **WHEN** se calcula la identidad de holdout de cada invocación
+- **THEN** ambas producen la misma clave: ninguno de esos otros datos puede, ni siquiera cambiándolos, producir una identidad de holdout distinta
+
+#### Scenario: La inicialización del ledger es explícita y nunca reemplaza uno existente
+
+- **GIVEN** un archivo de ledger ya existente en la ruta indicada
+- **WHEN** se invoca la operación de inicialización explícita sobre esa misma ruta
+- **THEN** la operación se rechaza sin modificar el archivo existente
+
+#### Scenario: Un ledger ausente, corrupto o ilegible se trata como INDETERMINADA, nunca como AUSENTE
+
+- **GIVEN** una ruta de ledger que no existe, o que existe pero no es una base de datos válida, o cuya fila para la identidad de holdout solicitada no está presente o no valida contra su forma esperada
+- **WHEN** se consulta el estado de esa identidad de holdout
+- **THEN** el estado reportado es `INDETERMINADA` — nunca `AUSENTE` — y bloquea cualquier acceso automático nuevo al holdout
+
+#### Scenario: La reserva es atómica y durable, y precede a cualquier acceso al holdout
+
+- **GIVEN** un registro en estado `AUSENTE`
+- **WHEN** se reserva la apertura y, a continuación, se confirma de forma durable (con `fsync` explícito del archivo, y del directorio cuando el mecanismo lo permite)
+- **THEN** ningún dato de 2024-2025 se carga ni se evalúa antes de que la confirmación durable haya retornado sin excepción
+
+#### Scenario: Dos reservas concurrentes sobre la misma identidad de holdout — solo una tiene éxito
+
+- **GIVEN** dos procesos del sistema operativo que intentan reservar, al mismo tiempo, la apertura del mismo holdout sobre el mismo archivo de ledger
+- **WHEN** ambos ejecutan la operación de reserva
+- **THEN** exactamente uno la obtiene y el otro es rechazado de inmediato, sin que ninguno de los dos haya accedido a ningún dato de 2024-2025
+
+#### Scenario: Una interrupción entre la reserva y la confirmación bloquea el acceso sin reintento automático
+
+- **GIVEN** un registro que fue reservado pero cuya confirmación durable nunca se completó (proceso interrumpido)
+- **WHEN** se consulta su estado, o se intenta una nueva reserva para la misma identidad de holdout
+- **THEN** el estado es `INDETERMINADA`, la nueva reserva se rechaza, y el registro no se borra ni se reinicializa automáticamente
+
+#### Scenario: Un fallo posterior a la confirmación durable no habilita reintentar la evaluación
+
+- **GIVEN** un registro en estado `CONFIRMADA` (la apertura ya se confirmó de forma durable) y un fallo posterior durante la evaluación o la escritura de resultados
+- **WHEN** se intenta una nueva invocación de `--stage C` para la misma identidad de holdout
+- **THEN** se rechaza de inmediato — el holdout queda protegido de forma permanente, exista o no un resultado serializado, sin ningún mecanismo de reintento automático
+
+#### Scenario: Una ejecución finalizada se recupera por lectura, sin reentrenar ni acceder al holdout crudo
+
+- **GIVEN** un registro en estado `CONFIRMADA` con marca de finalización ya presente, apuntando a un directorio de resultados existente
+- **WHEN** se invoca de nuevo `--stage C` para la misma identidad de holdout
+- **THEN** se reporta el resultado ya serializado sin reentrenar ningún modelo ni leer de nuevo ningún CSV crudo
+
+#### Scenario: Ledgers sintético y científico están separados y un cruce se rechaza explícitamente
+
+- **GIVEN** un archivo de ledger inicializado con un modo (`synthetic` o `scientific`)
+- **WHEN** se lo consulta o se opera sobre él declarando el modo contrario
+- **THEN** la operación se rechaza explícitamente, sin degradarse a ningún estado del holdout
+
+#### Scenario: `--overwrite` está prohibido incondicionalmente para la Etapa C
+
+- **GIVEN** una invocación de `--stage C` con `--overwrite`
+- **WHEN** la CLI procesa los argumentos
+- **THEN** se rechaza antes de cualquier otra verificación, sin excepción — como defensa en profundidad sobre el ledger, no como el único mecanismo de exclusión
+
+### Requirement: Runner y evaluación única de la Etapa C
+
+El sistema DEBE, solo después de que la apertura del holdout haya sido confirmada de forma durable por el ledger, reentrenar exclusivamente el candidato ya congelado por A y aprobado por B (misma familia, mismos hiperparámetros, mismos pesos de combinación) con `target_timestamp <= 2023-12-31`, recalcular `P20_train` exclusivamente sobre ese entrenamiento extendido, y evaluar una única vez `target_timestamp` entre 2024-01-04 y 2025-12-31 — sin selección, tuning, calibración, ajuste de umbrales ni prueba de candidatos alternativos, y sin comparar el `P20_train` recalculado contra el de A/B.
+
+#### Scenario: El entrenamiento de C nunca depende de humedad de 2024-2025
+
+- **GIVEN** una serie diaria con valores de humedad de 2024-2025 arbitrariamente modificados
+- **WHEN** se construye el conjunto de entrenamiento autorizado de C
+- **THEN** el conjunto resultante es idéntico al que se obtendría sin esa modificación
+
+#### Scenario: C no exige que el `P20_train` recalculado coincida con el de A
+
+- **GIVEN** un candidato congelado por A con un `P20_train` de A/B conocido
+- **WHEN** C recalcula `P20_train` sobre su propio entrenamiento extendido (que incorpora 2023)
+- **THEN** no se produce ningún fallo aunque ambos valores difieran — a diferencia de B, que sí exige esa igualdad porque reentrena sobre el mismo período que A
+
+#### Scenario: Un resultado desfavorable de C nunca autoriza repetir la evaluación
+
+- **GIVEN** un resultado de la Etapa C ya serializado y finalizado, cualquiera sea su métrica principal
+- **WHEN** se considera si corresponde una nueva evaluación
+- **THEN** no existe ningún mecanismo de este sistema que permita repetirla para la misma identidad de holdout
+
+#### Scenario: Monoclase y métricas indefinidas se persisten sin fabricar predicciones
+
+- **GIVEN** un entrenamiento o una evaluación de C genuinamente monoclase
+- **WHEN** se serializan los artefactos de esa corrida
+- **THEN** las predicciones del candidato quedan explícitamente ausentes (nunca fabricadas, nunca ceros en lugar de un valor indefinido), y el motivo queda registrado
+
 ## Fuera de alcance de este delta
 
-Los escenarios de la compuerta de la Etapa B (`ΔMCC_B`, `CANDIDATE_VALIDATED`/`CANDIDATE_NOT_VALIDATED`) y de la irreversibilidad de la Etapa C ya están especificados en `add-controlled-daily-v4-external-pergamino/specs/experiment-runner/spec.md` y no se repiten aquí. Las Decisiones 1, 2 y 3 de `docs/research/controlled-daily-v4-stage-b-c-decisiones-pendientes.md` (segmentación del bootstrap de B; identidad del holdout, secuencia de apertura y granularidad del registro de intento de C; política de `--overwrite` de C) no se resuelven ni se anticipan en este delta. La Decisión 4 de ese mismo documento (ubicación exacta de `depth_role`) tampoco se resuelve aquí, pero no bloquea los escenarios de admisibilidad anteriores en su totalidad — la existencia del campo, su punto de verificación y la severidad de su rechazo (siempre error duro) ya están resueltos; solo su ubicación exacta permanece abierta.
+Los escenarios de la compuerta de la Etapa B (`ΔMCC_B`, `CANDIDATE_VALIDATED`/`CANDIDATE_NOT_VALIDATED`) ya están especificados en `add-controlled-daily-v4-external-pergamino/specs/experiment-runner/spec.md` y no se repiten aquí; el escenario de irreversibilidad de la Etapa C, también especificado allí, queda ahora satisfecho por los requirements "Ledger de protección del holdout de la Etapa C" y "Runner y evaluación única de la Etapa C" de este mismo delta. Las Decisiones 1, 2 y 3 de `docs/research/controlled-daily-v4-stage-b-c-decisiones-pendientes.md` (segmentación del bootstrap de B; identidad del holdout, secuencia de apertura y granularidad del registro de intento de C; política de `--overwrite` de C) fueron todas adoptadas como decisiones operativas de sendos encargos de implementación (Decisión 1: 2026-09-14; Decisiones 2 y 3: 2026-09-15) — ninguna se atribuye a una aprobación académica externa. La Decisión 4 de ese mismo documento (ubicación exacta de `depth_role`) tampoco se resuelve aquí, pero no bloquea ningún escenario de admisibilidad en su totalidad — la existencia del campo, su punto de verificación y la severidad de su rechazo (siempre error duro) ya están resueltos; solo su ubicación exacta permanece abierta. Fuera de alcance también: ejecución científica real de cualquier etapa, apertura real del holdout 2024-2025, Balcarce, e integración con MLflow.

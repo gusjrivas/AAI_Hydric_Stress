@@ -1,12 +1,15 @@
-"""CLI explícita de las Etapas A y B de controlled_daily_v4_external_pergamino.
+"""CLI explícita de las Etapas A, B y C de controlled_daily_v4_external_pergamino.
 
-`--stage A` y `--stage B` (esta última reutilizando el candidato congelado por
-una corrida previa de A vía `--producer-dir`). `--stage C` se rechaza
-explícitamente (ledger del holdout y secuencia de apertura, Decisión 2,
-pendiente -- ver `docs/research/controlled-daily-v4-stage-b-c-decisiones-pendientes.md`).
-No expone ninguna ruta oculta al dataset formal de `controlled_daily_v3` ni a
-ningún servidor MLflow — no registra nada en MLflow, no lo integra en
-absoluto.
+`--stage A`, `--stage B` (reutiliza el candidato congelado por una corrida
+previa de A vía `--producer-dir`) y `--stage C` (holdout final 2024-2025,
+condicionado a un veredicto `CANDIDATE_VALIDATED` persistido de B, protegido
+por el ledger transaccional de `holdout_ledger.py` -- Decisiones 2 y 3,
+adoptadas como decisiones operativas de este encargo, ver
+`docs/research/controlled-daily-v4-stage-b-c-decisiones-pendientes.md`).
+`--init-holdout-ledger` inicializa explícitamente el ledger, como operación
+separada de cualquier ejecución. No expone ninguna ruta oculta al dataset
+formal de `controlled_daily_v3` ni a ningún servidor MLflow — no registra
+nada en MLflow, no lo integra en absoluto.
 """
 
 from __future__ import annotations
@@ -17,23 +20,31 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from experiment_runner.controlled_daily_v4 import holdout_ledger
 from experiment_runner.controlled_daily_v4.admissibility import (
     StageBAdmissibilityError,
+    StageCAdmissibilityError,
     check_stage_b_admissibility,
+    check_stage_c_admissibility,
 )
 from experiment_runner.controlled_daily_v4.code_identity import capture_code_identity
 from experiment_runner.controlled_daily_v4.config import (
     BOOTSTRAP_REPLICAS_DEFAULT,
     BOOTSTRAP_SEED,
+    HOLDOUT_SITE,
     INPUT_MODE_SCIENTIFIC,
     INPUT_MODE_SYNTHETIC,
     INPUT_MODES,
     PRIMARY_DEPTH_COLUMN,
+    PROTOCOL_ID,
     SENSITIVITY_DEPTH_COLUMN,
     STAGE_A,
     STAGE_A_BOUNDS,
     STAGE_B,
     STAGE_B_BOUNDS,
+    STAGE_C,
+    STAGE_C_BOUNDS,
+    STAGE_C_TRAINING_BOUNDS,
     CalendarIntegrityError,
     ProtocolConfig,
     UnsupportedStageError,
@@ -97,37 +108,74 @@ def normative_deviations(
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="controlled-daily-v4-stage-a",
-        description="Runner de las Etapas A y B de controlled_daily_v4_external_pergamino. "
-        "No implementa ni acepta la Etapa C.",
+        description="Runner de las Etapas A, B y C de controlled_daily_v4_external_pergamino.",
     )
     parser.add_argument(
         "--stage",
-        required=True,
+        required=False,
+        default=None,
         choices=["A", "B", "C"],
-        help="'A' y 'B' están implementadas. 'C' se rechaza explícitamente.",
+        help="'A', 'B' y 'C' están implementadas. No requerido con --init-holdout-ledger.",
     )
     parser.add_argument(
         "--producer-dir",
         type=Path,
         default=None,
         help=(
-            "Requerido con --stage B: directorio de salida de una corrida previa de la "
-            "Etapa A (debe contener 'frozen_config.json' y su evidencia asociada)."
+            "Requerido con --stage B y --stage C: directorio de salida de una corrida previa "
+            "de la Etapa A (debe contener 'frozen_config.json' y su evidencia asociada)."
         ),
     )
     parser.add_argument(
-        "--era5-csv", required=True, type=Path, help="Ruta al CSV horario ERA5-Land de Pergamino."
+        "--stage-b-dir",
+        type=Path,
+        default=None,
+        help=(
+            "Requerido con --stage C: directorio de salida de una corrida previa de la "
+            "Etapa B con veredicto CANDIDATE_VALIDATED persistido."
+        ),
+    )
+    parser.add_argument(
+        "--holdout-ledger-path",
+        type=Path,
+        default=None,
+        help=(
+            "Requerido con --stage C y con --init-holdout-ledger: ruta explícita y persistente "
+            "del ledger SQLite de protección del holdout (fuera de cualquier --output-dir). "
+            "En Docker debe apuntar a un volumen persistente compartido por todas las "
+            "ejecuciones que protegen el mismo holdout."
+        ),
+    )
+    parser.add_argument(
+        "--init-holdout-ledger",
+        action="store_true",
+        help=(
+            "Inicializa explícitamente el ledger en --holdout-ledger-path (con --input-mode "
+            "determinando su modo synthetic/scientific) y termina, sin entrenar nada. Rechaza "
+            "reemplazar un ledger ya existente. Operación separada de --stage C."
+        ),
+    )
+    parser.add_argument(
+        "--authorized-by",
+        default=None,
+        help=(
+            "Requerido con --stage C: nombre/rol de quien autoriza la apertura del holdout "
+            "(protocolo, sección 11). Sin valor por defecto."
+        ),
+    )
+    parser.add_argument(
+        "--era5-csv", type=Path, default=None, help="Ruta al CSV horario ERA5-Land de Pergamino."
     )
     parser.add_argument(
         "--nasa-power-csv",
-        required=True,
         type=Path,
+        default=None,
         help="Ruta al CSV diario NASA POWER de Pergamino.",
     )
     parser.add_argument(
         "--output-dir",
-        required=True,
         type=Path,
+        default=None,
         help="Directorio explícito de salida de artefactos.",
     )
     parser.add_argument(
@@ -156,7 +204,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--overwrite",
         action="store_true",
-        help="Permite sobreescribir un directorio de salida no vacío.",
+        help=(
+            "Permite sobreescribir un directorio de salida no vacío en A/B. Prohibido "
+            "incondicionalmente con --stage C (Decisión 3, adoptada para este encargo: "
+            "defensa en profundidad sobre el ledger, sin excepción)."
+        ),
     )
     parser.add_argument(
         "--input-mode",
@@ -177,6 +229,46 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_arg_parser()
     args = parser.parse_args(argv)
 
+    if args.init_holdout_ledger:
+        # Inicialización EXPLÍCITA y SEPARADA de cualquier ejecución
+        # (documento de decisiones, Decisión 2): no requiere CSV ni
+        # --output-dir. Nunca reemplaza un ledger existente.
+        if args.holdout_ledger_path is None:
+            print(
+                "ERROR: --init-holdout-ledger requiere --holdout-ledger-path explícito.",
+                file=sys.stderr,
+            )
+            return 2
+        ledger_mode = (
+            holdout_ledger.LEDGER_MODE_SCIENTIFIC
+            if args.input_mode == INPUT_MODE_SCIENTIFIC
+            else holdout_ledger.LEDGER_MODE_SYNTHETIC
+        )
+        depth_column = DEPTH_CHOICES[args.depth]
+        holdout_key = holdout_ledger.compute_holdout_identity_key(
+            protocol_id=PROTOCOL_ID,
+            site=HOLDOUT_SITE,
+            depth_column=depth_column,
+            period_start=str(STAGE_C_BOUNDS.target_start),
+            period_end=str(STAGE_C_BOUNDS.target_end),
+        )
+        try:
+            holdout_ledger.init_ledger(
+                args.holdout_ledger_path, mode=ledger_mode, holdout_key=holdout_key
+            )
+        except holdout_ledger.HoldoutLedgerAlreadyInitializedError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 10
+        print(
+            f"Ledger inicializado en {args.holdout_ledger_path} (mode={ledger_mode}, "
+            f"holdout_key={holdout_key})."
+        )
+        return 0
+
+    if args.stage is None:
+        print("ERROR: --stage es requerido (salvo con --init-holdout-ledger).", file=sys.stderr)
+        return 2
+
     try:
         require_enabled_stage(args.stage)
     except UnsupportedStageError as exc:
@@ -187,12 +279,86 @@ def main(argv: list[str] | None = None) -> int:
         print("ERROR: --stage B requiere --producer-dir explícito.", file=sys.stderr)
         return 2
 
-    report = validate_pergamino_provenance(args.era5_csv, args.nasa_power_csv, mode=args.input_mode)
-    if not report.ok:
-        print("ERROR: validación de provenance/identidad falló:", file=sys.stderr)
-        for issue in report.issues:
-            print(f"  - {issue}", file=sys.stderr)
-        return 3
+    if args.stage == STAGE_C:
+        missing = [
+            name
+            for name, value in (
+                ("--producer-dir", args.producer_dir),
+                ("--stage-b-dir", args.stage_b_dir),
+                ("--holdout-ledger-path", args.holdout_ledger_path),
+                ("--authorized-by", args.authorized_by),
+            )
+            # Revisión dirigida (hallazgo 3): una autorización VACÍA
+            # ('--authorized-by ""') es tan inválida como ausente -- se
+            # rechaza en este mismo punto (antes de reservar/acceder a
+            # ningún dato), no recién dentro de `confirm_holdout_open`
+            # (después de reservar el ledger).
+            if value is None or (isinstance(value, str) and value.strip() == "")
+        ]
+        if missing:
+            print(
+                f"ERROR: --stage C requiere explícitamente {', '.join(missing)}.",
+                file=sys.stderr,
+            )
+            return 2
+        if args.overwrite:
+            print(
+                "ERROR: --overwrite está prohibido incondicionalmente con --stage C "
+                "(Decisión 3, defensa en profundidad sobre el ledger).",
+                file=sys.stderr,
+            )
+            return 2
+        if args.validate_inputs_only:
+            print(
+                "ERROR: --validate-inputs-only no está soportado con --stage C: validar "
+                "provenance implica hashear el CSV completo, que ya incluye el holdout "
+                "2024-2025 -- esa operación solo puede ocurrir después de confirmar la "
+                "apertura durable del holdout, nunca como una validación aislada previa.",
+                file=sys.stderr,
+            )
+            return 2
+        if args.input_mode == INPUT_MODE_SCIENTIFIC and (
+            args.seed != BOOTSTRAP_SEED or args.bootstrap_replicas != BOOTSTRAP_REPLICAS_DEFAULT
+        ):
+            # Revisión dirigida (hallazgo 3): una invocación CIENTÍFICA con
+            # configuración no normativa (semilla/réplicas reducidas) se
+            # rechaza ANTES de acceder al holdout -- las configuraciones
+            # reducidas pertenecen exclusivamente al modo sintético
+            # (--input-mode synthetic), nunca a una apertura científica real.
+            print(
+                "ERROR: --stage C con --input-mode scientific exige la semilla y las réplicas "
+                f"normativas (seed={BOOTSTRAP_SEED}, bootstrap_replicas="
+                f"{BOOTSTRAP_REPLICAS_DEFAULT}); una configuración reducida pertenece "
+                "exclusivamente al modo sintético (--input-mode synthetic).",
+                file=sys.stderr,
+            )
+            return 2
+
+    if args.era5_csv is None or args.nasa_power_csv is None or args.output_dir is None:
+        print(
+            "ERROR: --era5-csv, --nasa-power-csv y --output-dir son requeridos (salvo con "
+            "--init-holdout-ledger).",
+            file=sys.stderr,
+        )
+        return 2
+
+    # La Etapa C NUNCA valida provenance (lo que implica calcular el SHA-256
+    # completo de los CSV, que incluyen 2024-2025) en este punto: hacerlo
+    # antes de reservar/confirmar la apertura del holdout ya sería acceder al
+    # archivo del holdout, aunque después se filtren esas filas (documento de
+    # decisiones, Decisión 2, y "Orden de acceso al holdout" de este
+    # encargo). Se difiere hasta después de la confirmación durable, dentro
+    # de `_run_stage_c`.
+    report = None
+    if args.stage != STAGE_C:
+        report = validate_pergamino_provenance(
+            args.era5_csv, args.nasa_power_csv, mode=args.input_mode
+        )
+        if not report.ok:
+            print("ERROR: validación de provenance/identidad falló:", file=sys.stderr)
+            for issue in report.issues:
+                print(f"  - {issue}", file=sys.stderr)
+            return 3
 
     if args.validate_inputs_only:
         if args.input_mode == INPUT_MODE_SYNTHETIC:
@@ -240,6 +406,15 @@ def main(argv: list[str] | None = None) -> int:
         return _run_stage_b(
             args,
             report=report,
+            environment_info=environment_info,
+            environment_report=environment_report,
+            code_identity=code_identity,
+            constraints_identity=constraints_identity,
+        )
+
+    if args.stage == STAGE_C:
+        return _run_stage_c(
+            args,
             environment_info=environment_info,
             environment_report=environment_report,
             code_identity=code_identity,
@@ -525,6 +700,358 @@ def _run_stage_b(
     print(f"Veredicto: {result.verdict} (motivos: {result.verdict_reasons or 'ninguno'})")
     if not scientific_run:
         print("[NO CIENTÍFICO] Esta corrida de Etapa B no habilita la Etapa C.")
+    for name, path in written.items():
+        print(f"  {name}: {path}")
+    return 0
+
+
+def _run_stage_c(
+    args: argparse.Namespace,
+    *,
+    environment_info: dict,
+    environment_report: Any,
+    code_identity: Any,
+    constraints_identity: dict,
+) -> int:
+    """Etapa C: secuencia completa de apertura del holdout final (protocolo,
+    sección 11) -- verificación de antecedentes SIN tocar ningún dato de
+    2024-2025, reserva atómica del ledger, confirmación durable con
+    `fsync` ANTES de acceder al holdout, evaluación única, y finalización
+    separada del ledger. Nunca acepta `--overwrite` (rechazado en `main`
+    antes de llegar aquí)."""
+    import json
+    import uuid
+
+    from experiment_runner.controlled_daily_v4 import artifacts
+    from experiment_runner.controlled_daily_v4.features import compute_stage_window_bounds
+    from experiment_runner.controlled_daily_v4.ingestion import (
+        aggregate_era5_daily,
+        build_daily_joined_series,
+        load_era5_hourly_raw,
+        load_nasa_power_daily_raw,
+        replace_missing_sentinel,
+        restrict_era5_hourly_to_window,
+        restrict_nasa_power_daily_to_window,
+    )
+    from experiment_runner.controlled_daily_v4.stage_c_runner import (
+        StageCTechnicalError,
+        run_stage_c,
+    )
+
+    ledger_mode = (
+        holdout_ledger.LEDGER_MODE_SCIENTIFIC
+        if args.input_mode == INPUT_MODE_SCIENTIFIC
+        else holdout_ledger.LEDGER_MODE_SYNTHETIC
+    )
+
+    # --- Paso 1: verificación previa, SIN tocar el holdout -----------------
+    # Protección de directorios (A, B, ledger) ANTES de cualquier otra
+    # verificación o escritura -- ningún archivo protegido se toca ante un
+    # rechazo, ni siquiera antes de leer el contrato.
+    try:
+        artifacts.validate_stage_c_output_directory(
+            args.output_dir,
+            producer_dir=args.producer_dir,
+            stage_b_dir=args.stage_b_dir,
+            ledger_path=args.holdout_ledger_path,
+        )
+    except artifacts.StageCOutputDirectoryConflictError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 9
+
+    # Revisión dirigida (hallazgo 3, segunda ronda): el rechazo de --output-dir
+    # OCUPADO se difiere hasta DESPUÉS de determinar si esta invocación es en
+    # realidad una recuperación de un intento ya finalizado (más abajo, tras
+    # leer el estado del ledger) -- la recuperación lee del
+    # `finalized_result_reference` persistido en el ledger, no de
+    # `args.output_dir`, por lo que reutilizar deliberadamente el mismo
+    # --output-dir de una corrida ya finalizada (el caso más natural de
+    # "recuperar mis propios resultados") nunca debe rechazarse solo porque
+    # ese directorio ya contiene esos mismos artefactos. Aplicar este rechazo
+    # aquí, antes de leer el ledger, distinguía incorrectamente "una nueva
+    # ejecución con salida ocupada" (debe rechazarse) de "una recuperación
+    # sobre el propio directorio ya finalizado" (debe funcionar).
+
+    try:
+        contract = load_frozen_config_contract(args.producer_dir)
+    except (TransferContractSchemaError, TransferContractValidationError) as exc:
+        print(f"ERROR: contrato de transferencia A→B inválido: {exc}", file=sys.stderr)
+        return 6
+
+    consumer_code_identity = dataclasses.asdict(code_identity)
+
+    holdout_key = holdout_ledger.compute_holdout_identity_key(
+        protocol_id=PROTOCOL_ID,
+        site=HOLDOUT_SITE,
+        depth_column=contract.depth_column,
+        period_start=str(STAGE_C_BOUNDS.target_start),
+        period_end=str(STAGE_C_BOUNDS.target_end),
+    )
+
+    ledger_state = holdout_ledger.read_holdout_state(
+        args.holdout_ledger_path, holdout_key, expected_mode=ledger_mode
+    )
+
+    if ledger_state.state == holdout_ledger.STATE_CONFIRMED and ledger_state.finalized:
+        # Recuperación de solo lectura (documento de decisiones, Decisión 2):
+        # nunca se reentrena ni se accede al holdout crudo de nuevo. Revisión
+        # dirigida (hallazgo 2): nunca se declara éxito solo porque el
+        # ledger dice 'finalizado' -- se verifica el manifiesto de
+        # integridad y la correspondencia con este holdout/intento ANTES de
+        # imprimir cualquier artefacto.
+        result_dir = Path(ledger_state.finalized_result_reference)
+        try:
+            artifacts.verify_stage_c_recovery(
+                result_dir,
+                holdout_identity_key=holdout_key,
+                attempt_id=ledger_state.reserved_by_attempt_id,
+            )
+        except artifacts.StageCRecoveryError as exc:
+            print(
+                "ERROR: el holdout de esta identidad ya fue finalizado, pero la evidencia "
+                f"persistida en '{result_dir}' no se pudo recuperar de forma verificable "
+                "(faltante, corrupta, o de otro intento). El holdout permanece bloqueado -- "
+                "nunca se reentrena ni se repara reevaluando:",
+                file=sys.stderr,
+            )
+            for reason in exc.reasons:
+                print(f"  - {reason}", file=sys.stderr)
+            return 16
+        print(
+            "El holdout de esta identidad ya fue evaluado y finalizado. Recuperando el "
+            f"resultado existente (solo lectura, verificado por integridad, sin reentrenar): "
+            f"{result_dir}"
+        )
+        for name in ("schema_version.json", "outcome.json", "metrics.json"):
+            candidate = result_dir / name
+            if candidate.exists():
+                print(f"  {name}: {candidate}")
+        return 0
+
+    if ledger_state.state in (holdout_ledger.STATE_CONFIRMED, holdout_ledger.STATE_INDETERMINATE):
+        print(
+            f"ERROR: el holdout de esta identidad ya está protegido (estado="
+            f"{ledger_state.state}): {ledger_state.detail}. No se accede a ningún dato de "
+            "2024-2025. Sin marca de finalización, no hay resultado recuperable; requiere "
+            "revisión humana explícita fuera de esta CLI.",
+            file=sys.stderr,
+        )
+        return 11
+
+    # Revisión dirigida (hallazgo 3, segunda ronda): recién aquí, una vez
+    # descartado que esta invocación sea una recuperación de un intento ya
+    # finalizado (ledger_state.state ya excluye CONFIRMADA/INDETERMINADA en
+    # este punto: solo llega aquí un holdout AUSENTE, es decir, una
+    # ejecución genuinamente nueva), se rechaza una salida YA OCUPADA --
+    # antes de reservar el ledger. `write_stage_c_artifacts` repite esta
+    # misma verificación más tarde (defensa en profundidad). `--overwrite`
+    # no existe para C (ya rechazado en `main`), por lo que esta
+    # comprobación es siempre incondicional. Nunca crea `output_dir` (a
+    # diferencia de `ensure_output_directory`).
+    try:
+        artifacts.check_output_directory_not_occupied(args.output_dir)
+    except artifacts.OutputDirectoryNotEmptyError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 9
+
+    try:
+        check_stage_c_admissibility(
+            contract,
+            stage_b_dir=args.stage_b_dir,
+            producer_dir=args.producer_dir,
+            consumer_input_mode=args.input_mode,
+            consumer_code_identity=consumer_code_identity,
+            consumer_environment_issues=environment_report.issues,
+        )
+    except StageCAdmissibilityError as exc:
+        print("ERROR: la Etapa B no habilita esta ejecución de la Etapa C:", file=sys.stderr)
+        for reason in exc.reasons:
+            print(f"  - {reason}", file=sys.stderr)
+        return 7
+
+    # --- Paso 2: reserva atómica, todavía sin tocar el holdout -------------
+    attempt_id = uuid.uuid4().hex
+    try:
+        holdout_ledger.reserve_holdout(
+            args.holdout_ledger_path, holdout_key, mode=ledger_mode, attempt_id=attempt_id
+        )
+    except holdout_ledger.HoldoutAlreadyProtectedError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 11
+    except holdout_ledger.HoldoutLedgerNotInitializedError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 12
+    except holdout_ledger.HoldoutRegistryCoherenceError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 11
+
+    # --- Paso 3: confirmación durable, todavía antes del acceso ------------
+    try:
+        holdout_ledger.confirm_holdout_open(
+            args.holdout_ledger_path,
+            holdout_key,
+            mode=ledger_mode,
+            attempt_id=attempt_id,
+            authorized_by=args.authorized_by,
+        )
+    except holdout_ledger.HoldoutReservationLostError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 13
+    except holdout_ledger.HoldoutRegistryCoherenceError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 13
+
+    # --- Paso 4: recién ahora, acceso autorizado y evaluación --------------
+    # A partir de este punto el holdout está abierto de forma PERMANENTE: un
+    # fallo posterior a esta línea deja el ledger en CONFIRMADA para siempre,
+    # sin reintento automático (documento de decisiones, Decisión 2).
+    report = validate_pergamino_provenance(args.era5_csv, args.nasa_power_csv, mode=args.input_mode)
+    if not report.ok:
+        print(
+            "ERROR: validación de provenance/identidad falló DESPUÉS de confirmar la apertura "
+            "del holdout -- el holdout queda marcado como abierto de forma permanente, sin "
+            "reintento automático:",
+            file=sys.stderr,
+        )
+        for issue in report.issues:
+            print(f"  - {issue}", file=sys.stderr)
+        return 14
+
+    if args.input_mode == INPUT_MODE_SCIENTIFIC:
+        try:
+            a_provenance = json.loads(
+                (Path(args.producer_dir) / "provenance.json").read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError) as exc:
+            print(
+                f"ERROR: no se pudo leer 'provenance.json' de A para verificar identidad de "
+                f"fuente ({exc}). El holdout queda abierto de forma permanente.",
+                file=sys.stderr,
+            )
+            return 14
+        source_mismatches = [
+            field
+            for field in ("era5_sha256", "nasa_power_sha256")
+            if a_provenance.get(field) and a_provenance.get(field) != getattr(report, field)
+        ]
+        if source_mismatches:
+            print(
+                "ERROR: los CSV provistos a la Etapa C no son la misma fuente identificada por "
+                f"la Etapa A en {source_mismatches}. El holdout queda abierto de forma "
+                "permanente, sin reintento automático.",
+                file=sys.stderr,
+            )
+            return 14
+
+    window_start, _ = compute_stage_window_bounds(STAGE_C_TRAINING_BOUNDS)
+    _, window_end = compute_stage_window_bounds(STAGE_C_BOUNDS)
+
+    _era5_meta, era5_df = load_era5_hourly_raw(args.era5_csv)
+    era5_df = restrict_era5_hourly_to_window(era5_df, window_start, window_end)
+    era5_daily = aggregate_era5_daily(era5_df)
+
+    _nasa_meta, nasa_df = load_nasa_power_daily_raw(args.nasa_power_csv)
+    nasa_df = restrict_nasa_power_daily_to_window(nasa_df, window_start, window_end)
+    nasa_df = replace_missing_sentinel(nasa_df)
+
+    daily_series = build_daily_joined_series(era5_daily, nasa_df)
+
+    try:
+        result = run_stage_c(
+            contract,
+            daily_series,
+            bootstrap_replicas=args.bootstrap_replicas,
+            bootstrap_seed=args.seed,
+        )
+    except StageCTechnicalError as exc:
+        print(
+            f"ERROR: fallo técnico de la Etapa C DESPUÉS de la apertura confirmada del "
+            f"holdout (el holdout queda abierto de forma permanente, sin reintento "
+            f"automático): {exc}",
+            file=sys.stderr,
+        )
+        return 15
+
+    deviations = normative_deviations(
+        args.seed,
+        args.bootstrap_replicas,
+        input_mode=args.input_mode,
+        environment_ok=environment_report.ok,
+        code_identity_ok=consumer_code_identity.get("available") is True
+        and consumer_code_identity.get("dirty") is False,
+    )
+    scientific_run = (
+        contract.scientific_run
+        and report.scientific
+        and not deviations
+        and args.input_mode == INPUT_MODE_SCIENTIFIC
+    )
+
+    written = artifacts.write_stage_c_artifacts(
+        args.output_dir,
+        input_mode=args.input_mode,
+        scientific_run=scientific_run,
+        resolved_config={
+            "stage": STAGE_C,
+            "producer_dir": str(args.producer_dir),
+            "stage_b_dir": str(args.stage_b_dir),
+            "seed": args.seed,
+            "bootstrap_replicas": args.bootstrap_replicas,
+            "normative_seed": BOOTSTRAP_SEED,
+            "normative_bootstrap_replicas": BOOTSTRAP_REPLICAS_DEFAULT,
+            "normative_run": not deviations,
+            "normative_deviations": deviations,
+        },
+        producer_dir=args.producer_dir,
+        producer_contract_raw=contract.raw,
+        stage_b_dir=args.stage_b_dir,
+        stage_b_decision_raw=json.loads(
+            (Path(args.stage_b_dir) / "decision.json").read_text(encoding="utf-8")
+        ),
+        ledger_path=args.holdout_ledger_path,
+        holdout_identity_key=holdout_key,
+        attempt_id=attempt_id,
+        authorized_by=args.authorized_by,
+        consumer_code_identity=consumer_code_identity,
+        consumer_environment_info={
+            **environment_info,
+            "constraints_identity": constraints_identity,
+        },
+        consumer_environment_issues=environment_report.issues,
+        # Identidad REAL de las entradas efectivamente consumidas por esta
+        # corrida de C (revisión dirigida, hallazgo 3, tercera ronda):
+        # `report` (calculado en el Paso 4, DESPUÉS de confirmar la apertura
+        # del holdout) ya trae los hashes reales de los CSV realmente
+        # provistos -- nunca se recalculan aquí ni se copian los de A.
+        provenance_report=report,
+        input_hashes={
+            "era5_sha256": report.era5_sha256,
+            "nasa_power_sha256": report.nasa_power_sha256,
+        },
+        result=result,
+    )
+
+    # --- Paso 5: marca de finalización, separada de la apertura ------------
+    holdout_ledger.finalize_holdout(
+        args.holdout_ledger_path,
+        holdout_key,
+        mode=ledger_mode,
+        attempt_id=attempt_id,
+        # Ruta RESUELTA (absoluta, símlinks incluidos), estable e
+        # independiente del directorio de trabajo desde el que se invoque
+        # una recuperación posterior (revisión dirigida, hallazgo 2) --
+        # coincide exactamente con `result_reference` del propio manifiesto
+        # de integridad escrito por `write_stage_c_artifacts`.
+        result_reference=str(Path(args.output_dir).resolve()),
+    )
+
+    print(f"Etapa C completada. Artefactos escritos en: {args.output_dir}")
+    print(
+        f"Predicciones disponibles: {result.predictions_available} "
+        f"(motivos: {result.outcome_reasons or 'ninguno'})"
+    )
+    if not scientific_run:
+        print("[NO CIENTÍFICO] Esta corrida de Etapa C no es evidencia científica formal.")
     for name, path in written.items():
         print(f"  {name}: {path}")
     return 0

@@ -82,8 +82,19 @@ STAGE_A = "A"
 STAGE_B = "B"
 STAGE_C = "C"
 SUPPORTED_STAGES = (STAGE_A,)
-"""Únicas etapas que este runner puede ejecutar. B y C deben rechazarse
-explícitamente en configuración/CLI (protocolo, alcance de esta tarea)."""
+"""Únicas etapas que `require_stage_a` acepta. B y C deben rechazarse
+explícitamente ahí (contrato histórico, sin cambios); la CLI real usa en
+cambio `CLI_ENABLED_STAGES`/`require_enabled_stage`, más abajo."""
+
+PROTOCOL_ID = "controlled_daily_v4_external_pergamino"
+HOLDOUT_SITE = "pergamino"
+"""Componentes de la identidad ESTABLE del holdout de la Etapa C (protocolo +
+sitio + profundidad + período), usados por `holdout_ledger.compute_holdout_identity_key`.
+Deliberadamente independientes de cualquier commit, candidato congelado,
+`--output-dir` o identificador de intento: cambiar cualquiera de esos datos
+NO produce una identidad de holdout distinta ni habilita otra apertura (ver
+`docs/research/controlled-daily-v4-stage-b-c-decisiones-pendientes.md`,
+Decisión 2, "Identidad del holdout ≠ identidad de la ejecución")."""
 
 INPUT_MODE_SCIENTIFIC = "scientific"
 INPUT_MODE_SYNTHETIC = "synthetic"
@@ -173,6 +184,24 @@ STAGE_C_BOUNDS = StageBounds(
     target_end=date(2025, 12, 31),
     train_target_cutoff=date(2023, 12, 31),
 )
+
+STAGE_C_TRAINING_BOUNDS = StageBounds(
+    emission_start=STAGE_A_BOUNDS.emission_start,
+    emission_end=STAGE_B_BOUNDS.emission_end,
+    target_start=STAGE_A_BOUNDS.target_start,
+    target_end=date(2023, 12, 31),
+    train_target_cutoff=date(2023, 12, 31),
+)
+"""Ventana de ENTRENAMIENTO autorizado de la Etapa C (protocolo, sección 11):
+`target_timestamp <= 2023-12-31` -- la unión exacta del período de A
+(2015-2022) más el período de evaluación de B (2023), nunca solo el de A. A
+diferencia de B (que reentrena EXACTAMENTE sobre `STAGE_A_BOUNDS`, el mismo
+período que A), C reentrena sobre un período EXTENDIDO -- por eso no exige
+igualdad de huella de dataset contra A (ver `admissibility.py`,
+"Compatibilidad de procedencia entre etapas"), y por eso necesita su propia
+constante de fronteras, distinta de `STAGE_A_BOUNDS`/`STAGE_B_BOUNDS` y de
+`STAGE_C_BOUNDS` (que sigue describiendo exclusivamente la ventana de
+EVALUACIÓN del holdout, 2024-2025, sin cambios)."""
 
 
 @dataclass(frozen=True)
@@ -267,25 +296,25 @@ def require_stage_a(stage: str) -> None:
         )
 
 
-CLI_ENABLED_STAGES = (STAGE_A, STAGE_B)
+CLI_ENABLED_STAGES = (STAGE_A, STAGE_B, STAGE_C)
 """Etapas que la CLI de este paquete puede ejecutar (`cli.py`). Distinto y más
 amplio que `SUPPORTED_STAGES`/`require_stage_a` (que siguen significando
 "únicamente A", sin cambios, y se conservan tal cual para no alterar su
-contrato existente): la Etapa B ya cuenta con contrato de transferencia A→B,
-baselines y runner propio (`stage_b_runner.py`,
-`openspec/changes/implement-controlled-daily-v4-stage-b-c`), verificados con
-pruebas exclusivamente sintéticas. La Etapa C permanece fuera de alcance (ledger del
-holdout y secuencia de apertura, Decisión 2 del documento de decisiones
-pendientes) y `require_enabled_stage` la sigue rechazando explícitamente."""
+contrato existente): la Etapa B cuenta con contrato de transferencia A→B,
+baselines y runner propio (`stage_b_runner.py`), y la Etapa C cuenta con el
+ledger de protección del holdout (`holdout_ledger.py`) y su runner propio
+(`stage_c_runner.py`) -- Decisiones 2 y 3 del documento de decisiones
+pendientes, adoptadas como decisiones operativas de este encargo (no
+atribuidas a una aprobación académica externa; ver
+`docs/research/controlled-daily-v4-stage-b-c-decisiones-pendientes.md`).
+Ambas verificadas exclusivamente con pruebas sintéticas; ninguna ejecución
+científica real se realizó."""
 
 
 def require_enabled_stage(stage: str) -> None:
-    """Gate de la CLI (`cli.py`): acepta A y B, rechaza C (y cualquier otro
-    valor) con el mismo `UnsupportedStageError` ya usado por `require_stage_a`."""
+    """Gate de la CLI (`cli.py`): acepta A, B y C; rechaza cualquier otro
+    valor con el mismo `UnsupportedStageError` ya usado por `require_stage_a`."""
     if stage not in CLI_ENABLED_STAGES:
         raise UnsupportedStageError(
-            f"Etapa '{stage}' no soportada por esta CLI. 'A' y 'B' están implementadas; "
-            "'C' requiere el ledger del holdout y la secuencia de apertura de la Decisión 2 "
-            "(docs/research/controlled-daily-v4-stage-b-c-decisiones-pendientes.md), "
-            "todavía sin resolver, y se rechaza explícitamente."
+            f"Etapa '{stage}' no soportada por esta CLI (válidas: {CLI_ENABLED_STAGES})."
         )

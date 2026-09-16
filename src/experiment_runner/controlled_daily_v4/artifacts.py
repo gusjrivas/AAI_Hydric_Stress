@@ -8,6 +8,7 @@ salida explícito y rechaza sobreescritura accidental salvo `overwrite=True`.
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import json
 import os
 import tempfile
@@ -79,6 +80,74 @@ deliberadamente distinto de `ARTIFACT_SCHEMA_VERSION` (Etapa A) y de
 consume, no produce): B no reescribe ni sobreescribe ningún artefacto de A,
 persiste su propio directorio de salida con su propia versión de esquema."""
 
+STAGE_C_ARTIFACT_SCHEMA_VERSION = "controlled_daily_v4_stage_c.v4"
+"""Esquema propio de los artefactos de la Etapa C (`write_stage_c_artifacts`),
+distinto de los anteriores por la misma razón que B: C nunca reescribe
+artefactos de A ni de B, persiste su propio directorio de salida exclusivo.
+
+v2 (revisión dirigida, hallazgos 2 y 5): agrega `integrity_manifest.json`
+(sha256 de cada artefacto realmente escrito, calculado DESPUÉS de escribir
+todo lo demás -- soporte de una recuperación de solo lectura que nunca
+declara éxito sobre evidencia faltante/corrupta/de otro intento) y agrega
+`target_timestamp` a `predictions_2024_2025.csv` (alineado con
+`feature_timestamp` y el horizonte del protocolo -- v1 solo persistía
+`feature_timestamp`, lo que dejaba la trazabilidad temporal del conjunto
+evaluado incompleta).
+
+v3 (revisión dirigida, hallazgos 3 y 5, segunda ronda): agrega
+`evaluation_dataset_fingerprint.json` (huella reproducible del conjunto
+EFECTIVAMENTE evaluado del holdout, separada e identificada por su propio
+`scope` -- `dataset_fingerprint.FINGERPRINT_SCOPE_STAGE_C_EVALUATION` --
+calculada exclusivamente después de la apertura autorizada, nunca comparada
+por igualdad contra la de A/B/entrenamiento). `verify_stage_c_recovery`
+exige, desde v3, que `integrity_manifest.json` declare exactamente este
+`schema_version`, que `files` cubra el conjunto COMPLETO de artefactos
+obligatorios de este esquema (`REQUIRED_STAGE_C_ARTIFACT_NAMES`), y que
+ninguna ruta de artefacto escape del directorio de resultados (rutas
+absolutas, `..`, o enlaces simbólicos hacia fuera). Un manifiesto `v2` (o
+anterior) persistido antes de este cambio no es recuperable por la
+`verify_stage_c_recovery` actual -- no se reescribe evidencia histórica para
+mantenerlo compatible.
+
+v4 (revisión dirigida, hallazgo 3, tercera ronda): agrega `provenance.json`
+e `input_hashes.json` (identidad REAL de las entradas efectivamente
+consumidas por esta corrida de C -- mismos nombres ya establecidos por
+`write_stage_a_artifacts` -- calculados exclusivamente DESPUÉS de la
+apertura autorizada del holdout, nunca inventados ni copiados de A). Antes
+de v4, C persistía `evaluation_dataset_fingerprint.json` pero no la
+identidad/provenance de sus propios CSV de entrada, dejando esa evidencia
+incompleta. Un manifiesto `v3` (o anterior) no es recuperable por la
+`verify_stage_c_recovery` actual."""
+
+REQUIRED_STAGE_C_ARTIFACT_NAMES = frozenset(
+    {
+        "schema_version.json",
+        "resolved_config.json",
+        "producer_reference.json",
+        "holdout_ledger_reference.json",
+        "code_version.json",
+        "environment.json",
+        "warnings.json",
+        "provenance.json",
+        "input_hashes.json",
+        "training_dataset_fingerprint.json",
+        "evaluation_dataset_fingerprint.json",
+        "temporal_boundaries.json",
+        "p20_train.json",
+        "predictions_2024_2025.csv",
+        "metrics.json",
+        "bootstrap.json",
+        "outcome.json",
+        "holdout_status.json",
+    }
+)
+"""Conjunto COMPLETO de artefactos obligatorios de `STAGE_C_ARTIFACT_SCHEMA_VERSION`
+(sin incluir `integrity_manifest.json`, que es el propio manifiesto -- no se
+lista a sí mismo). Revisión dirigida (hallazgo 3, segunda ronda): un manifiesto
+cuyo `files` no cubra este conjunto completo (por ejemplo, uno con un único
+archivo `only.txt`) nunca es recuperable, aunque su `schema_version` y sus
+hashes sean formalmente válidos."""
+
 
 class OutputDirectoryNotEmptyError(FileExistsError):
     """El directorio de salida ya contiene artefactos; usar `overwrite=True`
@@ -126,6 +195,58 @@ def validate_stage_b_output_directory(output_dir: str | Path, producer_dir: str 
             f"('{output_dir}'): la Etapa B nunca escribe en un directorio que contenga la "
             "evidencia de A, ni siquiera con --overwrite."
         )
+
+
+class StageCOutputDirectoryConflictError(ValueError):
+    """`--output-dir` de la Etapa C coincide con, está contenido dentro de, o
+    contiene a alguno de los directorios protegidos (evidencia de A, de B, o
+    el archivo del ledger del holdout) -- de forma literal, por rutas
+    relativas distintas que normalizan al mismo destino, o por un enlace
+    simbólico. `--overwrite` no existe para la Etapa C (Decisión 3 del
+    documento de decisiones, adoptada para este encargo: prohibición
+    incondicional), por lo que esta verificación es, en la práctica, siempre
+    incondicional."""
+
+
+def _reject_path_overlap(output_dir: Path, protected_path: Path, protected_label: str) -> None:
+    output_resolved = output_dir.resolve()
+    protected_resolved = protected_path.resolve()
+    if output_resolved == protected_resolved:
+        raise StageCOutputDirectoryConflictError(
+            f"--output-dir ('{output_dir}') coincide con {protected_label} "
+            f"('{protected_path}') una vez normalizadas ambas rutas (enlaces simbólicos "
+            "incluidos): la Etapa C nunca escribe en un directorio/archivo protegido."
+        )
+    if output_resolved.is_relative_to(protected_resolved):
+        raise StageCOutputDirectoryConflictError(
+            f"--output-dir ('{output_dir}') está contenido dentro de {protected_label} "
+            f"('{protected_path}'): la Etapa C nunca escribe dentro de un directorio protegido."
+        )
+    if protected_resolved.is_relative_to(output_resolved):
+        raise StageCOutputDirectoryConflictError(
+            f"{protected_label} ('{protected_path}') está contenido dentro de --output-dir "
+            f"('{output_dir}'): la Etapa C nunca escribe en un directorio que contenga "
+            "evidencia protegida."
+        )
+
+
+def validate_stage_c_output_directory(
+    output_dir: str | Path,
+    *,
+    producer_dir: str | Path,
+    stage_b_dir: str | Path,
+    ledger_path: str | Path,
+) -> None:
+    """Rechaza toda coincidencia efectiva (literal, por anidamiento, o por
+    enlace simbólico) entre `output_dir` (destino de C) y CUALQUIERA de:
+    `producer_dir` (evidencia de A), `stage_b_dir` (evidencia de B), o
+    `ledger_path` (el archivo del ledger del holdout) -- protección explícita
+    pedida para C, análoga a `validate_stage_b_output_directory` pero
+    extendida a tres rutas protegidas en vez de una."""
+    output_dir = Path(output_dir)
+    _reject_path_overlap(output_dir, Path(producer_dir), "--producer-dir (evidencia de A)")
+    _reject_path_overlap(output_dir, Path(stage_b_dir), "--stage-b-dir (evidencia de B)")
+    _reject_path_overlap(output_dir, Path(ledger_path), "--holdout-ledger-path (ledger)")
 
 
 def normalize_for_json(value: Any) -> Any:
@@ -268,6 +389,21 @@ def build_metrics_payload(
         "decision_threshold": DECISION_THRESHOLD,
         "by_family": by_family,
     }
+
+
+def check_output_directory_not_occupied(output_dir: str | Path) -> None:
+    """Verifica que `output_dir` no esté ya ocupado, SIN crearlo (a
+    diferencia de `ensure_output_directory`). Revisión dirigida (hallazgo 3):
+    permite rechazar una salida ya ocupada ANTES de reservar el ledger de la
+    Etapa C, sin el efecto secundario de crear un directorio vacío por una
+    corrida que en realidad va a recuperar un resultado ya finalizado (con
+    otro `--output-dir`) en vez de escribir uno nuevo."""
+    output_dir = Path(output_dir)
+    if output_dir.exists() and any(output_dir.iterdir()):
+        raise OutputDirectoryNotEmptyError(
+            f"'{output_dir}' ya contiene archivos. La Etapa C nunca acepta --overwrite "
+            "(Decisión 3): usar un --output-dir distinto y vacío."
+        )
 
 
 def ensure_output_directory(output_dir: str | Path, overwrite: bool = False) -> Path:
@@ -714,3 +850,425 @@ def write_stage_b_artifacts(
     )
 
     return written
+
+
+def _stage_c_predictions_frame(result: Any) -> pd.DataFrame:
+    """`predictions_2024_2025.csv` (protocolo, sección 11/13). Mismo criterio
+    que `_stage_b_predictions_frame`: ante entrenamiento/evaluación monoclase
+    (`predictions_available=False`), nunca se fabrica una predicción ni se
+    reemplaza la ausencia por ceros -- solo se persisten los timestamps y (si
+    están disponibles) las etiquetas verdaderas.
+
+    Revisión dirigida (hallazgo 5): incluye `target_timestamp` (además de
+    `feature_timestamp`, ya presente desde v1), alineado uno a uno con el
+    horizonte del protocolo -- sin este campo, la trazabilidad temporal del
+    conjunto evaluado de C queda incompleta."""
+    if result.predictions_available:
+        return pd.DataFrame(
+            {
+                "feature_timestamp": result.feature_timestamps,
+                "target_timestamp": result.target_timestamps,
+                "y_true": result.y_true,
+                "y_pred_candidate": result.y_pred_candidate,
+                "y_score_candidate": result.y_score_candidate,
+                "y_pred_persistence": result.y_pred_persistence,
+                "y_pred_majority_class": result.y_pred_majority_class,
+                "y_pred_constant_stress": result.y_pred_constant_stress,
+            }
+        )
+    data: dict[str, Any] = {"feature_timestamp": result.feature_timestamps}
+    target_timestamps = getattr(result, "target_timestamps", None)
+    if target_timestamps is not None and len(target_timestamps) == len(result.feature_timestamps):
+        data["target_timestamp"] = target_timestamps
+    if len(result.y_true) == len(result.feature_timestamps):
+        data["y_true"] = result.y_true
+    return pd.DataFrame(data)
+
+
+def write_stage_c_artifacts(
+    output_dir: str | Path,
+    *,
+    input_mode: str,
+    scientific_run: bool,
+    resolved_config: dict[str, Any],
+    producer_dir: str | Path,
+    producer_contract_raw: dict[str, Any],
+    stage_b_dir: str | Path,
+    stage_b_decision_raw: dict[str, Any],
+    ledger_path: str | Path,
+    holdout_identity_key: str,
+    attempt_id: str,
+    authorized_by: str,
+    consumer_code_identity: dict[str, Any],
+    consumer_environment_info: dict[str, Any],
+    consumer_environment_issues: list[str],
+    provenance_report: Any,
+    input_hashes: dict[str, str],
+    result: Any,
+) -> dict[str, Path]:
+    """Serializa todos los artefactos de una corrida de la Etapa C. Nunca
+    escribe dentro de `producer_dir` (A), `stage_b_dir` (B) ni en el archivo
+    de `ledger_path` -- `validate_stage_c_output_directory` se verifica aquí,
+    ANTES de `ensure_output_directory` y de cualquier escritura, exactamente
+    igual que en B. La Etapa C nunca acepta `overwrite`: cada apertura del
+    holdout es un evento único, por lo que esta función no expone ese
+    parámetro (a diferencia de A y B) -- `ensure_output_directory` se invoca
+    siempre con `overwrite=False`."""
+    validate_stage_c_output_directory(
+        output_dir, producer_dir=producer_dir, stage_b_dir=stage_b_dir, ledger_path=ledger_path
+    )
+    output_dir = ensure_output_directory(output_dir, overwrite=False)
+    written: dict[str, Path] = {}
+
+    written["schema_version"] = output_dir / "schema_version.json"
+    _write_json(written["schema_version"], {"schema_version": STAGE_C_ARTIFACT_SCHEMA_VERSION})
+
+    written["resolved_config"] = output_dir / "resolved_config.json"
+    _write_json(
+        written["resolved_config"],
+        {"input_mode": input_mode, "scientific_run": scientific_run, **resolved_config},
+    )
+
+    written["producer_reference"] = output_dir / "producer_reference.json"
+    _write_json(
+        written["producer_reference"],
+        {
+            "producer_dir": str(producer_dir),
+            "producer_frozen_config": producer_contract_raw,
+            "stage_b_dir": str(stage_b_dir),
+            "stage_b_decision": stage_b_decision_raw,
+        },
+    )
+
+    written["holdout_ledger_reference"] = output_dir / "holdout_ledger_reference.json"
+    _write_json(
+        written["holdout_ledger_reference"],
+        {
+            "ledger_path": str(ledger_path),
+            "holdout_identity_key": holdout_identity_key,
+            "attempt_id": attempt_id,
+            "authorized_by": authorized_by,
+        },
+    )
+
+    written["code_version"] = output_dir / "code_version.json"
+    _write_json(written["code_version"], consumer_code_identity)
+
+    written["environment"] = output_dir / "environment.json"
+    _write_json(
+        written["environment"],
+        {
+            **consumer_environment_info,
+            "validation_issues": consumer_environment_issues,
+            "validated_before_training": True,
+        },
+    )
+
+    written["warnings"] = output_dir / "warnings.json"
+    _write_json(written["warnings"], getattr(result, "warnings_log", None) or [])
+
+    # Identidad REAL de las entradas efectivamente consumidas por ESTA
+    # corrida de C (revisión dirigida, hallazgo 3, tercera ronda): el
+    # `provenance_report`/`input_hashes` recibidos deben ser los que quien
+    # invoca calculó DESPUÉS de la apertura autorizada del holdout -- esta
+    # función nunca los recalcula, nunca los inventa a partir del nombre de
+    # archivo, y nunca sustituye la identidad de C por la de A (mismos
+    # nombres ya establecidos por `write_stage_a_artifacts`, para que la
+    # comprobación de correspondencia con la fuente histórica -- ya
+    # implementada en la CLI -- pueda releerlos con el mismo formato).
+    written["provenance"] = output_dir / "provenance.json"
+    _write_json(written["provenance"], provenance_report)
+
+    written["input_hashes"] = output_dir / "input_hashes.json"
+    _write_json(written["input_hashes"], input_hashes)
+
+    written["training_dataset_fingerprint"] = output_dir / "training_dataset_fingerprint.json"
+    _write_json(written["training_dataset_fingerprint"], result.training_dataset_fingerprint)
+
+    written["evaluation_dataset_fingerprint"] = output_dir / "evaluation_dataset_fingerprint.json"
+    _write_json(written["evaluation_dataset_fingerprint"], result.evaluation_dataset_fingerprint)
+
+    written["temporal_boundaries"] = output_dir / "temporal_boundaries.json"
+    _write_json(
+        written["temporal_boundaries"],
+        {
+            "training_frame_n_rows": result.training_frame_n_rows,
+            "training_target_timestamp_cutoff": "2023-12-31",
+            "evaluation_frame_n_rows": result.evaluation_frame_n_rows,
+            "evaluation_target_timestamp_min": result.evaluation_target_timestamp_min,
+            "evaluation_target_timestamp_max": result.evaluation_target_timestamp_max,
+        },
+    )
+
+    written["p20_train"] = output_dir / "p20_train.json"
+    _write_json(written["p20_train"], {"p20_train": result.p20_train})
+
+    written["predictions"] = output_dir / "predictions_2024_2025.csv"
+    _write_csv(written["predictions"], _stage_c_predictions_frame(result))
+
+    written["metrics"] = output_dir / "metrics.json"
+    _write_json(
+        written["metrics"],
+        {
+            "schema_version": STAGE_C_ARTIFACT_SCHEMA_VERSION,
+            "candidate": result.metrics_candidate,
+            "baseline_persistence": result.metrics_persistence,
+            "baseline_majority_class": result.metrics_majority_class,
+            "baseline_constant_stress": result.metrics_constant_stress,
+            "mcc_candidate": metric_envelope(result.mcc_candidate, REASON_MONOCLASS),
+            "mcc_persistence": metric_envelope(result.mcc_persistence, REASON_MONOCLASS),
+            "delta_mcc_point_estimate": metric_envelope(
+                result.delta_mcc_point_estimate, REASON_MONOCLASS
+            ),
+        },
+    )
+
+    written["bootstrap"] = output_dir / "bootstrap.json"
+    interval = (
+        result.bootstrap_result.interval if result.bootstrap_result is not None else (None, None)
+    )
+    _write_json(
+        written["bootstrap"],
+        {
+            # Exclusivamente DIAGNÓSTICO en C (ver stage_c_runner.py):
+            # ningún umbral de aprobación se deriva de este intervalo -- la
+            # Etapa C no tiene compuerta de aceptación/rechazo.
+            "bootstrap_executed": getattr(
+                result, "bootstrap_executed", result.bootstrap_result is not None
+            ),
+            "interval_lower": interval[0],
+            "interval_upper": interval[1],
+            "diagnostics": _bootstrap_diagnostics_to_json(result.bootstrap_diagnostics),
+        },
+    )
+
+    written["outcome"] = output_dir / "outcome.json"
+    _write_json(
+        written["outcome"],
+        {
+            # Deliberadamente SIN campo 'verdict': la Etapa C no produce un
+            # veredicto de aprobación/rechazo (esa compuerta es exclusiva de
+            # B, protocolo sección 10) -- un resultado desfavorable de C
+            # nunca autoriza repetir la evaluación (protocolo, sección 11).
+            "predictions_available": getattr(result, "predictions_available", True),
+            "reasons": getattr(result, "outcome_reasons", []),
+            "classification": {
+                "stage": "C",
+                "permits": "Validación temporal final de un único modelo ya congelado",
+                "does_not_permit": "Selección, recalibración, nueva comparación de familias",
+            },
+        },
+    )
+
+    written["holdout_status"] = output_dir / "holdout_status.json"
+    _write_json(
+        written["holdout_status"],
+        {
+            "stage_b_executed": True,
+            "stage_c_executed": True,
+            "holdout_2024_2025_open": True,
+            "note": (
+                "Ejecución de Stage C: el holdout 2024-2025 fue abierto de forma durable y "
+                "permanente por esta corrida (ver holdout_ledger_reference.json). Este campo "
+                "describe la evidencia de ESTA corrida -- el estado autoritativo de exclusión "
+                "vive en el ledger (holdout_ledger.py), no en este archivo."
+            ),
+        },
+    )
+
+    # Manifiesto de integridad: ÚLTIMO artefacto escrito (revisión dirigida,
+    # hallazgo 2), calculado sobre el contenido REAL ya persistido de todo lo
+    # anterior -- nunca sobre valores en memoria que podrían diferir de lo
+    # que efectivamente quedó en disco. `result_reference` es la ruta
+    # RESUELTA (absoluta, símlinks incluidos) de `output_dir`, estable e
+    # independiente del directorio de trabajo desde el que se invoque una
+    # recuperación posterior -- una referencia relativa se rompería si la
+    # CLI se ejecuta desde otro cwd."""
+    manifest_files = {
+        path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in written.values()
+    }
+    written["integrity_manifest"] = output_dir / "integrity_manifest.json"
+    _write_json(
+        written["integrity_manifest"],
+        {
+            "schema_version": STAGE_C_ARTIFACT_SCHEMA_VERSION,
+            "result_reference": str(output_dir.resolve()),
+            "holdout_identity_key": holdout_identity_key,
+            "attempt_id": attempt_id,
+            "files": manifest_files,
+        },
+    )
+
+    return written
+
+
+class StageCRecoveryError(ValueError):
+    """La recuperación de solo lectura de una corrida finalizada de la Etapa
+    C no es válida: `reasons` enumera todos los motivos verificados, no solo
+    el primero. Nunca se levanta como excusa para reentrenar ni para acceder
+    al holdout crudo de nuevo -- quien la recibe debe informar el estado y
+    mantener bloqueada la reevaluación (revisión dirigida, hallazgo 2)."""
+
+    def __init__(self, reasons: list[str]):
+        self.reasons = list(reasons)
+        super().__init__("; ".join(self.reasons) if self.reasons else "recuperación inválida")
+
+
+def _is_path_confined(output_dir: Path, name: str) -> bool:
+    """`True` sii `name` (una clave de `integrity_manifest.json.files`)
+    designa un artefacto confinado dentro de `output_dir` -- revisión
+    dirigida (hallazgo 3, segunda ronda): rechaza explícitamente rutas
+    absolutas, componentes `..`, y cualquier resolución (enlaces simbólicos
+    incluidos) que caiga fuera de `output_dir`. Nunca se resuelve primero y
+    se pregunta después: un `name` absoluto o con `..` se rechaza por forma,
+    sin necesidad de que el archivo exista para escapar del directorio."""
+    if not name or Path(name).is_absolute():
+        return False
+    if ".." in Path(name).parts:
+        return False
+    candidate = output_dir / name
+    try:
+        resolved = candidate.resolve(strict=False)
+    except OSError:
+        return False
+    try:
+        resolved.relative_to(output_dir.resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def verify_stage_c_recovery(
+    output_dir: str | Path, *, holdout_identity_key: str, attempt_id: str
+) -> None:
+    """Recuperación de SOLO LECTURA de una corrida finalizada de la Etapa C
+    (revisión dirigida, hallazgos 2 y 3): nunca reentrena, nunca lee el
+    holdout crudo. Antes de declarar la recuperación satisfactoria, comprueba
+    (acumulando TODOS los motivos de rechazo, no solo el primero):
+
+    - que `output_dir` exista y contenga un `integrity_manifest.json` legible
+      con un `schema_version` reconocido (`STAGE_C_ARTIFACT_SCHEMA_VERSION`
+      exacto -- un esquema desconocido nunca es recuperable, aunque el resto
+      del manifiesto luzca coherente);
+    - que ese manifiesto corresponda al mismo holdout y al mismo intento que
+      lo finalizó (nunca a otro);
+    - que `files` cubra el conjunto COMPLETO de artefactos obligatorios de
+      ese esquema (`REQUIRED_STAGE_C_ARTIFACT_NAMES`) -- un manifiesto con
+      solo alguno de ellos (por ejemplo, un único archivo ajeno) nunca basta;
+    - que cada ruta declarada esté confinada a `output_dir` (rechaza rutas
+      absolutas, `..`, o enlaces simbólicos que escapen del directorio);
+    - que cada artefacto exista con exactamente el sha256 persistido
+      (contenido alterado, ausente, o de un intento distinto se rechaza por
+      igual);
+    - coherencia estructural mínima de los artefactos JSON recuperados (cada
+      uno parsea como JSON válido, y `schema_version.json` declara el mismo
+      esquema que el propio manifiesto).
+
+    No repara nada: levanta `StageCRecoveryError` con la lista completa de
+    motivos si cualquiera de estas comprobaciones falla."""
+    output_dir = Path(output_dir)
+    if not output_dir.is_dir():
+        raise StageCRecoveryError(
+            [f"'{output_dir}' no existe o no es un directorio: no hay evidencia que recuperar"]
+        )
+    manifest_path = output_dir / "integrity_manifest.json"
+    if not manifest_path.exists():
+        raise StageCRecoveryError(
+            [f"Falta '{manifest_path}': no hay manifiesto de integridad verificable"]
+        )
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise StageCRecoveryError([f"No se pudo leer '{manifest_path}': {exc}"]) from exc
+    except json.JSONDecodeError as exc:
+        raise StageCRecoveryError([f"'{manifest_path}' no es JSON válido: {exc}"]) from exc
+    if not isinstance(manifest, dict):
+        raise StageCRecoveryError([f"'{manifest_path}': el JSON raíz debe ser un objeto"])
+
+    reasons: list[str] = []
+    manifest_schema_version = manifest.get("schema_version")
+    if manifest_schema_version != STAGE_C_ARTIFACT_SCHEMA_VERSION:
+        reasons.append(
+            f"'{manifest_path}'.schema_version={manifest_schema_version!r} no es el esquema "
+            f"reconocido ({STAGE_C_ARTIFACT_SCHEMA_VERSION!r}): un esquema desconocido nunca "
+            "habilita la recuperación, aunque el resto del manifiesto luzca coherente"
+        )
+    if manifest.get("holdout_identity_key") != holdout_identity_key:
+        reasons.append(
+            f"'{manifest_path}'.holdout_identity_key={manifest.get('holdout_identity_key')!r} "
+            f"no coincide con el holdout_key esperado ({holdout_identity_key!r})"
+        )
+    if manifest.get("attempt_id") != attempt_id:
+        reasons.append(
+            f"'{manifest_path}'.attempt_id={manifest.get('attempt_id')!r} no coincide con el "
+            f"intento que finalizó este holdout ({attempt_id!r})"
+        )
+
+    files = manifest.get("files")
+    if not isinstance(files, dict) or not files:
+        reasons.append(f"'{manifest_path}'.files ausente o vacío: no hay artefactos verificables")
+    else:
+        declared_names = set(files)
+        missing_required = REQUIRED_STAGE_C_ARTIFACT_NAMES - declared_names
+        if missing_required:
+            reasons.append(
+                f"'{manifest_path}'.files no cubre el conjunto completo de artefactos "
+                f"obligatorios del esquema {STAGE_C_ARTIFACT_SCHEMA_VERSION!r}: faltan "
+                f"{sorted(missing_required)}"
+            )
+        for name, expected_sha256 in files.items():
+            if not _is_path_confined(output_dir, name):
+                reasons.append(
+                    f"'{manifest_path}'.files declara '{name}', que no está confinado a "
+                    f"'{output_dir}' (ruta absoluta, '..', o enlace simbólico hacia fuera): "
+                    "se rechaza sin leer el archivo"
+                )
+                continue
+            candidate = output_dir / name
+            if not candidate.exists():
+                reasons.append(f"Falta el artefacto requerido '{candidate}'")
+                continue
+            try:
+                actual_sha256 = hashlib.sha256(candidate.read_bytes()).hexdigest()
+            except OSError as exc:
+                reasons.append(f"No se pudo leer '{candidate}' para verificar su integridad: {exc}")
+                continue
+            if actual_sha256 != expected_sha256:
+                reasons.append(
+                    f"'{candidate}' no coincide con el sha256 persistido en el manifiesto "
+                    "(contenido alterado, o corresponde a otro intento)"
+                )
+
+        # Coherencia ESTRUCTURAL de los artefactos recuperados (revisión
+        # dirigida, hallazgo 3, segunda ronda): un sha256 correcto no basta
+        # -- cada artefacto declarado con extensión `.json` debe parsear
+        # como JSON válido, y `schema_version.json` (si está presente y es
+        # legible) debe declarar exactamente el mismo esquema que el propio
+        # manifiesto que lo referencia.
+        for name in files:
+            if not _is_path_confined(output_dir, name) or not name.endswith(".json"):
+                continue
+            candidate = output_dir / name
+            if not candidate.exists():
+                continue
+            try:
+                parsed = json.loads(candidate.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                reasons.append(
+                    f"'{candidate}' no es JSON válido/legible: {exc} -- artefacto recuperado "
+                    "estructuralmente incoherente"
+                )
+                continue
+            if name == "schema_version.json":
+                sibling_schema_version = (
+                    parsed.get("schema_version") if isinstance(parsed, dict) else None
+                )
+                if sibling_schema_version != manifest_schema_version:
+                    reasons.append(
+                        f"'{candidate}'.schema_version={sibling_schema_version!r} no coincide "
+                        f"con el schema_version declarado por '{manifest_path}' "
+                        f"({manifest_schema_version!r})"
+                    )
+
+    if reasons:
+        raise StageCRecoveryError(reasons)
