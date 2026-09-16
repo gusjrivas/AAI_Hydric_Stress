@@ -38,12 +38,32 @@ serializa con `repr()` de Python (round-trip exacto); primera versión que
 declara explícitamente `schema_version` en el propio artefacto."""
 
 FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS = "stage_a_eligible_rows_only"
-"""Único `scope` autorizado de una huella producida por esta función --
-tanto si la calcula la Etapa A sobre su propio `eligible_frame` como si la
-recalcula la Etapa B sobre el suyo (mismo período, protocolo): ambas
-describen el mismo tipo de conjunto ("filas elegibles"), nunca el holdout de
-la Etapa C. La admisibilidad de un futuro consumidor de B exige este valor
-exacto, no una coincidencia mutua entre huellas con un `scope` arbitrario."""
+"""Único `scope` autorizado de una huella de A o B -- tanto si la calcula la
+Etapa A sobre su propio `eligible_frame` como si la recalcula la Etapa B
+sobre el suyo (mismo período, protocolo): ambas describen el mismo tipo de
+conjunto ("filas elegibles"), nunca el entrenamiento extendido de la Etapa C.
+La admisibilidad de un futuro consumidor de B exige este valor exacto, no
+una coincidencia mutua entre huellas con un `scope` arbitrario."""
+
+FINGERPRINT_SCOPE_STAGE_C_EVALUATION = "stage_c_evaluation_2024_2025"
+"""`scope` explícito del conjunto de EVALUACIÓN única del holdout de la Etapa
+C (2024-01-04..2025-12-31, protocolo sección 11) -- revisión dirigida
+(hallazgo 5, segunda ronda): identidad e integridad separadas de la del
+entrenamiento extendido (`FINGERPRINT_SCOPE_STAGE_C_EXTENDED_TRAINING`).
+Se calcula EXCLUSIVAMENTE después de la apertura autorizada del holdout
+(dentro de `stage_c_runner.run_stage_c`, nunca antes): esta huella no
+sustituye ni se compara contra la de A/B, es evidencia propia del conjunto
+efectivamente evaluado en esta corrida concreta."""
+
+FINGERPRINT_SCOPE_STAGE_C_EXTENDED_TRAINING = "stage_c_extended_training_through_2023"
+"""`scope` explícito del entrenamiento EXTENDIDO y autorizado de la Etapa C
+(hasta 2023-12-31, protocolo sección 11) -- revisión dirigida (hallazgo 5):
+etiquetar este conjunto con `FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS` sería
+falso (cubre un período distinto y más amplio que el de A/B) y sugeriría,
+incorrectamente, que admite la misma comparación de igualdad exacta que
+`check_stage_b_admissibility` exige entre A y B. C nunca se compara por
+igualdad de huella contra A/B (`stage_c_runner.py`, docstring del módulo);
+este `scope` distinto lo deja explícito en el propio artefacto."""
 
 FINGERPRINT_COLUMNS: tuple[str, ...] = (
     "feature_timestamp",
@@ -92,12 +112,21 @@ def _float_repr(value: float) -> str:
     return repr(f)
 
 
-def compute_dataset_fingerprint(eligible_frame: pd.DataFrame) -> dict[str, Any]:
+def compute_dataset_fingerprint(
+    eligible_frame: pd.DataFrame, *, scope: str = FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS
+) -> dict[str, Any]:
     """SHA-256 de una representación canónica y estable del conjunto diario
-    elegible efectivamente usado por la Etapa A, junto con la definición
-    explícita de columnas, orden, tipos y política de valores especiales que
-    produce esa huella. No modifica `eligible_frame` ni los valores que
-    entrena/evalúa la Etapa A -- es exclusivamente una huella de auditoría."""
+    elegible efectivamente usado, junto con la definición explícita de
+    columnas, orden, tipos y política de valores especiales que produce esa
+    huella. No modifica `eligible_frame` ni los valores que entrena/evalúa la
+    etapa que la invoca -- es exclusivamente una huella de auditoría.
+
+    `scope` identifica EXPLÍCITAMENTE el alcance real del conjunto huellado
+    (revisión dirigida, hallazgo 5): por defecto
+    `FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS` (A y B, mismo período que A);
+    `stage_c_runner.py` pasa `FINGERPRINT_SCOPE_STAGE_C_EXTENDED_TRAINING`
+    explícitamente para su entrenamiento extendido -- nunca se etiqueta un
+    conjunto con un `scope` que no describe su período real."""
     ordered = eligible_frame.sort_values("feature_timestamp").reset_index(drop=True)
     columns = list(FINGERPRINT_COLUMNS)
     export = ordered[columns].copy()
@@ -130,7 +159,7 @@ def compute_dataset_fingerprint(eligible_frame: pd.DataFrame) -> dict[str, Any]:
         "float_encoding": "python_repr_round_trip",
         "cell_separator": _CELL_SEPARATOR,
         "missing_value_policy": _MISSING_VALUE_POLICY,
-        "scope": FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS,
+        "scope": scope,
     }
 
 
@@ -138,5 +167,7 @@ __all__ = [
     "DATASET_FINGERPRINT_FORMAT_VERSION",
     "FINGERPRINT_COLUMNS",
     "FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS",
+    "FINGERPRINT_SCOPE_STAGE_C_EVALUATION",
+    "FINGERPRINT_SCOPE_STAGE_C_EXTENDED_TRAINING",
     "compute_dataset_fingerprint",
 ]
