@@ -80,7 +80,7 @@ deliberadamente distinto de `ARTIFACT_SCHEMA_VERSION` (Etapa A) y de
 consume, no produce): B no reescribe ni sobreescribe ningún artefacto de A,
 persiste su propio directorio de salida con su propia versión de esquema."""
 
-STAGE_C_ARTIFACT_SCHEMA_VERSION = "controlled_daily_v4_stage_c.v2"
+STAGE_C_ARTIFACT_SCHEMA_VERSION = "controlled_daily_v4_stage_c.v3"
 """Esquema propio de los artefactos de la Etapa C (`write_stage_c_artifacts`),
 distinto de los anteriores por la misma razón que B: C nunca reescribe
 artefactos de A ni de B, persiste su propio directorio de salida exclusivo.
@@ -92,7 +92,49 @@ declara éxito sobre evidencia faltante/corrupta/de otro intento) y agrega
 `target_timestamp` a `predictions_2024_2025.csv` (alineado con
 `feature_timestamp` y el horizonte del protocolo -- v1 solo persistía
 `feature_timestamp`, lo que dejaba la trazabilidad temporal del conjunto
-evaluado incompleta)."""
+evaluado incompleta).
+
+v3 (revisión dirigida, hallazgos 3 y 5, segunda ronda): agrega
+`evaluation_dataset_fingerprint.json` (huella reproducible del conjunto
+EFECTIVAMENTE evaluado del holdout, separada e identificada por su propio
+`scope` -- `dataset_fingerprint.FINGERPRINT_SCOPE_STAGE_C_EVALUATION` --
+calculada exclusivamente después de la apertura autorizada, nunca comparada
+por igualdad contra la de A/B/entrenamiento). `verify_stage_c_recovery`
+exige, desde v3, que `integrity_manifest.json` declare exactamente este
+`schema_version`, que `files` cubra el conjunto COMPLETO de artefactos
+obligatorios de este esquema (`REQUIRED_STAGE_C_ARTIFACT_NAMES`), y que
+ninguna ruta de artefacto escape del directorio de resultados (rutas
+absolutas, `..`, o enlaces simbólicos hacia fuera). Un manifiesto `v2` (o
+anterior) persistido antes de este cambio no es recuperable por la
+`verify_stage_c_recovery` actual -- no se reescribe evidencia histórica para
+mantenerlo compatible."""
+
+REQUIRED_STAGE_C_ARTIFACT_NAMES = frozenset(
+    {
+        "schema_version.json",
+        "resolved_config.json",
+        "producer_reference.json",
+        "holdout_ledger_reference.json",
+        "code_version.json",
+        "environment.json",
+        "warnings.json",
+        "training_dataset_fingerprint.json",
+        "evaluation_dataset_fingerprint.json",
+        "temporal_boundaries.json",
+        "p20_train.json",
+        "predictions_2024_2025.csv",
+        "metrics.json",
+        "bootstrap.json",
+        "outcome.json",
+        "holdout_status.json",
+    }
+)
+"""Conjunto COMPLETO de artefactos obligatorios de `STAGE_C_ARTIFACT_SCHEMA_VERSION`
+(sin incluir `integrity_manifest.json`, que es el propio manifiesto -- no se
+lista a sí mismo). Revisión dirigida (hallazgo 3, segunda ronda): un manifiesto
+cuyo `files` no cubra este conjunto completo (por ejemplo, uno con un único
+archivo `only.txt`) nunca es recuperable, aunque su `schema_version` y sus
+hashes sean formalmente válidos."""
 
 
 class OutputDirectoryNotEmptyError(FileExistsError):
@@ -914,6 +956,9 @@ def write_stage_c_artifacts(
     written["training_dataset_fingerprint"] = output_dir / "training_dataset_fingerprint.json"
     _write_json(written["training_dataset_fingerprint"], result.training_dataset_fingerprint)
 
+    written["evaluation_dataset_fingerprint"] = output_dir / "evaluation_dataset_fingerprint.json"
+    _write_json(written["evaluation_dataset_fingerprint"], result.evaluation_dataset_fingerprint)
+
     written["temporal_boundaries"] = output_dir / "temporal_boundaries.json"
     _write_json(
         written["temporal_boundaries"],
@@ -1040,20 +1085,58 @@ class StageCRecoveryError(ValueError):
         super().__init__("; ".join(self.reasons) if self.reasons else "recuperación inválida")
 
 
+def _is_path_confined(output_dir: Path, name: str) -> bool:
+    """`True` sii `name` (una clave de `integrity_manifest.json.files`)
+    designa un artefacto confinado dentro de `output_dir` -- revisión
+    dirigida (hallazgo 3, segunda ronda): rechaza explícitamente rutas
+    absolutas, componentes `..`, y cualquier resolución (enlaces simbólicos
+    incluidos) que caiga fuera de `output_dir`. Nunca se resuelve primero y
+    se pregunta después: un `name` absoluto o con `..` se rechaza por forma,
+    sin necesidad de que el archivo exista para escapar del directorio."""
+    if not name or Path(name).is_absolute():
+        return False
+    if ".." in Path(name).parts:
+        return False
+    candidate = output_dir / name
+    try:
+        resolved = candidate.resolve(strict=False)
+    except OSError:
+        return False
+    try:
+        resolved.relative_to(output_dir.resolve())
+    except ValueError:
+        return False
+    return True
+
+
 def verify_stage_c_recovery(
     output_dir: str | Path, *, holdout_identity_key: str, attempt_id: str
 ) -> None:
     """Recuperación de SOLO LECTURA de una corrida finalizada de la Etapa C
-    (revisión dirigida, hallazgo 2): nunca reentrena, nunca lee el holdout
-    crudo. Antes de declarar la recuperación satisfactoria, comprueba (en
-    este orden, acumulando TODOS los motivos de rechazo, no solo el
-    primero): que `output_dir` exista, que contenga un
-    `integrity_manifest.json` legible, que ese manifiesto corresponda al
-    mismo holdout y al mismo intento que lo finalizó (nunca a otro), y que
-    cada artefacto listado exista con exactamente el sha256 persistido
-    (contenido alterado, ausente, o de un intento distinto se rechaza por
-    igual). No repara nada: levanta `StageCRecoveryError` con la lista
-    completa de motivos si cualquiera de estas comprobaciones falla."""
+    (revisión dirigida, hallazgos 2 y 3): nunca reentrena, nunca lee el
+    holdout crudo. Antes de declarar la recuperación satisfactoria, comprueba
+    (acumulando TODOS los motivos de rechazo, no solo el primero):
+
+    - que `output_dir` exista y contenga un `integrity_manifest.json` legible
+      con un `schema_version` reconocido (`STAGE_C_ARTIFACT_SCHEMA_VERSION`
+      exacto -- un esquema desconocido nunca es recuperable, aunque el resto
+      del manifiesto luzca coherente);
+    - que ese manifiesto corresponda al mismo holdout y al mismo intento que
+      lo finalizó (nunca a otro);
+    - que `files` cubra el conjunto COMPLETO de artefactos obligatorios de
+      ese esquema (`REQUIRED_STAGE_C_ARTIFACT_NAMES`) -- un manifiesto con
+      solo alguno de ellos (por ejemplo, un único archivo ajeno) nunca basta;
+    - que cada ruta declarada esté confinada a `output_dir` (rechaza rutas
+      absolutas, `..`, o enlaces simbólicos que escapen del directorio);
+    - que cada artefacto exista con exactamente el sha256 persistido
+      (contenido alterado, ausente, o de un intento distinto se rechaza por
+      igual);
+    - coherencia estructural mínima de los artefactos JSON recuperados (cada
+      uno parsea como JSON válido, y `schema_version.json` declara el mismo
+      esquema que el propio manifiesto).
+
+    No repara nada: levanta `StageCRecoveryError` con la lista completa de
+    motivos si cualquiera de estas comprobaciones falla."""
     output_dir = Path(output_dir)
     if not output_dir.is_dir():
         raise StageCRecoveryError(
@@ -1074,6 +1157,13 @@ def verify_stage_c_recovery(
         raise StageCRecoveryError([f"'{manifest_path}': el JSON raíz debe ser un objeto"])
 
     reasons: list[str] = []
+    manifest_schema_version = manifest.get("schema_version")
+    if manifest_schema_version != STAGE_C_ARTIFACT_SCHEMA_VERSION:
+        reasons.append(
+            f"'{manifest_path}'.schema_version={manifest_schema_version!r} no es el esquema "
+            f"reconocido ({STAGE_C_ARTIFACT_SCHEMA_VERSION!r}): un esquema desconocido nunca "
+            "habilita la recuperación, aunque el resto del manifiesto luzca coherente"
+        )
     if manifest.get("holdout_identity_key") != holdout_identity_key:
         reasons.append(
             f"'{manifest_path}'.holdout_identity_key={manifest.get('holdout_identity_key')!r} "
@@ -1089,7 +1179,22 @@ def verify_stage_c_recovery(
     if not isinstance(files, dict) or not files:
         reasons.append(f"'{manifest_path}'.files ausente o vacío: no hay artefactos verificables")
     else:
+        declared_names = set(files)
+        missing_required = REQUIRED_STAGE_C_ARTIFACT_NAMES - declared_names
+        if missing_required:
+            reasons.append(
+                f"'{manifest_path}'.files no cubre el conjunto completo de artefactos "
+                f"obligatorios del esquema {STAGE_C_ARTIFACT_SCHEMA_VERSION!r}: faltan "
+                f"{sorted(missing_required)}"
+            )
         for name, expected_sha256 in files.items():
+            if not _is_path_confined(output_dir, name):
+                reasons.append(
+                    f"'{manifest_path}'.files declara '{name}', que no está confinado a "
+                    f"'{output_dir}' (ruta absoluta, '..', o enlace simbólico hacia fuera): "
+                    "se rechaza sin leer el archivo"
+                )
+                continue
             candidate = output_dir / name
             if not candidate.exists():
                 reasons.append(f"Falta el artefacto requerido '{candidate}'")
@@ -1104,6 +1209,37 @@ def verify_stage_c_recovery(
                     f"'{candidate}' no coincide con el sha256 persistido en el manifiesto "
                     "(contenido alterado, o corresponde a otro intento)"
                 )
+
+        # Coherencia ESTRUCTURAL de los artefactos recuperados (revisión
+        # dirigida, hallazgo 3, segunda ronda): un sha256 correcto no basta
+        # -- cada artefacto declarado con extensión `.json` debe parsear
+        # como JSON válido, y `schema_version.json` (si está presente y es
+        # legible) debe declarar exactamente el mismo esquema que el propio
+        # manifiesto que lo referencia.
+        for name in files:
+            if not _is_path_confined(output_dir, name) or not name.endswith(".json"):
+                continue
+            candidate = output_dir / name
+            if not candidate.exists():
+                continue
+            try:
+                parsed = json.loads(candidate.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                reasons.append(
+                    f"'{candidate}' no es JSON válido/legible: {exc} -- artefacto recuperado "
+                    "estructuralmente incoherente"
+                )
+                continue
+            if name == "schema_version.json":
+                sibling_schema_version = (
+                    parsed.get("schema_version") if isinstance(parsed, dict) else None
+                )
+                if sibling_schema_version != manifest_schema_version:
+                    reasons.append(
+                        f"'{candidate}'.schema_version={sibling_schema_version!r} no coincide "
+                        f"con el schema_version declarado por '{manifest_path}' "
+                        f"({manifest_schema_version!r})"
+                    )
 
     if reasons:
         raise StageCRecoveryError(reasons)

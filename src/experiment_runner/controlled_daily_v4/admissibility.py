@@ -63,6 +63,17 @@ from experiment_runner.controlled_daily_v4.transfer_contract import (
 
 _FINGERPRINT_CONSISTENCY_FIELDS = ("schema_version", "sha256", "n_rows", "scope")
 
+_DELTA_MCC_LOWER_DOMAIN = -2.0
+_DELTA_MCC_UPPER_DOMAIN = 2.0
+"""Dominio matemático de una DIFERENCIA de dos MCC (`interval_lower`/
+`interval_upper` de `bootstrap.json`, que reportan un intervalo de
+`MCC_candidato - MCC_baseline`, nunca un MCC aislado): `[-2, 2]`, no
+`[-1, 1]` (revisión dirigida, hallazgo 2, segunda ronda) -- el MCC individual
+vive en `[-1, 1]`, pero la resta de dos valores de ese rango puede alcanzar
+`[-2, 2]` (por ejemplo, candidato=1.0, baseline=-1.0). Validar el intervalo
+de ΔMCC contra el dominio de un MCC aislado rechazaba, incorrectamente,
+intervalos matemáticamente válidos como `[1.1, 1.3]`."""
+
 
 class StageBAdmissibilityError(ValueError):
     """El candidato leído estructuralmente no es admisible para esta
@@ -556,21 +567,29 @@ def check_stage_c_admissibility(
                 "MCC_candidato_2023 > 0 requerido por 'CANDIDATE_VALIDATED'"
             )
 
+    diagnostics: dict[str, Any] | None = None
     if bootstrap_payload.get("bootstrap_executed") is not True:
         reasons.append(
             f"'{stage_b_dir / 'bootstrap.json'}'.bootstrap_executed no es True: no hay "
             "intervalo bootstrap que sustente 'CANDIDATE_VALIDATED'"
         )
     else:
+        # Dominio de ΔMCC (`[-2, 2]`), NUNCA el de un MCC aislado
+        # (`[-1, 1]`) -- estos límites reportan una DIFERENCIA de dos MCC
+        # (revisión dirigida, hallazgo 2, segunda ronda).
         lower_bound = _validate_bounded_metric(
             bootstrap_payload.get("interval_lower"),
             f"'{stage_b_dir / 'bootstrap.json'}'.interval_lower",
             reasons,
+            lower=_DELTA_MCC_LOWER_DOMAIN,
+            upper=_DELTA_MCC_UPPER_DOMAIN,
         )
         upper_bound = _validate_bounded_metric(
             bootstrap_payload.get("interval_upper"),
             f"'{stage_b_dir / 'bootstrap.json'}'.interval_upper",
             reasons,
+            lower=_DELTA_MCC_LOWER_DOMAIN,
+            upper=_DELTA_MCC_UPPER_DOMAIN,
         )
         if lower_bound is not None and upper_bound is not None:
             if lower_bound > upper_bound:
@@ -591,33 +610,56 @@ def check_stage_c_admissibility(
                 "no hay contabilidad de réplicas verificable que sustente el intervalo"
             )
         else:
+            # Validación ESTRICTA y completa de los tres contadores
+            # (revisión dirigida, hallazgo 1, segunda ronda): los tres deben
+            # estar PRESENTES (nunca solo `replicas_valid` con los demás
+            # ausentes) y ser enteros no booleanos no negativos -- solo
+            # entonces se verifica `requested > 0`, `valid > 0`, y
+            # `valid + discarded == requested`. Un contador ausente NUNCA se
+            # trata como si fuera `0` ni se omite la verificación de
+            # consistencia: se rechaza explícitamente antes de evaluar
+            # cualquier otra condición sobre estos valores.
+            def _nonnegative_int(value: Any) -> bool:
+                return not isinstance(value, bool) and isinstance(value, int) and value >= 0
+
             replicas_valid = diagnostics.get("replicas_valid")
             replicas_requested = diagnostics.get("replicas_requested")
             replicas_discarded = diagnostics.get("replicas_discarded")
-            if (
-                isinstance(replicas_valid, bool)
-                or not isinstance(replicas_valid, int)
-                or replicas_valid <= 0
-            ):
-                reasons.append(
-                    f"'{stage_b_dir / 'bootstrap.json'}'.diagnostics.replicas_valid="
-                    f"{replicas_valid!r} no reporta réplicas válidas (> 0) que sustenten el "
-                    "intervalo bootstrap"
+            invalid_counters = [
+                counter_name
+                for counter_name, counter_value in (
+                    ("replicas_valid", replicas_valid),
+                    ("replicas_requested", replicas_requested),
+                    ("replicas_discarded", replicas_discarded),
                 )
-            if (
-                not isinstance(replicas_valid, bool)
-                and isinstance(replicas_valid, int)
-                and not isinstance(replicas_requested, bool)
-                and isinstance(replicas_requested, int)
-                and not isinstance(replicas_discarded, bool)
-                and isinstance(replicas_discarded, int)
-                and replicas_valid + replicas_discarded != replicas_requested
-            ):
+                if not _nonnegative_int(counter_value)
+            ]
+            if invalid_counters:
                 reasons.append(
-                    f"'{stage_b_dir / 'bootstrap.json'}'.diagnostics: contabilidad de réplicas "
-                    f"inconsistente (valid={replicas_valid!r} + discarded="
-                    f"{replicas_discarded!r} != requested={replicas_requested!r})"
+                    f"'{stage_b_dir / 'bootstrap.json'}'.diagnostics: {invalid_counters} "
+                    "ausente(s) o no son enteros no negativos válidos (recibido "
+                    f"replicas_valid={replicas_valid!r}, "
+                    f"replicas_requested={replicas_requested!r}, "
+                    f"replicas_discarded={replicas_discarded!r})"
                 )
+            else:
+                if replicas_requested <= 0:
+                    reasons.append(
+                        f"'{stage_b_dir / 'bootstrap.json'}'.diagnostics.replicas_requested="
+                        f"{replicas_requested!r} debe ser > 0"
+                    )
+                if replicas_valid <= 0:
+                    reasons.append(
+                        f"'{stage_b_dir / 'bootstrap.json'}'.diagnostics.replicas_valid="
+                        f"{replicas_valid!r} no reporta réplicas válidas (> 0) que sustenten el "
+                        "intervalo bootstrap"
+                    )
+                if replicas_valid + replicas_discarded != replicas_requested:
+                    reasons.append(
+                        f"'{stage_b_dir / 'bootstrap.json'}'.diagnostics: contabilidad de "
+                        f"réplicas inconsistente (valid={replicas_valid!r} + discarded="
+                        f"{replicas_discarded!r} != requested={replicas_requested!r})"
+                    )
 
     if consumer_input_mode == INPUT_MODE_SYNTHETIC:
         if (
@@ -662,6 +704,43 @@ def check_stage_c_admissibility(
             "El candidato de A no está marcado como científico en ambos ejes "
             f"(scientific_run={contract.scientific_run!r}, input_mode={contract.input_mode!r})"
         )
+
+    # Una ejecución científica exige la configuración NORMATIVA de bootstrap
+    # de B (revisión dirigida, hallazgo 1, segunda ronda): `diagnostics.normative`
+    # nunca se recalcula aquí (ver `bootstrap.compute_is_normative_configuration`),
+    # se lee tal cual fue persistido por B a partir de los valores REALMENTE
+    # consumidos por esa réplica -- una configuración reducida o no
+    # normativa (menos réplicas, semilla o bloques distintos de los del
+    # protocolo) nunca habilita una Etapa C científica, aunque el resto del
+    # antecedente sea coherente. Si `diagnostics` ya se rechazó arriba
+    # (ausente/no estructurado/contadores inválidos), no se repite el motivo.
+    if isinstance(diagnostics, dict):
+        if diagnostics.get("normative") is not True:
+            reasons.append(
+                f"'{stage_b_dir / 'bootstrap.json'}'.diagnostics.normative no es True "
+                f"(normative={diagnostics.get('normative')!r}): una ejecución científica de la "
+                "Etapa B exige la configuración normativa de bootstrap del protocolo (5000 "
+                "réplicas, semilla 20250109, bloques de 30 días) -- un bootstrap reducido o no "
+                "normativo nunca habilita una Etapa C científica"
+            )
+
+    # Evidencia de identidad del entrenamiento AUTORIZADO de B, requerida
+    # explícitamente para el camino científico (revisión dirigida, hallazgo
+    # 1, segunda ronda): se exige que exista y sea estructuralmente válida,
+    # nunca que coincida con la huella del entrenamiento EXTENDIDO de C (ver
+    # docstring del módulo) -- C amplía el período hasta 2023, por lo que su
+    # propia huella (calculada en `stage_c_runner.py`) es deliberadamente
+    # distinta.
+    b_training_fingerprint = _load_producer_json(
+        stage_b_dir, "training_dataset_fingerprint.json", StageCAdmissibilityError
+    )
+    try:
+        validate_fingerprint_reference(
+            b_training_fingerprint,
+            f"'{stage_b_dir / 'training_dataset_fingerprint.json'}'",
+        )
+    except ValueError as exc:
+        reasons.append(str(exc))
 
     b_code_identity = _load_producer_json(
         stage_b_dir, "code_version.json", StageCAdmissibilityError

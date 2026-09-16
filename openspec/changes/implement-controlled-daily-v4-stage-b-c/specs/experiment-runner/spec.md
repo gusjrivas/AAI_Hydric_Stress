@@ -69,6 +69,36 @@
 > se huella con un `scope` propio (`FINGERPRINT_SCOPE_STAGE_C_EXTENDED_TRAINING`,
 > nunca el de A/B) y `predictions_2024_2025.csv` incorpora `target_timestamp`
 > (esquema de artefactos de C: `controlled_daily_v4_stage_c.v2`).
+>
+> **Segunda revisión dirigida sobre este mismo cierre (2026-09-15), cinco
+> reproducciones adicionales corregidas (esquema de artefactos de C bumpeado
+> a `controlled_daily_v4_stage_c.v3`):** (1) `check_stage_c_admissibility`
+> ahora exige los tres contadores de `diagnostics` presentes y coherentes
+> (`replicas_requested>0`, `replicas_valid>0`, `valid+discarded==requested`,
+> ningún contador ausente asumido `0`), `diagnostics.normative is True` para
+> el camino científico, y la existencia/validez estructural de
+> `training_dataset_fingerprint.json` de B (sin exigirle igualdad con el
+> fingerprint EXTENDIDO de C). (2) el dominio de validación de
+> `interval_lower`/`interval_upper` de `bootstrap.json` se corrige a `[-2, 2]`
+> (una DIFERENCIA de dos MCC, nunca el `[-1, 1]` de un MCC aislado — la
+> primera corrección había introducido este error, que rechazaba
+> incorrectamente intervalos válidos). (3) `verify_stage_c_recovery` exige
+> además `schema_version` reconocido, el conjunto COMPLETO de artefactos
+> obligatorios del esquema, confinamiento de cada ruta declarada dentro de
+> `output_dir` (rechaza rutas absolutas, `..`, o enlaces simbólicos que
+> escapen), y coherencia estructural mínima de los artefactos recuperados; la
+> CLI además ahora distingue "recuperar el propio directorio ya finalizado"
+> (funciona aunque ese directorio esté ocupado) de "iniciar una ejecución
+> nueva sobre una salida ocupada" (se sigue rechazando), leyendo el estado
+> del ledger antes de aplicar el rechazo de salida ocupada. (4) la coherencia
+> de TODAS las columnas de un registro del ledger (no solo `schema_version`)
+> se valida en las cuatro operaciones -- un registro `AUSENTE` con columnas
+> de confirmación/finalización ya pobladas (o cualquier otra combinación
+> contradictoria) se bloquea como `INDETERMINADA`/error explícito, nunca se
+> repara. (5) se agrega `evaluation_dataset_fingerprint.json`, huella propia
+> y separada del conjunto EFECTIVAMENTE evaluado del holdout (calculada
+> exclusivamente después de la apertura autorizada), incluida en el
+> manifiesto de integridad.
 
 ## ADDED Requirements
 

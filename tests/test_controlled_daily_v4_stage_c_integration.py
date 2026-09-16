@@ -387,6 +387,33 @@ def test_recovery_reads_existing_finalized_result_without_retraining(tmp_path, m
     assert exit_code == 0
 
 
+def test_recovery_succeeds_reusing_the_own_finalized_occupied_output_dir(tmp_path, monkeypatch):
+    """Revisión dirigida (hallazgo 3, segunda ronda): recuperar apuntando al
+    MISMO --output-dir que ya contiene los artefactos finalizados de esta
+    corrida (por lo tanto 'ocupado') debe funcionar -- el rechazo de salida
+    ocupada es exclusivamente para una ejecución NUEVA, nunca para la
+    recuperación del propio resultado ya finalizado."""
+    ctx = _run_validated_stage_c_once(tmp_path)
+    assert any(ctx["stage_c_out"].iterdir())  # la propia salida está "ocupada"
+
+    import experiment_runner.controlled_daily_v4.stage_c_runner as stage_c_runner_module
+
+    def _spy(*_a, **_k):
+        raise AssertionError("La recuperación no debía reentrenar")
+
+    monkeypatch.setattr(stage_c_runner_module, "run_stage_c", _spy)
+
+    exit_code = _run_stage_c_cli(
+        era5=ctx["era5"],
+        nasa=ctx["nasa"],
+        producer_dir=ctx["producer_dir"],
+        stage_b_dir=ctx["stage_b_out"],
+        ledger_path=ctx["ledger_path"],
+        output_dir=ctx["stage_c_out"],
+    )
+    assert exit_code == 0
+
+
 def test_overwrite_is_rejected_unconditionally_for_stage_c(tmp_path):
     era5, nasa = write_synthetic_pergamino_csv_pair(tmp_path, n_days=_N_DAYS_THROUGH_2025, seed=7)
     producer_dir = _write_synthetic_producer_dir(tmp_path, era5, nasa)

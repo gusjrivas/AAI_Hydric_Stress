@@ -45,6 +45,16 @@ conjunto ("filas elegibles"), nunca el entrenamiento extendido de la Etapa C.
 La admisibilidad de un futuro consumidor de B exige este valor exacto, no
 una coincidencia mutua entre huellas con un `scope` arbitrario."""
 
+FINGERPRINT_SCOPE_STAGE_C_EVALUATION = "stage_c_evaluation_2024_2025"
+"""`scope` explícito del conjunto de EVALUACIÓN única del holdout de la Etapa
+C (2024-01-04..2025-12-31, protocolo sección 11) -- revisión dirigida
+(hallazgo 5, segunda ronda): identidad e integridad separadas de la del
+entrenamiento extendido (`FINGERPRINT_SCOPE_STAGE_C_EXTENDED_TRAINING`).
+Se calcula EXCLUSIVAMENTE después de la apertura autorizada del holdout
+(dentro de `stage_c_runner.run_stage_c`, nunca antes): esta huella no
+sustituye ni se compara contra la de A/B, es evidencia propia del conjunto
+efectivamente evaluado en esta corrida concreta."""
+
 FINGERPRINT_SCOPE_STAGE_C_EXTENDED_TRAINING = "stage_c_extended_training_through_2023"
 """`scope` explícito del entrenamiento EXTENDIDO y autorizado de la Etapa C
 (hasta 2023-12-31, protocolo sección 11) -- revisión dirigida (hallazgo 5):
@@ -157,6 +167,7 @@ __all__ = [
     "DATASET_FINGERPRINT_FORMAT_VERSION",
     "FINGERPRINT_COLUMNS",
     "FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS",
+    "FINGERPRINT_SCOPE_STAGE_C_EVALUATION",
     "FINGERPRINT_SCOPE_STAGE_C_EXTENDED_TRAINING",
     "compute_dataset_fingerprint",
 ]

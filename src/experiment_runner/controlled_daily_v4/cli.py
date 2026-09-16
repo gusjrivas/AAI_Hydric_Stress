@@ -759,21 +759,18 @@ def _run_stage_c(
         print(f"ERROR: {exc}", file=sys.stderr)
         return 9
 
-    # Revisión dirigida (hallazgo 3): una salida YA OCUPADA se rechaza aquí,
-    # antes de reservar el ledger -- `write_stage_c_artifacts` repite esta
-    # misma verificación más tarde (defensa en profundidad), pero si se
-    # difiere únicamente a ese punto, una salida ocupada deja el holdout ya
-    # confirmado/evaluado antes de fallar. `--overwrite` no existe para C
-    # (ya rechazado en `main`), por lo que esta comprobación es siempre
-    # incondicional. Nunca crea `output_dir` (a diferencia de
-    # `ensure_output_directory`): una recuperación con otro `--output-dir`
-    # no debe dejar un directorio vacío como efecto secundario de esta
-    # verificación previa.
-    try:
-        artifacts.check_output_directory_not_occupied(args.output_dir)
-    except artifacts.OutputDirectoryNotEmptyError as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
-        return 9
+    # Revisión dirigida (hallazgo 3, segunda ronda): el rechazo de --output-dir
+    # OCUPADO se difiere hasta DESPUÉS de determinar si esta invocación es en
+    # realidad una recuperación de un intento ya finalizado (más abajo, tras
+    # leer el estado del ledger) -- la recuperación lee del
+    # `finalized_result_reference` persistido en el ledger, no de
+    # `args.output_dir`, por lo que reutilizar deliberadamente el mismo
+    # --output-dir de una corrida ya finalizada (el caso más natural de
+    # "recuperar mis propios resultados") nunca debe rechazarse solo porque
+    # ese directorio ya contiene esos mismos artefactos. Aplicar este rechazo
+    # aquí, antes de leer el ledger, distinguía incorrectamente "una nueva
+    # ejecución con salida ocupada" (debe rechazarse) de "una recuperación
+    # sobre el propio directorio ya finalizado" (debe funcionar).
 
     try:
         contract = load_frozen_config_contract(args.producer_dir)
@@ -782,20 +779,6 @@ def _run_stage_c(
         return 6
 
     consumer_code_identity = dataclasses.asdict(code_identity)
-    try:
-        check_stage_c_admissibility(
-            contract,
-            stage_b_dir=args.stage_b_dir,
-            producer_dir=args.producer_dir,
-            consumer_input_mode=args.input_mode,
-            consumer_code_identity=consumer_code_identity,
-            consumer_environment_issues=environment_report.issues,
-        )
-    except StageCAdmissibilityError as exc:
-        print("ERROR: la Etapa B no habilita esta ejecución de la Etapa C:", file=sys.stderr)
-        for reason in exc.reasons:
-            print(f"  - {reason}", file=sys.stderr)
-        return 7
 
     holdout_key = holdout_ledger.compute_holdout_identity_key(
         protocol_id=PROTOCOL_ID,
@@ -855,6 +838,37 @@ def _run_stage_c(
         )
         return 11
 
+    # Revisión dirigida (hallazgo 3, segunda ronda): recién aquí, una vez
+    # descartado que esta invocación sea una recuperación de un intento ya
+    # finalizado (ledger_state.state ya excluye CONFIRMADA/INDETERMINADA en
+    # este punto: solo llega aquí un holdout AUSENTE, es decir, una
+    # ejecución genuinamente nueva), se rechaza una salida YA OCUPADA --
+    # antes de reservar el ledger. `write_stage_c_artifacts` repite esta
+    # misma verificación más tarde (defensa en profundidad). `--overwrite`
+    # no existe para C (ya rechazado en `main`), por lo que esta
+    # comprobación es siempre incondicional. Nunca crea `output_dir` (a
+    # diferencia de `ensure_output_directory`).
+    try:
+        artifacts.check_output_directory_not_occupied(args.output_dir)
+    except artifacts.OutputDirectoryNotEmptyError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 9
+
+    try:
+        check_stage_c_admissibility(
+            contract,
+            stage_b_dir=args.stage_b_dir,
+            producer_dir=args.producer_dir,
+            consumer_input_mode=args.input_mode,
+            consumer_code_identity=consumer_code_identity,
+            consumer_environment_issues=environment_report.issues,
+        )
+    except StageCAdmissibilityError as exc:
+        print("ERROR: la Etapa B no habilita esta ejecución de la Etapa C:", file=sys.stderr)
+        for reason in exc.reasons:
+            print(f"  - {reason}", file=sys.stderr)
+        return 7
+
     # --- Paso 2: reserva atómica, todavía sin tocar el holdout -------------
     attempt_id = uuid.uuid4().hex
     try:
@@ -867,6 +881,9 @@ def _run_stage_c(
     except holdout_ledger.HoldoutLedgerNotInitializedError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 12
+    except holdout_ledger.HoldoutRegistryCoherenceError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 11
 
     # --- Paso 3: confirmación durable, todavía antes del acceso ------------
     try:
@@ -878,6 +895,9 @@ def _run_stage_c(
             authorized_by=args.authorized_by,
         )
     except holdout_ledger.HoldoutReservationLostError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 13
+    except holdout_ledger.HoldoutRegistryCoherenceError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 13
 

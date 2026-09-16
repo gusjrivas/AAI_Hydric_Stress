@@ -163,6 +163,106 @@ def test_recovery_rejects_result_from_a_different_attempt(tmp_path):
     assert any("attempt_id" in reason for reason in exc.value.reasons)
 
 
+def test_recovery_rejects_unknown_schema_version(tmp_path):
+    """Revisión dirigida (hallazgo 3, segunda ronda): un `schema_version`
+    desconocido en `integrity_manifest.json` nunca habilita la recuperación,
+    aunque el resto del manifiesto (holdout/intento/hashes) luzca coherente."""
+    output_dir = tmp_path / "stage_c_out"
+    written = _write_real_stage_c_artifacts(output_dir)
+    manifest = json.loads(written["integrity_manifest"].read_text(encoding="utf-8"))
+    manifest["schema_version"] = "UNKNOWN_SCHEMA"
+    written["integrity_manifest"].write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(artifacts.StageCRecoveryError) as exc:
+        artifacts.verify_stage_c_recovery(
+            output_dir, holdout_identity_key=_HOLDOUT_KEY, attempt_id=_ATTEMPT_ID
+        )
+    assert any("schema_version" in reason for reason in exc.value.reasons)
+
+
+def test_recovery_rejects_manifest_with_only_a_stray_file(tmp_path):
+    """Revisión dirigida (hallazgo 3, segunda ronda): un manifiesto cuyo
+    `files` contiene ÚNICAMENTE un archivo ajeno ('only.txt') nunca es
+    recuperable, aunque su hash sea correcto -- falta el conjunto completo
+    de artefactos obligatorios del esquema."""
+    output_dir = tmp_path / "stage_c_out"
+    written = _write_real_stage_c_artifacts(output_dir)
+    stray = output_dir / "only.txt"
+    stray.write_text("stray", encoding="utf-8")
+    manifest = json.loads(written["integrity_manifest"].read_text(encoding="utf-8"))
+    import hashlib
+
+    manifest["files"] = {"only.txt": hashlib.sha256(stray.read_bytes()).hexdigest()}
+    written["integrity_manifest"].write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(artifacts.StageCRecoveryError) as exc:
+        artifacts.verify_stage_c_recovery(
+            output_dir, holdout_identity_key=_HOLDOUT_KEY, attempt_id=_ATTEMPT_ID
+        )
+    assert any("conjunto completo" in reason for reason in exc.value.reasons)
+
+
+def test_recovery_rejects_path_escape_via_parent_reference(tmp_path):
+    """Revisión dirigida (hallazgo 3, segunda ronda): una ruta declarada con
+    `..` que intenta escapar de `output_dir` se rechaza sin siquiera leer el
+    archivo señalado."""
+    output_dir = tmp_path / "stage_c_out"
+    written = _write_real_stage_c_artifacts(output_dir)
+    secret = tmp_path / "outside_secret.json"
+    secret.write_text(json.dumps({"leak": True}), encoding="utf-8")
+    manifest = json.loads(written["integrity_manifest"].read_text(encoding="utf-8"))
+    import hashlib
+
+    manifest["files"]["../outside_secret.json"] = hashlib.sha256(secret.read_bytes()).hexdigest()
+    written["integrity_manifest"].write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(artifacts.StageCRecoveryError) as exc:
+        artifacts.verify_stage_c_recovery(
+            output_dir, holdout_identity_key=_HOLDOUT_KEY, attempt_id=_ATTEMPT_ID
+        )
+    assert any("confinado" in reason for reason in exc.value.reasons)
+
+
+def test_recovery_rejects_absolute_path_escape(tmp_path):
+    """Misma protección que el caso anterior, para una ruta ABSOLUTA en vez
+    de un componente `..`."""
+    output_dir = tmp_path / "stage_c_out"
+    written = _write_real_stage_c_artifacts(output_dir)
+    secret = tmp_path / "outside_secret.json"
+    secret.write_text(json.dumps({"leak": True}), encoding="utf-8")
+    manifest = json.loads(written["integrity_manifest"].read_text(encoding="utf-8"))
+    import hashlib
+
+    manifest["files"][str(secret)] = hashlib.sha256(secret.read_bytes()).hexdigest()
+    written["integrity_manifest"].write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(artifacts.StageCRecoveryError) as exc:
+        artifacts.verify_stage_c_recovery(
+            output_dir, holdout_identity_key=_HOLDOUT_KEY, attempt_id=_ATTEMPT_ID
+        )
+    assert any("confinado" in reason for reason in exc.value.reasons)
+
+
+def test_recovery_rejects_structurally_incoherent_schema_version_artifact(tmp_path):
+    """Coherencia ESTRUCTURAL (hallazgo 3, segunda ronda): si
+    `schema_version.json` en disco declara un esquema distinto del que
+    declara el propio `integrity_manifest.json` (aunque su sha256 siga
+    coincidiendo con lo persistido en el manifiesto), la recuperación se
+    rechaza."""
+    output_dir = tmp_path / "stage_c_out"
+    written = _write_real_stage_c_artifacts(output_dir)
+    tampered = {"schema_version": "controlled_daily_v4_stage_c.v_tampered"}
+    (output_dir / "schema_version.json").write_text(json.dumps(tampered), encoding="utf-8")
+    import hashlib
+
+    manifest = json.loads(written["integrity_manifest"].read_text(encoding="utf-8"))
+    manifest["files"]["schema_version.json"] = hashlib.sha256(
+        (output_dir / "schema_version.json").read_bytes()
+    ).hexdigest()
+    written["integrity_manifest"].write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(artifacts.StageCRecoveryError) as exc:
+        artifacts.verify_stage_c_recovery(
+            output_dir, holdout_identity_key=_HOLDOUT_KEY, attempt_id=_ATTEMPT_ID
+        )
+    assert any("no coincide con el schema_version" in reason for reason in exc.value.reasons)
+
+
 def test_recovery_rejects_missing_manifest(tmp_path):
     """Fallo entre la escritura de artefactos y la finalización del ledger:
     si el manifiesto de integridad nunca llegó a escribirse (u otro artefacto

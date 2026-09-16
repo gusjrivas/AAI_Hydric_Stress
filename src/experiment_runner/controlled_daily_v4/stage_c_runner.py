@@ -58,6 +58,7 @@ from experiment_runner.controlled_daily_v4.config import (
     CalendarIntegrityError,
 )
 from experiment_runner.controlled_daily_v4.dataset_fingerprint import (
+    FINGERPRINT_SCOPE_STAGE_C_EVALUATION,
     FINGERPRINT_SCOPE_STAGE_C_EXTENDED_TRAINING,
     compute_dataset_fingerprint,
 )
@@ -182,6 +183,7 @@ class StageCResult:
     training_dataset_fingerprint: dict[str, Any]
     p20_train: float
     evaluation_frame_n_rows: int
+    evaluation_dataset_fingerprint: dict[str, Any]
     evaluation_target_timestamp_min: str | None
     evaluation_target_timestamp_max: str | None
     feature_timestamps: np.ndarray
@@ -272,6 +274,14 @@ def run_stage_c(
     training_fingerprint = compute_dataset_fingerprint(
         training_frame, scope=FINGERPRINT_SCOPE_STAGE_C_EXTENDED_TRAINING
     )
+    # Huella del conjunto EVALUADO, separada e identificada por su propio
+    # `scope` (revisión dirigida, hallazgo 5, segunda ronda): calculada aquí,
+    # exclusivamente después de la apertura autorizada del holdout (nunca
+    # antes -- precondición de esta función), nunca comparada por igualdad
+    # contra la de A/B ni contra la de entrenamiento.
+    evaluation_fingerprint = compute_dataset_fingerprint(
+        evaluation_frame, scope=FINGERPRINT_SCOPE_STAGE_C_EVALUATION
+    )
     warnings_log: list[dict[str, Any]] = []
 
     # P20_train recalculado EXCLUSIVAMENTE sobre el entrenamiento extendido de
@@ -289,6 +299,7 @@ def run_stage_c(
             training_dataset_fingerprint=training_fingerprint,
             p20_train=float("nan"),
             evaluation_frame_n_rows=len(evaluation_frame),
+            evaluation_dataset_fingerprint=evaluation_fingerprint,
             evaluation_target_timestamp_min=(
                 str(evaluation_frame["target_timestamp"].min()) if len(evaluation_frame) else None
             ),
@@ -331,6 +342,7 @@ def run_stage_c(
             training_dataset_fingerprint=training_fingerprint,
             p20_train=training_p20_train,
             evaluation_frame_n_rows=len(evaluation_frame),
+            evaluation_dataset_fingerprint=evaluation_fingerprint,
             evaluation_target_timestamp_min=str(evaluation_frame["target_timestamp"].min()),
             evaluation_target_timestamp_max=str(evaluation_frame["target_timestamp"].max()),
             feature_timestamps=evaluation_frame["feature_timestamp"].to_numpy(),
@@ -410,6 +422,7 @@ def run_stage_c(
         training_dataset_fingerprint=training_fingerprint,
         p20_train=training_p20_train,
         evaluation_frame_n_rows=len(evaluation_frame),
+        evaluation_dataset_fingerprint=evaluation_fingerprint,
         evaluation_target_timestamp_min=str(evaluation_frame["target_timestamp"].min()),
         evaluation_target_timestamp_max=str(evaluation_frame["target_timestamp"].max()),
         feature_timestamps=evaluation_frame["feature_timestamp"].to_numpy(),

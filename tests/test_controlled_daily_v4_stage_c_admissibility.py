@@ -22,7 +22,18 @@ from experiment_runner.controlled_daily_v4.config import (
     INPUT_MODE_SCIENTIFIC,
     INPUT_MODE_SYNTHETIC,
 )
+from experiment_runner.controlled_daily_v4.dataset_fingerprint import (
+    DATASET_FINGERPRINT_FORMAT_VERSION,
+    FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS,
+)
 from experiment_runner.controlled_daily_v4.transfer_contract import FrozenConfigContract
+
+_VALID_B_TRAINING_FINGERPRINT = {
+    "schema_version": DATASET_FINGERPRINT_FORMAT_VERSION,
+    "sha256": "b" * 64,
+    "n_rows": 100,
+    "scope": FINGERPRINT_SCOPE_STAGE_A_ELIGIBLE_ROWS,
+}
 
 _VALID_CODE_IDENTITY = {
     "available": True,
@@ -92,11 +103,14 @@ def _contract(*, depth_role=DEPTH_ROLE_PRIMARY, input_mode="scientific", scienti
     )
 
 
-def _valid_diagnostics(*, replicas_valid=200, replicas_requested=200, replicas_discarded=0):
+def _valid_diagnostics(
+    *, replicas_valid=200, replicas_requested=200, replicas_discarded=0, normative=True
+):
     return {
         "replicas_valid": replicas_valid,
         "replicas_requested": replicas_requested,
         "replicas_discarded": replicas_discarded,
+        "normative": normative,
     }
 
 
@@ -117,6 +131,8 @@ def _write_stage_b_evidence(
     validation_issues=None,
     embedded_frozen_config_raw=None,
     referenced_producer_dir=None,
+    training_dataset_fingerprint=None,
+    omit_training_dataset_fingerprint=False,
 ):
     resolved_input_mode = (
         input_mode
@@ -171,6 +187,15 @@ def _write_stage_b_evidence(
         ),
         encoding="utf-8",
     )
+    if not omit_training_dataset_fingerprint:
+        (stage_b_dir / "training_dataset_fingerprint.json").write_text(
+            json.dumps(
+                training_dataset_fingerprint
+                if training_dataset_fingerprint is not None
+                else dict(_VALID_B_TRAINING_FINGERPRINT)
+            ),
+            encoding="utf-8",
+        )
 
 
 def test_happy_path_scientific_is_admitted(tmp_path):

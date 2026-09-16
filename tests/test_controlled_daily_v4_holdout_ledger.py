@@ -258,6 +258,101 @@ def test_incoherent_registry_state_is_indeterminate(tmp_path):
     assert state.state == hl.STATE_INDETERMINATE
 
 
+def _tamper_registry_row(path, key, **columns):
+    import sqlite3 as _sqlite3
+
+    assignments = ", ".join(f"{col} = ?" for col in columns)
+    with _sqlite3.connect(str(path)) as conn:
+        conn.execute(
+            f"UPDATE holdout_registry SET {assignments} WHERE holdout_key = ?",
+            [*columns.values(), key],
+        )
+        conn.commit()
+
+
+def test_absent_state_with_populated_confirmation_fields_is_incoherent(tmp_path):
+    """Revisión dirigida (hallazgo 4, segunda ronda): un registro AUSENTE con
+    `confirmed_at`/`finalized_at`/`finalized_result_reference` ya poblados es
+    contradictorio -- nunca se trata como AUSENTE real, y nunca habilita una
+    nueva reserva."""
+    path = tmp_path / "ledger.sqlite3"
+    key = _key()
+    hl.init_ledger(path, mode=hl.LEDGER_MODE_SYNTHETIC, holdout_key=key)
+    _tamper_registry_row(
+        path,
+        key,
+        confirmed_at=1.0,
+        finalized_at=2.0,
+        finalized_result_reference="/tmp/stale_result",
+        authorized_by="nobody",
+    )
+
+    state = hl.read_holdout_state(path, key, expected_mode=hl.LEDGER_MODE_SYNTHETIC)
+    assert state.state == hl.STATE_INDETERMINATE
+
+    with pytest.raises(hl.HoldoutRegistryCoherenceError):
+        hl.reserve_holdout(path, key, mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="a1")
+
+    # No se reparó ni se reseteó ninguna columna por el intento de reserva.
+    state_after = hl.read_holdout_state(path, key, expected_mode=hl.LEDGER_MODE_SYNTHETIC)
+    assert state_after.state == hl.STATE_INDETERMINATE
+
+
+def test_indeterminate_state_with_confirmation_fields_is_incoherent(tmp_path):
+    path = tmp_path / "ledger.sqlite3"
+    key = _key()
+    hl.init_ledger(path, mode=hl.LEDGER_MODE_SYNTHETIC, holdout_key=key)
+    hl.reserve_holdout(path, key, mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="attempt-1")
+    _tamper_registry_row(path, key, confirmed_at=1.0, authorized_by="nobody")
+
+    state = hl.read_holdout_state(path, key, expected_mode=hl.LEDGER_MODE_SYNTHETIC)
+    assert state.state == hl.STATE_INDETERMINATE
+
+    with pytest.raises(hl.HoldoutRegistryCoherenceError):
+        hl.confirm_holdout_open(
+            path, key, mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="attempt-1", authorized_by="tester"
+        )
+
+
+def test_confirmed_state_missing_confirmation_columns_is_incoherent(tmp_path):
+    """Un estado CONFIRMADA sin las columnas que una confirmación real deja
+    pobladas (por ejemplo, sin `authorized_by`) nunca se finaliza."""
+    path = tmp_path / "ledger.sqlite3"
+    key = _key()
+    hl.init_ledger(path, mode=hl.LEDGER_MODE_SYNTHETIC, holdout_key=key)
+    hl.reserve_holdout(path, key, mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="attempt-1")
+    _tamper_registry_row(path, key, state=hl.STATE_CONFIRMED, confirmed_at=1.0, authorized_by=None)
+
+    state = hl.read_holdout_state(path, key, expected_mode=hl.LEDGER_MODE_SYNTHETIC)
+    assert state.state == hl.STATE_INDETERMINATE
+
+    with pytest.raises(hl.HoldoutRegistryCoherenceError):
+        hl.finalize_holdout(
+            path,
+            key,
+            mode=hl.LEDGER_MODE_SYNTHETIC,
+            attempt_id="attempt-1",
+            result_reference="/tmp/x",
+        )
+
+
+def test_confirmed_state_with_partial_finalization_is_incoherent(tmp_path):
+    """`finalized_at` poblado sin `finalized_result_reference` (o viceversa)
+    es una finalización parcial, incoherente por sí misma -- se bloquea como
+    INDETERMINADA en lectura."""
+    path = tmp_path / "ledger.sqlite3"
+    key = _key()
+    hl.init_ledger(path, mode=hl.LEDGER_MODE_SYNTHETIC, holdout_key=key)
+    hl.reserve_holdout(path, key, mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="attempt-1")
+    hl.confirm_holdout_open(
+        path, key, mode=hl.LEDGER_MODE_SYNTHETIC, attempt_id="attempt-1", authorized_by="tester"
+    )
+    _tamper_registry_row(path, key, finalized_at=1.0, finalized_result_reference=None)
+
+    state = hl.read_holdout_state(path, key, expected_mode=hl.LEDGER_MODE_SYNTHETIC)
+    assert state.state == hl.STATE_INDETERMINATE
+
+
 def test_confirm_and_finalize_never_create_ledger_implicitly_when_missing(tmp_path):
     """Ni `confirm_holdout_open` ni `finalize_holdout` deben crear un archivo
     de ledger vacío cuando el esperado no existe (`sqlite3.connect` lo haría

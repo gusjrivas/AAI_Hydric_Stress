@@ -1931,3 +1931,99 @@ holdout real 2024-2025, no se ejecutó ninguna etapa científica real, no se
 abrió ningún holdout real, no se usó MLflow compartido, y `controlled_daily_v3`,
 los baselines históricos, `backend/`, `frontend/` y `human_feedback/` quedan
 sin alteración. No se hizo merge ni se habilitó auto-merge.
+
+## Segunda revisión dirigida sobre el PR #194: cinco reproducciones adicionales corregidas (2026-09-15)
+
+Encargo explícito de seguimiento sobre el mismo PR #194 (commit auditado
+`b3bf0600cc6c739d01e91688f1192fc51bb60d1f`, el que cerraba la primera
+revisión dirigida): el usuario reprodujo cinco defectos adicionales que
+sobrevivieron a esa corrección y pidió cerrarlos con evidencia verificable,
+sin repetir un resumen de la entrega anterior. `depth_role` no se reabre.
+
+1. **Admisibilidad B→C todavía incompleta.** `diagnostics={"replicas_valid": 1}`
+   sin los demás contadores, `valid=5, requested=1, discarded=-4` (la
+   contabilidad `valid+discarded==requested` coincidía por casualidad con un
+   descarte negativo), un bootstrap reducido/no normativo declarado
+   científico, y evidencia de B sin `training_dataset_fingerprint.json`
+   pasaban todos la admisibilidad. Corregido en `admissibility.py`: los tres
+   contadores de `diagnostics` deben estar presentes como enteros no
+   booleanos no negativos (`requested>0`, `valid>0`,
+   `valid+discarded==requested`; ningún contador ausente se trata como `0`);
+   `diagnostics.normative is True` se exige explícitamente para el camino
+   científico (leído tal cual lo persistió B, nunca recalculado aquí); y se
+   carga/valida estructuralmente `training_dataset_fingerprint.json` de B
+   (sin exigirle igualdad con el fingerprint EXTENDIDO de C, que describe un
+   período distinto). Los fixtures de
+   `tests/test_controlled_daily_v4_stage_c_admissibility.py` ahora escriben
+   por defecto un `training_dataset_fingerprint.json` válido y
+   `diagnostics.normative=True` (antes ninguno de los dos existía, lo que
+   hacía fallar incluso el camino feliz una vez agregada la validación).
+2. **Dominio de ΔMCC incorrecto, bug propio de la primera corrección.**
+   `interval_lower`/`interval_upper` de `bootstrap.json` reportan una
+   DIFERENCIA de dos MCC (dominio matemático `[-2, 2]`), pero la primera
+   corrección los validó contra el dominio de un MCC aislado (`[-1, 1]`),
+   rechazando incorrectamente intervalos válidos como `[1.1, 1.3]`.
+   Corregido con `_DELTA_MCC_LOWER_DOMAIN`/`_DELTA_MCC_UPPER_DOMAIN`
+   (`[-2, 2]`) aplicado exclusivamente a esos dos campos, sin tocar el
+   umbral de aprobación de B (`interval_lower >= -0.05`) ni el dominio de
+   `mcc_candidate.value` (que sigue en `[-1, 1]`, correcto para un MCC
+   aislado).
+3. **Recuperación verificable todavía incompleta.** Un
+   `integrity_manifest.json` con `schema_version` desconocido, o con
+   `files` conteniendo únicamente un archivo ajeno (`only.txt`), pasaba la
+   verificación de `verify_stage_c_recovery`. Corregido exigiendo
+   `schema_version == STAGE_C_ARTIFACT_SCHEMA_VERSION` (bumpeado a
+   `controlled_daily_v4_stage_c.v3`), que `files` cubra el conjunto
+   COMPLETO de artefactos obligatorios (`REQUIRED_STAGE_C_ARTIFACT_NAMES`),
+   que cada ruta declarada esté confinada a `output_dir`
+   (`_is_path_confined`: rechaza rutas absolutas, `..`, o
+   resoluciones/enlaces simbólicos que escapen del directorio, sin siquiera
+   leer el archivo), y coherencia estructural mínima (cada artefacto `.json`
+   declarado parsea, y `schema_version.json` coincide con el del
+   manifiesto). Además, `cli.py::_run_stage_c` ahora lee el estado del
+   ledger (y resuelve la rama de recuperación) ANTES de aplicar
+   `check_output_directory_not_occupied` -- antes, ese chequeo corría
+   primero y rechazaba erróneamente una recuperación que reutilizara el
+   mismo `--output-dir` de la propia corrida ya finalizada (el caso más
+   natural de "recuperar mis resultados"). El rechazo de una salida ocupada
+   para una ejecución genuinamente NUEVA se conserva exactamente igual
+   (sigue corriendo antes de la admisibilidad y de la reserva).
+4. **Coherencia del registro del ledger todavía incompleta.** Un registro
+   con `state='AUSENTE'` pero `confirmed_at`/`finalized_at`/
+   `finalized_result_reference` ya poblados pasaba como AUSENTE real y
+   permitía reservar de nuevo. Corregido con `_row_coherence_issue`
+   (verifica que las columnas de una fila correspondan a alguna transición
+   válida `AUSENTE`→`INDETERMINADA`→`CONFIRMADA`, incluida una finalización
+   parcial), aplicado en las cuatro operaciones: `read_holdout_state`
+   degrada a `INDETERMINADA` (nunca AUSENTE); `reserve_holdout`/
+   `confirm_holdout_open`/`finalize_holdout` rechazan explícitamente con la
+   nueva excepción `HoldoutRegistryCoherenceError`, sin reparar ni resetear
+   ninguna columna.
+5. **Identidad de los datos de C todavía incompleta.** No existía una
+   huella separada del conjunto EFECTIVAMENTE evaluado del holdout (solo la
+   del entrenamiento extendido). Corregido con `FINGERPRINT_SCOPE_STAGE_C_EVALUATION`
+   (nuevo `scope`) y `StageCResult.evaluation_dataset_fingerprint`,
+   calculado dentro de `run_stage_c` (por lo tanto, solo después de la
+   apertura autorizada -- precondición ya documentada del módulo),
+   persistido como `evaluation_dataset_fingerprint.json` e incluido en
+   `integrity_manifest.json`/`REQUIRED_STAGE_C_ARTIFACT_NAMES`. Los
+   fingerprints históricos de A/B no se tocan.
+
+**Comandos realmente ejecutados** (mismo contenedor
+`aai-hydric-v4-experiment:dev` reutilizado sin reconstruir):
+
+- `pytest -q tests/test_controlled_daily_v4_stage_c_admissibility.py tests/test_controlled_daily_v4_holdout_ledger.py tests/test_controlled_daily_v4_stage_c_runner.py tests/test_controlled_daily_v4_stage_c_recovery.py` → **64 passed** en 31.12s.
+- `pytest -q tests/test_controlled_daily_v4_holdout_ledger.py tests/test_controlled_daily_v4_stage_c_recovery.py tests/test_controlled_daily_v4_stage_c_admissibility.py` (tras agregar las nuevas regresiones) → **57 passed** en 23.08s.
+- `pytest -q tests/test_controlled_daily_v4_stage_c_integration.py -k "recovery_succeeds_reusing"` → **1 passed** en 53.79s (verifica la recuperación sobre el propio directorio ocupado).
+- `pytest -q tests/test_controlled_daily_v4_stage_c_integration.py` (archivo completo, 12 tests) → **12 passed** en 615.61s (0:10:15).
+- `pytest -q tests/test_controlled_daily_v4_*.py` (suite completa) → **449 passed, 3 skipped, 0 failed** en 1027.57s (0:17:07).
+- `ruff check src tests` → 3 líneas >100 columnas detectadas en una primera pasada (`artifacts.py`, `holdout_ledger.py` x2); corregidas; limpio después.
+- `black --check src tests` → limpio (sin reformateos necesarios en esta ronda).
+- `git diff --check` (con `git add -N` para los archivos nuevos) → solo avisos de conversión LF→CRLF de `core.autocrlf=true`, sin advertencias reales de espacios en blanco.
+
+Solo datos sintéticos: no se leyó ningún CSV real de Pergamino/Balcarce ni el
+holdout real 2024-2025, no se ejecutó ninguna etapa científica real, no se
+abrió ningún holdout real, no se usó MLflow compartido, y
+`controlled_daily_v3`, los baselines históricos, `backend/`, `frontend/` y
+`human_feedback/` quedan sin alteración. No se hizo merge ni se habilitó
+auto-merge.

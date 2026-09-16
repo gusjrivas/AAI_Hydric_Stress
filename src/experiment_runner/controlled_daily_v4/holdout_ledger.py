@@ -130,6 +130,17 @@ class HoldoutAlreadyFinalizedError(HoldoutLedgerError):
     incluso si la invoca el mismo `attempt_id`."""
 
 
+class HoldoutRegistryCoherenceError(HoldoutLedgerError):
+    """El registro persistido para `holdout_key` es internamente
+    incoherente: sus columnas no corresponden a ninguna secuencia válida de
+    transición (revisión dirigida, hallazgo 4, segunda ronda) -- por
+    ejemplo, un `state` de `AUSENTE` con `confirmed_at`/`finalized_at`/
+    `finalized_result_reference` ya poblados. Nunca se repara ni se
+    resetea automáticamente ninguno de esos campos: se bloquea la operación
+    solicitada (lectura, reserva, confirmación o finalización) con un error
+    explícito."""
+
+
 def compute_holdout_identity_key(
     *, protocol_id: str, site: str, depth_column: str, period_start: str, period_end: str
 ) -> str:
@@ -295,6 +306,106 @@ def _validate_ledger_meta(conn: sqlite3.Connection, path: Path, expected_mode: s
         )
 
 
+def _row_coherence_issue(
+    *,
+    state: str,
+    reserved_by_attempt_id: str | None,
+    reserved_at: float | None,
+    confirmed_at: float | None,
+    authorized_by: str | None,
+    finalized_at: float | None,
+    finalized_result_reference: str | None,
+) -> str | None:
+    """Verifica que las columnas de una fila de `holdout_registry` sean
+    consistentes con ALGUNA transición válida del estado declarado (revisión
+    dirigida, hallazgo 4, segunda ronda). Devuelve una descripción del primer
+    problema encontrado, o `None` si la fila es coherente. Nunca repara nada:
+    quien llama decide cómo bloquear (tratar como `INDETERMINADA` en lectura,
+    o rechazar con un error explícito en reserva/confirmación/finalización).
+
+    Transiciones válidas (`reserve_holdout` -> `confirm_holdout_open` ->
+    `finalize_holdout`, cada una escribiendo exactamente sus propias
+    columnas, nunca las de un paso posterior):
+    - `AUSENTE`: ninguna columna de reserva/confirmación/finalización puede
+      estar poblada -- solo existe antes de que se intente abrir el holdout.
+    - `INDETERMINADA`: exige `reserved_by_attempt_id`/`reserved_at`
+      poblados (la reserva ya ocurrió), y prohíbe cualquier columna de
+      confirmación o finalización (esas solo se escriben al pasar a
+      `CONFIRMADA`, que es un estado distinto y no reversible a
+      `INDETERMINADA` en este módulo).
+    - `CONFIRMADA`: exige reserva Y confirmación completas (las cuatro
+      columnas correspondientes pobladas); `finalized_at` y
+      `finalized_result_reference` deben estar ambos poblados o ambos
+      ausentes (nunca uno sin el otro)."""
+    if state == STATE_ABSENT:
+        populated = [
+            name
+            for name, value in (
+                ("reserved_by_attempt_id", reserved_by_attempt_id),
+                ("reserved_at", reserved_at),
+                ("confirmed_at", confirmed_at),
+                ("authorized_by", authorized_by),
+                ("finalized_at", finalized_at),
+                ("finalized_result_reference", finalized_result_reference),
+            )
+            if value is not None
+        ]
+        if populated:
+            return (
+                f"estado AUSENTE con columnas pobladas que solo corresponden a una apertura ya "
+                f"iniciada: {populated}"
+            )
+        return None
+
+    if state == STATE_INDETERMINATE:
+        if reserved_by_attempt_id is None or reserved_at is None:
+            return (
+                "estado INDETERMINADA sin evidencia de la reserva que debería haberlo producido "
+                "(reserved_by_attempt_id/reserved_at ausentes)"
+            )
+        populated = [
+            name
+            for name, value in (
+                ("confirmed_at", confirmed_at),
+                ("authorized_by", authorized_by),
+                ("finalized_at", finalized_at),
+                ("finalized_result_reference", finalized_result_reference),
+            )
+            if value is not None
+        ]
+        if populated:
+            return (
+                f"estado INDETERMINADA con columnas que solo corresponden a una apertura ya "
+                f"confirmada o finalizada: {populated}"
+            )
+        return None
+
+    if state == STATE_CONFIRMED:
+        missing = [
+            name
+            for name, value in (
+                ("reserved_by_attempt_id", reserved_by_attempt_id),
+                ("reserved_at", reserved_at),
+                ("confirmed_at", confirmed_at),
+                ("authorized_by", authorized_by),
+            )
+            if value is None
+        ]
+        if missing:
+            return (
+                f"estado CONFIRMADA sin las columnas requeridas de una confirmación real: "
+                f"{missing}"
+            )
+        if (finalized_at is None) != (finalized_result_reference is None):
+            return (
+                "estado CONFIRMADA con finalización parcial (finalized_at y "
+                "finalized_result_reference deben estar ambos presentes o ambos ausentes)"
+            )
+        return None
+
+    return f"estado no reconocido: {state!r}"
+
+
 def read_holdout_state(
     path: str | Path, holdout_key: str, *, expected_mode: str
 ) -> HoldoutLedgerState:
@@ -323,7 +434,7 @@ def read_holdout_state(
             _validate_ledger_meta(conn, path, expected_mode)
             row = conn.execute(
                 "SELECT state, authorized_by, confirmed_at, finalized_at, "
-                "finalized_result_reference, detail, reserved_by_attempt_id FROM "
+                "finalized_result_reference, detail, reserved_by_attempt_id, reserved_at FROM "
                 "holdout_registry WHERE holdout_key = ?",
                 (holdout_key,),
             ).fetchone()
@@ -349,11 +460,42 @@ def read_holdout_state(
                 "con esa identidad ya presente (estado inicial AUSENTE)."
             ),
         )
-    state, authorized_by, confirmed_at, finalized_at, finalized_ref, detail, owner_attempt_id = row
+    (
+        state,
+        authorized_by,
+        confirmed_at,
+        finalized_at,
+        finalized_ref,
+        detail,
+        owner_attempt_id,
+        reserved_at,
+    ) = row
     if state not in STATES:
         return HoldoutLedgerState(
             state=STATE_INDETERMINATE,
             detail=f"'{path}': estado persistido no reconocido ('{state}')",
+        )
+    coherence_issue = _row_coherence_issue(
+        state=state,
+        reserved_by_attempt_id=owner_attempt_id,
+        reserved_at=reserved_at,
+        confirmed_at=confirmed_at,
+        authorized_by=authorized_by,
+        finalized_at=finalized_at,
+        finalized_result_reference=finalized_ref,
+    )
+    if coherence_issue is not None:
+        # Revisión dirigida (hallazgo 4, segunda ronda): un registro
+        # contradictorio (por ejemplo, AUSENTE con confirmed_at/finalized_at
+        # ya poblados) NUNCA se trata como su `state` literal -- se bloquea
+        # como INDETERMINADA, exactamente igual que un esquema no
+        # reconocido, sin reparar ni resetear ninguna columna.
+        return HoldoutLedgerState(
+            state=STATE_INDETERMINATE,
+            detail=(
+                f"'{path}': registro incoherente para holdout_key='{holdout_key}': "
+                f"{coherence_issue}"
+            ),
         )
     return HoldoutLedgerState(
         state=state,
@@ -389,7 +531,10 @@ def reserve_holdout(path: str | Path, holdout_key: str, *, mode: str, attempt_id
         try:
             _validate_ledger_meta(conn, path, mode)
             row = conn.execute(
-                "SELECT state FROM holdout_registry WHERE holdout_key = ?", (holdout_key,)
+                "SELECT state, authorized_by, confirmed_at, finalized_at, "
+                "finalized_result_reference, reserved_by_attempt_id, reserved_at FROM "
+                "holdout_registry WHERE holdout_key = ?",
+                (holdout_key,),
             ).fetchone()
             if row is None:
                 conn.execute("ROLLBACK")
@@ -397,7 +542,36 @@ def reserve_holdout(path: str | Path, holdout_key: str, *, mode: str, attempt_id
                     f"'{path}': no hay fila para la identidad de holdout '{holdout_key}' -- "
                     "el ledger no fue inicializado con esta identidad."
                 )
-            state = row[0]
+            (
+                state,
+                row_authorized_by,
+                row_confirmed_at,
+                row_finalized_at,
+                row_finalized_ref,
+                row_owner_attempt_id,
+                row_reserved_at,
+            ) = row
+            # Revisión dirigida (hallazgo 4, segunda ronda): un registro
+            # incoherente (por ejemplo, AUSENTE con columnas de una apertura
+            # ya iniciada) NUNCA habilita una reserva, aunque su `state`
+            # literal sea AUSENTE -- se rechaza con un error explícito,
+            # dentro de la misma transacción, sin modificar ni reparar el
+            # registro.
+            coherence_issue = _row_coherence_issue(
+                state=state,
+                reserved_by_attempt_id=row_owner_attempt_id,
+                reserved_at=row_reserved_at,
+                confirmed_at=row_confirmed_at,
+                authorized_by=row_authorized_by,
+                finalized_at=row_finalized_at,
+                finalized_result_reference=row_finalized_ref,
+            )
+            if coherence_issue is not None:
+                conn.execute("ROLLBACK")
+                raise HoldoutRegistryCoherenceError(
+                    f"'{path}': registro incoherente para holdout_key='{holdout_key}', no se "
+                    f"reserva ni se repara: {coherence_issue}"
+                )
             if state != STATE_ABSENT:
                 conn.execute("ROLLBACK")
                 raise HoldoutAlreadyProtectedError(
@@ -460,7 +634,9 @@ def confirm_holdout_open(
         try:
             _validate_ledger_meta(conn, path, mode)
             row = conn.execute(
-                "SELECT state, reserved_by_attempt_id FROM holdout_registry WHERE holdout_key = ?",
+                "SELECT state, reserved_by_attempt_id, reserved_at, confirmed_at, "
+                "authorized_by, finalized_at, finalized_result_reference FROM holdout_registry "
+                "WHERE holdout_key = ?",
                 (holdout_key,),
             ).fetchone()
             if row is None or row[0] != STATE_INDETERMINATE or row[1] != attempt_id:
@@ -470,6 +646,24 @@ def confirm_holdout_open(
                     f"'{attempt_id}' ya no es válida (estado actual={row[0] if row else None!r}, "
                     f"reservado por={row[1] if row else None!r}). El registro queda en "
                     "INDETERMINADA -- requiere revisión humana, sin reintento automático."
+                )
+            # Revisión dirigida (hallazgo 4, segunda ronda): valida coherencia
+            # de TODAS las columnas, no solo `state`/propietario, antes de
+            # confirmar -- un registro contradictorio nunca se confirma.
+            coherence_issue = _row_coherence_issue(
+                state=row[0],
+                reserved_by_attempt_id=row[1],
+                reserved_at=row[2],
+                confirmed_at=row[3],
+                authorized_by=row[4],
+                finalized_at=row[5],
+                finalized_result_reference=row[6],
+            )
+            if coherence_issue is not None:
+                conn.execute("ROLLBACK")
+                raise HoldoutRegistryCoherenceError(
+                    f"'{path}': registro incoherente para holdout_key='{holdout_key}', no se "
+                    f"confirma ni se repara: {coherence_issue}"
                 )
             conn.execute(
                 "UPDATE holdout_registry SET state = ?, confirmed_at = ?, authorized_by = ?, "
@@ -527,7 +721,8 @@ def finalize_holdout(
         try:
             _validate_ledger_meta(conn, path, mode)
             row = conn.execute(
-                "SELECT state, reserved_by_attempt_id, finalized_at FROM holdout_registry "
+                "SELECT state, reserved_by_attempt_id, finalized_at, reserved_at, confirmed_at, "
+                "authorized_by, finalized_result_reference FROM holdout_registry "
                 "WHERE holdout_key = ?",
                 (holdout_key,),
             ).fetchone()
@@ -536,6 +731,26 @@ def finalize_holdout(
                 raise HoldoutLedgerError(
                     f"'{path}': no se puede finalizar holdout_key='{holdout_key}' -- estado "
                     f"actual={row[0] if row else None!r} (se exige CONFIRMADA)"
+                )
+            # Revisión dirigida (hallazgo 4, segunda ronda): valida coherencia
+            # de TODAS las columnas antes de finalizar -- un registro
+            # CONFIRMADA sin las columnas de una confirmación real (por
+            # ejemplo, sin reserva ni confirmación completas) nunca se
+            # finaliza, aunque su `state` literal sea CONFIRMADA.
+            coherence_issue = _row_coherence_issue(
+                state=row[0],
+                reserved_by_attempt_id=row[1],
+                reserved_at=row[3],
+                confirmed_at=row[4],
+                authorized_by=row[5],
+                finalized_at=row[2],
+                finalized_result_reference=row[6],
+            )
+            if coherence_issue is not None:
+                conn.execute("ROLLBACK")
+                raise HoldoutRegistryCoherenceError(
+                    f"'{path}': registro incoherente para holdout_key='{holdout_key}', no se "
+                    f"finaliza ni se repara: {coherence_issue}"
                 )
             owner_attempt_id, finalized_at = row[1], row[2]
             if owner_attempt_id != attempt_id:
@@ -586,6 +801,7 @@ __all__ = [
     "HoldoutLedgerNotInitializedError",
     "HoldoutLedgerSchemaError",
     "HoldoutLedgerState",
+    "HoldoutRegistryCoherenceError",
     "HoldoutReservationLostError",
     "compute_holdout_identity_key",
     "confirm_holdout_open",
