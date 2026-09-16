@@ -2027,3 +2027,92 @@ abrió ningún holdout real, no se usó MLflow compartido, y
 `controlled_daily_v3`, los baselines históricos, `backend/`, `frontend/` y
 `human_feedback/` quedan sin alteración. No se hizo merge ni se habilitó
 auto-merge.
+
+## Tercera revisión dirigida sobre el PR #194: tres pendientes reproducidos y corregidos (2026-09-16)
+
+Seguimiento sobre el mismo PR #194 (commit auditado
+`5062e5ee7961b4361f503392741f9e429f314816`, el que cerraba la segunda
+revisión dirigida): el usuario reprodujo tres pendientes concretos que
+sobrevivían a esa corrección y pidió cerrarlos con evidencia verificable, sin
+repetir un resumen de la entrega anterior. `depth_role` no se reabre.
+Esquema de artefactos de C bumpeado a `controlled_daily_v4_stage_c.v4`.
+
+1. **Configuración normativa de B insuficientemente verificada.**
+   `check_stage_c_admissibility` aceptaba un antecedente científico cuyo
+   bootstrap declaraba `replicas_requested=1, replicas_valid=1,
+   replicas_discarded=0, seed=0, block_length=1, normative=True` -- la
+   bandera `diagnostics.normative` nunca se contrastaba contra los
+   parámetros efectivamente persistidos. Corregido recalculando
+   `bootstrap.compute_is_normative_configuration(replicas_requested, seed,
+   block_length)` sobre los valores REALMENTE consumidos (`BootstrapDiagnostics`
+   ya los serializa) y comparando el resultado contra `diagnostics.normative`;
+   se exige que `seed`/`block_length` sean enteros no booleanos presentes
+   (nunca asumidos como default), y se cruza `resolved_config.json.seed`/
+   `bootstrap_replicas` contra esos mismos valores efectivos (indicio de
+   artefactos mezclados si difieren). 8 regresiones nuevas en
+   `tests/test_controlled_daily_v4_stage_c_admissibility.py`: reproducción
+   exacta del hallazgo, parámetros ausentes, `seed` booleano, configuración
+   reducida declarada honestamente como `normative=False` (también
+   rechazada), contradicción `resolved_config`↔`diagnostics` (dos casos), y
+   el antecedente completo/normativo admitido.
+2. **Vínculo histórico A→B nunca revalidado.** `check_stage_c_admissibility`
+   nunca releía la evidencia REAL de A (`producer_dir/code_version.json`,
+   `environment.json`, `dataset_fingerprint.json`): un
+   `training_dataset_fingerprint.json` de B con `sha256` distinto del de A
+   pasaba, y el antecedente seguía siendo admitido incluso tras eliminar los
+   tres artefactos de evidencia de A. Corregido reutilizando
+   `check_stage_b_admissibility` (el mismo validador ya usado en la
+   transición real A→B) apuntado a `producer_dir` y a la evidencia
+   PERSISTIDA de B como "consumidor histórico" (`b_code_identity`,
+   `b_environment.get("validation_issues")`, `b_training_fingerprint` --
+   nunca la identidad/entorno ACTUALES de la ejecución consumidora de C, que
+   ya se verifican por separado en la compatibilidad B→C existente). Los
+   rechazos se agregan a `reasons` prefijados con "Revalidación histórica
+   A→B", sin duplicar una implementación más débil del validador existente.
+   6 regresiones nuevas: fingerprint de B distinto del de A, ausencia de
+   cada uno de los tres artefactos de evidencia de A por separado, identidad
+   de código histórica sucia (`dirty=True`), y un spy que confirma cero
+   reservas/cero acceso al holdout combinando ambos motivos de rechazo de
+   esta ronda en la misma corrida.
+3. **Identidad de las entradas de C no persistida.** `C` ya persistía
+   `evaluation_dataset_fingerprint.json`, pero no los hashes/provenance de
+   los CSV de entrada efectivamente consumidos. Corregido agregando
+   `provenance_report`/`input_hashes` a `write_stage_c_artifacts` (mismos
+   nombres ya establecidos por `write_stage_a_artifacts`:
+   `provenance.json`/`input_hashes.json`), poblados en
+   `cli.py::_run_stage_c` con el `ProvenanceReport` ya calculado en el Paso 4
+   (DESPUÉS de `confirm_holdout_open`) -- nunca recalculado, nunca copiado de
+   A. Ambos artefactos se agregaron a `REQUIRED_STAGE_C_ARTIFACT_NAMES`, por
+   lo que `verify_stage_c_recovery` los exige. 1 assertion ampliada en
+   `test_end_to_end_synthetic_a_to_b_to_c_full_flow` (los hashes persistidos
+   coinciden con los bytes reales de los CSV sintéticos usados, e incluidos
+   en `integrity_manifest.json`) y 2 regresiones nuevas en
+   `tests/test_controlled_daily_v4_stage_c_recovery.py` (ausencia de
+   `provenance.json`, alteración de `input_hashes.json`).
+
+**Comandos realmente ejecutados** (mismo contenedor
+`aai-hydric-v4-experiment:dev` reutilizado sin reconstruir):
+
+- `pytest -q tests/test_controlled_daily_v4_stage_c_admissibility.py` (antes de agregar las regresiones, contra el código sin corregir) → **12 failed, 20 passed** -- confirma que las reproducciones fallan contra el código auditado.
+- `pytest -q tests/test_controlled_daily_v4_stage_c_admissibility.py` (con el código corregido) → **32 passed** en 2.95s.
+- `pytest -q tests/test_controlled_daily_v4_stage_c_recovery.py tests/test_controlled_daily_v4_stage_c_admissibility.py tests/test_controlled_daily_v4_stage_c_runner.py` → **62 passed** en 18.54s.
+- `pytest -q tests/test_controlled_daily_v4_stage_c_integration.py` (12 tests, incluida la assertion ampliada de provenance/input_hashes) → **12 passed** en 326.98s (0:05:26).
+- `pytest -q tests/test_controlled_daily_v4_*.py` (suite completa) → **464 passed, 3 skipped, 0 failed** en 1519.15s (0:25:19) -- exactamente 449 (cierre de la ronda anterior) + 15 regresiones nuevas de esta ronda (13 en `test_controlled_daily_v4_stage_c_admissibility.py`, 2 en `test_controlled_daily_v4_stage_c_recovery.py`).
+- `ruff check` sobre los archivos tocados → 9 líneas >100 columnas detectadas en una primera pasada; `black` las reformateó (2 archivos); `ruff check`/`black --check` limpios después.
+- `git diff --check` (con `git add -N` para los archivos nuevos) → solo avisos de conversión LF→CRLF de `core.autocrlf=true`, sin advertencias reales de espacios en blanco.
+
+**Nota de proceso, para que quede trazado:** la reproducción de los tres
+defectos se verificó revirtiendo temporalmente la corrección de
+`admissibility.py` con `git stash` (identificado por mensaje único,
+restaurado con `git stash apply <sha>` y luego `git stash drop`, nunca con
+`git stash pop` a ciegas, dado que el stash es compartido entre sesiones) --
+las 12 regresiones nuevas de ese archivo fallaron contra el código sin
+corregir antes de aplicar la corrección, confirmando que reproducen el
+defecto real y no solo ejercitan una rama ya admitida.
+
+Solo datos sintéticos: no se leyó ningún CSV real de Pergamino/Balcarce ni el
+holdout real 2024-2025, no se ejecutó ninguna etapa científica real, no se
+abrió ningún holdout real, no se usó MLflow compartido, y
+`controlled_daily_v3`, los baselines históricos, `backend/`, `frontend/` y
+`human_feedback/` quedan sin alteración. No se hizo merge ni se habilitó
+auto-merge.

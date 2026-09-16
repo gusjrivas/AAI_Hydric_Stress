@@ -80,7 +80,7 @@ deliberadamente distinto de `ARTIFACT_SCHEMA_VERSION` (Etapa A) y de
 consume, no produce): B no reescribe ni sobreescribe ningún artefacto de A,
 persiste su propio directorio de salida con su propia versión de esquema."""
 
-STAGE_C_ARTIFACT_SCHEMA_VERSION = "controlled_daily_v4_stage_c.v3"
+STAGE_C_ARTIFACT_SCHEMA_VERSION = "controlled_daily_v4_stage_c.v4"
 """Esquema propio de los artefactos de la Etapa C (`write_stage_c_artifacts`),
 distinto de los anteriores por la misma razón que B: C nunca reescribe
 artefactos de A ni de B, persiste su propio directorio de salida exclusivo.
@@ -107,7 +107,17 @@ ninguna ruta de artefacto escape del directorio de resultados (rutas
 absolutas, `..`, o enlaces simbólicos hacia fuera). Un manifiesto `v2` (o
 anterior) persistido antes de este cambio no es recuperable por la
 `verify_stage_c_recovery` actual -- no se reescribe evidencia histórica para
-mantenerlo compatible."""
+mantenerlo compatible.
+
+v4 (revisión dirigida, hallazgo 3, tercera ronda): agrega `provenance.json`
+e `input_hashes.json` (identidad REAL de las entradas efectivamente
+consumidas por esta corrida de C -- mismos nombres ya establecidos por
+`write_stage_a_artifacts` -- calculados exclusivamente DESPUÉS de la
+apertura autorizada del holdout, nunca inventados ni copiados de A). Antes
+de v4, C persistía `evaluation_dataset_fingerprint.json` pero no la
+identidad/provenance de sus propios CSV de entrada, dejando esa evidencia
+incompleta. Un manifiesto `v3` (o anterior) no es recuperable por la
+`verify_stage_c_recovery` actual."""
 
 REQUIRED_STAGE_C_ARTIFACT_NAMES = frozenset(
     {
@@ -118,6 +128,8 @@ REQUIRED_STAGE_C_ARTIFACT_NAMES = frozenset(
         "code_version.json",
         "environment.json",
         "warnings.json",
+        "provenance.json",
+        "input_hashes.json",
         "training_dataset_fingerprint.json",
         "evaluation_dataset_fingerprint.json",
         "temporal_boundaries.json",
@@ -890,6 +902,8 @@ def write_stage_c_artifacts(
     consumer_code_identity: dict[str, Any],
     consumer_environment_info: dict[str, Any],
     consumer_environment_issues: list[str],
+    provenance_report: Any,
+    input_hashes: dict[str, str],
     result: Any,
 ) -> dict[str, Path]:
     """Serializa todos los artefactos de una corrida de la Etapa C. Nunca
@@ -952,6 +966,21 @@ def write_stage_c_artifacts(
 
     written["warnings"] = output_dir / "warnings.json"
     _write_json(written["warnings"], getattr(result, "warnings_log", None) or [])
+
+    # Identidad REAL de las entradas efectivamente consumidas por ESTA
+    # corrida de C (revisión dirigida, hallazgo 3, tercera ronda): el
+    # `provenance_report`/`input_hashes` recibidos deben ser los que quien
+    # invoca calculó DESPUÉS de la apertura autorizada del holdout -- esta
+    # función nunca los recalcula, nunca los inventa a partir del nombre de
+    # archivo, y nunca sustituye la identidad de C por la de A (mismos
+    # nombres ya establecidos por `write_stage_a_artifacts`, para que la
+    # comprobación de correspondencia con la fuente histórica -- ya
+    # implementada en la CLI -- pueda releerlos con el mismo formato).
+    written["provenance"] = output_dir / "provenance.json"
+    _write_json(written["provenance"], provenance_report)
+
+    written["input_hashes"] = output_dir / "input_hashes.json"
+    _write_json(written["input_hashes"], input_hashes)
 
     written["training_dataset_fingerprint"] = output_dir / "training_dataset_fingerprint.json"
     _write_json(written["training_dataset_fingerprint"], result.training_dataset_fingerprint)

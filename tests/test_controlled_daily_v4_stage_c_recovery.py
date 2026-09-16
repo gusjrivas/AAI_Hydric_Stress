@@ -93,6 +93,8 @@ def _write_real_stage_c_artifacts(output_dir, *, holdout_key=_HOLDOUT_KEY, attem
         consumer_code_identity={"available": False, "source": "unavailable", "commit": None},
         consumer_environment_info={},
         consumer_environment_issues=[],
+        provenance_report={"era5_sha256": "d" * 64, "nasa_power_sha256": "e" * 64},
+        input_hashes={"era5_sha256": "d" * 64, "nasa_power_sha256": "e" * 64},
         result=result,
     )
 
@@ -261,6 +263,37 @@ def test_recovery_rejects_structurally_incoherent_schema_version_artifact(tmp_pa
             output_dir, holdout_identity_key=_HOLDOUT_KEY, attempt_id=_ATTEMPT_ID
         )
     assert any("no coincide con el schema_version" in reason for reason in exc.value.reasons)
+
+
+def test_recovery_rejects_missing_provenance(tmp_path):
+    """Revisión dirigida (hallazgo 3, tercera ronda): `provenance.json` es un
+    artefacto OBLIGATORIO del esquema v4 -- su ausencia bloquea la
+    recuperación, igual que cualquier otro artefacto requerido."""
+    output_dir = tmp_path / "stage_c_out"
+    _write_real_stage_c_artifacts(output_dir)
+    (output_dir / "provenance.json").unlink()
+    with pytest.raises(artifacts.StageCRecoveryError) as exc:
+        artifacts.verify_stage_c_recovery(
+            output_dir, holdout_identity_key=_HOLDOUT_KEY, attempt_id=_ATTEMPT_ID
+        )
+    assert any("provenance.json" in reason for reason in exc.value.reasons)
+
+
+def test_recovery_rejects_altered_input_hashes(tmp_path):
+    """`input_hashes.json` alterado tras la escritura (contenido que ya no
+    coincide con el sha256 persistido en el manifiesto) bloquea la
+    recuperación -- nunca se declara éxito sobre evidencia de identidad de
+    entrada modificada."""
+    output_dir = tmp_path / "stage_c_out"
+    _write_real_stage_c_artifacts(output_dir)
+    (output_dir / "input_hashes.json").write_text(
+        json.dumps({"era5_sha256": "0" * 64, "nasa_power_sha256": "0" * 64}), encoding="utf-8"
+    )
+    with pytest.raises(artifacts.StageCRecoveryError) as exc:
+        artifacts.verify_stage_c_recovery(
+            output_dir, holdout_identity_key=_HOLDOUT_KEY, attempt_id=_ATTEMPT_ID
+        )
+    assert any("sha256" in reason for reason in exc.value.reasons)
 
 
 def test_recovery_rejects_missing_manifest(tmp_path):

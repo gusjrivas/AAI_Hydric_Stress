@@ -202,6 +202,25 @@ def test_end_to_end_synthetic_a_to_b_to_c_full_flow(tmp_path):
     outcome = json.loads((stage_c_out / "outcome.json").read_text(encoding="utf-8"))
     assert "verdict" not in outcome
 
+    # Identidad de las entradas REALMENTE consumidas por esta corrida de C
+    # (revisión dirigida, hallazgo 3, tercera ronda): `provenance.json` e
+    # `input_hashes.json` deben persistirse, coincidir entre sí, y coincidir
+    # con los bytes REALES de los CSV sintéticos provistos -- nunca
+    # inventados ni copiados del nombre de archivo.
+    import hashlib
+
+    expected_era5_sha256 = hashlib.sha256(era5.read_bytes()).hexdigest()
+    expected_nasa_sha256 = hashlib.sha256(nasa.read_bytes()).hexdigest()
+    provenance = json.loads((stage_c_out / "provenance.json").read_text(encoding="utf-8"))
+    input_hashes = json.loads((stage_c_out / "input_hashes.json").read_text(encoding="utf-8"))
+    assert provenance["era5_sha256"] == expected_era5_sha256
+    assert provenance["nasa_power_sha256"] == expected_nasa_sha256
+    assert input_hashes["era5_sha256"] == expected_era5_sha256
+    assert input_hashes["nasa_power_sha256"] == expected_nasa_sha256
+    manifest = json.loads((stage_c_out / "integrity_manifest.json").read_text(encoding="utf-8"))
+    assert "provenance.json" in manifest["files"]
+    assert "input_hashes.json" in manifest["files"]
+
     state = holdout_ledger.read_holdout_state(
         ledger_path, holdout_key, expected_mode=holdout_ledger.LEDGER_MODE_SYNTHETIC
     )

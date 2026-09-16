@@ -46,6 +46,7 @@ from pathlib import Path
 from typing import Any
 
 from experiment_runner.controlled_daily_v4.artifacts import STAGE_B_ARTIFACT_SCHEMA_VERSION
+from experiment_runner.controlled_daily_v4.bootstrap import compute_is_normative_configuration
 from experiment_runner.controlled_daily_v4.code_identity import is_valid_full_sha
 from experiment_runner.controlled_daily_v4.config import (
     DEPTH_ROLE_PRIMARY,
@@ -706,23 +707,88 @@ def check_stage_c_admissibility(
         )
 
     # Una ejecución científica exige la configuración NORMATIVA de bootstrap
-    # de B (revisión dirigida, hallazgo 1, segunda ronda): `diagnostics.normative`
-    # nunca se recalcula aquí (ver `bootstrap.compute_is_normative_configuration`),
-    # se lee tal cual fue persistido por B a partir de los valores REALMENTE
-    # consumidos por esa réplica -- una configuración reducida o no
-    # normativa (menos réplicas, semilla o bloques distintos de los del
-    # protocolo) nunca habilita una Etapa C científica, aunque el resto del
-    # antecedente sea coherente. Si `diagnostics` ya se rechazó arriba
-    # (ausente/no estructurado/contadores inválidos), no se repite el motivo.
+    # de B. La bandera `diagnostics.normative` declarada NUNCA es evidencia
+    # suficiente por sí sola (revisión dirigida, hallazgo 1, tercera ronda):
+    # se RECALCULA `bootstrap.compute_is_normative_configuration` sobre los
+    # parámetros efectivos REALMENTE persistidos por esa réplica
+    # (`replicas_requested`, `seed`, `block_length`) y se contrasta el
+    # resultado contra la bandera declarada -- una configuración reducida,
+    # ausente o contradictoria (por ejemplo, `normative=True` con
+    # `replicas_requested=1`, `seed=0`, `block_length=1`) nunca habilita una
+    # Etapa C científica, aunque la bandera booleana sola diga lo contrario.
+    # Si `diagnostics` ya se rechazó arriba (ausente/no estructurado/
+    # contadores inválidos), no se repite el motivo ni se intenta recalcular
+    # sobre valores ya sabidos inválidos.
     if isinstance(diagnostics, dict):
-        if diagnostics.get("normative") is not True:
-            reasons.append(
-                f"'{stage_b_dir / 'bootstrap.json'}'.diagnostics.normative no es True "
-                f"(normative={diagnostics.get('normative')!r}): una ejecución científica de la "
-                "Etapa B exige la configuración normativa de bootstrap del protocolo (5000 "
-                "réplicas, semilla 20250109, bloques de 30 días) -- un bootstrap reducido o no "
-                "normativo nunca habilita una Etapa C científica"
+        declared_normative = diagnostics.get("normative")
+        diag_seed = diagnostics.get("seed")
+        diag_block_length = diagnostics.get("block_length")
+
+        def _valid_int(value: Any) -> bool:
+            return not isinstance(value, bool) and isinstance(value, int)
+
+        invalid_bootstrap_params = [
+            param_name
+            for param_name, param_value in (
+                ("seed", diag_seed),
+                ("block_length", diag_block_length),
             )
+            if not _valid_int(param_value)
+        ]
+        if invalid_bootstrap_params:
+            reasons.append(
+                f"'{stage_b_dir / 'bootstrap.json'}'.diagnostics: {invalid_bootstrap_params} "
+                "ausente(s) o no son enteros válidos (recibido seed="
+                f"{diag_seed!r}, block_length={diag_block_length!r}): no se puede verificar la "
+                "configuración normativa real del bootstrap"
+            )
+        elif not _nonnegative_int(replicas_requested):
+            # `replicas_requested` ya se rechazó arriba (contadores
+            # inválidos): no se repite el motivo ni se recalcula sobre un
+            # valor ya sabido inválido.
+            pass
+        else:
+            recomputed_normative = compute_is_normative_configuration(
+                replicas_requested, diag_seed, diag_block_length
+            )
+            if declared_normative is not True or not recomputed_normative:
+                reasons.append(
+                    f"'{stage_b_dir / 'bootstrap.json'}'.diagnostics no corresponde a la "
+                    "configuración normativa real del bootstrap (recalculada a partir de "
+                    f"replicas_requested={replicas_requested!r}, seed={diag_seed!r}, "
+                    f"block_length={diag_block_length!r}: normativo={recomputed_normative!r}; "
+                    f"declarado normative={declared_normative!r}): una ejecución científica de "
+                    "la Etapa B exige la configuración normativa del protocolo (5000 réplicas, "
+                    "semilla 20250109, bloques de 30 días) -- un bootstrap reducido, ausente o "
+                    "contradictorio nunca habilita una Etapa C científica, aunque la bandera "
+                    "declarada diga lo contrario"
+                )
+            else:
+                # Coherencia con la configuración EFECTIVA registrada por B
+                # en `resolved_config.json` (revisión dirigida, hallazgo 1,
+                # tercera ronda): la semilla y el número de réplicas
+                # efectivamente resueltos por la CLI de B deben coincidir con
+                # los valores realmente consumidos por el bootstrap -- una
+                # discrepancia es indicio de artefactos mezclados de corridas
+                # distintas, aunque ambos luzcan normativos por separado.
+                resolved_seed = resolved_config.get("seed")
+                resolved_bootstrap_replicas = resolved_config.get("bootstrap_replicas")
+                if resolved_seed is not None and resolved_seed != diag_seed:
+                    reasons.append(
+                        f"'{stage_b_dir / 'resolved_config.json'}'.seed={resolved_seed!r} no "
+                        f"coincide con el seed efectivamente consumido por el bootstrap "
+                        f"({diag_seed!r}): indicio de artefactos mezclados de corridas distintas"
+                    )
+                if (
+                    resolved_bootstrap_replicas is not None
+                    and resolved_bootstrap_replicas != replicas_requested
+                ):
+                    reasons.append(
+                        f"'{stage_b_dir / 'resolved_config.json'}'.bootstrap_replicas="
+                        f"{resolved_bootstrap_replicas!r} no coincide con replicas_requested "
+                        f"efectivamente consumido por el bootstrap ({replicas_requested!r}): "
+                        "indicio de artefactos mezclados de corridas distintas"
+                    )
 
     # Evidencia de identidad del entrenamiento AUTORIZADO de B, requerida
     # explícitamente para el camino científico (revisión dirigida, hallazgo
@@ -848,6 +914,35 @@ def check_stage_c_admissibility(
                 f"El entorno persistido de B no valida contra la referencia normativa "
                 f"versionada: {report.issues}"
             )
+
+    # Revalidación del vínculo HISTÓRICO A→B (revisión dirigida, hallazgo 2,
+    # tercera ronda): reutiliza `check_stage_b_admissibility` -- el mismo
+    # validador ya usado en la transición real A→B -- apuntado a la evidencia
+    # PERSISTIDA de A (`producer_dir`) y de B (`stage_b_dir`), en vez de
+    # confiar en que ya fue validada en su momento. Para esta comprobación
+    # histórica, el productor es A y el CONSUMIDOR es la propia ejecución de
+    # B ya persistida: se usa la identidad de código, el entorno y la huella
+    # de entrenamiento REALES de B (`b_code_identity`, `b_environment`,
+    # `b_training_fingerprint`, ya cargados arriba), nunca la identidad o el
+    # entorno ACTUALES de la ejecución consumidora de C -- sustituir uno por
+    # el otro dejaría pasar exactamente lo que esta revalidación existe para
+    # atrapar (un `training_dataset_fingerprint.json` de B con `sha256`
+    # distinto del de A, o un `producer_dir` al que le faltan
+    # `code_version.json`/`environment.json`/`dataset_fingerprint.json`,
+    # quedaban admitidos sin este llamado). Esta es una comprobación DISTINTA
+    # de la compatibilidad B→C ya verificada arriba (identidad/entorno de la
+    # ejecución consumidora de C contra B): ninguna sustituye a la otra.
+    try:
+        check_stage_b_admissibility(
+            contract,
+            producer_dir=producer_dir,
+            consumer_input_mode=INPUT_MODE_SCIENTIFIC,
+            consumer_code_identity=b_code_identity,
+            consumer_environment_issues=b_environment.get("validation_issues"),
+            consumer_training_dataset_fingerprint=b_training_fingerprint,
+        )
+    except StageBAdmissibilityError as exc:
+        reasons.extend(f"Revalidación histórica A→B: {reason}" for reason in exc.reasons)
 
     if reasons:
         raise StageCAdmissibilityError(reasons)

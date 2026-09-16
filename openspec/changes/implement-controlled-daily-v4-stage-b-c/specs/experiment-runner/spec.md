@@ -99,6 +99,28 @@
 > y separada del conjunto EFECTIVAMENTE evaluado del holdout (calculada
 > exclusivamente después de la apertura autorizada), incluida en el
 > manifiesto de integridad.
+>
+> **Tercera revisión dirigida sobre este mismo cierre (2026-09-16), tres
+> pendientes reproducidos y corregidos (esquema de artefactos de C bumpeado
+> a `controlled_daily_v4_stage_c.v4`):** (1) `check_stage_c_admissibility`
+> ya no confía en la bandera `diagnostics.normative` declarada: recalcula
+> `bootstrap.compute_is_normative_configuration` sobre los parámetros
+> efectivos REALMENTE persistidos (`replicas_requested`, `seed`,
+> `block_length`) y la contrasta contra la bandera; exige además que
+> `seed`/`block_length` sean enteros presentes (nunca asumidos) y cruza
+> `resolved_config.json` contra esos mismos valores. (2) se agrega la
+> revalidación del vínculo HISTÓRICO A→B, reutilizando
+> `check_stage_b_admissibility` (el mismo validador de la transición real
+> A→B) contra la evidencia PERSISTIDA de A (`producer_dir`) y de B como
+> "consumidor histórico" -- antes, esa evidencia nunca se releía, por lo que
+> un `training_dataset_fingerprint.json` de B con `sha256` distinto del de A,
+> o la ausencia completa de `code_version.json`/`environment.json`/
+> `dataset_fingerprint.json` en `producer_dir`, no se detectaban. (3) C ahora
+> persiste `provenance.json`/`input_hashes.json` (mismos nombres ya
+> establecidos por A) con la identidad REAL de los CSV de entrada
+> efectivamente consumidos por esa corrida, calculada después de la apertura
+> autorizada y nunca copiada de A; ambos artefactos se agregan al conjunto
+> obligatorio que `verify_stage_c_recovery` exige.
 
 ## ADDED Requirements
 

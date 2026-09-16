@@ -1018,6 +1018,16 @@ def _run_stage_c(
             "constraints_identity": constraints_identity,
         },
         consumer_environment_issues=environment_report.issues,
+        # Identidad REAL de las entradas efectivamente consumidas por esta
+        # corrida de C (revisión dirigida, hallazgo 3, tercera ronda):
+        # `report` (calculado en el Paso 4, DESPUÉS de confirmar la apertura
+        # del holdout) ya trae los hashes reales de los CSV realmente
+        # provistos -- nunca se recalculan aquí ni se copian los de A.
+        provenance_report=report,
+        input_hashes={
+            "era5_sha256": report.era5_sha256,
+            "nasa_power_sha256": report.nasa_power_sha256,
+        },
         result=result,
     )
 
