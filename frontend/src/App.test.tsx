@@ -196,7 +196,7 @@ describe("App — navegación por hash (Entrega 2)", () => {
     });
   });
 
-  it("disables the recalibrate button in Alertas y revisión while a forecast run started from Resumen is pending", async () => {
+  it("disables the recalibrate button in Modelo y trazabilidad while a forecast run started from Resumen is pending", async () => {
     vi.spyOn(forecastApi, "listFeedback").mockResolvedValue({
       rows: [
         {
@@ -220,7 +220,7 @@ describe("App — navegación por hash (Entrega 2)", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /correr pronóstico/i }));
 
-    await userEvent.click(screen.getByRole("link", { name: "Alertas y revisión" }));
+    await userEvent.click(screen.getByRole("link", { name: "Modelo y trazabilidad" }));
     const recalibrateButton = await screen.findByRole("button", { name: /recalibrar modelo/i });
     expect(recalibrateButton).toBeDisabled();
 

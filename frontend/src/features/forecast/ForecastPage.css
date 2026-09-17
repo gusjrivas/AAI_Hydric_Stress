@@ -247,6 +247,87 @@
   color: var(--fp-alert);
 }
 
+.fp-row .fp-error {
+  grid-column: 1 / -1;
+}
+
+.fp-correction-form {
+  grid-column: 1 / -1;
+  border: 1px solid var(--fp-border);
+  border-radius: 6px;
+  background: var(--fp-bg);
+  padding: 0.9rem 1rem;
+  margin-top: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.fp-correction-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 1.25rem;
+}
+
+.fp-correction-fieldset legend {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--fp-muted);
+  padding: 0;
+  margin-bottom: 0.25rem;
+}
+
+.fp-correction-hint {
+  color: var(--fp-muted);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.fp-correction-observacion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.fp-correction-observacion textarea {
+  min-height: 3.5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--fp-border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.fp-correction-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.fp-correction-actions button {
+  padding: 0.45rem 0.9rem;
+  border-radius: 5px;
+  border: 1px solid var(--fp-border);
+  background: var(--fp-surface);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.fp-correction-actions button:first-child {
+  background: var(--fp-action);
+  border-color: var(--fp-action);
+  color: #fff;
+}
+
+.fp-correction-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 640px) {
   .fp-row {
     grid-template-columns: 6px 1fr;

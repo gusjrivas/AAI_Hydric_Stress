@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import "./ForecastPage.css";
-import { getLineage } from "../lineage/api";
+import { CorrectionForm } from "./CorrectionForm";
 import type { ForecastWorkspace } from "./useForecastWorkspace";
 
 type AlertaFilter = "todas" | "alerta" | "sin_alerta";
@@ -18,15 +18,14 @@ interface ForecastPageProps {
   workspace: ForecastWorkspace;
 }
 
-export function ForecastPage({ sensorId, workspace }: ForecastPageProps) {
+export function ForecastPage({ workspace }: ForecastPageProps) {
   const [alertaFilter, setAlertaFilter] = useState<AlertaFilter>(DEFAULT_FILTERS.alerta);
   const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>(DEFAULT_FILTERS.estado);
   const [fechaDesde, setFechaDesde] = useState(DEFAULT_FILTERS.desde);
   const [fechaHasta, setFechaHasta] = useState(DEFAULT_FILTERS.hasta);
+  const [openCorrectionFecha, setOpenCorrectionFecha] = useState<string | null>(null);
+  const correctionButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  const pendingCorrections = workspace.rows.filter(
-    (row) => row.estado_validacion === "rechazada" && row.etiqueta_corregida !== null,
-  ).length;
   const feedbackPendienteRevision = workspace.rows.filter(
     (row) => row.estado_validacion === "pendiente",
   ).length;
@@ -55,29 +54,18 @@ export function ForecastPage({ sensorId, workspace }: ForecastPageProps) {
     setFechaHasta(DEFAULT_FILTERS.hasta);
   }
 
-  async function handleRecalibrate() {
-    const result = await workspace.recalibrate();
-    if (!result) return;
-    let lineageInfo = "";
-    if (result.recalibration_id) {
-      try {
-        const lineage = await getLineage(sensorId);
-        const event = lineage.chain.find(
-          (entry) => entry.recalibration_id === result.recalibration_id,
-        );
-        if (event) {
-          lineageInfo = ` Predictor origen ${event.source_model_id.slice(0, 8)}… → sucesor ${event.successor_model_id.slice(0, 8)}… (ver Modelo y trazabilidad).`;
-        }
-      } catch {
-        // Modelo y trazabilidad tiene su propio estado de error; esta
-        // consulta adicional es solo para enriquecer este mensaje.
-      }
+  function closeCorrection(fecha: string) {
+    setOpenCorrectionFecha(null);
+    correctionButtonRefs.current[fecha]?.focus();
+  }
+
+  async function handleSaveCorrection(fecha: string, etiquetaCorregida: 0 | 1, observacion: string) {
+    const ok = await workspace.reject(fecha, etiquetaCorregida, observacion);
+    if (ok) {
+      setOpenCorrectionFecha(null);
     }
-    workspace.notify(
-      `Modelo recalibrado (versión ${result.version}` +
-        `${result.recalibration_id ? `, recalibration_id ${result.recalibration_id}` : ""}` +
-        `) usando ${result.n_correcciones} corrección(es) — el próximo pronóstico usará este modelo.${lineageInfo}`,
-    );
+    // en caso de error (p. ej. 409) el formulario permanece abierto y
+    // workspace.rowErrors[fecha] muestra el motivo junto a la fila.
   }
 
   return (
@@ -86,22 +74,13 @@ export function ForecastPage({ sensorId, workspace }: ForecastPageProps) {
         <div>
           <p className="fp-subtitle">Validación humana de alertas sobre el dataset consolidado</p>
         </div>
-        <div className="fp-header-actions">
-          {pendingCorrections > 0 && (
-            <button className="fp-recalibrate-btn" onClick={handleRecalibrate} disabled={busy}>
-              {workspace.activeMutation === "recalibrate"
-                ? "Recalibrando..."
-                : `Recalibrar modelo (${pendingCorrections})`}
-            </button>
-          )}
-        </div>
       </header>
 
       <div className="fp-banner" role="note">
         <strong>Qué prueba esta pantalla:</strong> consultar y filtrar el historial no genera un
-        pronóstico nuevo — esa acción vive en Resumen. Confirmar o rechazar guarda tu validación
-        en el registro de retroalimentación. Recalibrar reentrena el modelo con las correcciones
-        acumuladas y registra una nueva versión — el próximo pronóstico usará esa versión.
+        pronóstico nuevo — esa acción vive en Resumen. Confirmar o corregir guarda tu validación
+        en el registro de retroalimentación; guardar una validación no reentrena el modelo. La
+        recalibración manual vive en Modelo y trazabilidad.
       </div>
 
       <p className="fp-disclaimer">
@@ -133,8 +112,7 @@ export function ForecastPage({ sensorId, workspace }: ForecastPageProps) {
       {(workspace.historyStatus === "ready" || workspace.rows.length > 0) && (
         <>
           <p className="fp-feedback-stats">
-            Feedback sin revisar: <strong>{feedbackPendienteRevision}</strong> · Correcciones sin
-            incorporar a la recalibración: <strong>{pendingCorrections}</strong>
+            Feedback sin revisar: <strong>{feedbackPendienteRevision}</strong>
           </p>
 
           <fieldset className="fp-filters">
@@ -192,6 +170,7 @@ export function ForecastPage({ sensorId, workspace }: ForecastPageProps) {
                 const rowBusy =
                   workspace.activeMutation === `confirm:${row.fecha}` ||
                   workspace.activeMutation === `reject:${row.fecha}`;
+                const correctionOpen = openCorrectionFecha === row.fecha;
                 return (
                   <li key={row.fecha} className={`fp-row fp-row--${severity}`}>
                     <span className="fp-signal" aria-hidden="true" />
@@ -227,21 +206,27 @@ export function ForecastPage({ sensorId, workspace }: ForecastPageProps) {
                           : "Confirmar"}
                       </button>
                       <button
-                        onClick={() =>
-                          workspace.reject(
-                            row.fecha,
-                            row.alerta_generada ? 0 : 1,
-                            "Rechazada desde la interfaz",
-                          )
-                        }
+                        ref={(el) => {
+                          correctionButtonRefs.current[row.fecha] = el;
+                        }}
+                        onClick={() => setOpenCorrectionFecha(row.fecha)}
                         disabled={busy}
                       >
-                        {rowBusy && workspace.activeMutation === `reject:${row.fecha}`
-                          ? "Guardando..."
-                          : "Rechazar"}
+                        Corregir resultado
                       </button>
                     </div>
-                    {workspace.rowErrors[row.fecha] && (
+                    {correctionOpen && (
+                      <CorrectionForm
+                        row={row}
+                        saving={workspace.activeMutation === `reject:${row.fecha}`}
+                        serverError={workspace.rowErrors[row.fecha] ?? null}
+                        onCancel={() => closeCorrection(row.fecha)}
+                        onSave={(etiquetaCorregida, observacion) =>
+                          void handleSaveCorrection(row.fecha, etiquetaCorregida, observacion)
+                        }
+                      />
+                    )}
+                    {!correctionOpen && workspace.rowErrors[row.fecha] && (
                       <p role="alert" className="fp-error">
                         {workspace.rowErrors[row.fecha]}
                       </p>

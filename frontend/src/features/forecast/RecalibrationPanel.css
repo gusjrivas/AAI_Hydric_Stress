@@ -1,0 +1,28 @@
+.rp-panel {
+  border: 1px solid #d9e0d5;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+}
+
+.rp-count {
+  margin: 0 0 0.5rem;
+}
+
+.rp-unknown {
+  color: #5c6b5f;
+}
+
+.rp-correction-list {
+  margin: 0.5rem 0 1rem;
+  padding-left: 1.25rem;
+  font-size: 0.9rem;
+}
+
+.rp-disclaimer {
+  font-size: 0.82rem;
+  font-style: italic;
+  color: #5c6b5f;
+  margin: 0.75rem 0 0;
+}
