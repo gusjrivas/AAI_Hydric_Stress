@@ -48,6 +48,11 @@ describe("ResumenView", () => {
     expect(screen.getByText("2024-11-03")).toBeInTheDocument();
     // no debe mostrar la fila más antigua como "el" último pronóstico
     expect(screen.queryByText("2024-10-20")).not.toBeInTheDocument();
+    expect(screen.getByText("Hay una alerta para revisar")).toBeVisible();
+    expect(screen.getByText("0.72")).not.toBeVisible();
+    await userEvent.click(screen.getByText("Ver el valor calculado"));
+    expect(screen.getByText("0.72")).toBeVisible();
+    expect(screen.getByText(/no es un porcentaje de certeza/i)).toBeVisible();
   });
 
   it("shows an explicit empty state instead of implying 'sin alerta' when there is no forecast yet", async () => {
@@ -162,7 +167,7 @@ describe("ResumenView", () => {
     render(<Harness sensorId="sensor-a" />);
     await waitFor(() => screen.getByText(/todavía no hay pronósticos registrados/i));
 
-    await userEvent.click(screen.getByRole("button", { name: /correr pronóstico/i }));
+    await userEvent.click(screen.getByRole("button", { name: /generar pronóstico/i }));
 
     await waitFor(() => screen.getByText("2024-11-05"));
   });
@@ -180,7 +185,7 @@ describe("ResumenView", () => {
     render(<Harness sensorId="sensor-a" />);
     await waitFor(() => screen.getByText(/todavía no hay pronósticos registrados/i));
 
-    await userEvent.click(screen.getByRole("button", { name: /correr pronóstico/i }));
+    await userEvent.click(screen.getByRole("button", { name: /generar pronóstico/i }));
 
     await waitFor(() => {
       expect(screen.getByText("2024-10-31")).toBeInTheDocument();

@@ -56,6 +56,7 @@ export function ResumenView({
     <div className="rv-view">
       <div className="rv-main">
         <section className="rv-card" aria-label="Último pronóstico registrado">
+          <h3 className="rv-side-heading">Último pronóstico guardado</h3>
           {workspace.historyStatus === "loading" && (
             <p role="status">Consultando historial…</p>
           )}
@@ -71,9 +72,18 @@ export function ResumenView({
             <p role="status">Todavía no hay pronósticos registrados para «{sensorId}».</p>
           )}
           {lastRow && (
+            <>
+            <p className={`rv-verdict ${lastRow.alerta_generada ? "rv-verdict--alert" : ""}`}>
+              {lastRow.alerta_generada ? "Hay una alerta para revisar" : "No se emitió una alerta"}
+            </p>
+            <p className="rv-guidance">
+              {lastRow.alerta_generada
+                ? "El resultado señala una posible falta de agua. Contrastalo con las mediciones y la situación del cultivo."
+                : "Esto no garantiza que el cultivo tenga suficiente agua. Seguí revisando las mediciones y su estado."}
+            </p>
             <dl className="rv-summary">
               <div>
-                <dt>Fecha de referencia</dt>
+                <dt>Datos usados hasta</dt>
                 <dd>{lastRow.fecha}</dd>
               </div>
               <div>
@@ -81,18 +91,20 @@ export function ResumenView({
                 <dd>{lastRow.alerta_generada ? "Alerta" : "Sin alerta"}</dd>
               </div>
               <div>
-                <dt>Probabilidad</dt>
-                <dd>{lastRow.y_proba != null ? lastRow.y_proba.toFixed(2) : "No disponible"}</dd>
-              </div>
-              <div>
-                <dt>Fecha objetivo</dt>
+                <dt>Pronóstico para el día</dt>
                 <dd>{lastRow.fecha_objetivo ?? "No disponible"}</dd>
               </div>
             </dl>
+            <details className="app-technical">
+              <summary>Ver el valor calculado</summary>
+              <p>Valor de la señal (de 0 a 1): <span>{lastRow.y_proba != null ? lastRow.y_proba.toFixed(2) : "No disponible"}</span>.</p>
+              <p>No es un porcentaje de certeza ni confirma por sí solo una falta de agua.</p>
+            </details>
+            </>
           )}
           <p className="rv-pendientes">
             Pendientes de revisión: <strong>{pendientesRevision}</strong>{" "}
-            <a href="#prediccion">Ir a Alertas y revisión</a>
+            <a href="#prediccion">Ir a Historial y observaciones</a>
           </p>
           <button
             type="button"
@@ -100,8 +112,9 @@ export function ResumenView({
             onClick={() => void workspace.runForecast()}
             disabled={busy}
           >
-            {workspace.activeMutation === "forecast" ? "Corriendo..." : "Correr pronóstico"}
+            {workspace.activeMutation === "forecast" ? "Preparando pronóstico..." : "Generar pronóstico"}
           </button>
+          <p className="rv-guidance">Se usa la última fecha con datos. Si esa fecha no cambia, no se agregan días nuevos al historial.</p>
           {workspace.runError && (
             <p role="alert" className="rv-error">
               {workspace.runError}
@@ -118,9 +131,9 @@ export function ResumenView({
         </section>
 
         <section className="rv-side" aria-label="Contexto de calidad">
-          <h3 className="rv-side-heading">Calidad de datos</h3>
+          <h3 className="rv-side-heading">Datos disponibles</h3>
           {qualityStatus === "loading" && <p role="status">Consultando calidad…</p>}
-          {qualityStatus === "empty" && <p role="status">Sin dataset ingerido todavía.</p>}
+          {qualityStatus === "empty" && <p role="status">Todavía no hay mediciones cargadas para este punto.</p>}
           {qualityStatus === "error" && (
             <p role="alert" className="rv-error">
               {qualityError}
@@ -132,9 +145,9 @@ export function ResumenView({
             </p>
           )}
           <p className="rv-side-links">
-            <a href="#calidad">Ver calidad completa</a>
+            <a href="#calidad">Revisar las mediciones disponibles</a>
             <br />
-            <a href="#linaje">Ver predictor activo</a>
+            <a href="#linaje">Usar mis observaciones en próximos pronósticos</a>
           </p>
         </section>
       </div>

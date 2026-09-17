@@ -29,7 +29,7 @@ export function CorrectionForm({ row, saving, serverError, onCancel, onSave }: C
         Resultado original: <strong>{row.alerta_generada ? "Alerta" : "Sin alerta"}</strong>
       </p>
       <p>
-        Fecha objetivo: <strong>{row.fecha_objetivo ?? "No disponible"}</strong>
+        Pronóstico para el día: <strong>{row.fecha_objetivo ?? "No disponible"}</strong>
       </p>
       <fieldset className="fp-correction-fieldset">
         <legend>Resultado observado</legend>
@@ -56,7 +56,7 @@ export function CorrectionForm({ row, saving, serverError, onCancel, onSave }: C
       </fieldset>
       {sameAsOriginal && (
         <p role="status" className="fp-correction-hint">
-          Esa es la misma etiqueta del resultado original — usá «Confirmar» en vez de corregir.
+          Tu observación coincide con el resultado. Usá «Confirmar» para guardarla.
         </p>
       )}
       <label className="fp-correction-observacion">

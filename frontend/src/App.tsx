@@ -14,7 +14,7 @@ import { DESTINATION_LABELS, useHashRoute } from "./features/navigation/useHashR
 
 const SENSOR_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
 const INITIAL_SENSOR_ID = "sensor-a";
-const APP_TITLE = "Demo AAI Hydric Stress";
+const APP_TITLE = "Seguimiento del agua en el cultivo";
 
 function App() {
   const [draftSensorId, setDraftSensorId] = useState(INITIAL_SENSOR_ID);
@@ -58,6 +58,9 @@ function App() {
         Saltar al contenido
       </a>
       <header className="app-sensor-header">
+        <h1>Seguimiento del agua en el cultivo</h1>
+        <p className="app-intro">Consultá el pronóstico y registrá lo que observaste en el cultivo.</p>
+        <p className="app-intro">Herramienta en evaluación. Ayuda a revisar la situación; no indica cuánto ni cuándo regar.</p>
         <form
           className="app-sensor-form"
           onSubmit={(event) => {
@@ -65,7 +68,7 @@ function App() {
             applySensor();
           }}
         >
-          <label htmlFor="sensor-draft-input">Sensor</label>
+          <label htmlFor="sensor-draft-input">Punto de medición (sensor)</label>
           <input
             id="sensor-draft-input"
             value={draftSensorId}
@@ -102,7 +105,7 @@ function App() {
         {route === "prediccion" && (
           <section aria-labelledby="prediccion-heading">
             <h2 id="prediccion-heading" className="app-section-heading" tabIndex={-1}>
-              Alertas y revisión
+              Historial y observaciones
             </h2>
             <ForecastPage sensorId={activeSensorId} workspace={workspace} />
           </section>
@@ -111,7 +114,7 @@ function App() {
         {route === "calidad" && (
           <section aria-labelledby="calidad-heading">
             <h2 id="calidad-heading" className="app-section-heading" tabIndex={-1}>
-              Calidad de datos
+              Datos disponibles
             </h2>
             <QualityPanel sensorId={activeSensorId} />
           </section>
@@ -120,32 +123,34 @@ function App() {
         {route === "linaje" && (
           <section aria-labelledby="linaje-heading">
             <h2 id="linaje-heading" className="app-section-heading" tabIndex={-1}>
-              Modelo y trazabilidad
+              Ajustar próximos pronósticos
             </h2>
-            <section aria-label="Predictor activo">
-              <h3 className="app-subsection-heading">Predictor activo</h3>
-              <ActivePredictorSummary sensorId={activeSensorId} refreshToken={predictorRefreshToken} />
-            </section>
             <RecalibrationPanel
               sensorId={activeSensorId}
               workspace={workspace}
               refreshToken={predictorRefreshToken}
               onRecalibrated={handleRecalibrated}
             />
-            <section aria-label="Linaje de recalibraciones">
-              <h3 className="app-subsection-heading">Linaje de recalibraciones</h3>
+            <details className="app-technical">
+              <summary>Información técnica de los ajustes</summary>
+              <ActivePredictorSummary sensorId={activeSensorId} refreshToken={predictorRefreshToken} />
               <LineageChain sensorId={activeSensorId} refreshToken={lineageRefreshToken} />
-            </section>
+            </details>
           </section>
         )}
 
         {route === "evidencia" && (
           <section aria-labelledby="evidencia-heading">
             <h2 id="evidencia-heading" className="app-section-heading" tabIndex={-1}>
-              Evidencia y arquitectura
+              Acerca de esta herramienta
             </h2>
-            <ArchitectureFlow />
-            <EvidencePanel />
+            <p>Esta herramienta usa las mediciones disponibles para estimar si puede haber una alerta en una fecha posterior. Podés consultar los resultados guardados y registrar si coinciden con lo observado.</p>
+            <p>Fue desarrollada como parte de un trabajo de investigación. Sus resultados no garantizan el estado del cultivo ni reemplazan la revisión en el lugar.</p>
+            <details className="app-technical">
+              <summary>Ver el estudio y la documentación técnica</summary>
+              <ArchitectureFlow />
+              <EvidencePanel />
+            </details>
           </section>
         )}
       </main>

@@ -10,6 +10,17 @@
   margin: 0 auto var(--space-6);
 }
 
+.app-sensor-header h1 {
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  line-height: 1.2;
+  margin: 0 0 var(--space-2);
+}
+
+.app-intro { margin: 0 0 var(--space-3); max-width: 70ch; }
+.app-technical { margin: var(--space-4) 0; }
+.app-technical summary { cursor: pointer; padding: var(--space-3) 0; min-height: 44px; }
+.app-technical p { margin: var(--space-2) 0; max-width: 70ch; }
+
 .app-sensor-form {
   display: flex;
   align-items: center;

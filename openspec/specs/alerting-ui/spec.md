@@ -1,5 +1,17 @@
 # Spec: alerting-ui
 
+> **Actualización de presentación 2026-09-17:** por solicitud del usuario, las etiquetas
+> vigentes son Resumen, Historial y observaciones, Datos disponibles, Ajustar próximos
+> pronósticos y Acerca de esta herramienta. Los nombres de las entregas anteriores
+> citados más abajo describen su momento. Se conservan hashes, contratos y operaciones.
+> El resultado principal se explica en palabras; valor numérico, predictor, linaje y
+> estudio se consultan mediante desplegables. El ajuste se presenta como «Aplicar
+> observaciones» y explica que afecta la próxima ejecución, no los resultados previos.
+> Los filtros muestran coincidencias sobre el total registrado. Ver
+> [change simplify-producer-ui](../../changes/simplify-producer-ui/proposal.md).
+> Implementación comprobada mediante 68 tests frontend, lint y build; revisión visual
+> y validación de comprensión con usuarios pendientes.
+
 > **Actualización normativa 2026-09-05:** rige el protocolo [controlled_daily_v3](../../../docs/research/protocolo-experimental-v3.md) y ADR-0009. Los ejemplos cuantitativos anteriores son históricos; no deben confundirse con la nueva evaluación de objetivos observados ni con inferencia futura.
 
 Capacidad implementada (Épica 3, HU5+HU6 — primera exposición de retroalimentación humana y pipeline completo a través de una interfaz de usuario). Origen: `openspec/changes/add-alerting-ui/`. Este documento es la fuente de verdad vigente de la capacidad.

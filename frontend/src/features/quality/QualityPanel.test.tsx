@@ -46,7 +46,7 @@ describe("QualityPanel", () => {
 
     render(<QualityPanel sensorId="sensor-nuevo" />);
 
-    await waitFor(() => screen.getByText(/todavía no hay datos ingeridos/i));
+    await waitFor(() => screen.getByText(/todavía no hay mediciones cargadas/i));
   });
 
   it("shows an alert on error", async () => {

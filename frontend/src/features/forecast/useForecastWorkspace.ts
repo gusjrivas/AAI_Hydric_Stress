@@ -198,7 +198,7 @@ export function useForecastWorkspace(sensorId: string): ForecastWorkspace {
         const updated = await confirmAlert(sensorAtCall, fecha);
         if (sensorRef.current !== sensorAtCall) return false;
         setRows((prev) => prev.map((row) => (row.fecha === fecha ? updated : row)));
-        setActionMessage(`Validación guardada del ${fecha} — el modelo no se actualizó.`);
+        setActionMessage(`Validación guardada del ${fecha} — los próximos pronósticos todavía no usan esta observación.`);
         return true;
       } catch (err) {
         if (sensorRef.current !== sensorAtCall) return false;
@@ -225,7 +225,7 @@ export function useForecastWorkspace(sensorId: string): ForecastWorkspace {
         const updated = await rejectAlert(sensorAtCall, fecha, etiquetaCorregida, observacion);
         if (sensorRef.current !== sensorAtCall) return false;
         setRows((prev) => prev.map((row) => (row.fecha === fecha ? updated : row)));
-        setActionMessage(`Validación guardada del ${fecha} — el modelo no se actualizó.`);
+        setActionMessage(`Validación guardada del ${fecha} — los próximos pronósticos todavía no usan esta observación.`);
         return true;
       } catch (err) {
         if (sensorRef.current !== sensorAtCall) return false;

@@ -1,5 +1,20 @@
 # Seguimiento de tareas — plan de proyecto vs. estado real del repo
 
+## 2026-09-17 — UI en lenguaje cotidiano (HU6/HU5)
+
+Change `simplify-producer-ui`, capacidad `alerting-ui`, CRISP-DM despliegue e
+integración experimental. Implementados textos orientados a productores/agrónomos,
+detalle técnico secundario, guía de revisión y contador de resultados filtrados.
+Las fechas y operaciones conservan el contrato actual. La evidencia y el linaje
+permanecen accesibles. Sin cambios de arquitectura, hipótesis, configuración
+experimental o resultados HU7/HU8. Aporte al capítulo 3: adecuación de presentación.
+
+Validación: 68 tests frontend aprobados, `npm run lint` y `npm run build` exitosos.
+Pruebas con mocks, sin escrituras de validaciones/recalibraciones en datos del usuario.
+Inspección visual pendiente: el runtime de navegador no tiene browsers disponibles.
+Comprensión por productores/agrónomos pendiente de revisión humana; no se declara
+usabilidad validada solo por los tests. Datos locales y override Docker preservados.
+
 Auditoría honesta del desglose de tareas técnicas del plan de tesis (sección 9 del plan de proyecto) contra lo que efectivamente existe en este repositorio a la fecha. No es autoevaluación optimista: cada tarea se marca según evidencia verificable (archivo, test, PR), no según intención.
 
 Leyenda: ✅ Completado (cumple el criterio de aceptación de su HU) · 🟡 Parcial (hay artefacto real pero no cubre toda la tarea) · ⬜ No iniciado.

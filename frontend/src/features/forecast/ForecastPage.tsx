@@ -70,18 +70,17 @@ export function ForecastPage({ workspace }: ForecastPageProps) {
 
   return (
     <div className="fp-page">
-      <p className="fp-subtitle">Validación humana de alertas sobre el dataset consolidado</p>
+      <p className="fp-subtitle">Consultá los días guardados y registrá si el resultado coincide con lo observado.</p>
 
       <div className="fp-banner" role="note">
-        <strong>Qué prueba esta pantalla:</strong> consultar y filtrar el historial no genera un
-        pronóstico nuevo — esa acción vive en Resumen. Confirmar o corregir guarda tu validación
-        en el registro de retroalimentación; guardar una validación no reentrena el modelo. La
-        recalibración manual vive en Modelo y trazabilidad.
+        <strong>Cómo revisar:</strong> cuando haya terminado el día indicado, compará el resultado
+        con lo observado. Elegí «Confirmar» si coincide o «Corregir resultado» si fue distinto.
+        Guardar tu observación no cambia automáticamente los próximos pronósticos.
       </div>
 
       <p className="fp-disclaimer">
-        La probabilidad es una señal predictiva relativa del modelo y no un diagnóstico
-        fisiológico ni una probabilidad agronómicamente calibrada.
+        Una alerta señala una posible falta de agua; no la confirma. La ausencia de alerta
+        tampoco garantiza que el cultivo esté bien.
       </p>
 
       {workspace.actionMessage && (
@@ -108,7 +107,7 @@ export function ForecastPage({ workspace }: ForecastPageProps) {
       {(workspace.historyStatus === "ready" || workspace.rows.length > 0) && (
         <>
           <p className="fp-feedback-stats">
-            Feedback sin revisar: <strong>{feedbackPendienteRevision}</strong>
+            Resultados por revisar: <strong>{feedbackPendienteRevision}</strong>
           </p>
 
           <fieldset className="fp-filters">
@@ -125,7 +124,7 @@ export function ForecastPage({ workspace }: ForecastPageProps) {
               </select>
             </label>
             <label>
-              Estado de validación
+              Revisión del resultado
               <select
                 value={estadoFilter}
                 onChange={(event) => setEstadoFilter(event.target.value as EstadoFilter)}
@@ -137,7 +136,7 @@ export function ForecastPage({ workspace }: ForecastPageProps) {
               </select>
             </label>
             <label>
-              Fecha de referencia desde
+              Datos hasta: desde
               <input
                 type="date"
                 value={fechaDesde}
@@ -145,7 +144,7 @@ export function ForecastPage({ workspace }: ForecastPageProps) {
               />
             </label>
             <label>
-              Fecha de referencia hasta
+              Datos hasta: hasta
               <input
                 type="date"
                 value={fechaHasta}
@@ -156,6 +155,10 @@ export function ForecastPage({ workspace }: ForecastPageProps) {
               Limpiar filtros
             </button>
           </fieldset>
+          <p role="status" className="fp-feedback-stats">
+            Mostrando {filteredRows.length} de {workspace.rows.length} resultados guardados.
+          </p>
+          <p className="fp-disclaimer">Los filtros buscan entre los días guardados. Las fechas corresponden al último día de datos usado en cada pronóstico.</p>
 
           {filteredRows.length === 0 ? (
             <p role="status">Sin coincidencias con los filtros aplicados.</p>
@@ -172,12 +175,13 @@ export function ForecastPage({ workspace }: ForecastPageProps) {
                     <span className="fp-signal" aria-hidden="true" />
                     <div className="fp-row-main">
                       <div className="fp-row-date">{row.fecha}</div>
-                      {row.fecha_objetivo && <div>Objetivo: {row.fecha_objetivo}</div>}
+                      {row.fecha_objetivo && <div>Para el día: {row.fecha_objetivo}</div>}
                       <div className="fp-row-verdict">
                         {row.alerta_generada ? "Alerta" : "Sin alerta"}
                       </div>
                     </div>
-                    <div className="fp-gauge">
+                    <details className="fp-gauge">
+                      <summary>Valor calculado</summary>
                       {row.y_proba != null ? (
                         <>
                           <span className="fp-gauge-value">{row.y_proba.toFixed(2)}</span>
@@ -191,9 +195,10 @@ export function ForecastPage({ workspace }: ForecastPageProps) {
                       ) : (
                         <span className="fp-gauge-value">No disponible</span>
                       )}
-                    </div>
+                      <p className="fp-disclaimer">Señal de 0 a 1; no es un porcentaje de certeza.</p>
+                    </details>
                     <span className={`fp-badge fp-badge--${row.estado_validacion}`}>
-                      {row.estado_validacion}
+                      {({ pendiente: "Por revisar", confirmada: "Coincide con lo observado", rechazada: "Corregido por una persona" } as Record<string, string>)[row.estado_validacion] ?? "Estado no disponible"}
                     </span>
                     <div className="fp-actions">
                       <button onClick={() => workspace.confirm(row.fecha)} disabled={busy}>
