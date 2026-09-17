@@ -60,14 +60,25 @@
   margin: 0 auto;
 }
 
-.app-section {
-  scroll-margin-top: 1.5rem;
-}
-
 .app-section-heading {
   margin: 0 0 1rem;
   font-size: 1.25rem;
   color: #1b2a1e;
+}
+
+.app-section-heading:focus {
+  outline: 3px solid #1f5b6b;
+  outline-offset: 2px;
+}
+
+.app-subsection-heading {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1rem;
+  color: #1b2a1e;
+}
+
+.app-subsection-heading:first-of-type {
+  margin-top: 0;
 }
 
 @media (max-width: 640px) {

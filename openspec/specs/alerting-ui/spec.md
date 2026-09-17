@@ -175,9 +175,36 @@ La interfaz DEBE consultar el historial persistido al activar un sensor sin ejec
 - **THEN** se muestra «Todavía no hay pronósticos registrados» y la acción explícita de generar uno
 - **AND** cualquier otro error se muestra con reintento de lectura, sin presentarse como historial vacío ni contador cero.
 
-Implementado en `frontend/src/features/forecast/useForecastWorkspace.ts` (`GET /feedback/{sensor_id}` al activar el sensor, distinción de `HttpError` 404 frente a otros fallos) y `frontend/src/features/forecast/ForecastPage.tsx`. Testeado en `frontend/src/features/forecast/ForecastPage.test.tsx`. Origen: Entrega 1 (tareas 1.2, 1.5) de `openspec/changes/improve-alerting-ui-decision-workflow/`.
+#### Scenario: Filtrar el historial
 
-**Alcance de esta actualización:** el filtrado del historial por alerta, estado de validación o rango de fecha (escenario "Filtrar el historial" del delta de este change) todavía no está implementado — queda para la Entrega 2 del mismo change, que también agrega la navegación por destinos.
+- **GIVEN** un historial cargado
+- **WHEN** se filtra por alerta, estado de validación o rango inclusivo de fecha de referencia
+- **THEN** se muestran las coincidencias sin nuevas escrituras y se permite limpiar los filtros
+- **AND** un resultado sin coincidencias se distingue de un historial vacío; los contadores generales conservan el total sin filtrar.
+
+Implementado en `frontend/src/features/forecast/useForecastWorkspace.ts` (`GET /feedback/{sensor_id}` al activar el sensor, distinción de `HttpError` 404 frente a otros fallos) y `frontend/src/features/forecast/ForecastPage.tsx` (`fieldset` de filtros por alerta/estado/rango de fecha, aplicados sobre `workspace.rows` ya cargado, sin disparar nuevas consultas). Testeado en `frontend/src/features/forecast/ForecastPage.test.tsx`. Origen: Entrega 1 (tareas 1.2, 1.5) y Entrega 2 (tarea 2.3) de `openspec/changes/improve-alerting-ui-decision-workflow/`.
+
+### Requirement: Navegación centrada en la decisión y resumen fiel
+
+La interfaz DEBE ofrecer Resumen, Alertas y revisión, Calidad de datos, Modelo y trazabilidad, y Evidencia y arquitectura. El Resumen DEBE priorizar el último pronóstico registrado, sus fechas y el acceso a revisión humana.
+
+#### Scenario: Leer el resumen
+
+- **GIVEN** un historial disponible
+- **WHEN** se abre Resumen
+- **THEN** se presenta la fila con mayor fecha de referencia, su alerta, probabilidad disponible y fecha objetivo
+- **AND** se distingue esa fecha de la cobertura de datos y se conserva la aclaración de señal predictiva relativa, no diagnóstico ni probabilidad agronómicamente calibrada.
+
+#### Scenario: Navegar sin perder contexto
+
+- **GIVEN** un sensor activo y un resultado consultado o generado
+- **WHEN** se cambia de destino o se usa Atrás/Adelante
+- **THEN** se conserva el contexto compartido, se identifica el destino activo y se enfoca su encabezado, sin iniciar POST
+- **AND** los enlaces previos a calidad, predicción, linaje y evidencia siguen resolviendo al destino correspondiente.
+
+Implementado en `frontend/src/features/navigation/useHashRoute.ts` (ruteo por hash entre los cinco destinos, sin librería de terceros — el navegador resuelve Atrás/Adelante sobre `location.hash`), `frontend/src/features/navigation/DestinationNav.tsx` (destino activo con `aria-current="page"`), `frontend/src/App.tsx` (título de documento y foco del encabezado por destino, `useForecastWorkspace` instanciado una única vez y compartido entre Resumen y Alertas y revisión) y `frontend/src/features/summary/ResumenView.tsx`. Los anchors previos `#calidad`, `#prediccion`, `#linaje` y `#evidencia` siguen resolviendo a sus destinos; `#resumen` es la entrada por defecto. Testeado en `frontend/src/App.test.tsx` y `frontend/src/features/summary/ResumenView.test.tsx`. Origen: Entrega 2 (tareas 2.1, 2.2, 2.5) de `openspec/changes/improve-alerting-ui-decision-workflow/`.
+
+**Alcance de esta actualización:** los filtros de alerta/estado/rango sobre el historial se describen en el requirement "Consulta de historial independiente de la ejecución" (Entrega 2, tarea 2.3), no aquí. La corrección humana explícita con etiqueta y observación, y el traslado de la recalibración manual a Modelo y trazabilidad, quedan para la Entrega 3.
 
 ### Requirement: Operaciones explícitas y protección de mutaciones
 
