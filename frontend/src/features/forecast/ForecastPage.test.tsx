@@ -5,7 +5,6 @@ import { ForecastPage } from "./ForecastPage";
 import { useForecastWorkspace } from "./useForecastWorkspace";
 import * as api from "./api";
 import { HttpError } from "./api";
-import * as lineageApi from "../lineage/api";
 
 /** Espejo mínimo de cómo App.tsx compone ForecastPage con el hook
  * compartido (entrega 2): el workspace se instancia una sola vez y se
@@ -265,84 +264,136 @@ describe("ForecastPage (Alertas y revisión)", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows a recalibrate button only when there is a pending correction, and using it shows the registered version and its lineage", async () => {
-    vi.spyOn(api, "listFeedback").mockResolvedValue({
-      rows: [
-        {
-          fecha: "2024-10-31",
-          alerta_generada: 1,
-          estado_validacion: "rechazada",
-          etiqueta_corregida: 0,
-          observacion: "test",
-          y_proba: 0.72,
-          fecha_objetivo: null,
-        },
-      ],
-    });
-    vi.spyOn(api, "recalibrate").mockResolvedValue({
-      version: "1",
-      n_correcciones: 1,
-      fechas_corregidas: ["2024-10-31"],
-      recalibration_id: "abc123",
-    });
-    vi.spyOn(lineageApi, "getLineage").mockResolvedValue({
-      sensor_id: "sensor-a",
-      chain: [
-        {
-          recalibration_id: "abc123",
-          source_model_id: "modelo-origen-000000",
-          successor_model_id: "modelo-sucesor-000000",
-          feedback_references: [
-            {
-              sensor_id: "sensor-a",
-              fecha: "2024-10-31",
-              model_version: "modelo-origen-000000",
-              target_timestamp: "2024-11-03",
-            },
-          ],
-          recalibrated_at: "2026-09-06T10:00:00",
-          source_trained_through: "2024-10-30",
-          successor_trained_through: "2024-10-31",
-          lineage_version: 2,
-          dataset_sha256: "a".repeat(64),
-          mlflow_model_version: "1",
-        },
-      ],
+  describe("corrección inline (task 3.1)", () => {
+    async function renderOneRow() {
+      vi.spyOn(api, "listFeedback").mockResolvedValue({
+        rows: [
+          {
+            fecha: "2024-10-31",
+            alerta_generada: 1,
+            estado_validacion: "pendiente",
+            etiqueta_corregida: null,
+            observacion: null,
+            y_proba: 0.72,
+            fecha_objetivo: "2024-11-03",
+          },
+        ],
+      });
+      render(<Harness sensorId="sensor-a" />);
+      await waitFor(() => screen.getByText("2024-10-31"));
+    }
+
+    it("opens the form without writing, showing the original result and target date", async () => {
+      const rejectSpy = vi.spyOn(api, "rejectAlert");
+      await renderOneRow();
+
+      await userEvent.click(screen.getByRole("button", { name: /corregir resultado/i }));
+
+      expect(screen.getByRole("group", { name: /corregir resultado/i })).toBeInTheDocument();
+      expect(screen.getByText(/resultado original/i)).toHaveTextContent("Alerta");
+      expect(screen.getByText(/fecha objetivo/i)).toHaveTextContent("2024-11-03");
+      expect(rejectSpy).not.toHaveBeenCalled();
     });
 
-    render(<Harness sensorId="sensor-a" />);
-    await waitFor(() => screen.getByRole("button", { name: /recalibrar modelo/i }));
+    it("cancels without writing and returns focus to the opener", async () => {
+      const rejectSpy = vi.spyOn(api, "rejectAlert");
+      await renderOneRow();
 
-    await userEvent.click(screen.getByRole("button", { name: /recalibrar modelo/i }));
+      const openButton = screen.getByRole("button", { name: /corregir resultado/i });
+      await userEvent.click(openButton);
+      await userEvent.click(screen.getByRole("button", { name: /^cancelar$/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText(/versión 1/i)).toBeInTheDocument();
-    });
-    expect(screen.getByText(/recalibration_id abc123/i)).toBeInTheDocument();
-    expect(screen.getByText(/predictor origen/i)).toBeInTheDocument();
-  });
-
-  it("does not show the recalibrate button when there are no pending corrections", async () => {
-    vi.spyOn(api, "listFeedback").mockResolvedValue({
-      rows: [
-        {
-          fecha: "2024-10-31",
-          alerta_generada: 1,
-          estado_validacion: "pendiente",
-          etiqueta_corregida: null,
-          observacion: null,
-          y_proba: 0.72,
-          fecha_objetivo: null,
-        },
-      ],
+      expect(rejectSpy).not.toHaveBeenCalled();
+      expect(screen.queryByRole("group", { name: /corregir resultado/i })).not.toBeInTheDocument();
+      expect(openButton).toHaveFocus();
     });
 
-    render(<Harness sensorId="sensor-a" />);
-    await waitFor(() => screen.getByText("2024-10-31"));
+    it("orients to Confirmar instead of saving when the same label as the original is selected", async () => {
+      const rejectSpy = vi.spyOn(api, "rejectAlert");
+      await renderOneRow();
 
-    expect(
-      screen.queryByRole("button", { name: /recalibrar modelo/i }),
-    ).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: /corregir resultado/i }));
+      // fila original: alerta_generada = 1 ("Alerta")
+      await userEvent.click(screen.getByRole("radio", { name: /^alerta$/i }));
+
+      expect(screen.getByText(/usá «confirmar»/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /guardar corrección/i })).toBeDisabled();
+      expect(rejectSpy).not.toHaveBeenCalled();
+    });
+
+    it("sends the typed observation, or an empty string if omitted, with the opposite label", async () => {
+      const rejectSpy = vi.spyOn(api, "rejectAlert").mockResolvedValue({
+        fecha: "2024-10-31",
+        alerta_generada: 1,
+        estado_validacion: "rechazada",
+        etiqueta_corregida: 0,
+        observacion: "",
+        y_proba: 0.72,
+        fecha_objetivo: "2024-11-03",
+      });
+      await renderOneRow();
+
+      await userEvent.click(screen.getByRole("button", { name: /corregir resultado/i }));
+      await userEvent.click(screen.getByRole("radio", { name: /sin alerta/i }));
+      await userEvent.click(screen.getByRole("button", { name: /guardar corrección/i }));
+
+      await waitFor(() => expect(rejectSpy).toHaveBeenCalledWith("sensor-a", "2024-10-31", 0, ""));
+      await waitFor(() =>
+        expect(screen.queryByRole("group", { name: /corregir resultado/i })).not.toBeInTheDocument(),
+      );
+
+      // el resultado original (alerta_generada) sigue siendo "Alerta" tras la
+      // corrección — la fila devuelta por el mock no lo cambió — así que la
+      // etiqueta opuesta sigue siendo "Sin alerta".
+      rejectSpy.mockClear();
+      await userEvent.click(screen.getByRole("button", { name: /corregir resultado/i }));
+      await userEvent.click(screen.getByRole("radio", { name: /sin alerta/i }));
+      await userEvent.type(screen.getByLabelText(/observación/i), "Suelo visiblemente húmedo");
+      await userEvent.click(screen.getByRole("button", { name: /guardar corrección/i }));
+
+      await waitFor(() =>
+        expect(rejectSpy).toHaveBeenCalledWith("sensor-a", "2024-10-31", 0, "Suelo visiblemente húmedo"),
+      );
+    });
+
+    it("shows a 409 next to the row and keeps the form open with its content", async () => {
+      vi.spyOn(api, "rejectAlert").mockRejectedValue(
+        new HttpError(409, "El día objetivo aún no terminó; no puede validarse."),
+      );
+      await renderOneRow();
+
+      await userEvent.click(screen.getByRole("button", { name: /corregir resultado/i }));
+      await userEvent.click(screen.getByRole("radio", { name: /sin alerta/i }));
+      await userEvent.type(screen.getByLabelText(/observación/i), "Todavía no maduró");
+      await userEvent.click(screen.getByRole("button", { name: /guardar corrección/i }));
+
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toHaveTextContent(/aún no terminó/i);
+      });
+      expect(screen.getByRole("group", { name: /corregir resultado/i })).toBeInTheDocument();
+      expect(screen.getByLabelText(/observación/i)).toHaveValue("Todavía no maduró");
+    });
+
+    it("announces that a saved validation does not retrain the model", async () => {
+      vi.spyOn(api, "rejectAlert").mockResolvedValue({
+        fecha: "2024-10-31",
+        alerta_generada: 1,
+        estado_validacion: "rechazada",
+        etiqueta_corregida: 0,
+        observacion: "",
+        y_proba: 0.72,
+        fecha_objetivo: "2024-11-03",
+      });
+      await renderOneRow();
+
+      await userEvent.click(screen.getByRole("button", { name: /corregir resultado/i }));
+      await userEvent.click(screen.getByRole("radio", { name: /sin alerta/i }));
+      await userEvent.click(screen.getByRole("button", { name: /guardar corrección/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/el modelo no se actualizó/i)).toBeInTheDocument();
+      });
+    });
   });
 
   describe("filtros de historial (task 2.3)", () => {

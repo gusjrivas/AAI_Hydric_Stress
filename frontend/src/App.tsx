@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./App.css";
 import { ArchitectureFlow } from "./features/architecture-flow/ArchitectureFlow";
 import { QualityPanel } from "./features/quality/QualityPanel";
 import { ForecastPage } from "./features/forecast/ForecastPage";
 import { ActivePredictorSummary } from "./features/forecast/ActivePredictorSummary";
+import { RecalibrationPanel } from "./features/forecast/RecalibrationPanel";
 import { useForecastWorkspace } from "./features/forecast/useForecastWorkspace";
 import { LineageChain } from "./features/lineage/LineageChain";
 import { EvidencePanel } from "./features/evidence/EvidencePanel";
@@ -21,6 +22,13 @@ function App() {
   const [sensorError, setSensorError] = useState<string | null>(null);
   const workspace = useForecastWorkspace(activeSensorId);
   const forecastBusy = workspace.activeMutation !== null;
+  const [predictorRefreshToken, setPredictorRefreshToken] = useState(0);
+  const [lineageRefreshToken, setLineageRefreshToken] = useState(0);
+
+  const handleRecalibrated = useCallback(() => {
+    setPredictorRefreshToken((token) => token + 1);
+    setLineageRefreshToken((token) => token + 1);
+  }, []);
 
   const route = useHashRoute();
   const isFirstRouteRender = useRef(true);
@@ -113,11 +121,17 @@ function App() {
             </h2>
             <section aria-label="Predictor activo">
               <h3 className="app-subsection-heading">Predictor activo</h3>
-              <ActivePredictorSummary sensorId={activeSensorId} />
+              <ActivePredictorSummary sensorId={activeSensorId} refreshToken={predictorRefreshToken} />
             </section>
+            <RecalibrationPanel
+              sensorId={activeSensorId}
+              workspace={workspace}
+              refreshToken={predictorRefreshToken}
+              onRecalibrated={handleRecalibrated}
+            />
             <section aria-label="Linaje de recalibraciones">
               <h3 className="app-subsection-heading">Linaje de recalibraciones</h3>
-              <LineageChain sensorId={activeSensorId} />
+              <LineageChain sensorId={activeSensorId} refreshToken={lineageRefreshToken} />
             </section>
           </section>
         )}

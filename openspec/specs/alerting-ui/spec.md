@@ -204,7 +204,7 @@ La interfaz DEBE ofrecer Resumen, Alertas y revisión, Calidad de datos, Modelo 
 
 Implementado en `frontend/src/features/navigation/useHashRoute.ts` (ruteo por hash entre los cinco destinos, sin librería de terceros — el navegador resuelve Atrás/Adelante sobre `location.hash`), `frontend/src/features/navigation/DestinationNav.tsx` (destino activo con `aria-current="page"`), `frontend/src/App.tsx` (título de documento y foco del encabezado por destino, `useForecastWorkspace` instanciado una única vez y compartido entre Resumen y Alertas y revisión) y `frontend/src/features/summary/ResumenView.tsx`. Los anchors previos `#calidad`, `#prediccion`, `#linaje` y `#evidencia` siguen resolviendo a sus destinos; `#resumen` es la entrada por defecto. Testeado en `frontend/src/App.test.tsx` y `frontend/src/features/summary/ResumenView.test.tsx`. Origen: Entrega 2 (tareas 2.1, 2.2, 2.5) de `openspec/changes/improve-alerting-ui-decision-workflow/`.
 
-**Alcance de esta actualización:** los filtros de alerta/estado/rango sobre el historial se describen en el requirement "Consulta de historial independiente de la ejecución" (Entrega 2, tarea 2.3), no aquí. La corrección humana explícita con etiqueta y observación, y el traslado de la recalibración manual a Modelo y trazabilidad, quedan para la Entrega 3.
+**Alcance de esta actualización:** los filtros de alerta/estado/rango sobre el historial se describen en el requirement "Consulta de historial independiente de la ejecución" (Entrega 2, tarea 2.3), no aquí. La corrección humana explícita con etiqueta y observación (requirement "Corrección humana explícita y recuperable" más abajo) y el traslado de la recalibración manual a Modelo y trazabilidad (requirement "Estado honesto de correcciones y recalibración" más abajo) se agregaron en la Entrega 3.
 
 ### Requirement: Operaciones explícitas y protección de mutaciones
 
@@ -231,6 +231,53 @@ La interfaz DEBE serializar sus mutaciones por instancia y mostrar su progreso. 
 - **THEN** la interfaz explica la incertidumbre y ofrece consultar el estado antes de repetir la operación, sin reintento automático.
 
 Implementado en `frontend/src/features/forecast/useForecastWorkspace.ts` (bloqueo único `activeMutation` compartido entre pronosticar/confirmar/rechazar/recalibrar, reconciliación por `fecha` entre el resultado de un POST y su GET de refresco, y distinción entre `HttpError` — con respuesta — y un fallo de red sin respuesta). Testeado en `frontend/src/App.test.tsx` y `frontend/src/features/forecast/ForecastPage.test.tsx`. Origen: Entrega 1 (tareas 1.3, 1.4, 1.5) de `openspec/changes/improve-alerting-ui-decision-workflow/`.
+
+### Requirement: Corrección humana explícita y recuperable
+
+La interfaz DEBE permitir confirmar el resultado o corregirlo mediante una etiqueta observada explícita y una observación editable. DEBE mostrar errores junto a la fila y conservar la autoridad del backend sobre maduración y procedencia.
+
+#### Scenario: Guardar una corrección
+
+- **GIVEN** una fila y su resultado original
+- **WHEN** se abre «Corregir resultado»
+- **THEN** se muestran resultado original y fecha objetivo, y no se envía ninguna escritura hasta guardar una etiqueta opuesta seleccionada explícitamente
+- **AND** se envía la observación introducida, o cadena vacía si se omite, sin texto inventado; elegir la misma etiqueta orienta a confirmar.
+
+#### Scenario: Confirmación o corrección guardada
+
+- **GIVEN** una validación aceptada por el servidor
+- **WHEN** se recibe la fila actualizada
+- **THEN** la interfaz refleja ese registro y anuncia que la validación se guardó sin actualizar el modelo
+- **AND** conserva separado el estado de alerta del estado de revisión.
+
+#### Scenario: Cancelación o rechazo temporal
+
+- **GIVEN** un formulario de corrección abierto
+- **WHEN** se cancela
+- **THEN** no se escribe y el foco retorna al activador
+- **AND** si se guarda y el backend responde 409, se muestra su motivo junto a la fila y se conserva el contenido para revisión, sin eludir la regla temporal.
+
+Implementado en `frontend/src/features/forecast/CorrectionForm.tsx` (formulario inline por fila; etiqueta observada como radio sin preselección, deshabilita "Guardar corrección" si coincide con el resultado original y muestra una guía hacia "Confirmar"; "Cancelar" no escribe y devuelve el foco al botón "Corregir resultado" de esa fila vía una referencia por fecha) y `frontend/src/features/forecast/useForecastWorkspace.ts` (`confirm`/`reject` devuelven si la escritura tuvo éxito, para que el formulario permanezca abierto con su contenido ante un 409 y solo se cierre tras éxito). Testeado en `frontend/src/features/forecast/ForecastPage.test.tsx` (describe "corrección inline"). Origen: Entrega 3 (tareas 3.1, 3.2, 3.5) de `openspec/changes/improve-alerting-ui-decision-workflow/`.
+
+### Requirement: Estado honesto de correcciones y recalibración
+
+La interfaz DEBE diferenciar correcciones registradas de fechas incorporadas al predictor activo. No DEBE inferir elegibilidad temporal ni incorporación de una edición posterior a partir del estado «rechazada» o de la sola fecha.
+
+#### Scenario: Correcciones registradas y fechas incorporadas
+
+- **GIVEN** feedback rechazado y metadata del predictor con `applied_feedback_dates`
+- **WHEN** se presenta el resumen de recalibración
+- **THEN** se muestran por separado las correcciones registradas y las fechas incorporadas
+- **AND** no se rotula su diferencia como correcciones elegibles; si falta metadata, la incorporación se informa como desconocida.
+
+#### Scenario: Recalibrar explícitamente
+
+- **GIVEN** correcciones registradas y ninguna mutación pendiente
+- **WHEN** el usuario ejecuta recalibración manual
+- **THEN** el backend determina si son aplicables; sus rechazos se muestran sin inventar una versión nueva
+- **AND** tras éxito se actualizan predictor y linaje, se conservan los pronósticos anteriores y se indica que la próxima ejecución usará el nuevo predictor, sin afirmar mejora de desempeño.
+
+Implementado en `frontend/src/features/forecast/RecalibrationPanel.tsx`, montado en Modelo y trazabilidad (`App.tsx`, destino `#linaje`) junto a `ActivePredictorSummary` y `LineageChain`. Consulta de forma independiente `GET /models/{sensor_id}/active` para las fechas `applied_feedback_dates`; si esa consulta falla, la incorporación se muestra explícitamente como desconocida en vez de asumir "no incorporada". No calcula un total de correcciones "elegibles": solo cuenta las filas `rechazada` con `etiqueta_corregida` no nula (correcciones registradas) y, por separado y solo informativamente, si su fecha aparece en `applied_feedback_dates` — sin inferir que una corrección posterior a esa fecha ya fue aplicada. Tras una recalibración exitosa, `predictorRefreshToken`/`lineageRefreshToken` (`App.tsx`) fuerzan un refetch de predictor y linaje; el historial de Alertas y revisión no se recarga ni se modifica. El error de una recalibración (p. ej. sin correcciones temporalmente elegibles) usa un campo separado (`recalibrateError`) del error de un pronóstico, para no aparecer fuera de contexto en Resumen. Testeado en `frontend/src/features/forecast/RecalibrationPanel.test.tsx`. Origen: Entrega 3 (tareas 3.3, 3.4, 3.5) de `openspec/changes/improve-alerting-ui-decision-workflow/`.
 
 ## Limitaciones conocidas
 

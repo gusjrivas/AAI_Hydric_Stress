@@ -21,9 +21,10 @@ export interface ForecastWorkspace {
   rowErrors: Record<string, string>;
   actionMessage: string | null;
   runError: string | null;
+  recalibrateError: string | null;
   runForecast: () => Promise<void>;
-  confirm: (fecha: string) => Promise<void>;
-  reject: (fecha: string, etiquetaCorregida: number, observacion: string) => Promise<void>;
+  confirm: (fecha: string) => Promise<boolean>;
+  reject: (fecha: string, etiquetaCorregida: number, observacion: string) => Promise<boolean>;
   recalibrate: () => Promise<RecalibrationResponse | null>;
   reloadHistory: () => Promise<void>;
   notify: (message: string) => void;
@@ -69,6 +70,7 @@ export function useForecastWorkspace(sensorId: string): ForecastWorkspace {
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
+  const [recalibrateError, setRecalibrateError] = useState<string | null>(null);
 
   if (sensorId !== trackedSensorId) {
     setTrackedSensorId(sensorId);
@@ -77,6 +79,7 @@ export function useForecastWorkspace(sensorId: string): ForecastWorkspace {
     setRowErrors({});
     setActionMessage(null);
     setRunError(null);
+    setRecalibrateError(null);
     setRefreshPending(false);
     setHistoryStatus("loading");
     setHistoryError(null);
@@ -182,9 +185,9 @@ export function useForecastWorkspace(sensorId: string): ForecastWorkspace {
   }, [sensorId, performReload]);
 
   const confirm = useCallback(
-    async (fecha: string) => {
+    async (fecha: string): Promise<boolean> => {
       const sensorAtCall = sensorId;
-      if (!tryLock(`confirm:${fecha}`)) return;
+      if (!tryLock(`confirm:${fecha}`)) return false;
       setRowErrors((prev) => {
         if (!(fecha in prev)) return prev;
         const next = { ...prev };
@@ -193,12 +196,14 @@ export function useForecastWorkspace(sensorId: string): ForecastWorkspace {
       });
       try {
         const updated = await confirmAlert(sensorAtCall, fecha);
-        if (sensorRef.current !== sensorAtCall) return;
+        if (sensorRef.current !== sensorAtCall) return false;
         setRows((prev) => prev.map((row) => (row.fecha === fecha ? updated : row)));
-        setActionMessage(`Guardada la validación del ${fecha} — el modelo no se actualizó.`);
+        setActionMessage(`Validación guardada del ${fecha} — el modelo no se actualizó.`);
+        return true;
       } catch (err) {
-        if (sensorRef.current !== sensorAtCall) return;
+        if (sensorRef.current !== sensorAtCall) return false;
         setRowErrors((prev) => ({ ...prev, [fecha]: (err as Error).message }));
+        return false;
       } finally {
         unlock(sensorAtCall);
       }
@@ -207,9 +212,9 @@ export function useForecastWorkspace(sensorId: string): ForecastWorkspace {
   );
 
   const reject = useCallback(
-    async (fecha: string, etiquetaCorregida: number, observacion: string) => {
+    async (fecha: string, etiquetaCorregida: number, observacion: string): Promise<boolean> => {
       const sensorAtCall = sensorId;
-      if (!tryLock(`reject:${fecha}`)) return;
+      if (!tryLock(`reject:${fecha}`)) return false;
       setRowErrors((prev) => {
         if (!(fecha in prev)) return prev;
         const next = { ...prev };
@@ -218,12 +223,14 @@ export function useForecastWorkspace(sensorId: string): ForecastWorkspace {
       });
       try {
         const updated = await rejectAlert(sensorAtCall, fecha, etiquetaCorregida, observacion);
-        if (sensorRef.current !== sensorAtCall) return;
+        if (sensorRef.current !== sensorAtCall) return false;
         setRows((prev) => prev.map((row) => (row.fecha === fecha ? updated : row)));
-        setActionMessage(`Guardada la validación del ${fecha} — el modelo no se actualizó.`);
+        setActionMessage(`Validación guardada del ${fecha} — el modelo no se actualizó.`);
+        return true;
       } catch (err) {
-        if (sensorRef.current !== sensorAtCall) return;
+        if (sensorRef.current !== sensorAtCall) return false;
         setRowErrors((prev) => ({ ...prev, [fecha]: (err as Error).message }));
+        return false;
       } finally {
         unlock(sensorAtCall);
       }
@@ -234,14 +241,14 @@ export function useForecastWorkspace(sensorId: string): ForecastWorkspace {
   const recalibrate = useCallback(async (): Promise<RecalibrationResponse | null> => {
     const sensorAtCall = sensorId;
     if (!tryLock("recalibrate")) return null;
-    setRunError(null);
+    setRecalibrateError(null);
     try {
       const result = await recalibrateApi(sensorAtCall);
       if (sensorRef.current !== sensorAtCall) return null;
       return result;
     } catch (err) {
       if (sensorRef.current === sensorAtCall) {
-        setRunError((err as Error).message);
+        setRecalibrateError((err as Error).message);
       }
       return null;
     } finally {
@@ -270,6 +277,7 @@ export function useForecastWorkspace(sensorId: string): ForecastWorkspace {
     rowErrors,
     actionMessage,
     runError,
+    recalibrateError,
     runForecast,
     confirm,
     reject,

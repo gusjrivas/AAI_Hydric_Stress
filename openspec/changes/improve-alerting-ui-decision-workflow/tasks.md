@@ -50,13 +50,29 @@ Capturas de escritorio adjuntas en el PR para Resumen y Alertas y revisión.
 
 ## 3. Revisión humana y trazabilidad — depende de 1 y 2
 
-- [ ] 3.1 Formulario inline de corrección con etiqueta explícita, observación editable, cancelar sin POST y recuperación del foco.
-- [ ] 3.2 Mostrar motivos de 409 junto a la fila conservando el formulario; mantener mensaje de que guardar feedback no reentrena.
-- [ ] 3.3 Sustituir el contador engañoso de pendientes por correcciones registradas y fechas incorporadas, con desconocido si falta metadata. No inferir elegibilidad ni incorporación de ediciones posteriores.
-- [ ] 3.4 Ubicar recalibración manual en Modelo y trazabilidad, refrescar predictor/linaje tras éxito y preservar el historial.
-- [ ] 3.5 Tests de payload de corrección, cancelación, etiqueta igual a original, 409, metadata ausente, fecha ya incorporada y recalibración sin correcciones elegibles.
+Estado: implementada y verificada (ver evidencia por tarea). Rama
+`feat/alerting-ui-human-review-traceability`, PR contra `main` referenciando HU6/HU5.
+
+- [x] 3.1 Formulario inline de corrección con etiqueta explícita, observación editable, cancelar sin POST y recuperación del foco. — `frontend/src/features/forecast/CorrectionForm.tsx`, cableado en `ForecastPage.tsx` (ref por fila para devolver el foco); tests en `ForecastPage.test.tsx` (describe "corrección inline").
+- [x] 3.2 Mostrar motivos de 409 junto a la fila conservando el formulario; mantener mensaje de que guardar feedback no reentrena. — `CorrectionForm.tsx` (`serverError` desde `workspace.rowErrors[fecha]`, formulario no se cierra en error); `useForecastWorkspace.ts` (mensaje "Validación guardada... el modelo no se actualizó").
+- [x] 3.3 Sustituir el contador engañoso de pendientes por correcciones registradas y fechas incorporadas, con desconocido si falta metadata. No inferir elegibilidad ni incorporación de ediciones posteriores. — `frontend/src/features/forecast/RecalibrationPanel.tsx` (consulta independiente de `GET /models/{sensor_id}/active`, estado `unknown` ante fallo); `ForecastPage.tsx` ya no muestra "Correcciones sin incorporar a la recalibración".
+- [x] 3.4 Ubicar recalibración manual en Modelo y trazabilidad, refrescar predictor/linaje tras éxito y preservar el historial. — `RecalibrationPanel.tsx` montado en `App.tsx` bajo `#linaje`, junto a `ActivePredictorSummary`/`LineageChain`; `predictorRefreshToken`/`lineageRefreshToken` se incrementan tras éxito (`handleRecalibrated`); el historial de `Alertas y revisión` no se toca.
+- [x] 3.5 Tests de payload de corrección, cancelación, etiqueta igual a original, 409, metadata ausente, fecha ya incorporada y recalibración sin correcciones elegibles. — `ForecastPage.test.tsx`, `RecalibrationPanel.test.tsx`, `App.test.tsx` (66 tests totales, `npm test`/`npm run lint`/`npm run build` verdes).
 
 **Salida:** feedback explícito y estado fiel a los contratos existentes, sin cambios temporales.
+
+**Limitaciones de esta entrega:** verificación en navegador con Claude in Chrome
+usando un `fetch` interceptado en el propio navegador (sin backend real levantado)
+para poder ejercitar el formulario de corrección, el 409, el guardado exitoso y
+la recalibración con datos realistas — confirmé apertura sin escritura, la
+orientación a Confirmar ante la misma etiqueta, el 409 junto a la fila con el
+formulario conservado, el guardado exitoso con foco y badge actualizados, y el
+mensaje de recalibración en Modelo y trazabilidad (se detectó y corrigió en el
+camino que ese mensaje no se mostraba ahí antes de moverse el botón). Esto usa
+mocks de red controlados por mí en la consola del navegador, no una integración
+real contra `backend/`. No pude verificar visualmente un viewport móvil real
+(misma limitación de las Entregas 1 y 2: `resize_window` no tuvo efecto en este
+entorno). Capturas adjuntas en el PR.
 
 ## 4. Diseño coherente y verificación — depende de 2 y 3
 
