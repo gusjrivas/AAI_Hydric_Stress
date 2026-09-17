@@ -1,8 +1,10 @@
 """Secuencia causal de un paso diario y su ejecución sobre N pasos
-(diseño, sección 3), en ejecución directa por CLI: sin lock de proceso
-ni control HTTP de pausa/continuación (control local, entrega 2 del
-change) — un solo comando de invocación corre la sesión de punta a
-punta o hasta el primer fallo.
+(diseño, sección 3). `run_step` es el núcleo reutilizado tanto por la
+ejecución directa de la CLI (`run_session`) como por el worker de fondo
+del adaptador HTTP local (`scripts.demo_simulation.control`, entrega 2).
+`run_session` sostiene el lock de proceso de `scripts.demo_simulation.lock`
+mientras corre, para que no compita con el worker de control sobre la
+misma sesión; no ofrece pausa/continuación HTTP (eso vive en `control`).
 
 Orden fijo por paso: generar y persistir intención (`ingest_pending`) →
 `POST /sensors/{sensor_id}/readings` → persistir `ingested` → verificar
@@ -29,6 +31,7 @@ from .client import (
     post_reading,
     run_forecast,
 )
+from .lock import SessionLock, lock_path
 from .manifest import DemoManifest, StepRecord, load_manifest, parse_date, save_manifest
 from .payload import build_ingest_payload, generate_day_reading, payload_hash, reading_to_json
 
@@ -40,9 +43,13 @@ class DemoStepError(RuntimeError):
     """
 
 
-def _next_day(manifest: DemoManifest) -> date:
+def next_pending_day(manifest: DemoManifest) -> date:
+    """Fecha calendario del próximo paso pendiente según `manifest.cursor`."""
     start = parse_date(manifest.start_date)
     return start + timedelta(days=manifest.cursor)
+
+
+_next_day = next_pending_day  # alias interno, ver `run_step`
 
 
 def _block(manifest: DemoManifest, sessions_root: Path, reason: str) -> None:
@@ -201,6 +208,11 @@ def run_session(
     completarla si `steps` es `None`), esperando `interval_seconds`
     entre pasos exitosos. Se detiene en el primer paso que no pueda
     confirmarse, dejando la sesión `blocked` y propagando la excepción.
+
+    Sostiene `SessionLock` mientras corre: si otro proceso (por ejemplo
+    el worker de fondo del adaptador HTTP, `scripts.demo_simulation.control`)
+    ya la tiene, levanta `SessionLockError` sin tocar el manifiesto de la
+    sesión ajena.
     """
     manifest = load_manifest(sessions_root, session_id)
     if manifest.status == "blocked":
@@ -208,11 +220,17 @@ def run_session(
             f"La sesión '{session_id}' está bloqueada ({manifest.last_error!r}); esta entrega "
             "no reintenta automáticamente (entrega 2)."
         )
+    if manifest.status in ("paused", "pausing"):
+        raise DemoStepError(
+            f"La sesión '{session_id}' está {manifest.status!r} por el adaptador de control; "
+            "continuar requiere una orden explícita de `resume`, nunca la reanuda esta CLI sola."
+        )
 
-    executed = 0
-    while manifest.status != "completed" and (steps is None or executed < steps):
-        manifest = run_step(manifest, sessions_root)
-        executed += 1
-        if manifest.status != "completed" and (steps is None or executed < steps):
-            sleep_fn(manifest.interval_seconds)
-    return manifest
+    with SessionLock(lock_path(sessions_root, session_id)):
+        executed = 0
+        while manifest.status != "completed" and (steps is None or executed < steps):
+            manifest = run_step(manifest, sessions_root)
+            executed += 1
+            if manifest.status != "completed" and (steps is None or executed < steps):
+                sleep_fn(manifest.interval_seconds)
+        return manifest

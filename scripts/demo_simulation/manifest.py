@@ -3,22 +3,28 @@
 mismo sistema de archivos) para que un corte de proceso a mitad de
 escritura nunca deje un manifiesto truncado o mezclado con el anterior.
 
-Los estados de sesión y fase de paso de esta entrega son el subconjunto
-que produce y consume `scripts.demo_simulation.worker` en ejecución
-directa por CLI: no incluyen todavía `pausing`/`paused` (control local,
-entrega 2 del change).
+Los estados de sesión de esta entrega incluyen `pausing`/`paused`
+(diseño, sección 4): el worker de ejecución directa por CLI
+(`scripts.demo_simulation.worker.run_session`) nunca los produce por sí
+mismo, pero sí debe reconocerlos (una sesión pausada por el adaptador
+HTTP no reinicia sola desde la CLI). `command_log` registra, por
+`request_id`, el resultado ya emitido de cada orden de control HTTP
+aceptada o rechazada (deduplicación, diseño sección 6); el worker de
+ejecución directa no lo usa.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import threading
+import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
-SessionStatus = Literal["prepared", "running", "blocked", "completed"]
+SessionStatus = Literal["prepared", "running", "pausing", "paused", "blocked", "completed"]
 StepPhase = Literal["pending", "ingest_pending", "ingested", "forecast_pending", "completed"]
 
 GENERATOR_VERSION = "demo_simulation.mock_sensor_chain@v1"
@@ -59,6 +65,7 @@ class DemoManifest:
     steps: dict[str, StepRecord] = field(default_factory=dict)
     last_error: str | None = None
     revision: int = 0
+    command_log: dict[str, dict[str, Any]] = field(default_factory=dict)
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -93,7 +100,14 @@ def save_manifest(manifest: DemoManifest, sessions_root: Path) -> Path:
     manifest.updated_at = datetime.now(timezone.utc).isoformat()
     path = manifest_path(sessions_root, manifest.session_id)
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = path.with_name(path.name + f".tmp-{os.getpid()}")
+    # El sufijo incluye PID, hilo y un token único: en la entrega 2 el
+    # worker de fondo y el hilo que atiende una orden HTTP pueden
+    # guardar manifiestos de la misma sesión desde el mismo proceso, y
+    # un nombre temporal compartido colisiona (falla `os.replace` o,
+    # en Windows, incluso la escritura previa por archivo en uso).
+    tmp_path = path.with_name(
+        path.name + f".tmp-{os.getpid()}-{threading.get_ident()}-{uuid.uuid4().hex}"
+    )
     tmp_path.write_text(
         json.dumps(manifest.to_dict(), indent=2, ensure_ascii=False, default=str), encoding="utf-8"
     )

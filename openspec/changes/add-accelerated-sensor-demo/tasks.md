@@ -1,7 +1,8 @@
 # Tareas — add-accelerated-sensor-demo
 
-Estado: entrega 1 (preparación y worker CLI) implementada y verificada. Entregas
-2-4 (control local, UI, verificación integrada) pendientes.
+Estado: entregas 1 (preparación y worker CLI) y 2 (control local y
+recuperación) implementadas y verificadas. Entregas 3-4 (UI, verificación
+integrada) pendientes.
 
 ## 0. Decisión y preparación
 
@@ -19,11 +20,11 @@ Estado: entrega 1 (preparación y worker CLI) implementada y verificada. Entrega
 
 ## 2. Control y recuperación — depende de 1
 
-- [ ] 2.1 Lock de proceso, máquina de estados, revisión monotónica y deduplicación de órdenes de control.
-- [ ] 2.2 Adaptador HTTP local para sesión preparada, start/pause/resume; GET sin efectos secundarios, validación de Origin y CORS configurado.
-- [ ] 2.3 Recuperación por fase y payload: respuestas perdidas, caída antes/después de persistir, request aún en vuelo, resultado confirmado sin cursor avanzado y cambios externos. Bloquear incertidumbre no resuelta.
-- [ ] 2.4 Pausa al terminar paso, intervalo entre pasos y continuación explícita tras reinicio. Probar dos clientes y dos workers.
-- [ ] 2.5 Perfil Docker opcional `demo`, URL del backend fija por entorno, almacenamiento y README de preparación/ejecución; no modificar override del usuario ni activar demo en arranque normal.
+- [x] 2.1 Lock de proceso, máquina de estados, revisión monotónica y deduplicación de órdenes de control. `scripts/demo_simulation/lock.py` (`SessionLock`, `fcntl`/`msvcrt`, se libera si el proceso muere); `scripts/demo_simulation/control.py` (`_TRANSITIONS`, `handle_command`, `command_log` por `request_id`); `manifest.py` agrega `pausing`/`paused` y `command_log`. Tests: `test_control.py::test_lock_prevents_two_workers`, `test_duplicate_request_id_returns_same_result_and_launches_worker_once`, `test_stale_revision_is_rejected_explicitly`, `test_invalid_transition_is_rejected`, `test_session_mismatch_is_rejected`.
+- [x] 2.2 Adaptador HTTP local para sesión preparada, start/pause/resume; GET sin efectos secundarios, validación de Origin y CORS configurado. `scripts/demo_simulation/service.py` (FastAPI, `CORSMiddleware` + middleware propio de validación de `Origin` en mutaciones). No agrega preparación por HTTP (ADR-0007/0012). Tests: `test_service.py::test_get_session_is_read_only`, `test_get_session_missing_returns_404_without_creating_anything`, `test_duplicate_start_request_is_idempotent_over_http`, `test_stale_revision_rejected_over_http`, `test_unauthorized_origin_is_rejected_on_mutating_request`, `test_get_is_not_blocked_by_origin_validation`, `test_backend_url_cannot_be_overridden_from_the_request`, `test_start_launches_worker_and_get_reflects_progress`.
+- [x] 2.3 Recuperación por fase y payload: respuestas perdidas, caída antes/después de persistir, request aún en vuelo, resultado confirmado sin cursor avanzado y cambios externos. Bloquear incertidumbre no resuelta. `scripts/demo_simulation/recovery.py` (`diagnose_and_recover`, `_detect_external_change`): ingesta idempotente por reemplazo de día → segura de reintentar; pronóstico no idempotente → solo se reconcilia por lectura (`GET /feedback`), nunca se reenvía. Tests: `test_recovery_reconciles_confirmed_forecast_without_reposting`, `test_recovery_blocks_when_forecast_cannot_be_confirmed`, `test_recovery_detects_external_change_and_blocks_without_overwriting`.
+- [x] 2.4 Pausa al terminar paso, intervalo entre pasos y continuación explícita tras reinicio. Probar dos clientes y dos workers. `control.run_controlled_worker` (chequeo de `pausing` solo entre pasos, nunca cancela un POST en vuelo) y `WorkerSupervisor` (dedup de hilo por sesión). Tests: `test_pause_completes_current_step_before_stopping` (1 `skip` documentado por temporización, ver README), `test_resume_continues_from_first_incomplete_step`, `test_run_controlled_worker_noop_when_lock_held_elsewhere` (segundo worker no toca la sesión ajena), `test_duplicate_request_id_...` (dos "clientes" con el mismo `request_id`).
+- [x] 2.5 Perfil Docker opcional `demo`, URL del backend fija por entorno, almacenamiento y README de preparación/ejecución; no modificar override del usuario ni activar demo en arranque normal. `docker-compose.yml` (`profiles: ["demo"]`, puerto enlazado a `127.0.0.1`), `docker/demo-control/Dockerfile`. Verificado: `docker build`, `docker compose --profile demo config` (aparece solo con el perfil) y `docker compose config`/`up --dry-run` sin el perfil (no rompe, no requiere `DEMO_SESSION_ID`). No se tocó `docker-compose.override.yml`. Documentación de preparación/arranque/pausa/continuación/diagnóstico en `scripts/demo_simulation/README.md`.
 
 ## 3. UI — depende de 2
 

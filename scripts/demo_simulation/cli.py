@@ -4,10 +4,14 @@
         --history-days 120 --seed 42
     python -m scripts.demo_simulation run --id demo-xxxxxxxxxx
     python -m scripts.demo_simulation status --id demo-xxxxxxxxxx
+    python -m scripts.demo_simulation serve --id demo-xxxxxxxxxx
 
-Esta entrega no expone el adaptador HTTP local de control (`serve`,
-entrega 2): `run` ejecuta la sesión sincrónicamente en el propio
-proceso de la CLI, de punta a punta o hasta el primer fallo.
+`run` ejecuta la sesión sincrónicamente en el propio proceso de la CLI,
+de punta a punta o hasta el primer fallo. `serve` (entrega 2) levanta el
+adaptador HTTP local de control (inicio/pausa/continuación) sobre una
+sesión ya preparada; ambos caminos comparten el mismo lock de proceso
+(`scripts.demo_simulation.lock`), por lo que no pueden avanzar la misma
+sesión al mismo tiempo.
 """
 
 from __future__ import annotations
@@ -21,8 +25,10 @@ from pathlib import Path
 from data_ingestion.storage import DEFAULT_DATA_DIR
 
 from .config import DEFAULT_INTERVAL_SECONDS, DemoConfigError, DemoSessionConfig
+from .lock import SessionLockError
 from .manifest import load_manifest
 from .prepare import DEFAULT_SESSIONS_DIR, prepare_session
+from .service import DEFAULT_ALLOWED_ORIGIN, DEFAULT_HOST, DEFAULT_PORT, serve
 from .worker import DemoStepError, run_session
 
 DEFAULT_BACKEND_URL = "http://localhost:8000"
@@ -53,6 +59,24 @@ def _build_parser() -> argparse.ArgumentParser:
     status_parser = subparsers.add_parser("status", help="Muestra el manifiesto de una sesión.")
     status_parser.add_argument("--id", dest="session_id", required=True)
     status_parser.add_argument("--sessions-dir", type=Path, default=DEFAULT_SESSIONS_DIR)
+
+    serve_parser = subparsers.add_parser(
+        "serve", help="Levanta el adaptador HTTP local de control (entrega 2)."
+    )
+    serve_parser.add_argument("--id", dest="session_id", required=True)
+    serve_parser.add_argument("--sessions-dir", type=Path, default=DEFAULT_SESSIONS_DIR)
+    serve_parser.add_argument("--host", default=DEFAULT_HOST)
+    serve_parser.add_argument("--port", type=int, default=DEFAULT_PORT)
+    serve_parser.add_argument(
+        "--allowed-origin",
+        dest="allowed_origins",
+        action="append",
+        default=None,
+        help=(
+            "Origin permitido para CORS/validación (repetible). Por defecto: "
+            f"{DEFAULT_ALLOWED_ORIGIN}."
+        ),
+    )
 
     return parser
 
@@ -91,6 +115,9 @@ def _cmd_prepare(args: argparse.Namespace) -> int:
 def _cmd_run(args: argparse.Namespace) -> int:
     try:
         manifest = run_session(args.session_id, args.sessions_dir, steps=args.steps)
+    except SessionLockError as error:
+        print(f"No se ejecutó: {error}", file=sys.stderr)
+        return 1
     except (DemoStepError, FileNotFoundError) as error:
         print(f"La sesión se detuvo: {error}", file=sys.stderr)
         return 1
@@ -112,10 +139,30 @@ def _cmd_status(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_serve(args: argparse.Namespace) -> int:
+    try:
+        serve(
+            args.session_id,
+            args.sessions_dir,
+            host=args.host,
+            port=args.port,
+            allowed_origins=args.allowed_origins,
+        )
+    except FileNotFoundError as error:
+        print(str(error), file=sys.stderr)
+        return 1
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
-    handlers = {"prepare": _cmd_prepare, "run": _cmd_run, "status": _cmd_status}
+    handlers = {
+        "prepare": _cmd_prepare,
+        "run": _cmd_run,
+        "status": _cmd_status,
+        "serve": _cmd_serve,
+    }
     return handlers[args.command](args)
 
 
