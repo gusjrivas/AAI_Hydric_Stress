@@ -5,14 +5,23 @@ y añade evidencia de sus escenarios antes de marcar tareas completas.
 
 ## 1. Flujos confiables — primera entrega
 
-- [ ] 1.1 Separar sensor borrador/activo en la cabecera, validación asociada y aplicación explícita. Cubrir edición sin consultas y respuesta tardía A→B.
-- [ ] 1.2 Extraer estado compartido de historial y operación; cargar `GET /feedback` al activar sensor. Distinguir 404, error y datos incompletos; ordenar por fecha sin descartar filas sin probabilidad.
-- [ ] 1.3 Incorporar bloqueo compartido de mutaciones, progreso local, errores de fila y protección frente a respuestas obsoletas. No reintentar POST automáticamente.
-- [ ] 1.4 Separar éxito del POST de fallos de refresco. Reconciliar resultado por fecha y ofrecer GET ante resultado de escritura incierto.
-- [ ] 1.5 Tests de integración App/Forecast: consulta sin POST, cambio de sensor, 404 frente a 500, doble clic, dos filas, pronóstico frente a recalibración y fallo de GET posterior a éxito.
+Estado: implementada y verificada (ver evidencia por tarea). Rama
+`feat/alerting-ui-reliable-flows`, PR contra `main` referenciando HU6/HU5.
+
+- [x] 1.1 Separar sensor borrador/activo en la cabecera, validación asociada y aplicación explícita. Cubrir edición sin consultas y respuesta tardía A→B. — `frontend/src/App.tsx`; tests en `frontend/src/App.test.tsx`.
+- [x] 1.2 Extraer estado compartido de historial y operación; cargar `GET /feedback` al activar sensor. Distinguir 404, error y datos incompletos; ordenar por fecha sin descartar filas sin probabilidad. — `frontend/src/features/forecast/useForecastWorkspace.ts`; tests en `frontend/src/features/forecast/ForecastPage.test.tsx`.
+- [x] 1.3 Incorporar bloqueo compartido de mutaciones, progreso local, errores de fila y protección frente a respuestas obsoletas. No reintentar POST automáticamente. — `useForecastWorkspace.ts` (`activeMutation`, `rowErrors`, comparación contra el sensor activo); sin reintento automático de POST.
+- [x] 1.4 Separar éxito del POST de fallos de refresco. Reconciliar resultado por fecha y ofrecer GET ante resultado de escritura incierto. — `useForecastWorkspace.ts` (`upsertVerdicts`, `refreshPending`, distinción `HttpError` vs. fallo de red).
+- [x] 1.5 Tests de integración App/Forecast: consulta sin POST, cambio de sensor, 404 frente a 500, doble clic, dos filas, pronóstico frente a recalibración y fallo de GET posterior a éxito. — `frontend/src/App.test.tsx`, `frontend/src/features/forecast/ForecastPage.test.tsx` (43 tests, `npm test`/`npm run lint`/`npm run build` verdes).
 
 **Salida:** consultar y confirmar historial existente sin generar un pronóstico nuevo,
 sin mezclar sensores ni permitir escrituras superpuestas desde esta UI.
+
+**Limitaciones de esta entrega:** verificación en navegador realizada sin backend
+levantado (falla de red uniforme en los tres paneles, sin datos reales de la API);
+no se corrió una integración real contra `backend/`. Los escenarios de filtrado de
+historial, navegación por destinos, corrección humana explícita y diseño/accesibilidad
+quedan fuera de esta entrega (Entregas 2 a 4).
 
 ## 2. Navegación y resumen — depende de 1
 

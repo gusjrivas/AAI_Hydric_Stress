@@ -1,5 +1,20 @@
 import { API_BASE_URL } from "../../api/baseUrl";
 
+export class HttpError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "HttpError";
+    this.status = status;
+  }
+}
+
+async function readDetail(response: Response, fallback: string): Promise<never> {
+  const body = await response.json().catch(() => null);
+  throw new HttpError(response.status, body?.detail ?? fallback);
+}
+
 export interface Verdict {
   fecha: string;
   alerta: boolean;
@@ -31,7 +46,7 @@ export interface FeedbackListResponse {
 export async function runForecast(sensorId: string): Promise<ForecastRunResponse> {
   const response = await fetch(`${API_BASE_URL}/forecast/${encodeURIComponent(sensorId)}/run`, { method: "POST" });
   if (!response.ok) {
-    throw new Error(`Error al correr el pronóstico: ${response.status}`);
+    return readDetail(response, `Error al correr el pronóstico: ${response.status}`);
   }
   return response.json();
 }
@@ -39,7 +54,7 @@ export async function runForecast(sensorId: string): Promise<ForecastRunResponse
 export async function listFeedback(sensorId: string): Promise<FeedbackListResponse> {
   const response = await fetch(`${API_BASE_URL}/feedback/${encodeURIComponent(sensorId)}`);
   if (!response.ok) {
-    throw new Error(`Error al obtener el feedback: ${response.status}`);
+    return readDetail(response, `Error al obtener el feedback: ${response.status}`);
   }
   return response.json();
 }
@@ -47,7 +62,7 @@ export async function listFeedback(sensorId: string): Promise<FeedbackListRespon
 export async function confirmAlert(sensorId: string, fecha: string): Promise<FeedbackRow> {
   const response = await fetch(`${API_BASE_URL}/feedback/${encodeURIComponent(sensorId)}/${fecha}/confirm`, { method: "POST" });
   if (!response.ok) {
-    throw new Error(`Error al confirmar la alerta: ${response.status}`);
+    return readDetail(response, `Error al confirmar la alerta: ${response.status}`);
   }
   return response.json();
 }
@@ -64,7 +79,7 @@ export async function rejectAlert(
     body: JSON.stringify({ etiqueta_corregida: etiquetaCorregida, observacion }),
   });
   if (!response.ok) {
-    throw new Error(`Error al rechazar la alerta: ${response.status}`);
+    return readDetail(response, `Error al rechazar la alerta: ${response.status}`);
   }
   return response.json();
 }
@@ -79,8 +94,7 @@ export interface RecalibrationResponse {
 export async function recalibrate(sensorId: string): Promise<RecalibrationResponse> {
   const response = await fetch(`${API_BASE_URL}/recalibrate/${encodeURIComponent(sensorId)}`, { method: "POST" });
   if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    throw new Error(body?.detail ?? `Error al recalibrar el modelo: ${response.status}`);
+    return readDetail(response, `Error al recalibrar el modelo: ${response.status}`);
   }
   return response.json();
 }
@@ -105,8 +119,7 @@ export interface ActivePredictor {
 export async function getActivePredictor(sensorId: string): Promise<ActivePredictor> {
   const response = await fetch(`${API_BASE_URL}/models/${encodeURIComponent(sensorId)}/active`);
   if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    throw new Error(body?.detail ?? `Error al obtener el predictor activo: ${response.status}`);
+    return readDetail(response, `Error al obtener el predictor activo: ${response.status}`);
   }
   return response.json();
 }

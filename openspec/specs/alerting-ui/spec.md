@@ -138,6 +138,73 @@ Implementado en `backend/app/routers/quality.py` (`GET /quality/{sensor_id}`), `
 
 El predictor "base configurado" (sin recalibración previa) se identifica leyendo la metadata del último predictor `issued` (`human_feedback.model_registry.load_latest_issued_predictor_metadata`, agregada junto con `get_latest_recalibrated_version` para esta capacidad) — nunca cargando ni entrenando un modelo distinto del que usaría `execute_configured_pipeline`.
 
+### Requirement: Contexto global de sensor y aislamiento de solicitudes
+
+La interfaz DEBE separar el sensor en edición del sensor activo, aplicar el cambio solo mediante confirmación explícita y validar `^[a-zA-Z0-9_-]{1,64}$`. DEBE evitar que datos o respuestas de un sensor se presenten como pertenecientes a otro.
+
+#### Scenario: Editar y aplicar un sensor
+
+- **GIVEN** un sensor activo con datos visibles
+- **WHEN** se edita el identificador sin aplicar
+- **THEN** el contexto y las consultas permanecen en el sensor activo
+- **AND** al aplicar un identificador válido se limpia el contexto anterior y se consultan recursos del nuevo sensor; un valor inválido muestra un error asociado y no dispara consultas.
+
+#### Scenario: Respuesta tardía del sensor anterior
+
+- **GIVEN** una consulta pendiente del sensor A y un cambio aplicado al sensor B
+- **WHEN** llega la respuesta de A después del cambio
+- **THEN** no modifica datos, errores, contadores ni estados de carga de B.
+
+Implementado en `frontend/src/App.tsx` (`draftSensorId`/`activeSensorId`, cabecera con formulario "Aplicar") y `frontend/src/features/forecast/useForecastWorkspace.ts` (descarte de respuestas obsoletas vía comparación con el sensor activo). Testeado en `frontend/src/App.test.tsx` y `frontend/src/features/forecast/ForecastPage.test.tsx`. Origen: Entrega 1 (tareas 1.1, 1.3, 1.5) de `openspec/changes/improve-alerting-ui-decision-workflow/`.
+
+### Requirement: Consulta de historial independiente de la ejecución
+
+La interfaz DEBE consultar el historial persistido al activar un sensor sin ejecutar pronóstico ni recalibración. DEBE preservar filas aunque falten probabilidad u objetivo.
+
+#### Scenario: Consultar registros existentes
+
+- **GIVEN** registros persistidos de un sensor
+- **WHEN** se abre la aplicación o se aplica ese sensor
+- **THEN** se muestran mediante GET, ordenados por fecha de referencia descendente, sin POST
+- **AND** los valores ausentes se identifican como no disponibles, sin convertirse en cero o «Sin alerta».
+
+#### Scenario: Registro ausente o consulta fallida
+
+- **GIVEN** una consulta de historial
+- **WHEN** retorna 404 por ausencia de registro
+- **THEN** se muestra «Todavía no hay pronósticos registrados» y la acción explícita de generar uno
+- **AND** cualquier otro error se muestra con reintento de lectura, sin presentarse como historial vacío ni contador cero.
+
+Implementado en `frontend/src/features/forecast/useForecastWorkspace.ts` (`GET /feedback/{sensor_id}` al activar el sensor, distinción de `HttpError` 404 frente a otros fallos) y `frontend/src/features/forecast/ForecastPage.tsx`. Testeado en `frontend/src/features/forecast/ForecastPage.test.tsx`. Origen: Entrega 1 (tareas 1.2, 1.5) de `openspec/changes/improve-alerting-ui-decision-workflow/`.
+
+**Alcance de esta actualización:** el filtrado del historial por alerta, estado de validación o rango de fecha (escenario "Filtrar el historial" del delta de este change) todavía no está implementado — queda para la Entrega 2 del mismo change, que también agrega la navegación por destinos.
+
+### Requirement: Operaciones explícitas y protección de mutaciones
+
+La interfaz DEBE serializar sus mutaciones por instancia y mostrar su progreso. Durante una mutación DEBE impedir otra mutación y aplicar un cambio de sensor; DEBE permitir navegar. No DEBE reintentar escrituras automáticamente.
+
+#### Scenario: Evitar operaciones superpuestas
+
+- **GIVEN** un pronóstico, validación o recalibración pendiente
+- **WHEN** se intenta repetir la acción, modificar otra fila o iniciar otra mutación
+- **THEN** se mantiene una sola escritura en curso y su control muestra progreso
+- **AND** al completarse o fallar se liberan los controles sin perder el sensor de origen.
+
+#### Scenario: Escritura exitosa con actualización fallida
+
+- **GIVEN** un POST exitoso seguido de un GET fallido
+- **WHEN** se presenta el resultado
+- **THEN** se conserva la respuesta exitosa y se comunica por separado el fallo de actualización, con reintento GET
+- **AND** no se invita a repetir el POST como si la operación no hubiera ocurrido.
+
+#### Scenario: Resultado de escritura no verificable
+
+- **GIVEN** una pérdida de conexión durante un POST
+- **WHEN** no puede confirmarse su resultado
+- **THEN** la interfaz explica la incertidumbre y ofrece consultar el estado antes de repetir la operación, sin reintento automático.
+
+Implementado en `frontend/src/features/forecast/useForecastWorkspace.ts` (bloqueo único `activeMutation` compartido entre pronosticar/confirmar/rechazar/recalibrar, reconciliación por `fecha` entre el resultado de un POST y su GET de refresco, y distinción entre `HttpError` — con respuesta — y un fallo de red sin respuesta). Testeado en `frontend/src/App.test.tsx` y `frontend/src/features/forecast/ForecastPage.test.tsx`. Origen: Entrega 1 (tareas 1.3, 1.4, 1.5) de `openspec/changes/improve-alerting-ui-decision-workflow/`.
+
 ## Limitaciones conocidas
 
 - ~~Un único modelo fijo (Random Forest, configuración base) genera el veredicto; el motor de selección/ensamble entre varios modelos queda para una iteración futura (`openspec/changes/add-alerting-ui/proposal.md`, "Fuera de alcance").~~ **Actualización (2026-08-22):** por un tiempo resuelto mediante selección automática entre candidatos (`openspec/specs/predictive-modeling/spec.md`, requirement "Selección automática del mejor modelo candidato"). **Actualización posterior (ver "Modelo operativo vs. selección automática experimental" más abajo):** el backend operativo volvió a usar un contrato Random Forest explícito, por una decisión deliberada distinta del motivo original de esta limitación — no es un regreso a la limitación original, sino una decisión operativa para evitar que la UI falle ante folds de validación degenerados.
@@ -152,6 +219,8 @@ El predictor "base configurado" (sin recalibración previa) se identifica leyend
 Todas las rutas de esta capacidad exigen un `sensor_id` explícito (`POST /forecast/{sensor_id}/run`, `GET /feedback/{sensor_id}`, `POST /feedback/{sensor_id}/{fecha}/confirm`, `POST /feedback/{sensor_id}/{fecha}/reject`, `POST /recalibrate/{sensor_id}`, `POST /sensors/{sensor_id}/readings`, `GET /quality/{sensor_id}`, `GET /models/{sensor_id}/active`, `GET /lineage/{sensor_id}`; ver ADR-0008). Por cada sensor: el dataset consolidado, el registro de retroalimentación, el modelo recalibrado en el Model Registry de MLflow y el caché de modelo (`_selection_cache`) están aislados entre sí mediante la convención de nombres de `data_ingestion.sensor_naming`, sin estado global compartido entre sensores.
 
 El frontend consume estas rutas con `sensor_id` desde `frontend/src/App.tsx` (estado del sensor compartido entre secciones) y sus features `forecast/`, `quality/` y `lineage/`, tras el breaking change deliberado introducido por PR #163 (que exigió `sensor_id` en todos los endpoints) y su resolución posterior, que incorporó el selector/input de sensor en la interfaz. No queda ninguna llamada del frontend a una ruta sin `sensor_id`.
+
+**Actualización (Entrega 1 de `openspec/changes/improve-alerting-ui-decision-workflow/`) — sensor borrador/activo y aislamiento de solicitudes:** `App.tsx` separa el identificador en edición (`draftSensorId`) del sensor activo (`activeSensorId`); solo "Aplicar" (o Enter) con un identificador válido (`^[a-zA-Z0-9_-]{1,64}$`) cambia el contexto propagado a `QualityPanel`, `ForecastPage` y `LineageChain` — ver requirement "Contexto global de sensor y aislamiento de solicitudes" más abajo.
 
 ## Modelo operativo vs. selección automática experimental
 
