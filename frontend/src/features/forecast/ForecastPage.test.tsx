@@ -14,7 +14,7 @@ function Harness({ sensorId }: { sensorId: string }) {
   return <ForecastPage sensorId={sensorId} workspace={workspace} />;
 }
 
-describe("ForecastPage (Alertas y revisión)", () => {
+describe("ForecastPage (Historial y observaciones)", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -208,7 +208,7 @@ describe("ForecastPage (Alertas y revisión)", () => {
       etiqueta_corregida: null,
       observacion: null,
     });
-    await waitFor(() => expect(screen.getByText(/confirmada/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/coincide con lo observado/i)).toBeInTheDocument());
   });
 
   it("keeps each row independent when there are two rows with different states", async () => {
@@ -251,17 +251,16 @@ describe("ForecastPage (Alertas y revisión)", () => {
     await userEvent.click(confirmButtons[0]);
 
     await waitFor(() =>
-      expect(screen.getByText("2024-10-31").closest("li")).toHaveTextContent(/confirmada/i),
+      expect(screen.getByText("2024-10-31").closest("li")).toHaveTextContent(/coincide con lo observado/i),
     );
-    expect(screen.getByText("2024-10-30").closest("li")).toHaveTextContent(/pendiente/i);
+    expect(screen.getByText("2024-10-30").closest("li")).toHaveTextContent(/por revisar/i);
   });
 
-  it("shows the relative-signal disclaimer next to the probability gauge", async () => {
+  it("explains the limits of an alert in plain language", async () => {
     vi.spyOn(api, "listFeedback").mockResolvedValue({ rows: [] });
     render(<Harness sensorId="sensor-a" />);
-    expect(
-      screen.getByText(/señal predictiva relativa del modelo/i),
-    ).toBeInTheDocument();
+    await screen.findByText(/todavía no hay pronósticos registrados/i);
+    expect(screen.getByText(/una alerta señala una posible falta de agua/i)).toHaveTextContent(/tampoco garantiza/i);
   });
 
   describe("corrección inline (task 3.1)", () => {
@@ -291,7 +290,7 @@ describe("ForecastPage (Alertas y revisión)", () => {
 
       expect(screen.getByRole("group", { name: /corregir resultado/i })).toBeInTheDocument();
       expect(screen.getByText(/resultado original/i)).toHaveTextContent("Alerta");
-      expect(screen.getByText(/fecha objetivo/i)).toHaveTextContent("2024-11-03");
+      expect(screen.getByText(/pronóstico para el día/i)).toHaveTextContent("2024-11-03");
       expect(rejectSpy).not.toHaveBeenCalled();
     });
 
@@ -391,7 +390,7 @@ describe("ForecastPage (Alertas y revisión)", () => {
       await userEvent.click(screen.getByRole("button", { name: /guardar corrección/i }));
 
       await waitFor(() => {
-        expect(screen.getByText(/el modelo no se actualizó/i)).toBeInTheDocument();
+        expect(screen.getByText(/los próximos pronósticos todavía no usan esta observación/i)).toBeInTheDocument();
       });
     });
   });
@@ -434,15 +433,16 @@ describe("ForecastPage (Alertas y revisión)", () => {
       expect(screen.queryByText("2024-10-31")).not.toBeInTheDocument();
       expect(screen.getByText("2024-10-20")).toBeInTheDocument();
       expect(listFeedbackSpy.mock.calls.length).toBe(callsBeforeFilter);
+      expect(screen.getByText(/mostrando 1 de 2 resultados guardados/i)).toBeVisible();
       // el contador general de "sin revisar" sigue contando el historial completo
-      expect(screen.getByText(/feedback sin revisar/i).closest("p")).toHaveTextContent("1");
+      expect(screen.getByText(/resultados por revisar/i).closest("p")).toHaveTextContent("1");
     });
 
     it("distinguishes 'no matches' from an empty history, and clears filters back to the full list", async () => {
       await renderTwoRows();
 
       await userEvent.selectOptions(screen.getByLabelText(/^alerta$/i), "alerta");
-      await userEvent.selectOptions(screen.getByLabelText(/estado de validación/i), "rechazada");
+      await userEvent.selectOptions(screen.getByLabelText(/revisión del resultado/i), "rechazada");
 
       expect(
         screen.getByText(/sin coincidencias con los filtros aplicados/i),
@@ -460,7 +460,7 @@ describe("ForecastPage (Alertas y revisión)", () => {
     it("filters by an inclusive reference-date range", async () => {
       await renderTwoRows();
 
-      const desde = screen.getByLabelText(/fecha de referencia desde/i);
+      const desde = screen.getByLabelText(/datos hasta: desde/i);
       await userEvent.type(desde, "2024-10-25");
 
       expect(screen.queryByText("2024-10-20")).not.toBeInTheDocument();

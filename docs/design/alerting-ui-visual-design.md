@@ -1,5 +1,24 @@
 # Decisiones de diseño visual: alerting-ui
 
+## Actualización 2026-09-17: productor y agrónomo sin perfil tecnológico
+
+La presentación principal prioriza lenguaje cotidiano y tareas. El resultado se
+explica en palabras; el valor de la señal se consulta por un desplegable y no se
+interpreta como porcentaje de certeza. Se explican las diferencias entre ausencia
+de alerta, ausencia de datos y ausencia de resultados guardados. La aplicación no
+indica cuánto ni cuándo regar.
+
+La navegación usa Resumen, Historial y observaciones, Datos disponibles, Ajustar
+próximos pronósticos y Acerca de esta herramienta, conservando los hashes existentes.
+La documentación de arquitectura y los identificadores del predictor/linaje quedan
+en detalles expandibles. Las variables conocidas se traducen al español. «Aplicar
+observaciones» explica su efecto sobre la próxima ejecución y preserva resultados
+anteriores. No promete mejorar el desempeño.
+
+Esta actualización sustituye las etiquetas técnicas de la entrega 4 descritas a
+continuación. Tests/lint/build aprobados; inspección visual y evaluación con usuarios
+pendientes. Change: `openspec/changes/simplify-producer-ui/`.
+
 Registro de las decisiones de estilo tomadas para no tener que re-derivarlas en
 sesiones futuras. No es un ADR (no es una decisión arquitectónica): es una
 referencia de diseño para `frontend/src/`. Reemplaza la versión anterior de

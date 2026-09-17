@@ -34,7 +34,7 @@ describe("RecalibrationPanel", () => {
     vi.restoreAllMocks();
   });
 
-  it("shows a recalibrate button only when there is a registered correction, and using it shows the registered version and its lineage", async () => {
+  it("applies registered corrections and explains the effect without technical identifiers", async () => {
     vi.spyOn(api, "listFeedback").mockResolvedValue({ rows: [REJECTED_ROW] });
     vi.spyOn(api, "getActivePredictor").mockRejectedValue(new Error("no predictor"));
     vi.spyOn(api, "recalibrate").mockResolvedValue({
@@ -69,15 +69,15 @@ describe("RecalibrationPanel", () => {
     });
 
     render(<Harness sensorId="sensor-a" />);
-    await waitFor(() => screen.getByRole("button", { name: /recalibrar modelo/i }));
+    await waitFor(() => screen.getByRole("button", { name: /aplicar observaciones/i }));
 
-    await userEvent.click(screen.getByRole("button", { name: /recalibrar modelo/i }));
+    await userEvent.click(screen.getByRole("button", { name: /aplicar observaciones/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/versión 1/i)).toBeInTheDocument();
+      expect(screen.getByText(/se aplicaron 1 corrección/i)).toHaveTextContent(/al generar el próximo pronóstico/i);
     });
-    expect(screen.getByText(/recalibration_id abc123/i)).toBeInTheDocument();
-    expect(screen.getByText(/predictor origen/i)).toBeInTheDocument();
+    expect(screen.queryByText(/recalibration_id abc123/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/predictor origen/i)).not.toBeInTheDocument();
   });
 
   it("does not show the recalibrate button when there are no registered corrections", async () => {
@@ -90,7 +90,7 @@ describe("RecalibrationPanel", () => {
     await waitFor(() => screen.getByText(/correcciones registradas/i));
 
     expect(
-      screen.queryByRole("button", { name: /recalibrar modelo/i }),
+      screen.queryByRole("button", { name: /aplicar observaciones/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -101,10 +101,10 @@ describe("RecalibrationPanel", () => {
     render(<Harness sensorId="sensor-a" />);
 
     await waitFor(() => {
-      expect(screen.getByText(/incorporación al predictor activo: desconocida/i)).toBeInTheDocument();
+      expect(screen.getByText(/no se pudo comprobar qué observaciones se usaron/i)).toBeInTheDocument();
     });
     // no debe inferir ni mostrar la fecha como incorporada sin metadata
-    expect(screen.queryByText(/fecha incorporada al predictor activo/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/observaciones de esta fecha usadas anteriormente/i)).not.toBeInTheDocument();
   });
 
   it("shows a date already applied to the active predictor, without claiming a later edit was applied", async () => {
@@ -129,7 +129,7 @@ describe("RecalibrationPanel", () => {
     render(<Harness sensorId="sensor-a" />);
 
     await waitFor(() => {
-      expect(screen.getByText(/fecha incorporada al predictor activo/i)).toBeInTheDocument();
+      expect(screen.getByText(/observaciones de esta fecha usadas anteriormente/i)).toBeInTheDocument();
     });
     expect(screen.getByText(/correcciones registradas/i).closest("p")).toHaveTextContent("1");
   });
@@ -157,9 +157,9 @@ describe("RecalibrationPanel", () => {
     );
 
     render(<Harness sensorId="sensor-a" />);
-    await waitFor(() => screen.getByRole("button", { name: /recalibrar modelo/i }));
+    await waitFor(() => screen.getByRole("button", { name: /aplicar observaciones/i }));
 
-    await userEvent.click(screen.getByRole("button", { name: /recalibrar modelo/i }));
+    await userEvent.click(screen.getByRole("button", { name: /aplicar observaciones/i }));
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent(/no hay correcciones pendientes/i);

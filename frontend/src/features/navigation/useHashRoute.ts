@@ -7,10 +7,10 @@ export const DEFAULT_ROUTE: RouteId = "resumen";
 
 export const DESTINATION_LABELS: Record<RouteId, string> = {
   resumen: "Resumen",
-  prediccion: "Alertas y revisión",
-  calidad: "Calidad de datos",
-  linaje: "Modelo y trazabilidad",
-  evidencia: "Evidencia y arquitectura",
+  prediccion: "Historial y observaciones",
+  calidad: "Datos disponibles",
+  linaje: "Ajustar próximos pronósticos",
+  evidencia: "Acerca de esta herramienta",
 };
 
 function parseRoute(hash: string): RouteId {

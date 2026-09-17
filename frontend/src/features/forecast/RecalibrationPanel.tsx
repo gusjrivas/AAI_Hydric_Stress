@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import "./ForecastPage.css";
 import "./RecalibrationPanel.css";
 import { getActivePredictor } from "./api";
-import { getLineage } from "../lineage/api";
 import type { ForecastWorkspace } from "./useForecastWorkspace";
 
 type AppliedStatus = "loading" | "unknown" | "ready";
@@ -17,7 +16,7 @@ interface RecalibrationPanelProps {
 /**
  * Correcciones registradas, fechas incorporadas al predictor activo y
  * recalibración manual (tasks 3.3 y 3.4 de
- * improve-alerting-ui-decision-workflow), ubicadas en Modelo y trazabilidad.
+ * improve-alerting-ui-decision-workflow), ubicadas en Ajustar próximos pronósticos.
  * No calcula un total de correcciones "elegibles": la API actual no expone
  * un preflight de elegibilidad temporal, esa autoridad sigue en el backend.
  */
@@ -63,42 +62,26 @@ export function RecalibrationPanel({
   async function handleRecalibrate() {
     const result = await workspace.recalibrate();
     if (!result) return;
-    let lineageInfo = "";
-    if (result.recalibration_id) {
-      try {
-        const lineage = await getLineage(sensorId);
-        const event = lineage.chain.find(
-          (entry) => entry.recalibration_id === result.recalibration_id,
-        );
-        if (event) {
-          lineageInfo = ` Predictor origen ${event.source_model_id.slice(0, 8)}… → sucesor ${event.successor_model_id.slice(0, 8)}….`;
-        }
-      } catch {
-        // El linaje tiene su propio estado de error; esta consulta
-        // adicional es solo para enriquecer este mensaje.
-      }
-    }
     workspace.notify(
-      `Modelo recalibrado (versión ${result.version}` +
-        `${result.recalibration_id ? `, recalibration_id ${result.recalibration_id}` : ""}` +
-        `) usando ${result.n_correcciones} corrección(es) — el próximo pronóstico usará este modelo.${lineageInfo}`,
+      `Se aplicaron ${result.n_correcciones} corrección(es). Se usarán al generar el próximo pronóstico. Los resultados anteriores se conservan.`,
     );
     onRecalibrated();
   }
 
   return (
-    <section aria-label="Correcciones y recalibración" className="rp-panel">
-      <h3 className="app-subsection-heading">Correcciones y recalibración</h3>
+    <section aria-label="Usar las observaciones guardadas" className="rp-panel">
+      <h3 className="app-subsection-heading">Usar las observaciones guardadas</h3>
+      <p>Este paso prepara los próximos pronósticos usando las correcciones que guardaste. No genera un pronóstico nuevo ni modifica los resultados anteriores.</p>
       <p className="rp-count">
         Correcciones registradas: <strong>{correctionRows.length}</strong>
       </p>
 
       {appliedStatus === "loading" && (
-        <p role="status">Consultando incorporación al predictor activo…</p>
+        <p role="status">Consultando las observaciones utilizadas…</p>
       )}
       {appliedStatus === "unknown" && (
         <p role="status" className="rp-unknown">
-          Incorporación al predictor activo: desconocida — no se pudo consultar el predictor.
+          No se pudo comprobar qué observaciones se usaron. Intentá consultar de nuevo más tarde.
         </p>
       )}
       {appliedStatus === "ready" && correctionRows.length > 0 && (
@@ -107,8 +90,8 @@ export function RecalibrationPanel({
             <li key={row.fecha}>
               {row.fecha} —{" "}
               {appliedDates.includes(row.fecha)
-                ? "Fecha incorporada al predictor activo"
-                : "Todavía no incorporada"}
+                ? "Observaciones de esta fecha usadas anteriormente"
+                : "Sin registro de uso"}
             </li>
           ))}
         </ul>
@@ -123,8 +106,8 @@ export function RecalibrationPanel({
       {correctionRows.length > 0 && (
         <button className="fp-recalibrate-btn" onClick={handleRecalibrate} disabled={busy}>
           {workspace.activeMutation === "recalibrate"
-            ? "Recalibrando..."
-            : `Recalibrar modelo (${correctionRows.length})`}
+            ? "Aplicando observaciones..."
+            : `Aplicar observaciones (${correctionRows.length})`}
         </button>
       )}
 
@@ -135,10 +118,10 @@ export function RecalibrationPanel({
       )}
 
       <p className="rp-disclaimer">
-        Recalibrar reentrena el modelo con las correcciones acumuladas y registra una nueva
-        versión — el próximo pronóstico usará esa versión; los pronósticos anteriores se
-        conservan. El backend decide si hay correcciones nuevas y temporalmente elegibles; esto
-        no afirma una mejora de desempeño.
+        Solo se pueden usar observaciones que cumplan las condiciones de fecha y registro.
+        La herramienta lo comprueba al aplicar los cambios. Si editaste una observación después
+        de haberla usado, la fecha por sí sola no confirma que esa edición esté aplicada.
+        Incorporar observaciones no garantiza pronósticos más acertados.
       </p>
     </section>
   );
