@@ -7,30 +7,68 @@ import { LineageChain } from "./features/lineage/LineageChain";
 import { EvidencePanel } from "./features/evidence/EvidencePanel";
 
 const SENSOR_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
+const INITIAL_SENSOR_ID = "sensor-a";
 
 function App() {
-  const [sensorId, setSensorId] = useState("sensor-a");
+  const [draftSensorId, setDraftSensorId] = useState(INITIAL_SENSOR_ID);
+  const [activeSensorId, setActiveSensorId] = useState(INITIAL_SENSOR_ID);
+  const [sensorError, setSensorError] = useState<string | null>(null);
+  const [forecastBusy, setForecastBusy] = useState(false);
   const [lineageRefreshToken, setLineageRefreshToken] = useState(0);
 
   const handleRecalibrated = useCallback(() => {
     setLineageRefreshToken((token) => token + 1);
   }, []);
 
-  const validSensorId = SENSOR_ID_PATTERN.test(sensorId) ? sensorId : null;
+  function applySensor() {
+    const candidate = draftSensorId.trim();
+    if (!SENSOR_ID_PATTERN.test(candidate)) {
+      setSensorError("Ingresá un identificador válido: letras, números, guiones o guiones bajos, hasta 64 caracteres.");
+      return;
+    }
+    setSensorError(null);
+    setActiveSensorId(candidate);
+  }
 
   return (
     <div className="app-page">
+      <header className="app-sensor-header">
+        <form
+          className="app-sensor-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            applySensor();
+          }}
+        >
+          <label htmlFor="sensor-draft-input">Sensor</label>
+          <input
+            id="sensor-draft-input"
+            value={draftSensorId}
+            onChange={(event) => setDraftSensorId(event.target.value)}
+            aria-invalid={sensorError ? true : undefined}
+            aria-describedby={sensorError ? "sensor-error" : undefined}
+          />
+          <button type="submit" disabled={forecastBusy}>
+            Aplicar
+          </button>
+        </form>
+        <p className="app-sensor-active" aria-live="polite">
+          Sensor activo: <strong>{activeSensorId}</strong>
+        </p>
+        {sensorError && (
+          <p id="sensor-error" role="alert" className="app-sensor-error">
+            {sensorError}
+          </p>
+        )}
+      </header>
+
       <ArchitectureFlow />
       <main className="app-sections">
         <section id="calidad" className="app-section" aria-labelledby="calidad-heading">
           <h2 id="calidad-heading" className="app-section-heading">
             1–2. Datos IoT y calidad
           </h2>
-          {validSensorId ? (
-            <QualityPanel sensorId={validSensorId} />
-          ) : (
-            <p role="status">Ingresá un sensor_id válido para ver su calidad de datos.</p>
-          )}
+          <QualityPanel sensorId={activeSensorId} />
         </section>
 
         <section id="prediccion" className="app-section" aria-labelledby="prediccion-heading">
@@ -38,9 +76,9 @@ function App() {
             3–6. Features, predicción, alerta y feedback humano
           </h2>
           <ForecastPage
-            sensorId={sensorId}
-            onSensorIdChange={setSensorId}
+            sensorId={activeSensorId}
             onRecalibrated={handleRecalibrated}
+            onBusyChange={setForecastBusy}
           />
         </section>
 
@@ -48,11 +86,7 @@ function App() {
           <h2 id="linaje-heading" className="app-section-heading">
             7. Recalibración y linaje
           </h2>
-          {validSensorId ? (
-            <LineageChain sensorId={validSensorId} refreshToken={lineageRefreshToken} />
-          ) : (
-            <p role="status">Ingresá un sensor_id válido para ver su linaje.</p>
-          )}
+          <LineageChain sensorId={activeSensorId} refreshToken={lineageRefreshToken} />
         </section>
 
         <section id="evidencia" className="app-section" aria-labelledby="evidencia-heading">
