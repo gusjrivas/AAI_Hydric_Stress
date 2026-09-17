@@ -24,7 +24,7 @@ export function EvidencePanel() {
           <code>{FORMAL_EVIDENCE_SOURCE.analysisFile}</code> para la interpretación vigente.
         </p>
 
-        <div className="ep-table-wrap">
+        <div className="ep-table-wrap" tabIndex={0} role="region" aria-label="Tabla de evidencia formal, desplazable horizontalmente">
           <table className="ep-table">
             <caption className="ep-table-caption">
               8 configuraciones × 5 semillas [0,1,2,3,4] — evidencia congelada, no recalculada

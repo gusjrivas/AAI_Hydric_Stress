@@ -1,12 +1,15 @@
 .ep-panel {
-  --ep-border: #d9e0d5;
-  --ep-ink: #1b2a1e;
-  --ep-muted: #5c6b5f;
+  /* Acentos propios de este panel (evidencia formal congelada vs. nota
+     operativa): deliberadamente distintos de la paleta de acción/alerta del
+     resto de la app, para señalar que es contenido estático y congelado. */
+  --ep-border: var(--color-border);
+  --ep-ink: var(--color-ink);
+  --ep-muted: var(--color-muted);
   --ep-formal-bg: #f4f0e6;
-  --ep-formal-border: #a68a4a;
-  --ep-operational-bg: #e5eef0;
-  --ep-operational-border: #1f5b6b;
-  --ep-mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --ep-formal-border: #8a7238;
+  --ep-operational-bg: var(--color-action-bg);
+  --ep-operational-border: var(--color-action);
+  --ep-mono: var(--font-mono);
 
   display: flex;
   flex-direction: column;

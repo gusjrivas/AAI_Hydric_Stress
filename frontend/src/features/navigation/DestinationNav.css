@@ -1,6 +1,6 @@
 .dn-nav {
   max-width: 72rem;
-  margin: 0 auto 1.5rem;
+  margin: 0 auto var(--space-6);
 }
 
 .dn-list {
@@ -9,43 +9,40 @@
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .dn-link {
-  display: inline-block;
-  padding: 0.5rem 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
   border-radius: 6px;
-  border: 1px solid #d9e0d5;
-  background: #ffffff;
-  color: #1b2a1e;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 600;
 }
 
 .dn-link:hover {
-  border-color: #1f5b6b;
+  border-color: var(--color-action);
 }
 
 .dn-link[aria-current="page"] {
-  background: #1f5b6b;
-  border-color: #1f5b6b;
+  background: var(--color-action);
+  border-color: var(--color-action);
   color: #ffffff;
-}
-
-.dn-link:focus-visible {
-  outline: 3px solid #1f5b6b;
-  outline-offset: 2px;
 }
 
 @media (max-width: 640px) {
   .dn-list {
-    gap: 0.4rem;
+    gap: var(--space-2);
   }
 
   .dn-link {
-    padding: 0.45rem 0.7rem;
+    padding: var(--space-2) var(--space-3);
     font-size: 0.85rem;
   }
 }

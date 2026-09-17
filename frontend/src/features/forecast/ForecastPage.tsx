@@ -70,11 +70,7 @@ export function ForecastPage({ workspace }: ForecastPageProps) {
 
   return (
     <div className="fp-page">
-      <header className="fp-header">
-        <div>
-          <p className="fp-subtitle">Validación humana de alertas sobre el dataset consolidado</p>
-        </div>
-      </header>
+      <p className="fp-subtitle">Validación humana de alertas sobre el dataset consolidado</p>
 
       <div className="fp-banner" role="note">
         <strong>Qué prueba esta pantalla:</strong> consultar y filtrar el historial no genera un

@@ -54,6 +54,9 @@ function App() {
 
   return (
     <div className="app-page">
+      <a href="#main-content" className="skip-link">
+        Saltar al contenido
+      </a>
       <header className="app-sensor-header">
         <form
           className="app-sensor-form"
@@ -86,7 +89,7 @@ function App() {
 
       <DestinationNav active={route} />
 
-      <main className="app-sections">
+      <main id="main-content" className="app-sections" tabIndex={-1}>
         {route === "resumen" && (
           <section aria-labelledby="resumen-heading">
             <h2 id="resumen-heading" className="app-section-heading" tabIndex={-1}>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import "./ActivePredictorSummary.css";
 import { getActivePredictor } from "./api";
 import type { ActivePredictor } from "./api";
 

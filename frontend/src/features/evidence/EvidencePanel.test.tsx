@@ -33,4 +33,12 @@ describe("EvidencePanel", () => {
       screen.getByText(/no constituye evidencia de mejora métrica/i),
     ).toBeInTheDocument();
   });
+
+  it("makes the formal evidence table's horizontal scroll reachable and operable by keyboard (task 4.3)", () => {
+    render(<EvidencePanel />);
+
+    const region = screen.getByRole("region", { name: /desplazable horizontalmente/i });
+    expect(region).toHaveAttribute("tabIndex", "0");
+    expect(region.querySelector("table")).toBeInTheDocument();
+  });
 });
