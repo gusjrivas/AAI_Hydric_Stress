@@ -2,9 +2,12 @@
 
 ## Estado
 
-**Propuesto**, 2026-09-17. Parte del change
-[add-accelerated-sensor-demo](../../openspec/changes/add-accelerated-sensor-demo/proposal.md).
-No implementado ni aceptado por este documento.
+**Aceptado**, 2026-09-17, mediante el PR #201 (revisión de diseño de
+[add-accelerated-sensor-demo](../../openspec/changes/add-accelerated-sensor-demo/proposal.md)).
+La aceptación cubre la decisión de arquitectura descripta en este documento, no su
+implementación: el controlador local, el adaptador HTTP y el perfil Docker `demo`
+siguen sin implementarse hasta que las entregas correspondientes del change lo
+indiquen explícitamente.
 
 ## Contexto
 

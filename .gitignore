@@ -30,3 +30,10 @@ data/feedback_ui.parquet
 # y embebido al construir esa imagen (hallazgo H-05, ver code_identity.py).
 # Nunca se versiona: se regenera en cada build a partir del checkout real.
 .build_identity.json
+
+# Manifiestos y datos generados por scripts/demo_simulation (HU6, change
+# add-accelerated-sensor-demo): estado de ejecución sintético y efímero de
+# una demo local, no un dataset curado — misma razón que data/feedback_ui.parquet.
+demo_sessions/
+data/sensor__demo-*.parquet
+data/feedback__demo-*.parquet
