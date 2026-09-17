@@ -279,6 +279,34 @@ La interfaz DEBE diferenciar correcciones registradas de fechas incorporadas al 
 
 Implementado en `frontend/src/features/forecast/RecalibrationPanel.tsx`, montado en Modelo y trazabilidad (`App.tsx`, destino `#linaje`) junto a `ActivePredictorSummary` y `LineageChain`. Consulta de forma independiente `GET /models/{sensor_id}/active` para las fechas `applied_feedback_dates`; si esa consulta falla, la incorporación se muestra explícitamente como desconocida en vez de asumir "no incorporada". No calcula un total de correcciones "elegibles": solo cuenta las filas `rechazada` con `etiqueta_corregida` no nula (correcciones registradas) y, por separado y solo informativamente, si su fecha aparece en `applied_feedback_dates` — sin inferir que una corrección posterior a esa fecha ya fue aplicada. Tras una recalibración exitosa, `predictorRefreshToken`/`lineageRefreshToken` (`App.tsx`) fuerzan un refetch de predictor y linaje; el historial de Alertas y revisión no se recarga ni se modifica. El error de una recalibración (p. ej. sin correcciones temporalmente elegibles) usa un campo separado (`recalibrateError`) del error de un pronóstico, para no aparecer fuera de contexto en Resumen. Testeado en `frontend/src/features/forecast/RecalibrationPanel.test.tsx`. Origen: Entrega 3 (tareas 3.3, 3.4, 3.5) de `openspec/changes/improve-alerting-ui-decision-workflow/`.
 
+### Requirement: Presentación accesible y adaptable
+
+La interfaz DEBE mantener jerarquía visual, tema claro consistente, controles etiquetados, foco visible y estados comprensibles sin depender del color. DEBE permitir completar consulta y revisión mediante teclado.
+
+#### Scenario: Uso mediante teclado
+
+- **GIVEN** navegación con teclado sin ratón
+- **WHEN** se selecciona sensor, consulta historial, corrige una fila y abre detalles
+- **THEN** todos los controles son alcanzables y operables, el foco no queda oculto y los mensajes de guardado/error son anunciados
+- **AND** los identificadores completos no dependen exclusivamente de hover o `title`.
+
+Implementado en `frontend/src/index.css` (tokens de color centralizados con contrastes verificados por cálculo — fórmula de luminancia relativa de WCAG, no solo inspección visual —, regla global `:focus-visible`, enlace "Saltar al contenido" hacia `<main id="main-content" tabIndex={-1}>`), `frontend/src/App.tsx` (foco programático al `<h2>` de cada destino tras navegar, reconfirmado por `document.activeElement`), `frontend/src/features/evidence/EvidencePanel.tsx` (contenedor de la tabla formal como `role="region"` con `tabIndex={0}`, alcanzable y desplazable por teclado). El badge de estado de revisión (pendiente/confirmada/rechazada) usa una paleta propia, distinta de la señal de alerta/sin alerta — confirmar ya no se presenta como "seguro" (verde). Testeado en `frontend/src/App.test.tsx` (enlace de salto y su destino) y `frontend/src/features/evidence/EvidencePanel.test.tsx` (región de scroll enfocable). Origen: Entrega 4 (tarea 4.1, 4.3 parcial) de `openspec/changes/improve-alerting-ui-decision-workflow/`.
+
+**Alcance de esta actualización — pendiente, no verificado:** el escenario "Pantalla angosta, zoom y contraste" del delta de este change (anchos 360/768/1440 px, reflow a 320 CSS px, zoom 200%) **no se mergea a este requirement**: no pudo verificarse en esta entrega por una limitación del entorno de automatización (la herramienta de redimensionado de ventana no tuvo efecto). El trazado manual completo de Tab por teclado tampoco se pudo confirmar con confianza en esta sesión (resultados inconsistentes entre intentos); el orden de foco se verificó en cambio por inspección directa del DOM. Detalle completo en `openspec/changes/improve-alerting-ui-decision-workflow/tasks.md`, tarea 4.3.
+
+### Requirement: Conservación de evidencia y explicación científica
+
+La interfaz DEBE conservar el acceso al recorrido de arquitectura, evidencia congelada, procedencia y limitaciones, diferenciados del estado operativo por sensor.
+
+#### Scenario: Consultar evidencia y trazabilidad
+
+- **GIVEN** cualquier sensor seleccionado
+- **WHEN** se abre Evidencia y arquitectura
+- **THEN** los valores y fuentes científicas existentes permanecen idénticos y la navegación no ejecuta experimentos
+- **AND** Modelo y trazabilidad presenta el predictor para el próximo pronóstico sin atribuirlo a registros históricos; un error de integridad del linaje permanece explícito.
+
+Implementado en `frontend/src/App.tsx` (destinos `#evidencia` y `#linaje`, ya establecidos desde la Entrega 2) y verificado nuevamente tras el rediseño visual de la Entrega 4: los valores de `EvidencePanel.tsx` (evidencia congelada `controlled_daily_v3`) y `ArchitectureFlow.tsx` (recorrido de defensa) no cambiaron; un fallo de integridad de linaje (409 simulado) se muestra explícito en Modelo y trazabilidad, sin ocultarse ni presentarse como cadena vacía. Testeado en `frontend/src/features/evidence/EvidencePanel.test.tsx`; verificado también en navegador con un `fetch` interceptado simulando un evento de linaje corrupto. Origen: Entrega 2 (tarea 2.4) y Entrega 4 (tarea 4.7) de `openspec/changes/improve-alerting-ui-decision-workflow/`.
+
 ## Limitaciones conocidas
 
 - ~~Un único modelo fijo (Random Forest, configuración base) genera el veredicto; el motor de selección/ensamble entre varios modelos queda para una iteración futura (`openspec/changes/add-alerting-ui/proposal.md`, "Fuera de alcance").~~ **Actualización (2026-08-22):** por un tiempo resuelto mediante selección automática entre candidatos (`openspec/specs/predictive-modeling/spec.md`, requirement "Selección automática del mejor modelo candidato"). **Actualización posterior (ver "Modelo operativo vs. selección automática experimental" más abajo):** el backend operativo volvió a usar un contrato Random Forest explícito, por una decisión deliberada distinta del motivo original de esta limitación — no es un regreso a la limitación original, sino una decisión operativa para evitar que la UI falle ante folds de validación degenerados.

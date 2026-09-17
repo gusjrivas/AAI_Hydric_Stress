@@ -76,29 +76,53 @@ entorno). Capturas adjuntas en el PR.
 
 ## 4. Diseño coherente y verificación — depende de 2 y 3
 
-- [ ] 4.1 Centralizar tokens, tema claro, tipografía y estados; retirar estilos globales heredados incompatibles y layout de página anidado.
-- [ ] 4.2 Ajustar escritorio/móvil, formularios, navegación, estados de carga/error/vacío y mensajes accesibles.
-- [ ] 4.3 Verificar teclado completo, foco, contraste WCAG 2.2 AA, reflow y zoom según `design.md`; documentar hallazgos y corregirlos.
-- [ ] 4.4 Ejecutar en `frontend/`: `npm test`, `npm run lint`, `npm run build`. No sustituir inspección visual por tests de jsdom.
-- [ ] 4.5 Revisar en navegador a 360/768/1440 px y 320 CSS px: vacío, error, historial extenso, alerta/sin alerta, guardado, 409, recalibración y linaje fallido. Usar fixtures identificados o sensor de prueba aislado; nunca datos experimentales históricos para escrituras de QA.
-- [ ] 4.6 Registrar evidencia de consulta/revisión/lectura de linaje con teclado y móvil; distinguir pruebas con fixtures de integración real. Verificar que consultar y navegar no generan POST.
-- [ ] 4.7 Actualizar `docs/design/alerting-ui-visual-design.md`, `docs/seguimiento-tareas.md` y spec canónica únicamente con lo efectivamente implementado. Registrar impacto nulo HU7/HU8 y aporte al capítulo 3.
+Estado: **parcialmente implementada**. Rama `feat/alerting-ui-design-verification`,
+PR contra `main` referenciando HU6/HU5, **abierto como draft**: 4.3, 4.5 y 4.6
+quedan pendientes por una limitación de entorno (ver abajo), no por falta de
+intención. No se declara terminada esta entrega ni el *change* completo.
+
+- [x] 4.1 Centralizar tokens, tema claro, tipografía y estados; retirar estilos globales heredados incompatibles y layout de página anidado. — `frontend/src/index.css` (tokens `--color-*`/`--space-*`/`--font-*` únicos; se eliminó el boilerplate de `create-vite` con acento violeta y una declaración `@media (prefers-color-scheme: dark)` que sí alteraba `--bg`/`--text` del documento aunque ningún componente propio la usara — el "tema oscuro parcial" que `design.md` pedía retirar); `.fp-page`/`.app-page` ya no duplican `min-height:100vh`+padding (layout de página anidado); estado de revisión (pendiente/confirmada/rechazada) separado en paleta propia — confirmar ya no pinta de verde. Detalle en `docs/design/alerting-ui-visual-design.md`.
+- [x] 4.2 Ajustar escritorio/móvil, formularios, navegación, estados de carga/error/vacío y mensajes accesibles. — Reglas responsive existentes revisadas y mantenidas (`flex-wrap` en filtros/nav, columna única por defecto en `ResumenView`, colapso de `.fp-row` a `max-width:640px`); controles principales con `min-height:44px`. Verificado en escritorio real (~1864 px); **el ajuste móvil se apoya en revisión de código, no en una captura real** (ver limitaciones).
+- [ ] 4.3 Verificar teclado completo, foco, contraste WCAG 2.2 AA, reflow y zoom según `design.md`; documentar hallazgos y corregirlos. — **Parcial.** Contraste: medido por cálculo (fórmula de luminancia relativa de WCAG), no solo inspección visual — encontré y corregí un par real por debajo de 4.5:1 (badge "rechazada" antes del rediseño de paleta de revisión) y reforcé bordes de controles interactivos a ≥3:1; tabla completa en `docs/design/alerting-ui-visual-design.md`. Foco: agregado enlace "Saltar al contenido" y región de scroll por teclado en la tabla de evidencia; el salto de foco tras navegar se reconfirmó por consulta directa de `document.activeElement`. Teclado: el trazado manual de Tab en esta sesión de automatización dio resultados inconsistentes entre intentos (atribuible a la herramienta, no reproducido de forma confiable) — se verificó en cambio el orden de foco por inspección directa del DOM y por los tests existentes que ejercitan foco programático. **Reflow a 320 CSS px y zoom 200% no se pudieron verificar**: sin acceso a redimensionado de viewport real en este entorno (ver limitaciones). Pendiente para quien retome esta rama con un navegador real.
+- [x] 4.4 Ejecutar en `frontend/`: `npm test`, `npm run lint`, `npm run build`. No sustituir inspección visual por tests de jsdom. — 68 tests en verde, `npm run lint` sin hallazgos, `npm run build` correcto. La verificación visual en navegador (ver 4.2/4.3/4.5) se hizo aparte, no en reemplazo de esto.
+- [ ] 4.5 Revisar en navegador a 360/768/1440 px y 320 CSS px: vacío, error, historial extenso, alerta/sin alerta, guardado, 409, recalibración y linaje fallido. Usar fixtures identificados o sensor de prueba aislado; nunca datos experimentales históricos para escrituras de QA. — **Parcial.** Todos los estados listados (vacío/404, error/500, historial extenso de 18 filas, alerta/sin alerta mezclados, guardado exitoso, 409 con formulario conservado, recalibración exitosa, fallo de integridad de linaje) se revisaron y capturaron, pero solo en el ancho de escritorio disponible en este entorno (~1864 px) — **no en 360/768/1440/320 px reales**, por la misma limitación de redimensionado. Datos vía `fetch` interceptado en el navegador con un sensor de prueba sintético (`sensor-qa`), nunca el dataset histórico real.
+- [ ] 4.6 Registrar evidencia de consulta/revisión/lectura de linaje con teclado y móvil; distinguir pruebas con fixtures de integración real. Verificar que consultar y navegar no generan POST. — **Parcial.** "Consultar y navegar no generan POST" ya está cubierto por tests existentes (`App.test.tsx`: el conteo de `listFeedback`/`runForecast` no aumenta al navegar entre destinos ni al volver a Resumen) y se reconfirmó de forma manual. La evidencia por **teclado** de consulta/revisión/linaje es parcial (ver 4.3); la evidencia **móvil** no se pudo producir (ver limitaciones). Fixtures y mocks distinguidos de integración real en todo momento (nunca hubo integración real disponible en esta rama).
+- [x] 4.7 Actualizar `docs/design/alerting-ui-visual-design.md`, `docs/seguimiento-tareas.md` y spec canónica únicamente con lo efectivamente implementado. Registrar impacto nulo HU7/HU8 y aporte al capítulo 3. — Los tres documentos actualizados (ver PR). Impacto nulo sobre HU7/HU8: ningún cambio toca `src/`, protocolos, configuraciones experimentales ni resultados históricos — solo `frontend/`. Aporte al capítulo 3 (arquitectura e implementación) de la memoria técnica: consolidación del sistema de diseño y de la accesibilidad de la interfaz de decisión, sin afectar metodología ni evidencia científica.
+
+**Limitación de entorno, declarada explícitamente (afecta 4.3, 4.5 y 4.6):**
+la herramienta de redimensionado de ventana del navegador no tuvo efecto en
+esta sesión de automatización en ninguna de las cuatro entregas de este
+*change* (`window.innerWidth` no cambia pese a pedir 375×812, 390×844 o
+320 px). No hay integración real contra `backend/` en ninguna entrega. El
+trazado manual de Tab por teclado fue inconsistente entre intentos en esta
+sesión — no se reporta como verificado con confianza, aunque el orden de
+foco correcto sí se confirmó por inspección del DOM. Estas tres tareas
+quedan **pendientes**, no marcadas como completas, y el PR de esta entrega se
+abre como **draft** en consecuencia.
 
 ## Matriz de cobertura
 
-| Requisito del delta | Tareas / evidencia prevista |
-|---|---|
-| Contexto global de sensor y aislamiento de solicitudes | 1.1, 1.3, 1.5 |
-| Consulta de historial independiente de la ejecución | 1.2, 1.5, 2.3, 2.5 |
-| Navegación centrada en la decisión y resumen fiel | 2.1, 2.2, 2.5 |
-| Operaciones explícitas y protección de mutaciones | 1.3–1.5 |
-| Corrección humana explícita y recuperable | 3.1, 3.2, 3.5 |
-| Estado honesto de correcciones y recalibración | 3.3–3.5 |
-| Presentación accesible y adaptable | 4.1–4.6 |
-| Conservación de evidencia y explicación científica | 2.4, 4.5–4.7 |
+| Requisito del delta | Tareas / evidencia prevista | Estado |
+|---|---|---|
+| Contexto global de sensor y aislamiento de solicitudes | 1.1, 1.3, 1.5 | ✅ completo |
+| Consulta de historial independiente de la ejecución | 1.2, 1.5, 2.3, 2.5 | ✅ completo |
+| Navegación centrada en la decisión y resumen fiel | 2.1, 2.2, 2.5 | ✅ completo |
+| Operaciones explícitas y protección de mutaciones | 1.3–1.5 | ✅ completo |
+| Corrección humana explícita y recuperable | 3.1, 3.2, 3.5 | ✅ completo |
+| Estado honesto de correcciones y recalibración | 3.3–3.5 | ✅ completo |
+| Presentación accesible y adaptable | 4.1–4.6 | 🟡 parcial — reflow/zoom/móvil/teclado completo pendientes |
+| Conservación de evidencia y explicación científica | 2.4, 4.5–4.7 | 🟡 parcial — 4.5/4.6 pendientes en móvil |
 
 ## Cierre
 
-- [ ] Todos los escenarios tienen evidencia; ninguna casilla se completa solo por haber redactado el diseño.
-- [ ] No hay cambios en `src/`, protocolos, configuraciones, artefactos científicos ni resultados históricos.
-- [ ] El informe final distingue validación automatizada, visual e integración real y declara cualquier limitación pendiente.
+- [ ] Todos los escenarios tienen evidencia; ninguna casilla se completa solo por haber redactado el diseño. — **No cerrado**: 4.3/4.5/4.6 quedan pendientes (ver arriba). El resto de las entregas (1–3) sí tiene evidencia completa por escenario.
+- [x] No hay cambios en `src/`, protocolos, configuraciones, artefactos científicos ni resultados históricos. — Confirmado en las cuatro entregas; esta (4) solo tocó `frontend/` y estos tres documentos.
+- [x] El informe final distingue validación automatizada, visual e integración real y declara cualquier limitación pendiente. — Ver PR de esta entrega y las limitaciones declaradas arriba.
+
+**El *change* `improve-alerting-ui-decision-workflow` no se declara completo.**
+Las Entregas 1, 2 y 3 están implementadas, verificadas y mergeadas. La
+Entrega 4 está parcialmente implementada: el trabajo de diseño (4.1, 4.2,
+4.4, 4.7) está hecho y verificado; la verificación de accesibilidad en
+viewport móvil real, reflow a 320 px, zoom 200% y trazado de teclado
+completo (4.3, 4.5, 4.6) queda pendiente para quien retome esta rama con
+acceso a un navegador sin la limitación de entorno descripta arriba.

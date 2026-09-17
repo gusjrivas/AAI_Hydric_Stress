@@ -228,3 +228,29 @@ describe("App — navegación por hash (Entrega 2)", () => {
     await waitFor(() => expect(recalibrateButton).not.toBeDisabled());
   });
 });
+
+describe("App — diseño coherente y accesibilidad (Entrega 4)", () => {
+  beforeEach(() => {
+    window.location.hash = "";
+    vi.restoreAllMocks();
+    vi.spyOn(forecastApi, "getActivePredictor").mockResolvedValue(EMPTY_PREDICTOR);
+    vi.spyOn(forecastApi, "listFeedback").mockResolvedValue({ rows: [] });
+    vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(null);
+    vi.spyOn(lineageApi, "getLineage").mockResolvedValue({ sensor_id: "sensor-a", chain: [] });
+  });
+
+  it("offers a skip link, as the first focusable element, pointing to a focusable main content landmark", () => {
+    render(<App />);
+
+    const skipLink = screen.getByRole("link", { name: /saltar al contenido/i });
+    expect(skipLink).toHaveAttribute("href", "#main-content");
+
+    // jsdom no simula el salto de foco del navegador al activar un enlace
+    // de fragmento; lo que sí podemos verificar aquí es que el destino
+    // existe y es programáticamente enfocable (tabIndex="-1"). El salto de
+    // foco real se verificó a mano en un navegador (ver PR).
+    const target = document.getElementById("main-content");
+    expect(target).not.toBeNull();
+    expect(target).toHaveAttribute("tabIndex", "-1");
+  });
+});

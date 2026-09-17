@@ -1,51 +1,44 @@
 .qp-panel {
-  --qp-border: #d9e0d5;
-  --qp-muted: #5c6b5f;
-  --qp-ink: #1b2a1e;
-  --qp-fill: #1f5b6b;
-  --qp-surface: #ffffff;
-  --qp-mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  color: var(--qp-ink);
+  gap: var(--space-4);
+  color: var(--color-ink);
 }
 
 .qp-status {
-  color: var(--qp-muted);
+  color: var(--color-muted);
   font-size: 0.9rem;
 }
 
 .qp-error {
-  color: #c1440e;
+  color: var(--color-alert);
   font-weight: 600;
 }
 
 .qp-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: 0.75rem;
+  gap: var(--space-3);
   margin: 0;
 }
 
 .qp-summary > div {
-  border: 1px solid var(--qp-border);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  padding: 0.6rem 0.8rem;
-  background: var(--qp-surface);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
 }
 
 .qp-summary dt {
   font-size: 0.75rem;
-  color: var(--qp-muted);
+  color: var(--color-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
 .qp-summary dd {
   margin: 0.15rem 0 0;
-  font-family: var(--qp-mono);
+  font-family: var(--font-mono);
   font-size: 0.95rem;
 }
 
@@ -60,14 +53,14 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: var(--space-2);
 }
 
 .qp-bar-row {
   display: grid;
   grid-template-columns: minmax(9rem, 14ch) 1fr 4ch;
   align-items: center;
-  gap: 0.6rem;
+  gap: var(--space-2);
   font-size: 0.85rem;
 }
 
@@ -78,25 +71,25 @@
 .qp-bar-track {
   height: 8px;
   border-radius: 4px;
-  background: var(--qp-border);
+  background: var(--color-border);
   overflow: hidden;
 }
 
 .qp-bar-fill {
   display: block;
   height: 100%;
-  background: var(--qp-fill);
+  background: var(--color-action);
 }
 
 .qp-bar-value {
-  font-family: var(--qp-mono);
+  font-family: var(--font-mono);
   text-align: right;
 }
 
 .qp-note {
   margin: 0;
   font-size: 0.85rem;
-  color: var(--qp-muted);
+  color: var(--color-muted);
   max-width: 62ch;
 }
 

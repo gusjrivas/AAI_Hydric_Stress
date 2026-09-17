@@ -1,0 +1,39 @@
+.fp-predictor-status {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.fp-predictor-error {
+  color: var(--color-alert);
+  font-weight: 600;
+  margin: 0;
+}
+
+.fp-predictor-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.fp-predictor-summary dt {
+  font-size: 0.72rem;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.fp-predictor-summary dd {
+  margin: 0.1rem 0 0;
+}
+
+.fp-predictor-mono {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.fp-predictor-contract {
+  grid-column: 1 / -1;
+}

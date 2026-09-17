@@ -1,25 +1,17 @@
 .lc-chain {
-  --lc-border: #d9e0d5;
-  --lc-muted: #5c6b5f;
-  --lc-ink: #1b2a1e;
-  --lc-action: #1f5b6b;
-  --lc-action-bg: #e5eef0;
-  --lc-surface: #ffffff;
-  --lc-mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  color: var(--lc-ink);
+  gap: var(--space-4);
+  color: var(--color-ink);
 }
 
 .lc-status {
-  color: var(--lc-muted);
+  color: var(--color-muted);
   font-size: 0.9rem;
 }
 
 .lc-error {
-  color: #c1440e;
+  color: var(--color-alert);
   font-weight: 600;
 }
 
@@ -27,9 +19,9 @@
   margin: 0;
   font-size: 0.85rem;
   max-width: 62ch;
-  border-left: 4px solid var(--lc-action);
-  background: var(--lc-action-bg);
-  padding: 0.6rem 0.9rem;
+  border-left: 4px solid var(--color-action);
+  background: var(--color-action-bg);
+  padding: var(--space-2) var(--space-3);
   border-radius: 4px;
 }
 
@@ -39,54 +31,54 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
 .lc-entry {
-  border: 1px solid var(--lc-border);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  padding: 0.75rem 1rem;
-  background: var(--lc-surface);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: var(--space-2);
 }
 
 .lc-nodes {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  font-family: var(--lc-mono);
+  gap: var(--space-2);
+  font-family: var(--font-mono);
   font-size: 0.85rem;
 }
 
 .lc-node,
 .lc-feedback-node {
-  border: 1px solid var(--lc-border);
+  border: 1px solid var(--color-border-strong);
   border-radius: 999px;
   padding: 0.2rem 0.65rem;
 }
 
 .lc-node--successor {
-  border-color: var(--lc-action);
-  color: var(--lc-action);
+  border-color: var(--color-action);
+  color: var(--color-action);
 }
 
 .lc-arrow {
-  color: var(--lc-muted);
+  color: var(--color-muted);
 }
 
 .lc-meta {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  gap: 0.5rem;
+  gap: var(--space-2);
   margin: 0;
   font-size: 0.82rem;
 }
 
 .lc-meta dt {
-  color: var(--lc-muted);
+  color: var(--color-muted);
   text-transform: uppercase;
   font-size: 0.7rem;
   letter-spacing: 0.03em;
@@ -94,7 +86,7 @@
 
 .lc-meta dd {
   margin: 0.1rem 0 0;
-  font-family: var(--lc-mono);
+  font-family: var(--font-mono);
   overflow-wrap: anywhere;
 }
 
@@ -103,17 +95,17 @@
   border-radius: 4px;
   padding: 0.1rem 0.4rem;
   font-weight: 700;
-  border: 1px solid var(--lc-border);
+  border: 1px solid var(--color-border-strong);
 }
 
 .lc-version-badge--v1 {
-  background: #f4f6f2;
+  background: var(--color-bg);
 }
 
 .lc-version-badge--v2 {
-  background: var(--lc-action-bg);
-  color: var(--lc-action);
-  border-color: var(--lc-action);
+  background: var(--color-action-bg);
+  color: var(--color-action);
+  border-color: var(--color-action);
 }
 
 .lc-sha-details {

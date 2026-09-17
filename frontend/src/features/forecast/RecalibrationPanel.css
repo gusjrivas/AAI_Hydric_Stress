@@ -1,21 +1,21 @@
 .rp-panel {
-  border: 1px solid #d9e0d5;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: #ffffff;
-  padding: 1rem 1.25rem;
-  margin: 1rem 0;
+  background: var(--color-surface);
+  padding: var(--space-4);
+  margin: var(--space-4) 0;
 }
 
 .rp-count {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 
 .rp-unknown {
-  color: #5c6b5f;
+  color: var(--color-muted);
 }
 
 .rp-correction-list {
-  margin: 0.5rem 0 1rem;
+  margin: var(--space-2) 0 var(--space-4);
   padding-left: 1.25rem;
   font-size: 0.9rem;
 }
@@ -23,6 +23,6 @@
 .rp-disclaimer {
   font-size: 0.82rem;
   font-style: italic;
-  color: #5c6b5f;
-  margin: 0.75rem 0 0;
+  color: var(--color-muted);
+  margin: var(--space-3) 0 0;
 }
