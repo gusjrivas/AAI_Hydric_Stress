@@ -13,7 +13,7 @@ const STAGES = [
 export function ArchitectureFlow() {
   return (
     <header className="af-header">
-      <h1 className="af-title">Demo: arquitectura de IA para estrés hídrico</h1>
+      <h3 className="af-title">Demo: arquitectura de IA para estrés hídrico</h3>
       <p className="af-subtitle">
         Recorrido de defensa — datos IoT → calidad → features → predicción → alerta → feedback
         humano → recalibración → linaje. La IA (predicción, alerta y recalibración) es el núcleo;

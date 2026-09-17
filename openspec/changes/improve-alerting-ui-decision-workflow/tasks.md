@@ -25,13 +25,28 @@ quedan fuera de esta entrega (Entregas 2 a 4).
 
 ## 2. Navegación y resumen — depende de 1
 
-- [ ] 2.1 Implementar cinco destinos por hash, compatibilidad de anchors existentes, Atrás/Adelante, título, foco y destino activo.
-- [ ] 2.2 Construir Resumen: último pronóstico registrado, fechas diferenciadas, pendientes de revisión y contexto de calidad. Estados vacíos y parciales explícitos.
-- [ ] 2.3 Agregar filtros de alerta, validación y rango de referencia; limpiar filtros, orden descendente y contadores generales independientes del filtro.
-- [ ] 2.4 Reubicar arquitectura/evidencia y predictor/linaje manteniendo contenido y procedencia; desplegar detalles técnicos sin retirarlos.
-- [ ] 2.5 Tests de navegación, conservación de contexto, selección del último registro, fechas calendario sin desplazamiento y filtros sin coincidencias.
+Estado: implementada y verificada (ver evidencia por tarea). Rama
+`feat/alerting-ui-navigation-summary`, PR contra `main` referenciando HU6/HU5.
+
+- [x] 2.1 Implementar cinco destinos por hash, compatibilidad de anchors existentes, Atrás/Adelante, título, foco y destino activo. — `frontend/src/features/navigation/useHashRoute.ts`, `DestinationNav.tsx`, cableado en `App.tsx`; tests en `frontend/src/App.test.tsx` (describe "navegación por hash").
+- [x] 2.2 Construir Resumen: último pronóstico registrado, fechas diferenciadas, pendientes de revisión y contexto de calidad. Estados vacíos y parciales explícitos. — `frontend/src/features/summary/ResumenView.tsx`; tests en `ResumenView.test.tsx`.
+- [x] 2.3 Agregar filtros de alerta, validación y rango de referencia; limpiar filtros, orden descendente y contadores generales independientes del filtro. — `frontend/src/features/forecast/ForecastPage.tsx` (`fieldset` de filtros); tests en `ForecastPage.test.tsx` (describe "filtros de historial").
+- [x] 2.4 Reubicar arquitectura/evidencia y predictor/linaje manteniendo contenido y procedencia; desplegar detalles técnicos sin retirarlos. — `ArchitectureFlow`/`EvidencePanel` bajo el destino "evidencia"; `ActivePredictorSummary`/`LineageChain` bajo "linaje", ambos en `App.tsx`. Contenido y provenance sin cambios, solo reubicados.
+- [x] 2.5 Tests de navegación, conservación de contexto, selección del último registro, fechas calendario sin desplazamiento y filtros sin coincidencias. — `App.test.tsx`, `ResumenView.test.tsx`, `ForecastPage.test.tsx` (57 tests totales, `npm test`/`npm run lint`/`npm run build` verdes).
 
 **Salida:** acceso directo al pronóstico y su revisión, con recorrido de defensa disponible.
+
+**Limitaciones de esta entrega:** verificación en navegador con Claude in Chrome
+realizada sin backend levantado (misma limitación de la Entrega 1); confirmé
+navegación por hash, foco de encabezado, título de documento, Atrás/Adelante,
+compatibilidad de anchors y navegación por teclado (Tab + Enter) en escritorio.
+No pude verificar visualmente el layout en un viewport móvil real: la
+herramienta de redimensionado de ventana del navegador no tuvo efecto en este
+entorno (`window.innerWidth` permaneció en 1864px pese a pedir 390×844) — el
+diseño responsive de esta entrega (`ResumenView` en columna única por defecto,
+fila solo desde `min-width: 900px`; nav con `flex-wrap`) se apoya en las reglas
+CSS ya escritas y en la revisión de código, no en una captura móvil real.
+Capturas de escritorio adjuntas en el PR para Resumen y Alertas y revisión.
 
 ## 3. Revisión humana y trazabilidad — depende de 1 y 2
 

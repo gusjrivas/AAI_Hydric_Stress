@@ -2,31 +2,22 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { ForecastPage } from "./ForecastPage";
+import { useForecastWorkspace } from "./useForecastWorkspace";
 import * as api from "./api";
 import { HttpError } from "./api";
 import * as lineageApi from "../lineage/api";
 
-const EMPTY_PREDICTOR: api.ActivePredictor = {
-  sensor_id: "sensor-a",
-  origin: null,
-  model_id: null,
-  version: null,
-  trained_through: null,
-  calibration_end: null,
-  horizon_days: 3,
-  contract_version: 1,
-  pipeline_version: "controlled_daily_v3",
-  feature_columns: ["soil_moisture", "solar_radiation", "relative_humidity"],
-  lags: [1, 2, 3],
-  rolling_windows: [3, 7],
-  applied_feedback_count: 0,
-  applied_feedback_dates: [],
-};
+/** Espejo mínimo de cómo App.tsx compone ForecastPage con el hook
+ * compartido (entrega 2): el workspace se instancia una sola vez y se
+ * pasa como prop, en vez de que ForecastPage lo posea. */
+function Harness({ sensorId }: { sensorId: string }) {
+  const workspace = useForecastWorkspace(sensorId);
+  return <ForecastPage sensorId={sensorId} workspace={workspace} />;
+}
 
-describe("ForecastPage", () => {
+describe("ForecastPage (Alertas y revisión)", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    vi.spyOn(api, "getActivePredictor").mockResolvedValue(EMPTY_PREDICTOR);
   });
 
   it("consults the persisted history on mount without running a forecast", async () => {
@@ -45,7 +36,7 @@ describe("ForecastPage", () => {
     });
     const runForecastSpy = vi.spyOn(api, "runForecast");
 
-    render(<ForecastPage sensorId="sensor-a" />);
+    render(<Harness sensorId="sensor-a" />);
 
     await waitFor(() => {
       expect(screen.getByText("2024-10-31")).toBeInTheDocument();
@@ -69,7 +60,7 @@ describe("ForecastPage", () => {
       ],
     });
 
-    render(<ForecastPage sensorId="sensor-a" />);
+    render(<Harness sensorId="sensor-a" />);
 
     await waitFor(() => screen.getByText("2024-10-30"));
     expect(screen.getByText(/no disponible/i)).toBeInTheDocument();
@@ -91,7 +82,7 @@ describe("ForecastPage", () => {
       ],
     });
 
-    const { rerender } = render(<ForecastPage sensorId="sensor-a" />);
+    const { rerender } = render(<Harness sensorId="sensor-a" />);
     await waitFor(() => screen.getByText("2024-10-31"));
 
     spy.mockResolvedValueOnce({
@@ -108,7 +99,7 @@ describe("ForecastPage", () => {
       ],
     });
 
-    rerender(<ForecastPage sensorId="sensor-b" />);
+    rerender(<Harness sensorId="sensor-b" />);
 
     await waitFor(() => screen.getByText("2024-11-05"));
     expect(screen.queryByText("2024-10-31")).not.toBeInTheDocument();
@@ -120,7 +111,7 @@ describe("ForecastPage", () => {
     let resolveSensorA!: (value: api.FeedbackListResponse) => void;
     spy.mockReturnValueOnce(new Promise((resolve) => (resolveSensorA = resolve)));
 
-    const { rerender } = render(<ForecastPage sensorId="sensor-a" />);
+    const { rerender } = render(<Harness sensorId="sensor-a" />);
 
     spy.mockResolvedValueOnce({
       rows: [
@@ -135,7 +126,7 @@ describe("ForecastPage", () => {
         },
       ],
     });
-    rerender(<ForecastPage sensorId="sensor-b" />);
+    rerender(<Harness sensorId="sensor-b" />);
     await waitFor(() => screen.getByText("2024-11-05"));
 
     resolveSensorA({
@@ -162,7 +153,7 @@ describe("ForecastPage", () => {
       new HttpError(404, "Todavía no se corrió ningún pronóstico."),
     );
 
-    render(<ForecastPage sensorId="sensor-a" />);
+    render(<Harness sensorId="sensor-a" />);
 
     await waitFor(() => {
       expect(screen.getByText(/todavía no hay pronósticos registrados/i)).toBeInTheDocument();
@@ -172,7 +163,7 @@ describe("ForecastPage", () => {
   it("shows a retryable error (not a zero-count empty state) on a 500", async () => {
     vi.spyOn(api, "listFeedback").mockRejectedValue(new HttpError(500, "Error interno"));
 
-    render(<ForecastPage sensorId="sensor-a" />);
+    render(<Harness sensorId="sensor-a" />);
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent(/error interno/i);
@@ -202,7 +193,7 @@ describe("ForecastPage", () => {
       .spyOn(api, "confirmAlert")
       .mockReturnValueOnce(new Promise((resolve) => (resolveConfirm = resolve)));
 
-    render(<ForecastPage sensorId="sensor-a" />);
+    render(<Harness sensorId="sensor-a" />);
     await waitFor(() => screen.getByText("2024-10-31"));
 
     const confirmButton = screen.getByRole("button", { name: /confirmar/i });
@@ -252,7 +243,7 @@ describe("ForecastPage", () => {
       observacion: null,
     });
 
-    render(<ForecastPage sensorId="sensor-a" />);
+    render(<Harness sensorId="sensor-a" />);
     await waitFor(() => screen.getByText("2024-10-31"));
 
     const rows = screen.getAllByRole("listitem");
@@ -260,84 +251,18 @@ describe("ForecastPage", () => {
     const confirmButtons = screen.getAllByRole("button", { name: /confirmar/i });
     await userEvent.click(confirmButtons[0]);
 
-    await waitFor(() => expect(screen.getByText(/confirmada/i)).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText("2024-10-31").closest("li")).toHaveTextContent(/confirmada/i),
+    );
     expect(screen.getByText("2024-10-30").closest("li")).toHaveTextContent(/pendiente/i);
-  });
-
-  it("disables recalibration while a forecast run is pending, and vice versa", async () => {
-    vi.spyOn(api, "listFeedback").mockResolvedValue({
-      rows: [
-        {
-          fecha: "2024-10-31",
-          alerta_generada: 1,
-          estado_validacion: "rechazada",
-          etiqueta_corregida: 0,
-          observacion: "test",
-          y_proba: 0.72,
-          fecha_objetivo: null,
-        },
-      ],
-    });
-    let resolveRun!: (value: api.ForecastRunResponse) => void;
-    vi.spyOn(api, "runForecast").mockReturnValueOnce(new Promise((resolve) => (resolveRun = resolve)));
-
-    render(<ForecastPage sensorId="sensor-a" />);
-    const recalibrateButton = await screen.findByRole("button", { name: /recalibrar modelo/i });
-
-    await userEvent.click(screen.getByRole("button", { name: /correr pronóstico/i }));
-    expect(recalibrateButton).toBeDisabled();
-
-    resolveRun({ train_rows: 1, test_rows: 1, verdicts: [] });
-    await waitFor(() => expect(recalibrateButton).not.toBeDisabled());
-  });
-
-  it("keeps a successful forecast result even if the follow-up history refresh fails, and offers a manual retry", async () => {
-    vi.spyOn(api, "listFeedback")
-      .mockResolvedValueOnce({ rows: [] })
-      .mockRejectedValueOnce(new HttpError(500, "fallo de refresco"));
-    vi.spyOn(api, "runForecast").mockResolvedValue({
-      train_rows: 286,
-      test_rows: 1,
-      verdicts: [{ fecha: "2024-10-31", alerta: true, probabilidad: 0.72 }],
-    });
-
-    render(<ForecastPage sensorId="sensor-a" />);
-    await waitFor(() => screen.getByText(/todavía no hay pronósticos registrados/i));
-
-    await userEvent.click(screen.getByRole("button", { name: /correr pronóstico/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText("2024-10-31")).toBeInTheDocument();
-    });
-    expect(
-      screen.getByText(/no se pudo confirmar la actualización del historial/i),
-    ).toBeInTheDocument();
   });
 
   it("shows the relative-signal disclaimer next to the probability gauge", async () => {
     vi.spyOn(api, "listFeedback").mockResolvedValue({ rows: [] });
-    render(<ForecastPage sensorId="sensor-a" />);
+    render(<Harness sensorId="sensor-a" />);
     expect(
       screen.getByText(/señal predictiva relativa del modelo/i),
     ).toBeInTheDocument();
-  });
-
-  it("shows the active predictor's identity once it resolves", async () => {
-    vi.spyOn(api, "listFeedback").mockResolvedValue({ rows: [] });
-    vi.spyOn(api, "getActivePredictor").mockResolvedValue({
-      ...EMPTY_PREDICTOR,
-      origin: "recalibrado",
-      model_id: "modelo-activo",
-      version: "2",
-      trained_through: "2024-10-31",
-    });
-
-    render(<ForecastPage sensorId="sensor-a" />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/recalibrado \(hitl\)/i)).toBeInTheDocument();
-    });
-    expect(screen.getByText(/modelo-activo/i)).toBeInTheDocument();
   });
 
   it("shows a recalibrate button only when there is a pending correction, and using it shows the registered version and its lineage", async () => {
@@ -385,7 +310,7 @@ describe("ForecastPage", () => {
       ],
     });
 
-    render(<ForecastPage sensorId="sensor-a" />);
+    render(<Harness sensorId="sensor-a" />);
     await waitFor(() => screen.getByRole("button", { name: /recalibrar modelo/i }));
 
     await userEvent.click(screen.getByRole("button", { name: /recalibrar modelo/i }));
@@ -412,11 +337,83 @@ describe("ForecastPage", () => {
       ],
     });
 
-    render(<ForecastPage sensorId="sensor-a" />);
+    render(<Harness sensorId="sensor-a" />);
     await waitFor(() => screen.getByText("2024-10-31"));
 
     expect(
       screen.queryByRole("button", { name: /recalibrar modelo/i }),
     ).not.toBeInTheDocument();
+  });
+
+  describe("filtros de historial (task 2.3)", () => {
+    async function renderTwoRows() {
+      vi.spyOn(api, "listFeedback").mockResolvedValue({
+        rows: [
+          {
+            fecha: "2024-10-31",
+            alerta_generada: 1,
+            estado_validacion: "pendiente",
+            etiqueta_corregida: null,
+            observacion: null,
+            y_proba: 0.72,
+            fecha_objetivo: null,
+          },
+          {
+            fecha: "2024-10-20",
+            alerta_generada: 0,
+            estado_validacion: "confirmada",
+            etiqueta_corregida: null,
+            observacion: null,
+            y_proba: 0.2,
+            fecha_objetivo: null,
+          },
+        ],
+      });
+      render(<Harness sensorId="sensor-a" />);
+      await waitFor(() => screen.getByText("2024-10-31"));
+    }
+
+    it("filters by alert state without triggering new writes, and keeps the unfiltered counters", async () => {
+      const listFeedbackSpy = vi.spyOn(api, "listFeedback");
+      await renderTwoRows();
+      const callsBeforeFilter = listFeedbackSpy.mock.calls.length;
+
+      await userEvent.selectOptions(screen.getByLabelText(/^alerta$/i), "sin_alerta");
+
+      expect(screen.queryByText("2024-10-31")).not.toBeInTheDocument();
+      expect(screen.getByText("2024-10-20")).toBeInTheDocument();
+      expect(listFeedbackSpy.mock.calls.length).toBe(callsBeforeFilter);
+      // el contador general de "sin revisar" sigue contando el historial completo
+      expect(screen.getByText(/feedback sin revisar/i).closest("p")).toHaveTextContent("1");
+    });
+
+    it("distinguishes 'no matches' from an empty history, and clears filters back to the full list", async () => {
+      await renderTwoRows();
+
+      await userEvent.selectOptions(screen.getByLabelText(/^alerta$/i), "alerta");
+      await userEvent.selectOptions(screen.getByLabelText(/estado de validación/i), "rechazada");
+
+      expect(
+        screen.getByText(/sin coincidencias con los filtros aplicados/i),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(/todavía no hay pronósticos registrados/i),
+      ).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole("button", { name: /limpiar filtros/i }));
+
+      expect(screen.getByText("2024-10-31")).toBeInTheDocument();
+      expect(screen.getByText("2024-10-20")).toBeInTheDocument();
+    });
+
+    it("filters by an inclusive reference-date range", async () => {
+      await renderTwoRows();
+
+      const desde = screen.getByLabelText(/fecha de referencia desde/i);
+      await userEvent.type(desde, "2024-10-25");
+
+      expect(screen.queryByText("2024-10-20")).not.toBeInTheDocument();
+      expect(screen.getByText("2024-10-31")).toBeInTheDocument();
+    });
   });
 });

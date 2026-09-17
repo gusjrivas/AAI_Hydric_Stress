@@ -1,0 +1,51 @@
+.dn-nav {
+  max-width: 72rem;
+  margin: 0 auto 1.5rem;
+}
+
+.dn-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.dn-link {
+  display: inline-block;
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid #d9e0d5;
+  background: #ffffff;
+  color: #1b2a1e;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.dn-link:hover {
+  border-color: #1f5b6b;
+}
+
+.dn-link[aria-current="page"] {
+  background: #1f5b6b;
+  border-color: #1f5b6b;
+  color: #ffffff;
+}
+
+.dn-link:focus-visible {
+  outline: 3px solid #1f5b6b;
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .dn-list {
+    gap: 0.4rem;
+  }
+
+  .dn-link {
+    padding: 0.45rem 0.7rem;
+    font-size: 0.85rem;
+  }
+}

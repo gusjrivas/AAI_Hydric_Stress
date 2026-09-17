@@ -1,24 +1,38 @@
-import { useCallback, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import { ArchitectureFlow } from "./features/architecture-flow/ArchitectureFlow";
 import { QualityPanel } from "./features/quality/QualityPanel";
 import { ForecastPage } from "./features/forecast/ForecastPage";
+import { ActivePredictorSummary } from "./features/forecast/ActivePredictorSummary";
+import { useForecastWorkspace } from "./features/forecast/useForecastWorkspace";
 import { LineageChain } from "./features/lineage/LineageChain";
 import { EvidencePanel } from "./features/evidence/EvidencePanel";
+import { ResumenView } from "./features/summary/ResumenView";
+import { DestinationNav } from "./features/navigation/DestinationNav";
+import { DESTINATION_LABELS, useHashRoute } from "./features/navigation/useHashRoute";
 
 const SENSOR_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
 const INITIAL_SENSOR_ID = "sensor-a";
+const APP_TITLE = "Demo AAI Hydric Stress";
 
 function App() {
   const [draftSensorId, setDraftSensorId] = useState(INITIAL_SENSOR_ID);
   const [activeSensorId, setActiveSensorId] = useState(INITIAL_SENSOR_ID);
   const [sensorError, setSensorError] = useState<string | null>(null);
-  const [forecastBusy, setForecastBusy] = useState(false);
-  const [lineageRefreshToken, setLineageRefreshToken] = useState(0);
+  const workspace = useForecastWorkspace(activeSensorId);
+  const forecastBusy = workspace.activeMutation !== null;
 
-  const handleRecalibrated = useCallback(() => {
-    setLineageRefreshToken((token) => token + 1);
-  }, []);
+  const route = useHashRoute();
+  const isFirstRouteRender = useRef(true);
+
+  useEffect(() => {
+    document.title = `${APP_TITLE} — ${DESTINATION_LABELS[route]}`;
+    if (isFirstRouteRender.current) {
+      isFirstRouteRender.current = false;
+      return;
+    }
+    document.getElementById(`${route}-heading`)?.focus();
+  }, [route]);
 
   function applySensor() {
     const candidate = draftSensorId.trim();
@@ -62,39 +76,61 @@ function App() {
         )}
       </header>
 
-      <ArchitectureFlow />
+      <DestinationNav active={route} />
+
       <main className="app-sections">
-        <section id="calidad" className="app-section" aria-labelledby="calidad-heading">
-          <h2 id="calidad-heading" className="app-section-heading">
-            1–2. Datos IoT y calidad
-          </h2>
-          <QualityPanel sensorId={activeSensorId} />
-        </section>
+        {route === "resumen" && (
+          <section aria-labelledby="resumen-heading">
+            <h2 id="resumen-heading" className="app-section-heading" tabIndex={-1}>
+              Resumen
+            </h2>
+            <ResumenView sensorId={activeSensorId} workspace={workspace} />
+          </section>
+        )}
 
-        <section id="prediccion" className="app-section" aria-labelledby="prediccion-heading">
-          <h2 id="prediccion-heading" className="app-section-heading">
-            3–6. Features, predicción, alerta y feedback humano
-          </h2>
-          <ForecastPage
-            sensorId={activeSensorId}
-            onRecalibrated={handleRecalibrated}
-            onBusyChange={setForecastBusy}
-          />
-        </section>
+        {route === "prediccion" && (
+          <section aria-labelledby="prediccion-heading">
+            <h2 id="prediccion-heading" className="app-section-heading" tabIndex={-1}>
+              Alertas y revisión
+            </h2>
+            <ForecastPage sensorId={activeSensorId} workspace={workspace} />
+          </section>
+        )}
 
-        <section id="linaje" className="app-section" aria-labelledby="linaje-heading">
-          <h2 id="linaje-heading" className="app-section-heading">
-            7. Recalibración y linaje
-          </h2>
-          <LineageChain sensorId={activeSensorId} refreshToken={lineageRefreshToken} />
-        </section>
+        {route === "calidad" && (
+          <section aria-labelledby="calidad-heading">
+            <h2 id="calidad-heading" className="app-section-heading" tabIndex={-1}>
+              Calidad de datos
+            </h2>
+            <QualityPanel sensorId={activeSensorId} />
+          </section>
+        )}
 
-        <section id="evidencia" className="app-section" aria-labelledby="evidencia-heading">
-          <h2 id="evidencia-heading" className="app-section-heading">
-            Evidencia científica y limitaciones
-          </h2>
-          <EvidencePanel />
-        </section>
+        {route === "linaje" && (
+          <section aria-labelledby="linaje-heading">
+            <h2 id="linaje-heading" className="app-section-heading" tabIndex={-1}>
+              Modelo y trazabilidad
+            </h2>
+            <section aria-label="Predictor activo">
+              <h3 className="app-subsection-heading">Predictor activo</h3>
+              <ActivePredictorSummary sensorId={activeSensorId} />
+            </section>
+            <section aria-label="Linaje de recalibraciones">
+              <h3 className="app-subsection-heading">Linaje de recalibraciones</h3>
+              <LineageChain sensorId={activeSensorId} />
+            </section>
+          </section>
+        )}
+
+        {route === "evidencia" && (
+          <section aria-labelledby="evidencia-heading">
+            <h2 id="evidencia-heading" className="app-section-heading" tabIndex={-1}>
+              Evidencia y arquitectura
+            </h2>
+            <ArchitectureFlow />
+            <EvidencePanel />
+          </section>
+        )}
       </main>
     </div>
   );
