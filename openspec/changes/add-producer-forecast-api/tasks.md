@@ -11,3 +11,4 @@
 - [ ] 1.10 Documentar activación, rollback, evidencia y límites científicos.
 - [ ] 1.11 Revisar recorrido integrado antes de proponer merge a main.
 - [ ] 1.12 Antes de archivar, corregir estructura preexistente de architecture-integration sin cambiar requisitos y revalidar la spec canónica.
+- [ ] 1.13 Exponer evidencia inmutable de calibracion con aislamiento por sensor y probar motivos de porcentaje no publicable.

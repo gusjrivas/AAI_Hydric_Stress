@@ -1,5 +1,14 @@
 # Seguimiento de tareas — plan de proyecto vs. estado real del repo
 
+## 2026-09-18 — Corrección de evidencia de calibración (solo specs)
+HU4/HU6; predictive-modeling y architecture-integration; CRISP-DM modelado,
+evaluación de desarrollo e integración. Se corrige el criterio de publicación:
+Brier/log-loss no bastan; se exigen diagnósticos directos, incertidumbre temporal,
+soporte, cobertura y tolerancias previas. API distingue motivos de no calificación.
+No se ejecutaron experimentos ni se modificaron código, protocolos v3/v4,
+configuraciones formales o resultados históricos HU7/HU8. Hipótesis, alcance
+y arquitectura intactos. Documentación propuesta para capítulos 2 y 3.
+
 ## 2026-09-18 — Especificaciones de backend para UI de productor (propuesta)
 
 Se proponen cuatro changes para HU2, HU4, HU5 y HU6, con ADR-0013 pendiente

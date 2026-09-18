@@ -26,3 +26,10 @@ ADR-0013 propuesto y ADR-0009; ADR-0010/0011 conservados.
 ## Fuera de alcance
 t+7, interpolación de riesgos, búsqueda de semillas favorables, optimización de
 umbrales mirando test, nuevos datasets externos y uso de holdouts científicos.
+
+## Corrección del criterio de evidencia
+Se exige evaluación directa de calibración con incertidumbre temporal, soporte,
+cobertura y estabilidad por horizonte. Brier/log-loss quedan como controles
+complementarios. Tolerancias numéricas y método estadístico se justifican y
+congelan antes del ajuste; hasta completar ese plan no hay calificación.
+No cambia protocolos formales ni autoriza nuevos experimentos HU7/HU8.

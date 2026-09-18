@@ -125,6 +125,7 @@ Ejemplo de slot disponible (IDs y valor son ilustrativos, no evidencia real):
   "score_kind": "calibrated_probability",
   "display_probability": 0.72,
   "probability_status": "development_assessed",
+  "probability_reason_code": null,
   "decision_threshold": 0.5,
   "event_threshold": {
     "variable": "soil_moisture", "value": 0.18,
@@ -205,3 +206,24 @@ sin calibración calificada, snapshot cambiado, revisión temprana/tardía,
 revisión duplicada/concurrente, aislamiento, filtros que cambian resultados,
 pendientes fuera de ventana, cursor, medianoche UTC, fallos de almacenamiento
 y bloqueo demo. Validar ejemplos con los esquemas generados al implementar.
+
+## Evidencia de calibración y publicación (corrección del criterio)
+assessment_reference identifica un informe inmutable con assessment_result:
+not_evaluated | insufficient_evidence | failed | passed, motivos, versión/hash
+del manifiesto, artefactos evaluados, dominio, rangos respaldados y diagnósticos
+con incertidumbre definidos en add-daily-multihorizon-predictors/design.md.
+No alcanza un Brier/log-loss favorable para obtener passed.
+La respuesta de un slot available agrega probability_reason_code nullable:
+not_evaluated | incomplete_assessment_plan | insufficient_evidence |
+calibration_criteria_failed | unsupported_probability_range |
+incompatible_assessment. Es null si el porcentaje se publica.
+En unavailable es null: reason_code ya explica la indisponibilidad del predictor.
+Un informe passed no habilita porcentajes fuera de su rango/dominio ni para
+otro bundle. En esos casos probability_status=not_qualified y
+display_probability=null, aunque la alerta binaria siga disponible.
+El ejemplo de slot disponible anterior presupone probability_reason_code=null.
+development_assessed significa evidencia limitada al desarrollo, no validación
+agronómica o externa. El detalle del informe debe poder recuperarse mediante
+GET /sensors/{sensor_id}/assessments/{assessment_reference}, de solo lectura,
+con el mismo aislamiento y política de acceso; desconocido o de otro sensor:404.
+No devolver rutas locales ni permitir acceso arbitrario a archivos.
