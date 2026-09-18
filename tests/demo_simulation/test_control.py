@@ -271,7 +271,12 @@ def test_resume_continues_from_first_incomplete_step(live_backend, reference_ses
         pytest.skip("La sesión terminó antes de poder pausarse en este entorno; no es un fallo.")
 
     assert paused.status == "paused"
-    assert paused.cursor == 1
+    # `cursor` puede ser 0 o 1 según si la pausa alcanzó a aplicarse antes
+    # de que el worker llegara a correr el primer paso, o después: ambos
+    # casos son correctos (pausar antes de iniciar nada también es una
+    # pausa válida). Lo que importa para este test es que `resume`
+    # continúe desde el primer paso incompleto sin duplicar ni saltear.
+    assert paused.cursor in (0, 1)
 
     resume_result = handle_command(
         _order("resume", "demo-resume", paused.revision, request_id="resume-1"),

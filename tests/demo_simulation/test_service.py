@@ -58,6 +58,19 @@ class _ServerThread(threading.Thread):
         self.server.should_exit = True
 
 
+#: Una orden de control (start/pause/resume) serializa con la ejecución
+#: completa de un paso (`control.run_controlled_worker` sostiene el mismo
+#: `io_lock` durante todo `run_step`, para que ninguna escritura
+#: concurrente pueda revertir en silencio el campo `status` del manifiesto
+#: — ver `control.py`). Por eso una orden duplicada enviada mientras el
+#: único paso de una sesión de un día sigue en curso puede tardar en
+#: responder tanto como ese paso (ingesta + pronóstico con entrenamiento
+#: real); bajo la suite completa de tests corriendo en paralelo esto puede
+#: superar ampliamente el tiempo de un paso aislado. El timeout del cliente
+#: HTTP de estos tests es generoso a propósito, no un valor de producción.
+_HTTP_TIMEOUT_SECONDS = 60
+
+
 @dataclass
 class _HttpClient:
     """Envoltorio delgado sobre `requests` con la misma forma mínima que
@@ -68,10 +81,14 @@ class _HttpClient:
     base_url: str
 
     def get(self, path: str, headers: dict | None = None) -> requests.Response:
-        return requests.get(f"{self.base_url}{path}", headers=headers, timeout=10)
+        return requests.get(
+            f"{self.base_url}{path}", headers=headers, timeout=_HTTP_TIMEOUT_SECONDS
+        )
 
     def post(self, path: str, json: dict, headers: dict | None = None) -> requests.Response:
-        return requests.post(f"{self.base_url}{path}", json=json, headers=headers, timeout=10)
+        return requests.post(
+            f"{self.base_url}{path}", json=json, headers=headers, timeout=_HTTP_TIMEOUT_SECONDS
+        )
 
 
 @pytest.fixture

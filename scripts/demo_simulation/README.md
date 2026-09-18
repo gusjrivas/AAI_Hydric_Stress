@@ -175,11 +175,14 @@ accede al estado del backend únicamente vía HTTP (`GET /quality`,
   pausa durante un paso en curso, continuación explícita, reconciliación de
   una respuesta perdida (sin reenvío del pronóstico), bloqueo por
   incertidumbre y detección de un cambio externo al dataset.
-  `tests/demo_simulation/test_service.py` cubre el contrato HTTP con
-  `fastapi.testclient.TestClient` (in-process, sin backend real de por
-  medio en el transporte): pureza de `GET`, deduplicación e invalidación de
-  revisión sobre HTTP, validación de `Origin` y que el `backend_url` del
-  manifiesto no puede reconfigurarse desde una orden.
+  `tests/demo_simulation/test_service.py` cubre el contrato HTTP sirviendo
+  la app con `uvicorn` real sobre un puerto de loopback y hablando por HTTP
+  real con `requests` (mismo patrón que `live_backend`, nunca
+  `fastapi.testclient.TestClient`, que exige una dependencia no garantizada
+  en el entorno de CI que solo instala el extra `dev`): pureza de `GET`,
+  deduplicación e invalidación de revisión sobre HTTP, validación de
+  `Origin` y que el `backend_url` del manifiesto no puede reconfigurarse
+  desde una orden.
 - `ruff check scripts/demo_simulation tests/demo_simulation` y
   `black --check scripts/demo_simulation tests/demo_simulation`.
 - `docker build -f docker/demo-control/Dockerfile .` y
@@ -201,6 +204,18 @@ accede al estado del backend únicamente vía HTTP (`GET /quality`,
   herramienta (CLI directa o adaptador HTTP) sobre la misma sesión; no
   excluye a otros clientes HTTP externos que operen directamente contra el
   backend con el mismo `sensor_id` de demostración.
+- Una orden de control (`start`/`pause`/`resume`) serializa con la
+  ejecución completa del paso en curso: el mismo lock de proceso
+  (`io_lock`) que evita que el worker de fondo y el hilo que atiende la
+  orden HTTP escriban el manifiesto al mismo tiempo (necesario para que
+  una pausa nunca se revierta en silencio por una escritura concurrente
+  del worker) también hace que una orden repetida o una consulta de
+  estado del propio adaptador de control, si llegara a coincidir con una
+  ingesta/pronóstico en curso, espere hasta que ese paso termine antes de
+  responder. `GET /demo/session` no se ve afectado (no usa este lock).
+  Es una propiedad conocida, no un error: nunca se aplica una orden a
+  medias ni se duplica un paso, a costa de que la respuesta HTTP de una
+  orden pueda demorar hasta la duración de un paso completo.
 - Un test de pausa (`test_pause_completes_current_step_before_stopping`) se
   omite (`skip`) en el caso de borde en que, en un entorno particularmente
   rápido, la sesión de dos pasos completa antes de que la orden de pausa

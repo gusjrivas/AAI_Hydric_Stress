@@ -222,6 +222,17 @@ def run_controlled_worker(session_id: str, sessions_root: Path, io_lock: threadi
         while True:
             with io_lock:
                 manifest = load_manifest(sessions_root, session_id)
+                # Una pausa solicitada durante el intervalo entre pasos (o
+                # antes de que este worker llegara a correr el primero)
+                # debe resolverse acá mismo, nunca dejarse "pausing" a
+                # medias: por eso este chequeo, igual que el de abajo tras
+                # cada paso, siempre completa la transición a `paused`
+                # antes de retirarse.
+                if manifest.status == "pausing":
+                    manifest.status = "paused"
+                    manifest.last_error = None
+                    save_manifest(manifest, sessions_root)
+                    return
                 if manifest.status != "running":
                     return
                 if manifest.cursor >= manifest.days:
