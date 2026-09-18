@@ -180,7 +180,11 @@ def test_session_mismatch_is_rejected(live_backend, reference_session_kwargs):
 def test_pause_completes_current_step_before_stopping(live_backend, reference_session_kwargs):
     prepared = _prepare(live_backend, reference_session_kwargs, "demo-pause", days=2)
     launcher = WorkerSupervisor(sessions_root=live_backend.sessions_dir)
-    command_lock = threading.Lock()
+    # Mismo lock que usa `run_controlled_worker` internamente (ver
+    # `service.create_app`): si acá se usara un lock distinto, el hilo de
+    # control y el worker de fondo podrían leer/escribir el manifiesto al
+    # mismo tiempo sin exclusión real entre sí.
+    command_lock = launcher.io_lock
 
     start_order = _order("start", "demo-pause", prepared.manifest.revision, request_id="start-1")
     start_result = handle_command(
@@ -211,7 +215,10 @@ def test_pause_completes_current_step_before_stopping(live_backend, reference_se
     )
     assert pause_result.status_code in (200, 409)  # 409 si ya llegó a completed/paused por sí sola
 
-    for _ in range(200):
+    # Ventana generosa (ver `test_resume_continues_from_first_incomplete_step`
+    # para la misma razón): un paso con entrenamiento real puede tardar
+    # bastante más bajo carga que en una corrida aislada.
+    for _ in range(600):
         final = load_manifest(live_backend.sessions_dir, "demo-pause")
         if final.status in ("paused", "completed"):
             break
@@ -228,7 +235,7 @@ def test_pause_completes_current_step_before_stopping(live_backend, reference_se
 def test_resume_continues_from_first_incomplete_step(live_backend, reference_session_kwargs):
     prepared = _prepare(live_backend, reference_session_kwargs, "demo-resume", days=2)
     launcher = WorkerSupervisor(sessions_root=live_backend.sessions_dir)
-    command_lock = threading.Lock()
+    command_lock = launcher.io_lock
 
     handle_command(
         _order("start", "demo-resume", prepared.manifest.revision, request_id="start-1"),
@@ -250,7 +257,11 @@ def test_resume_continues_from_first_incomplete_step(live_backend, reference_ses
         launch_worker=launcher.launch,
         command_lock=command_lock,
     )
-    for _ in range(200):
+    # Ventana generosa: bajo carga (suite completa corriendo en paralelo
+    # con entrenamiento real de modelo por paso) un solo paso puede tardar
+    # bastante más que en una corrida aislada; lo que importa es que
+    # termine en `paused`, no cuánto tarde.
+    for _ in range(600):
         paused = load_manifest(live_backend.sessions_dir, "demo-resume")
         if paused.status in ("paused", "completed"):
             break
@@ -271,7 +282,7 @@ def test_resume_continues_from_first_incomplete_step(live_backend, reference_ses
     )
     assert resume_result.status_code == 200
 
-    for _ in range(300):
+    for _ in range(600):
         final = load_manifest(live_backend.sessions_dir, "demo-resume")
         if final.status == "completed":
             break

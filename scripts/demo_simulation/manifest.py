@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import os
 import threading
+import time
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timezone
@@ -111,15 +112,42 @@ def save_manifest(manifest: DemoManifest, sessions_root: Path) -> Path:
     tmp_path.write_text(
         json.dumps(manifest.to_dict(), indent=2, ensure_ascii=False, default=str), encoding="utf-8"
     )
-    os.replace(tmp_path, path)
-    return path
+    # En Windows, `os.replace` puede fallar transitoriamente con
+    # `PermissionError` si otro hilo tiene el destino abierto para lectura
+    # en ese instante exacto (ver `load_manifest`); se reintenta unas
+    # pocas veces antes de propagar cualquier otro error.
+    last_error: PermissionError | None = None
+    for attempt in range(10):
+        try:
+            os.replace(tmp_path, path)
+            return path
+        except PermissionError as error:
+            last_error = error
+            time.sleep(0.01 * (attempt + 1))
+    raise last_error  # pragma: no cover - solo si la colisión persiste 10 intentos
 
 
 def load_manifest(sessions_root: Path, session_id: str) -> DemoManifest:
+    """Lee el manifiesto persistido. En la entrega 2, un hilo de control
+    (orden HTTP) y el worker de fondo pueden leer y reemplazar el mismo
+    archivo casi al mismo tiempo; en Windows, `os.replace` puede colisionar
+    transitoriamente con una lectura concurrente y levantar
+    `PermissionError` aunque el archivo exista y el contenido sea válido
+    (nunca ocurre por un manifiesto realmente ausente o corrupto). Se
+    reintenta la lectura unas pocas veces antes de propagar cualquier otro
+    error.
+    """
     path = manifest_path(sessions_root, session_id)
     if not path.exists():
         raise FileNotFoundError(f"No existe una sesión de demo '{session_id}' en {sessions_root}")
-    return DemoManifest.from_dict(json.loads(path.read_text(encoding="utf-8")))
+    last_error: PermissionError | None = None
+    for attempt in range(10):
+        try:
+            return DemoManifest.from_dict(json.loads(path.read_text(encoding="utf-8")))
+        except PermissionError as error:
+            last_error = error
+            time.sleep(0.01 * (attempt + 1))
+    raise last_error  # pragma: no cover - solo si la colisión persiste 10 intentos
 
 
 def session_exists(sessions_root: Path, session_id: str) -> bool:
