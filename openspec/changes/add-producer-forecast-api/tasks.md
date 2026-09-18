@@ -1,0 +1,13 @@
+## 1. Contratos e integración después de aprobación
+- [ ] 1.1 Materializar esquemas OpenAPI y fixtures del contrato v2.
+- [ ] 1.2 Integrar catálogo, selección de sector y consulta de lecturas.
+- [ ] 1.3 Integrar snapshot, tres horizontes, persistencia e idempotencia.
+- [ ] 1.4 Integrar revisión humana y listado persistente de pendientes.
+- [ ] 1.5 Integrar resumen, procedencia, fechas, frescura y linaje.
+- [ ] 1.6 Integrar recalibración explícita compatible, sin ejecución por GET.
+- [ ] 1.7 Probar aislamiento, faltantes, errores, concurrencia y reinicio.
+- [ ] 1.8 Ejecutar regresión de endpoints legacy y demo PR #202–#205.
+- [ ] 1.9 Verificar consumidores de UI con fixtures y OpenAPI publicados.
+- [ ] 1.10 Documentar activación, rollback, evidencia y límites científicos.
+- [ ] 1.11 Revisar recorrido integrado antes de proponer merge a main.
+- [ ] 1.12 Antes de archivar, corregir estructura preexistente de architecture-integration sin cambiar requisitos y revalidar la spec canónica.

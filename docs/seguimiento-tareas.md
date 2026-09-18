@@ -1,5 +1,16 @@
 # Seguimiento de tareas — plan de proyecto vs. estado real del repo
 
+## 2026-09-18 — Especificaciones de backend para UI de productor (propuesta)
+
+Se proponen cuatro changes para HU2, HU4, HU5 y HU6, con ADR-0013 pendiente
+de aprobación: catálogo/historial, pronósticos +1/+2/+3, feedback por emisión
+y contrato API v2. Ver [plan y dependencias](design/backend-producer-ui-plan.md).
+CRISP-DM: datos, modelado, evaluación de desarrollo e integración. Solo specs;
+no se implementaron capacidades ni se completaron tareas de código.
+Configuraciones base / +sintéticos / +anomalías / completa, protocolos formales,
+resultados HU7/HU8, hipótesis y capas de arquitectura permanecen intactos.
+Aporte futuro a capítulos 2 y 3: causalidad, límites de probabilidades y trazabilidad.
+
 ## 2026-09-17 — UI en lenguaje cotidiano (HU6/HU5)
 
 Change `simplify-producer-ui`, capacidad `alerting-ui`, CRISP-DM despliegue e
