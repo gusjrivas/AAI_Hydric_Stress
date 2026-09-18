@@ -114,6 +114,17 @@ services:
       - "127.0.0.1:${DEMO_CONTROL_PORT:-8010}:8010"
     volumes:
       - ./demo_sessions:/workspace/demo_sessions
+      # Necesario solo para `prepare` (invocado con `docker compose
+      # --profile demo run --rm demo-control prepare ...`, que escribe
+      # directamente el prefijo histórico al almacenamiento del backend,
+      # ADR-0007). El comando por defecto de este servicio (`serve`) no
+      # lee este volumen: accede al estado del backend únicamente por
+      # HTTP (`GET /quality`, `GET /feedback`), nunca por lectura directa
+      # de archivos. Sin este montaje, `prepare` escribía en un
+      # `/workspace/data` efímero del contenedor, invisible para el
+      # backend real (defecto encontrado y corregido en la entrega 4 de
+      # verificación integrada).
+      - ./data:/workspace/data
     # `DEMO_SESSION_ID` usa un valor por defecto vacío (no `:?`
     # obligatorio) para que interpolar este servicio nunca rompa
     # `docker compose` en el flujo normal (sin `--profile demo`): la
