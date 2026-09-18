@@ -1,8 +1,8 @@
 # Tareas — add-accelerated-sensor-demo
 
-Estado: entregas 1 (preparación y worker CLI) y 2 (control local y
-recuperación) implementadas y verificadas. Entregas 3-4 (UI, verificación
-integrada) pendientes.
+Estado: entregas 1 (preparación y worker CLI), 2 (control local y
+recuperación) y 3 (UI) implementadas y verificadas. Entrega 4 (verificación
+integrada) pendiente.
 
 ## 0. Decisión y preparación
 
@@ -28,11 +28,11 @@ integrada) pendientes.
 
 ## 3. UI — depende de 2
 
-- [ ] 3.1 Vista secundaria con rótulo de simulación, sensor, fecha, progreso e iniciar/pausar/continuar; no crear sesión desde HTTP.
-- [ ] 3.2 Polling sin solapamiento, refresco GET por revisión, descarte de respuestas obsoletas, conservación de filtros y recuperación al volver a pestaña.
-- [ ] 3.3 Bloquear mutaciones manuales del sensor demo antes de completar; conservar consulta de otros sensores y comunicar que cerrar pestaña no pausa.
-- [ ] 3.4 Al completar, habilitar revisión solo de objetivos observables y mantener los errores del backend. No cambiar el reloj ni fabricar feedback.
-- [ ] 3.5 Tests UI de estados, navegación sin POST, pausa pendiente, desconexión, finalización, última fecha sin objetivo y doble clic en controles.
+- [x] 3.1 Vista secundaria con rótulo de simulación, sensor, fecha, progreso e iniciar/pausar/continuar; no crear sesión desde HTTP. `frontend/src/features/demo/{DemoPage.tsx,useDemoSession.ts,api.ts}`, accesible por un enlace propio (`#demo`) fuera del ruteo principal, visible solo si `VITE_DEMO_CONTROL_BASE_URL` está configurada (`frontend/src/api/demoControlUrl.ts`). Solo consume `GET/POST /demo/session*` del contrato real de la entrega 2; ninguna acción prepara ni crea sesiones.
+- [x] 3.2 Polling sin solapamiento, refresco GET por revisión, descarte de respuestas obsoletas, conservación de filtros y recuperación al volver a pestaña. `useDemoSession` (referencia en vuelo para no superponer GET; `visibilitychange` dispara un refresco inmediato adicional, sin condicionar el polling de base a la visibilidad del documento, evitando que una pestaña restaurada en segundo plano quede cargando indefinidamente). `App.tsx` dispara `workspace.reloadHistory()` y un `refreshToken` de calidad solo cuando cambia la fecha de ingesta o pronóstico confirmada del sensor de demo activo; los filtros de `ForecastPage` y el aislamiento por sensor de `useForecastWorkspace` (entrega previa) quedan intactos.
+- [x] 3.3 Bloquear mutaciones manuales del sensor demo antes de completar; conservar consulta de otros sensores y comunicar que cerrar pestaña no pausa. `frontend/src/features/demo/lock.ts` (`computeDemoWriteGate`/`demoGateForSensor`), aplicado en `ResumenView` (Generar pronóstico), `ForecastPage` (Confirmar/Corregir resultado) y `RecalibrationPanel` (Aplicar observaciones); solo cuando el sensor activo coincide con el de la sesión. `DemoPage` explicita que cerrar la pestaña no pausa el worker.
+- [x] 3.4 Al completar, habilitar revisión solo de objetivos observables y mantener los errores del backend. No cambiar el reloj ni fabricar feedback. `computeDemoWriteGate(...).isRowReviewable` exige fecha objetivo dentro del período ingerido por la demo (`last_ingested_date`) y ya terminada en UTC real; la autoridad de aceptar/rechazar sigue en `confirmAlert`/`rejectAlert` sin cambios.
+- [x] 3.5 Tests UI de estados, navegación sin POST, pausa pendiente, desconexión, finalización, última fecha sin objetivo y doble clic en controles. 27 tests nuevos: `frontend/src/api/demoControlUrl.test.ts`, `frontend/src/features/demo/{api,lock,DemoPage}.test.{ts,tsx}`, `frontend/src/App.demo.test.tsx` (más 65 preexistentes sin regresiones, total 92). Verificación manual en navegador real documentada en `docs/seguimiento-tareas.md`: sin controlador configurado, con controlador configurado pero inalcanzable, y contra el contrato real de la entrega 2 (backend + `demo-control` vía Docker Compose).
 
 ## 4. Verificación y documentación — depende de 3
 
