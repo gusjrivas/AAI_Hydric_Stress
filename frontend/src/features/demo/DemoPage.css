@@ -1,0 +1,35 @@
+.dp-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 40rem;
+}
+
+.dp-badge {
+  align-self: flex-start;
+  font-weight: 600;
+  background: var(--dp-badge-bg, #f0e6d2);
+  color: var(--dp-badge-fg, #6b4e16);
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.6rem;
+}
+
+.dp-summary {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1rem;
+}
+
+.dp-controls {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.dp-error {
+  color: #7a1f1f;
+}
+
+.dp-note {
+  font-size: 0.9rem;
+  color: #555;
+}

@@ -11,6 +11,23 @@ import { EvidencePanel } from "./features/evidence/EvidencePanel";
 import { ResumenView } from "./features/summary/ResumenView";
 import { DestinationNav } from "./features/navigation/DestinationNav";
 import { DESTINATION_LABELS, useHashRoute } from "./features/navigation/useHashRoute";
+import { DemoPage } from "./features/demo/DemoPage";
+import { useDemoSession } from "./features/demo/useDemoSession";
+import { demoGateForSensor } from "./features/demo/lock";
+
+const DEMO_HASH = "#demo";
+
+function useIsDemoRoute(): boolean {
+  const [isDemo, setIsDemo] = useState(() => window.location.hash === DEMO_HASH);
+  useEffect(() => {
+    function onHashChange() {
+      setIsDemo(window.location.hash === DEMO_HASH);
+    }
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+  return isDemo;
+}
 
 const SENSOR_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
 const INITIAL_SENSOR_ID = "sensor-a";
@@ -30,7 +47,22 @@ function App() {
     setLineageRefreshToken((token) => token + 1);
   }, []);
 
+  const demo = useDemoSession();
+  const demoGate = demoGateForSensor(demo.session, activeSensorId);
+  const isViewingDemoSensor = demo.session !== null && demo.session.sensor_id === activeSensorId;
+  const [demoQualityRefreshToken, setDemoQualityRefreshToken] = useState(0);
+  const lastAppliedProgressTokenRef = useRef(0);
+
+  useEffect(() => {
+    if (!isViewingDemoSensor) return;
+    if (demo.progressToken === lastAppliedProgressTokenRef.current) return;
+    lastAppliedProgressTokenRef.current = demo.progressToken;
+    void workspace.reloadHistory();
+    setDemoQualityRefreshToken((token) => token + 1);
+  }, [isViewingDemoSensor, demo.progressToken, workspace]);
+
   const route = useHashRoute();
+  const isDemoRoute = useIsDemoRoute();
   const isFirstRouteRender = useRef(true);
 
   useEffect(() => {
@@ -91,36 +123,57 @@ function App() {
       </header>
 
       <DestinationNav active={route} />
+      {demo.configured && (
+        <p className="app-demo-link">
+          <a href={DEMO_HASH} aria-current={isDemoRoute ? "page" : undefined}>
+            Demostración
+          </a>
+        </p>
+      )}
 
       <main id="main-content" className="app-sections" tabIndex={-1}>
-        {route === "resumen" && (
+        {isDemoRoute && (
+          <section aria-labelledby="demo-heading">
+            <h2 id="demo-heading" className="app-section-heading" tabIndex={-1}>
+              Demostración
+            </h2>
+            <DemoPage demo={demo} />
+          </section>
+        )}
+
+        {!isDemoRoute && route === "resumen" && (
           <section aria-labelledby="resumen-heading">
             <h2 id="resumen-heading" className="app-section-heading" tabIndex={-1}>
               Resumen
             </h2>
-            <ResumenView sensorId={activeSensorId} workspace={workspace} />
+            <ResumenView
+              sensorId={activeSensorId}
+              workspace={workspace}
+              demoGate={demoGate}
+              refreshToken={demoQualityRefreshToken}
+            />
           </section>
         )}
 
-        {route === "prediccion" && (
+        {!isDemoRoute && route === "prediccion" && (
           <section aria-labelledby="prediccion-heading">
             <h2 id="prediccion-heading" className="app-section-heading" tabIndex={-1}>
               Historial y observaciones
             </h2>
-            <ForecastPage sensorId={activeSensorId} workspace={workspace} />
+            <ForecastPage sensorId={activeSensorId} workspace={workspace} demoGate={demoGate} />
           </section>
         )}
 
-        {route === "calidad" && (
+        {!isDemoRoute && route === "calidad" && (
           <section aria-labelledby="calidad-heading">
             <h2 id="calidad-heading" className="app-section-heading" tabIndex={-1}>
               Datos disponibles
             </h2>
-            <QualityPanel sensorId={activeSensorId} />
+            <QualityPanel sensorId={activeSensorId} refreshToken={demoQualityRefreshToken} />
           </section>
         )}
 
-        {route === "linaje" && (
+        {!isDemoRoute && route === "linaje" && (
           <section aria-labelledby="linaje-heading">
             <h2 id="linaje-heading" className="app-section-heading" tabIndex={-1}>
               Ajustar próximos pronósticos
@@ -130,6 +183,7 @@ function App() {
               workspace={workspace}
               refreshToken={predictorRefreshToken}
               onRecalibrated={handleRecalibrated}
+              demoGate={demoGate}
             />
             <details className="app-technical">
               <summary>Información técnica de los ajustes</summary>
@@ -139,7 +193,7 @@ function App() {
           </section>
         )}
 
-        {route === "evidencia" && (
+        {!isDemoRoute && route === "evidencia" && (
           <section aria-labelledby="evidencia-heading">
             <h2 id="evidencia-heading" className="app-section-heading" tabIndex={-1}>
               Acerca de esta herramienta

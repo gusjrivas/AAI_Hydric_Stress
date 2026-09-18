@@ -2,23 +2,31 @@ import { useEffect, useState } from "react";
 import "./ResumenView.css";
 import { getQualityReport } from "../quality/api";
 import type { ForecastWorkspace } from "../forecast/useForecastWorkspace";
+import type { DemoWriteGate } from "../demo/lock";
 
 type QualityStatus = "loading" | "empty" | "error" | "ready";
 
 export function ResumenView({
   sensorId,
   workspace,
+  demoGate,
+  refreshToken = 0,
 }: {
   sensorId: string;
   workspace: ForecastWorkspace;
+  demoGate?: DemoWriteGate;
+  /** Fuerza un nuevo GET de calidad sin cambiar de sensor (progreso
+   * confirmado de la demo). */
+  refreshToken?: number;
 }) {
-  const [loadedFor, setLoadedFor] = useState(sensorId);
+  const requestKey = `${sensorId}:${refreshToken}`;
+  const [loadedFor, setLoadedFor] = useState(requestKey);
   const [qualityStatus, setQualityStatus] = useState<QualityStatus>("loading");
   const [periodEnd, setPeriodEnd] = useState<string | null>(null);
   const [qualityError, setQualityError] = useState<string | null>(null);
 
-  if (sensorId !== loadedFor) {
-    setLoadedFor(sensorId);
+  if (requestKey !== loadedFor) {
+    setLoadedFor(requestKey);
     setQualityStatus("loading");
     setPeriodEnd(null);
     setQualityError(null);
@@ -44,7 +52,7 @@ export function ResumenView({
     return () => {
       cancelled = true;
     };
-  }, [sensorId]);
+  }, [sensorId, refreshToken]);
 
   const lastRow = workspace.rows[0] ?? null;
   const pendientesRevision = workspace.rows.filter(
@@ -110,10 +118,11 @@ export function ResumenView({
             type="button"
             className="rv-run-btn"
             onClick={() => void workspace.runForecast()}
-            disabled={busy}
+            disabled={busy || demoGate?.locked}
           >
             {workspace.activeMutation === "forecast" ? "Preparando pronóstico..." : "Generar pronóstico"}
           </button>
+          {demoGate?.locked && <p className="rv-guidance">{demoGate.lockedReason}</p>}
           <p className="rv-guidance">Se usa la última fecha con datos. Si esa fecha no cambia, no se agregan días nuevos al historial.</p>
           {workspace.runError && (
             <p role="alert" className="rv-error">
