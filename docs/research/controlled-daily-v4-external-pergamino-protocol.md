@@ -2,6 +2,14 @@
 
 Estado: ~~**PROTOCOL_ONLY** — protocolo formalizado, sin implementación de código ni ejecución.~~ **Actualización (2026-09-13):** el protocolo permanece formalizado como fuente normativa. La Etapa A (secciones 5–9) cuenta con implementación de código y verificación exhaustiva sobre datos sintéticos desde el *change* `implement-controlled-daily-v4-stage-a` (mergeado; correcciones posteriores en los *changes* `fix/controlled-daily-v4-stage-a-validation` y `fix/controlled-daily-v4-reproducibility-docs`, PR #188–#190) — no así las Etapas B (sección 10) ni C (sección 11), que siguen sin ningún código asociado (ver `docs/seguimiento-tareas.md`). Ninguna ejecución real sobre los CSV de Pergamino se realizó todavía en ninguna etapa; toda verificación existente es exclusivamente sintética. Este documento sigue siendo la fuente detallada y reproducible del protocolo; la decisión y su justificación quedan registradas en [ADR-0011](../adr/0011-protocolo-controlled-daily-v4-external-pergamino.md), que no debe duplicar este contenido.
 
+**Vigencia 2026-09-17:** el párrafo anterior documenta el estado histórico del
+13/09. A, B y C están implementadas e integradas con pruebas sintéticas; no se
+han ejecutado científicamente. Rigen las
+[decisiones de cierre previas a ejecución](scientific-closure-decisions.md)
+sobre soporte, monoclase, inicio de episodios y custodia de B, y la
+[guía de ejecución](scientific-closure-runbook.md).
+Implementación, tests y evidencia científica son estados distintos.
+
 Rige `ADR-0011` y `ADR-0010`. No modifica, reinterpreta ni recalcula `controlled_daily_v3` (protocolo vigente en `protocolo-experimental-v3.md`, evidencia congelada bajo `scientific-baseline-v3`).
 
 ## 1. Identificador y objetivo
@@ -41,7 +49,11 @@ El umbral probabilístico de decisión es **fijo en 0.5** para los cuatro candid
 
 ## 4. Features autorizadas
 
-Contrato causal heredado de `controlled_daily_v3`, sin modificación:
+Contrato v4 de **ocho features**, distinto de v3: tres valores actuales y
+cinco transformaciones temporales de humedad. v3 usa 15 variables temporales
+sobre tres magnitudes, con `include_current=false`. No es una réplica de v3;
+una diferencia v3→v4 no identifica por sí sola efectos de sitio, período o modelo.
+Las comparaciones internas v4 usan exactamente el mismo contrato:
 
 - humedad de suelo 0–7 cm (autorregresiva);
 - humedad relativa (RH2M, NASA POWER);
@@ -49,7 +61,7 @@ Contrato causal heredado de `controlled_daily_v3`, sin modificación:
 - lags 1, 2 y 3 días de humedad de suelo;
 - medias móviles causales de 3 y 7 días de humedad de suelo.
 
-Temperatura (T2M) y precipitación (PRECTOTCORR) quedan **fuera del protocolo principal**, por criterio metodológico previo (no derivado de resultados): mantener el mismo conjunto de variables que `controlled_daily_v3` evita confundir "efecto del sitio/dominio" con "efecto de variables adicionales". Pueden incorporarse únicamente como un experimento de sensibilidad separado y predeclarado, ejecutado después de cerrar la comparación principal, sin influir en la selección de ningún candidato.
+Temperatura (T2M) y precipitación (PRECTOTCORR) quedan **fuera del protocolo principal**, por criterio metodológico previo (no derivado de resultados): acotar a las tres magnitudes físicas predeclaradas; esto no iguala sus transformaciones con las de v3. Pueden incorporarse únicamente como un experimento de sensibilidad separado y predeclarado, ejecutado después de cerrar la comparación principal, sin influir en la selección de ningún candidato.
 
 ## 5. Apertura causal de las etapas — fronteras temporales exactas
 
@@ -290,3 +302,31 @@ En ningún punto se alcanza portabilidad geográfica (un único sitio externo) n
 ## 18. Seguimiento
 
 Ver `docs/seguimiento-tareas.md`, sección "Protocolo controlled_daily_v4_external_pergamino documentado", para el estado de esta iteración frente al plan de tesis.
+
+
+## 16. Condiciones de interpretación y soporte previas a ejecución
+
+El contrato efectivo se serializa en `feature_contract` de configuración y
+artefactos A/B/C. Se emite retrospectivamente después de disponer de ambos
+productos del día t; no se demuestra disponibilidad operativa en tiempo real.
+El cruce por fecha de ERA5-Land (día civil UTC-3) y POWER (LST) es una
+aproximación entre agregaciones diarias distintas, no equivalencia horaria.
+Las latencias publicadas pueden consumir o superar el horizonte nominal t+3.
+
+La selección exige al menos dos folds con MCC definido de los tres previstos
+y al menos 80 % de réplicas bootstrap válidas (4000/5000). Si una familia no
+satisface el soporte, A termina `NO_VALID_SELECTION`, sin candidato transferible,
+con diagnósticos. MCC con verdad o predicción constante es indefinido.
+La representación JSON es null con estado, razón y soporte, nunca NaN ni cero
+sustituto. B/C monoclase conservan predicciones y métricas definibles; B no abre C.
+
+`episode_recall` mide cobertura de episodios, no anticipación al inicio.
+Las métricas `onset` distinguen anticipación, detección en inicio, detección
+tardía y omisión, con censura de fronteras, días de anticipación, falsos avisos
+y soporte. La definición completa está congelada en las decisiones enlazadas.
+
+Las evaluaciones auxiliares de regresión (MAE/RMSE), HITL, anomalías reservadas
+y robustez están diseñadas por separado en esas decisiones. Sus runners
+complementarios no están implementados; no alteran las compuertas A→B→C.
+La demostración histórica de anomalías y la cobertura/recencia al 50 % no se
+reinterpretan como validación real ni como ausencia de mediciones.

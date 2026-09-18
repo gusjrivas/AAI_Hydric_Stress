@@ -214,3 +214,24 @@ Implementado en `src/experiment_runner/scenarios.py` (`inject_gaussian_noise`), 
 - No se ejecutó un escenario combinado de escasez + ruido simultáneos.
 - La evaluación cuantitativa formal del aporte de la retroalimentación humana (HU5) al desempeño predictivo permanece diseñada pero no ejecutada dentro de HU7 — ver "Protocolo formal vigente" al inicio de este documento.
 - El período de evaluación 2024 usado por `controlled_daily_v3` es una referencia de desarrollo experimental, no una validación externa independiente sobre otro sitio o período.
+
+
+## Cierre científico v4: vigencia 2026-09-17 (HU7/HU8)
+
+A/B/C están implementadas; ejecución científica pendiente. La referencia actual
+es `docs/research/scientific-closure-decisions.md`; las cifras y estados de
+versiones anteriores de esta spec conservan su carácter histórico.
+
+El runner DEBE preservar predicciones de evaluaciones monoclase con train
+biclase; serializar métricas definibles, indefinidas, razones y soporte; impedir
+selección con menos de dos folds válidos o bootstrap con menos de 80 % válidos;
+y registrar un primer intento B persistente antes de acceder a sus valores.
+La recuperación DEBE validar hashes sin entrenar ni cambiar candidato.
+
+Las métricas de inicio DEBEN usar fecha objetivo t+3, censurar fronteras/gaps y
+separar anticipación, mismo día, tardía, omitida, falsos avisos y soporte.
+La existencia de estos mecanismos y sus fixtures NO demuestra eficacia real.
+
+CRISP-DM: preparación/modelado/evaluación. No se modifica v3 ni arquitectura,
+hipótesis, frontend o contratos públicos. Los cuatro complementos tienen diseño
+predeclarado; implementar sus runners sigue pendiente y no bloquea técnicamente A.

@@ -38,7 +38,12 @@ MCC/AUC y balanced accuracy con y_true monoclase son indefinidos por convención
 AP sin positivos también. Precisión sin predicciones positivas y recall sin
 positivos reales son indefinidos. JSON usa value:null, status:undefined,
 undefined_reason y soporte. B monoclase nunca valida; C no se reabre.
-MCC con predicción constante e y_true biclase conserva la convención 0.
+~~MCC con predicción constante e y_true biclase conserva la convención 0.~~
+Corrección preejecución 18/09, motivada por revisión matemática y fixtures:
+también es indefinido por denominador nulo; se serializa null con razón explícita.
+No se observaron datos reales ni B/C para esta corrección.
+La selección global requiere además al menos dos outer folds con MCC definido
+en cada familia; el global concatenado no sustituye ese soporte.
 
 ## Inicio de episodios (H06)
 Métrica descriptiva secundaria; nunca selecciona candidatos ni altera B.
