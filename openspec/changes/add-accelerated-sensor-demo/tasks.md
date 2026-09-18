@@ -1,8 +1,10 @@
 # Tareas — add-accelerated-sensor-demo
 
-Estado: entregas 1 (preparación y worker CLI), 2 (control local y
-recuperación) y 3 (UI) implementadas y verificadas. Entrega 4 (verificación
-integrada) pendiente.
+Estado: las 4 entregas implementadas y verificadas (preparación y worker
+CLI; control local y recuperación; UI; verificación integrada). Único
+punto declarado explícitamente pendiente: viewport móvil real (ver tarea
+4.3 y las limitaciones en `openspec/specs/alerting-ui/spec.md` y
+`scripts/demo_simulation/README.md`).
 
 ## 0. Decisión y preparación
 
@@ -36,11 +38,11 @@ integrada) pendiente.
 
 ## 4. Verificación y documentación — depende de 3
 
-- [ ] 4.1 Ejecutar tests afectados de herramientas/backend/frontend, lint/formato Python según repo, `npm test`, `npm run lint`, `npm run build`.
-- [ ] 4.2 Integración local sobre sensor nuevo: preparar → iniciar → pausar → continuar → completar al menos cinco días; revisar manualmente una fila con objetivo observable. Registrar valores reales sin exigir mezcla de clases.
-- [ ] 4.3 Inspección en navegador escritorio/móvil y teclado; capturas identificadas como demo. Diferenciar evidencia con fixtures de API/registro reales.
-- [ ] 4.4 Registrar recursos creados y posibles fallos; no borrar automáticamente datasets ni versiones. Probar que UI sin perfil demo continúa funcionando.
-- [ ] 4.5 Consolidar únicamente capacidades implementadas en specs canónicas y actualizar seguimiento/diseño/README con HU6, relación HU2/HU5, capítulo 3 e impacto nulo HU7/HU8.
+- [x] 4.1 Ejecutar tests afectados de herramientas/backend/frontend, lint/formato Python según repo, `npm test`, `npm run lint`, `npm run build`. `pytest -q` (raíz, incluye `tests/demo_simulation`): 783 passed, 3 skipped. `cd backend && python -m pytest -q`: 50 passed. `ruff check`/`black --check` sobre `src tests`, `scripts/demo_simulation tests/demo_simulation` y `backend/app`: limpios. `npm test` (frontend): 92 passed. `npm run lint` (oxlint): limpio. `npm run build` (`tsc -b && vite build`): limpio.
+- [x] 4.2 Integración local sobre sensor nuevo: preparar → iniciar → pausar → continuar → completar al menos cinco días; revisar manualmente una fila con objetivo observable. Registrar valores reales sin exigir mezcla de clases. Contra Docker Compose real (backend/MLflow/controlador reales): sesión `demo-d8a94926ce` (5 días, semilla 42, intervalo 20s) iniciada, pausada desde la UI mientras el paso 1 estaba en curso (terminó ese paso sin iniciar el 2, verificado por `GET /feedback` con un único registro), continuada y completada (5/5, 5 fechas consecutivas sin duplicados). Sesión `demo-be97e84561` (mismos parámetros, completada de punta a punta) usada para revisar manualmente la fila `2026-01-01` (objetivo `2026-01-04`, dentro del período ingerido y terminado en UTC): `estado_validacion` pasó a `confirmada` vía el endpoint real, verificado por `GET` directo al backend. Las cinco alertas de cada sesión salieron todas positivas con la semilla de referencia (42); no se exigió ni se buscó una mezcla, ni se ajustó la semilla.
+- [x] 4.3 Inspección en navegador escritorio y teclado; capturas identificadas como demo. Diferenciar evidencia con fixtures de API/registro reales. Escritorio: capturas reales de los estados preparada/en ejecución/pausa solicitada/pausada/completada/bloqueada, mensaje de conexión perdida y app normal sin el perfil demo (contra Docker real, sin mocks). Teclado: confirmado por inspección de `document.activeElement` que el orden de tabulación llega al enlace "Demostración" y a los controles Iniciar/Pausar/Continuar sin salto, y que `Enter` sobre "Iniciar" (botón nativo) inicia la sesión igual que un clic (verificado contra el controlador real). **Pendiente, declarado explícitamente:** viewport móvil real — la herramienta de automatización disponible en esta sesión no pudo redimensionar la resolución real del navegador (fija en 1280×800); se hizo una aproximación con un contenedor angosto de 390px inyectado por CSS (sin disparar `@media` reales), que no mostró desbordes, pero no reemplaza una verificación en dispositivo o navegador con redimensionado genuino.
+- [x] 4.4 Registrar recursos creados y posibles fallos; no borrar automáticamente datasets ni versiones. Probar que UI sin perfil demo continúa funcionando. Cinco sesiones de demostración creadas y conservadas (`demo-be97e84561`, `demo-d8a94926ce`, `demo-139b36b992`, `demo-aaf5c81e7f`, `demo-ae84b66085`; datasets y manifiestos en `data/`/`demo_sessions/`, excluidos de Git). Fallo encontrado y corregido: el servicio `demo-control` de `docker-compose.yml` no montaba `./data`, por lo que `prepare` invocado vía `docker compose --profile demo run` no era visible para el backend real (sesión quedaba `blocked` tras el primer paso) — corregido agregando ese volumen. Verificado que la app en el contenedor `frontend` normal del usuario (sin `VITE_DEMO_CONTROL_BASE_URL`, sin perfil `demo` activo) sigue funcionando igual que siempre, sin el enlace "Demostración".
+- [x] 4.5 Consolidar únicamente capacidades implementadas en specs canónicas y actualizar seguimiento/diseño/README con HU6, relación HU2/HU5, capítulo 3 e impacto nulo HU7/HU8. Nueva spec canónica `openspec/specs/demo-simulation/spec.md` (capacidad HU6 completa, las 4 entregas). `openspec/specs/alerting-ui/spec.md` ampliada con los tres requirements de UI de demostración (control explícito, refresco por progreso confirmado, revisión humana posterior) y una limitación declarada sobre el viewport móvil pendiente. `scripts/demo_simulation/README.md` actualizado (alcance completo, corrección del volumen Docker, sección "Verificación integrada" con los comandos exactos para reproducir el recorrido). `docs/seguimiento-tareas.md` actualizado con el resumen de esta entrega. Sin impacto en HU7/HU8, protocolo experimental, aumento sintético HU3 ni resultados históricos.
 
 ## Cobertura de requisitos
 
@@ -57,6 +59,6 @@ integrada) pendiente.
 
 ## Cierre
 
-- [ ] Todos los escenarios tienen evidencia y no se declara exactamente-una-vez sobre APIs que no lo garantizan.
-- [ ] Ningún cambio en protocolos, aumento sintético HU3, resultados científicos ni datasets existentes del usuario.
-- [ ] Límites del mock, exclusión frente a clientes externos y verificaciones pendientes declarados; no se afirma validación agronómica o productiva.
+- [x] Todos los escenarios tienen evidencia y no se declara exactamente-una-vez sobre APIs que no lo garantizan.
+- [x] Ningún cambio en protocolos, aumento sintético HU3, resultados científicos ni datasets existentes del usuario.
+- [x] Límites del mock, exclusión frente a clientes externos y verificaciones pendientes declarados; no se afirma validación agronómica o productiva.

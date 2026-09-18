@@ -6,12 +6,15 @@ crecen el historial y los pronósticos registrados en el tiempo. Ver
 [`openspec/changes/add-accelerated-sensor-demo/`](../../openspec/changes/add-accelerated-sensor-demo/)
 para el diseño completo y el estado de tareas.
 
-**Alcance de las entregas implementadas (1 y 2 de 4):** `prepare`, `run` y
-`status` por línea de comandos (entrega 1); lock de proceso, máquina de
-estados persistida, adaptador HTTP local de control (`serve`,
-inicio/pausa/continuación) y perfil Docker opcional `demo` (entrega 2).
-Todavía no existe: la UI de demostración (entrega 3) ni la verificación
-integrada final (entrega 4).
+**Alcance: las 4 entregas del change están implementadas y verificadas.**
+`prepare`, `run` y `status` por línea de comandos (entrega 1); lock de
+proceso, máquina de estados persistida, adaptador HTTP local de control
+(`serve`, inicio/pausa/continuación) y perfil Docker opcional `demo`
+(entrega 2); vista de demostración en `frontend/src/features/demo/`
+(entrega 3, ver `openspec/specs/alerting-ui/spec.md`); verificación
+integrada de punta a punta contra el backend y el controlador reales
+(entrega 4, ver `openspec/specs/demo-simulation/spec.md` y
+`docs/seguimiento-tareas.md`).
 
 ## Requisitos
 
@@ -148,8 +151,11 @@ accede al estado del backend únicamente vía HTTP (`GET /quality`,
        --backend-url http://backend:8000
    ```
 
-   El manifiesto queda en `./demo_sessions/` (montado como volumen); tomar
-   nota del `session_id` impreso (`demo-<id>`).
+   El manifiesto queda en `./demo_sessions/` y el historial sintético en
+   `./data/` (ambos montados como volumen; el segundo se agregó en la
+   entrega 4 tras encontrar que `prepare` no tenía dónde escribir el
+   historial de forma visible para el backend real); tomar nota del
+   `session_id` impreso (`demo-<id>`).
 3. Levantar el servicio de control con ese identificador:
 
    ```
@@ -189,6 +195,48 @@ accede al estado del backend únicamente vía HTTP (`GET /quality`,
   `docker compose --profile demo config` verificados manualmente; el
   servicio no aparece en `docker compose config --services` sin el perfil.
 
+## Verificación integrada (entrega 4)
+
+Recorrido reproducible de punta a punta contra contenedores reales
+(backend, MLflow, frontend), sin usar `sensor-a` ni datos del usuario:
+
+```bash
+# 1. Backend habitual ya levantado (docker compose up -d).
+# 2. Preparar una sesión (dataset y manifiesto reales, sensor exclusivo):
+docker compose --profile demo run --rm demo-control \
+    prepare --start 2026-01-01 --days 5 --history-days 120 --seed 42 \
+    --backend-url http://backend:8000 --interval-seconds 5
+# anota el session_id impreso (demo-<id>)
+
+# 3. Levantar el controlador para esa sesión, con el origen del frontend
+#    que vas a usar (por defecto http://localhost:5173):
+DEMO_SESSION_ID=demo-<id> docker compose --profile demo up demo-control
+
+# 4. Frontend apuntando al backend real y al controlador:
+cd frontend
+VITE_DEMO_CONTROL_BASE_URL=http://127.0.0.1:8010 \
+VITE_API_BASE_URL=http://localhost:8000 \
+npm run dev -- --port 5173
+```
+
+Abrir `http://localhost:5173/#demo`, Iniciar, Pausar durante un paso en
+curso, Continuar hasta completar los cinco días, y revisar manualmente en
+Historial y observaciones la fila cuya fecha objetivo ya está dentro del
+período ingerido.
+
+Verificado así el 2026-09-18 (evidencia detallada en
+`docs/seguimiento-tareas.md` y `openspec/specs/demo-simulation/spec.md`):
+cinco sesiones de demostración reales, cubriendo inicio, pausa con paso en
+curso, continuación, finalización de cinco días, revisión humana manual
+sobre una fila con objetivo observable, bloqueo de mutaciones manuales
+durante la reproducción, controlador ausente/inaccesible, recuperación al
+volver a la pestaña, cierre de pestaña sin pausar el worker, ausencia de
+escrituras por navegar/refrescar, y funcionamiento normal de la app sin el
+perfil `demo`. Las cinco sesiones (`demo-be97e84561`, `demo-d8a94926ce`,
+`demo-139b36b992`, `demo-aaf5c81e7f`, `demo-ae84b66085`) quedan en
+`data/`/`demo_sessions/` (excluidos de Git) como evidencia, sin borrado
+automático.
+
 ## Limitaciones declaradas
 
 - El generador (`data_ingestion.mock_sensor`) es un random walk acotado, no
@@ -223,10 +271,16 @@ accede al estado del backend únicamente vía HTTP (`GET /quality`,
   paso en curso" queda cubierto igual por
   `test_recovery_reconciles_confirmed_forecast_without_reposting` y
   `test_resume_continues_from_first_incomplete_step`.
-- El perfil Docker `demo` no fue verificado con el stack de Compose completo
-  corriendo end-to-end (postgres/minio/mlflow/backend reales en contenedores
-  más `demo-control` controlando una sesión); se verificó la construcción de
-  la imagen, la validez de la configuración de Compose (con y sin el
-  perfil) y el comportamiento de error ante `--id` vacío. La verificación de
-  extremo a extremo queda pendiente para cuando exista la UI (entrega 3) o
-  se documente explícitamente como parte del cierre de esta entrega.
+- ~~El perfil Docker `demo` no fue verificado con el stack de Compose
+  completo corriendo end-to-end...~~ **Actualización (entrega 4,
+  2026-09-18):** verificado end-to-end contra el stack de Compose real
+  (postgres/minio/mlflow/backend/frontend, `demo-control` controlando
+  cinco sesiones distintas desde la UI) — ver "Verificación integrada"
+  arriba. Al hacerlo se encontró que el servicio `demo-control` no
+  montaba `./data`, por lo que `prepare` invocado vía
+  `docker compose --profile demo run` escribía el historial en un
+  directorio efímero del contenedor, invisible para el backend real (la
+  sesión quedaba `blocked` tras el primer paso con un mensaje de fila
+  faltante). Corregido agregando ese volumen en `docker-compose.yml`; no
+  afecta al comando por defecto (`serve`), que sigue sin leer `data/`
+  directamente.
