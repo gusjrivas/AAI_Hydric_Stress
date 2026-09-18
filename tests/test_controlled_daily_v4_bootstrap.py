@@ -156,15 +156,22 @@ def test_diagnostics_record_discarded_replicas_with_their_reason():
     y_pred_a = np.zeros(n, dtype=int)
     y_pred_b = np.ones(n, dtype=int)
 
-    result = paired_bootstrap_delta(
-        y_true, y_pred_a, y_pred_b, frame, metric_fn=mcc_strict, n_replicas=40, seed=BOOTSTRAP_SEED
-    )
-    d = result.diagnostics
+    with pytest.raises(NoValidBootstrapReplicasError) as exc:
+        paired_bootstrap_delta(
+            y_true,
+            y_pred_a,
+            y_pred_b,
+            frame,
+            metric_fn=mcc_strict,
+            n_replicas=40,
+            seed=BOOTSTRAP_SEED,
+        )
+    d = exc.value.diagnostics
     assert d.replicas_requested == 40
-    assert d.replicas_discarded > 0
-    assert d.replicas_valid + d.replicas_discarded == 40
-    assert d.replicas_valid == len(result.deltas)
-    assert d.discard_reasons["undefined_metric"] == d.replicas_discarded
+    assert d.replicas_discarded == 40
+    assert d.replicas_valid == 0
+    assert not d.support_sufficient
+    assert d.discard_reasons["undefined_metric"] == 40
 
 
 def test_diagnostics_record_the_full_provenance_of_the_procedure():

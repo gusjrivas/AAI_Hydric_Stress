@@ -422,36 +422,14 @@ def run_stage_b(
         contract, training_frame, warnings_log, p20_train=training_p20_train
     )
 
-    if _evaluation_labels_are_monoclass(evaluation_frame, p20_train):
-        y_eval = build_target(evaluation_frame["future_soil_moisture"], p20_train).to_numpy()
-        return StageBResult(
-            training_frame_n_rows=len(training_frame),
-            training_dataset_fingerprint=training_fingerprint,
-            p20_train=p20_train,
-            evaluation_frame_n_rows=len(evaluation_frame),
-            evaluation_target_timestamp_min=str(evaluation_frame["target_timestamp"].min()),
-            evaluation_target_timestamp_max=str(evaluation_frame["target_timestamp"].max()),
-            feature_timestamps=evaluation_frame["feature_timestamp"].to_numpy(),
-            y_true=y_eval,
-            y_pred_candidate=np.array([]),
-            y_score_candidate=np.array([]),
-            y_pred_persistence=np.array([]),
-            y_pred_majority_class=np.array([]),
-            y_pred_constant_stress=np.array([]),
-            metrics_candidate={},
-            metrics_persistence={},
-            metrics_majority_class={},
-            metrics_constant_stress={},
-            mcc_candidate=float("nan"),
-            mcc_persistence=float("nan"),
-            delta_mcc_point_estimate=float("nan"),
-            bootstrap_result=None,
-            bootstrap_diagnostics=None,
-            verdict=STAGE_B_VERDICT_NOT_VALIDATED,
-            verdict_reasons=[REASON_EVALUATION_LABELS_MONOCLASS],
-            predictions_available=False,
-            bootstrap_executed=False,
-            warnings_log=warnings_log,
+    evaluation_monoclass = _evaluation_labels_are_monoclass(evaluation_frame, p20_train)
+    if evaluation_monoclass:
+        warnings_log.append(
+            {
+                "category": "EvaluationMonoclass",
+                "message": "Predictions retained; unsupported metrics remain undefined.",
+                "n_observations": len(evaluation_frame),
+            }
         )
 
     X_eval = evaluation_frame[list(FEATURE_COLUMNS)].to_numpy()
@@ -484,30 +462,42 @@ def run_stage_b(
 
     bootstrap_result: PairedBootstrapResult | None = None
     bootstrap_diagnostics: BootstrapDiagnostics | None = None
-    try:
-        bootstrap_result = paired_bootstrap_delta(
-            y_true=y_true,
-            y_pred_a=y_pred_candidate,
-            y_pred_b=y_pred_persistence,
-            frame_with_segment_id=frame_with_segment_id,
-            metric_fn=mcc_strict,
-            n_replicas=bootstrap_replicas,
-            seed=bootstrap_seed,
-            block_length=bootstrap_block_days,
-            normative=bootstrap_normative,
-        )
-        bootstrap_diagnostics = bootstrap_result.diagnostics
-    except NoValidBootstrapReplicasError as exc:
-        # Bootstrap EJECUTADO pero sin réplicas válidas: los diagnósticos
-        # completos (solicitadas/válidas/descartadas, motivos, semilla, largo
-        # de bloque y segmentos) viajan adjuntos a la excepción (hallazgo
-        # H-05) -- nunca se pierden ni se reejecuta el bootstrap para
-        # reconstruirlos. Distinto de `bootstrap_executed=False` (monoclase,
-        # bootstrap ni siquiera se intentó).
-        bootstrap_result = None
-        bootstrap_diagnostics = exc.diagnostics
+    if not evaluation_monoclass:
+        try:
+            bootstrap_result = paired_bootstrap_delta(
+                y_true=y_true,
+                y_pred_a=y_pred_candidate,
+                y_pred_b=y_pred_persistence,
+                frame_with_segment_id=frame_with_segment_id,
+                metric_fn=mcc_strict,
+                n_replicas=bootstrap_replicas,
+                seed=bootstrap_seed,
+                block_length=bootstrap_block_days,
+                normative=bootstrap_normative,
+            )
+            bootstrap_diagnostics = bootstrap_result.diagnostics
+        except NoValidBootstrapReplicasError as exc:
+            # Bootstrap EJECUTADO pero sin réplicas válidas: los diagnósticos
+            # completos (solicitadas/válidas/descartadas, motivos, semilla, largo
+            # de bloque y segmentos) viajan adjuntos a la excepción (hallazgo
+            # H-05) -- nunca se pierden ni se reejecuta el bootstrap para
+            # reconstruirlos. Distinto de `bootstrap_executed=False` (monoclase,
+            # bootstrap ni siquiera se intentó).
+            bootstrap_result = None
+            bootstrap_diagnostics = exc.diagnostics
 
     verdict, verdict_reasons = decide_stage_b_verdict(mcc_candidate, bootstrap_result)
+
+    if evaluation_monoclass:
+        verdict_reasons.append(REASON_EVALUATION_LABELS_MONOCLASS)
+
+    def evaluate_metrics(y_true, y_pred, y_score):
+        return metrics_payload(
+            y_true,
+            y_pred,
+            y_score,
+            feature_timestamps=evaluation_frame["feature_timestamp"].to_numpy(),
+        )
 
     return StageBResult(
         training_frame_n_rows=len(training_frame),
@@ -523,14 +513,14 @@ def run_stage_b(
         y_pred_persistence=y_pred_persistence,
         y_pred_majority_class=y_pred_majority_class,
         y_pred_constant_stress=y_pred_constant_stress,
-        metrics_candidate=metrics_payload(y_true, y_pred_candidate, y_score_candidate),
-        metrics_persistence=metrics_payload(
+        metrics_candidate=evaluate_metrics(y_true, y_pred_candidate, y_score_candidate),
+        metrics_persistence=evaluate_metrics(
             y_true, y_pred_persistence, y_pred_persistence.astype(float)
         ),
-        metrics_majority_class=metrics_payload(
+        metrics_majority_class=evaluate_metrics(
             y_true, y_pred_majority_class, y_pred_majority_class.astype(float)
         ),
-        metrics_constant_stress=metrics_payload(
+        metrics_constant_stress=evaluate_metrics(
             y_true, y_pred_constant_stress, y_pred_constant_stress.astype(float)
         ),
         mcc_candidate=mcc_candidate,
@@ -541,7 +531,7 @@ def run_stage_b(
         verdict=verdict,
         verdict_reasons=verdict_reasons,
         predictions_available=True,
-        bootstrap_executed=True,
+        bootstrap_executed=not evaluation_monoclass,
         warnings_log=warnings_log,
     )
 

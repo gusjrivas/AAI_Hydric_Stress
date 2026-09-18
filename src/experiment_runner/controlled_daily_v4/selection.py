@@ -89,6 +89,24 @@ def select_family(
             selection_reason="oof_concatenado_monoclase_o_mcc_indefinido",
         )
 
+    # A valid global concatenation alone cannot replace support across outer folds.
+    for family, candidate in candidates.items():
+        segments = candidate.frame_with_segment_id["segment_id"].to_numpy()
+        scores = [
+            mcc_strict(candidate.y_true[segments == seg], candidate.y_pred[segments == seg])
+            for seg in np.unique(segments)
+        ]
+        if sum(np.isfinite(scores)) < 2:
+            return SelectionResult(
+                outcome=OUTCOME_NO_VALID_SELECTION,
+                global_mcc_by_family=global_mcc,
+                pairwise_intervals={},
+                equivalence_set=[],
+                stable_winner=None,
+                selected_family=None,
+                selection_reason=f"insufficient_outer_fold_support:{family}",
+            )
+
     pairwise_intervals: dict[tuple[str, str], tuple[float, float]] = {}
     bootstrap_diagnostics: dict[tuple[str, str], BootstrapDiagnostics] = {}
     for a in families:

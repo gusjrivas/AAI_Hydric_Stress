@@ -270,3 +270,19 @@ def build_target(future_soil_moisture: pd.Series, p20_threshold: float) -> pd.Se
     """`stress = 1` si `future_soil_moisture < p20_threshold` (estrictamente).
     Un valor futuro exactamente igual al umbral produce clase 0."""
     return (future_soil_moisture < p20_threshold).astype(int)
+
+
+def feature_contract():
+    """Actual ordered design, explicitly distinct from controlled_daily_v3."""
+    return {
+        "version": "pergamino_features.v1",
+        "model_features": list(FEATURE_COLUMNS),
+        "include_current": True,
+        "temporal_variables": ["soil_moisture"],
+        "lags": list(LAGS),
+        "rolling_windows": list(ROLLING_WINDOWS),
+        "rolling_includes_current": True,
+        "horizon_days": HORIZON_DAYS,
+        "issuance": "after_both_daily_products_available",
+        "day_alignment": "local_calendar_approximation_ERA5_BuenosAires_NASA_LST",
+    }

@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 
 from experiment_runner.controlled_daily_v4.config import DECISION_THRESHOLD, depth_role_for_column
+from experiment_runner.controlled_daily_v4.features import feature_contract
 from experiment_runner.controlled_daily_v4.metrics import (
     REASON_MONOCLASS,
     REASON_NO_OWN_GRID,
@@ -368,7 +369,12 @@ def build_metrics_payload(
         per_outer_fold = []
         fold_mcc: list[float] = []
         for result in results:
-            payload = metrics_payload(result.y_true, result.y_pred, result.y_score)
+            payload = metrics_payload(
+                result.y_true,
+                result.y_pred,
+                result.y_score,
+                feature_timestamps=getattr(result, "feature_timestamps", None),
+            )
             payload["outer_fold_index"] = result.outer_fold_index
             payload["p20_train"] = float(result.p20_train)
             per_outer_fold.append(payload)
@@ -378,7 +384,13 @@ def build_metrics_payload(
         recorded = list(getattr(oof, "per_fold_mcc", []) or [])
         summary_source = recorded if recorded else fold_mcc
         by_family[family] = {
-            "global": metrics_payload(oof.y_true, oof.y_pred, oof.y_score),
+            "global": metrics_payload(
+                oof.y_true,
+                oof.y_pred,
+                oof.y_score,
+                feature_timestamps=oof.frame_with_segment_id["feature_timestamp"],
+                segment_ids=oof.frame_with_segment_id["segment_id"],
+            ),
             "per_outer_fold": per_outer_fold,
             "fold_mcc_summary": summarize_fold_mcc(summary_source),
         }
@@ -509,7 +521,10 @@ def write_stage_a_artifacts(
     _write_json(written["schema_version"], {"schema_version": ARTIFACT_SCHEMA_VERSION})
 
     written["resolved_config"] = output_dir / "resolved_config.json"
-    _write_json(written["resolved_config"], {"depth_column": depth_column, **resolved_config})
+    _write_json(
+        written["resolved_config"],
+        {"depth_column": depth_column, **resolved_config, "feature_contract": feature_contract()},
+    )
 
     written["provenance"] = output_dir / "provenance.json"
     _write_json(written["provenance"], provenance_report)
@@ -584,6 +599,7 @@ def write_stage_a_artifacts(
     candidate_produced = frozen_single_family is not None or frozen_soft_voting_bases is not None
     frozen_payload: dict[str, Any] = {
         "schema_version": TRANSFER_CONTRACT_SCHEMA_VERSION,
+        "feature_contract": feature_contract(),
         "input_mode": input_mode,
         "scientific_run": scientific_run,
         "depth_column": depth_column,
@@ -726,7 +742,12 @@ def write_stage_b_artifacts(
     written["resolved_config"] = output_dir / "resolved_config.json"
     _write_json(
         written["resolved_config"],
-        {"input_mode": input_mode, "scientific_run": scientific_run, **resolved_config},
+        {
+            "input_mode": input_mode,
+            "scientific_run": scientific_run,
+            **resolved_config,
+            "feature_contract": feature_contract(),
+        },
     )
 
     written["producer_reference"] = output_dir / "producer_reference.json"
@@ -926,7 +947,12 @@ def write_stage_c_artifacts(
     written["resolved_config"] = output_dir / "resolved_config.json"
     _write_json(
         written["resolved_config"],
-        {"input_mode": input_mode, "scientific_run": scientific_run, **resolved_config},
+        {
+            "input_mode": input_mode,
+            "scientific_run": scientific_run,
+            **resolved_config,
+            "feature_contract": feature_contract(),
+        },
     )
 
     written["producer_reference"] = output_dir / "producer_reference.json"
