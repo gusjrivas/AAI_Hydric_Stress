@@ -21,3 +21,6 @@ Estados distintos: diseñado ≠ implementado ≠ probado con fixtures ≠ integ
 ≠ ejecutado científicamente ≠ evidencia consolidada.
 Los complementos regresión/HITL/anomalías reservadas/robustez están diseñados;
 sus nuevos runners aún no existen. No se atribuye mejora científica a tests.
+
+- [Auditoría de preejecución 18/09](scientific-closure-preexecution-audit.md):
+  commits, validaciones, pendientes y veredicto READY_TO_RUN_A sin autorización.

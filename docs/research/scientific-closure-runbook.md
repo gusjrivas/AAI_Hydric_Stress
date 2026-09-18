@@ -35,8 +35,9 @@ $DockerCommon = @('run','--rm','--network','none','--read-only','--tmpfs','/tmp'
   '--mount',"type=bind,source=$RawRoot,target=/raw,readonly",
   '--mount',"type=bind,source=$RuntimeRoot,target=/runtime")
 docker @DockerCommon $ImageId python -m pip check
-docker @DockerCommon $ImageId python -m experiment_runner.controlled_daily_v4.preflight --checkout /workspace --raw /raw --evidence /runtime/evidence --ledger /runtime/ledger --backups /runtime/backups --image-id $ImageId | Set-Content -Encoding UTF8 "$RuntimeRoot\evidence\preflight.json"
+$PreflightOutput = docker @DockerCommon $ImageId python -m experiment_runner.controlled_daily_v4.preflight --checkout /workspace --raw /raw --evidence /runtime/evidence --ledger /runtime/ledger --backups /runtime/backups --image-id $ImageId
 if ($LASTEXITCODE -ne 0) { throw 'Preflight falló: detener' }
+[IO.File]::WriteAllText("$RuntimeRoot\evidence\preflight.json", ($PreflightOutput -join [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
 ```
 
 Preflight consulta rutas, tamaños y referencias versionadas. No lee valores,
