@@ -1,0 +1,201 @@
+{
+  "verdict": "BLOCKED",
+  "scope": "Auditoría independiente de sc-01-evidence-scope y readiness integral previa a A; sin ejecución científica, apertura de holdouts ni inicialización de ledger.",
+  "snapshot": {
+    "repository": "/home/gus/work/AAI_Hydric_Stress_scientific_closure",
+    "branch": "feat/scientific-closure",
+    "commit": "a0d8bf7412bbb68448cf3bcec262097cd1571ab3",
+    "upstream": "origin/feat/scientific-closure",
+    "tree": "CLEAN"
+  },
+  "checked_at": "2026-09-19T08:34:25Z",
+  "independent_actor": {
+    "session": "/root/readiness_auditor",
+    "role": "scientific_auditor",
+    "assigned_model": "gpt-5.6-sol",
+    "assigned_reasoning_effort": "xhigh",
+    "effective_model": null,
+    "effective_reasoning_effort": null,
+    "nominal_sandbox": "read-only",
+    "effective_sandbox": "danger-full-access inherited",
+    "behavior": "read-only"
+  },
+  "scopes": {
+    "sc-01-evidence-scope": {
+      "verdict": "PASS",
+      "requirements": [
+        "SC-GOV-001",
+        "SC-GOV-003",
+        "SC-GOV-004",
+        "SC-GOV-005"
+      ],
+      "finding": "CL-01..10 están delimitadas, no hay decisiones UNRESOLVED, R/N/S están justificadas como NOT_REQUIRED bajo límites explícitos y H permanece REQUIRED. No se encontraron hallazgos materiales abiertos en este alcance documental."
+    },
+    "readiness-integral": {
+      "verdict": "BLOCKED",
+      "finding": "No puede autorizarse A porque faltan evidencia y capacidades obligatorias de runtime, custodia, identidad ejecutable, aislamiento, procedencia, backup, ADR-0011 y validación reproducible."
+    }
+  },
+  "checks": [
+    {
+      "check": "Identidad Git",
+      "result": "PASS",
+      "evidence": "Ruta, rama, HEAD y upstream coinciden; árbol limpio antes y después."
+    },
+    {
+      "check": "Checker unitario",
+      "result": "PASS",
+      "evidence": "33/33 pruebas aprobadas."
+    },
+    {
+      "check": "Suite documental combinada",
+      "result": "PASS",
+      "evidence": "48/48 pruebas aprobadas."
+    },
+    {
+      "check": "Checker formal",
+      "result": "PASS",
+      "evidence": "scientific-closure checker: PASS (estructura; runtime no verificado)."
+    },
+    {
+      "check": "Formato estructurado",
+      "result": "PASS",
+      "evidence": "17 JSON y seis TOML parseados correctamente."
+    },
+    {
+      "check": "Manifiesto del snapshot",
+      "result": "PASS",
+      "evidence": "33 entradas verificadas sin discrepancias de hash o tamaño."
+    },
+    {
+      "check": "Preservación",
+      "result": "PASS",
+      "evidence": "Diff protegido vacío; protocolo v3, protocolo v4, ADR-0011 y referencias v3 conservan sus hashes."
+    },
+    {
+      "check": "Reproducción documental limpia",
+      "result": "PASS",
+      "evidence": "Clon local sin hardlinks del mismo commit: árbol limpio, 48/48 pruebas y checker estructural aprobados; Python 3.14.4 del host, sin valor de reproducción científica."
+    }
+  ],
+  "evidence": {
+    "verification_final_sha256": "cb472972c26d9f205367592003cba3d7455543f76474ed1131955624d9df7c06",
+    "claims_assessment_sha256": "2c42d693a8cfd21aa6fd09ce00ba401aaa53d4c1ce683d24e6a47ebb5463a0dd",
+    "inventory_sha256": "a917ed693815ca5d127c156e56941b5c213353047bea919881877bfea4d67030",
+    "preservation_sha256": "944262470a34b91f5a1296f8c520a5239125d7fbaf274b1e33639bb8ed8f31d5",
+    "session_identity_sha256": "e4e554231cd4633dfa9cf2cd536db1045ae9432509e8ce6a6c149101e19f6eae",
+    "protocol_v3_sha256": "3d8528e89eb235c94e71d536706292b99badc5c29557a71e917d641898940892",
+    "protocol_v4_sha256": "e3fa7b6644171d0f80cfca6f3088e3e1fec44a0a6e63990deb05c26af5f8218a",
+    "adr_0011_sha256": "a8dabbc4b85367d5fb473195972870fb5c7de43ed5726a99910e3fed8c83d9cb",
+    "probe_sha256": "5f32a4bf1e4462d70cd8d17d805e297d88629a9745c2a6459d32e5ed9b548976"
+  },
+  "findings": [
+    {
+      "id": "AUD-READ01",
+      "severity": "critical",
+      "requirements": [
+        "SC-GOV-009",
+        "SC-GOV-013",
+        "SC-GOV-014"
+      ],
+      "observed": "Las raíces Linux originales de runtime y raw están ausentes.",
+      "reproduction": "test -e /home/gus/work/AAI_Hydric_Stress_scientific_runtime; test -e /home/gus/work/AAI_Hydric_Stress_external_data/raw",
+      "expected": "Runtime y datos originales con hashes y custodia verificables.",
+      "effect": "No puede certificarse el estado histórico de holdouts, ledger ni primer intento."
+    },
+    {
+      "id": "AUD-READ02",
+      "severity": "critical",
+      "requirements": [
+        "SC-GOV-009",
+        "SC-GOV-020"
+      ],
+      "observed": "Docker, socket Docker, Ruff, Black y npx no están disponibles.",
+      "reproduction": "command -v docker; command -v ruff; command -v black; command -v npx; test -e /var/run/docker.sock",
+      "expected": "Imagen reproducible inspeccionable, dependencias verificadas, lint, formato y OpenSpec estricto ejecutables.",
+      "effect": "La imagen y el commit ejecutable referenciados no pueden certificarse."
+    },
+    {
+      "id": "AUD-READ03",
+      "severity": "critical",
+      "requirements": [
+        "SC-GOV-006"
+      ],
+      "observed": "El sandbox efectivo de los cinco roles no está acreditado; las sesiones heredaron danger-full-access.",
+      "reproduction": "Contrastar perfiles TOML, reader-reports.json y sandbox-probe.json.",
+      "expected": "Aislamiento efectivo verificable por sesión y rol.",
+      "effect": "CRIT-SUB-01 permanece abierto; el probe EROFS aislado no acredita todos los canales."
+    },
+    {
+      "id": "AUD-READ04",
+      "severity": "high",
+      "requirements": [
+        "SC-GOV-017"
+      ],
+      "observed": "Adquisición efectiva, versión histórica y licencia aplicable de NASA POWER siguen desconocidas.",
+      "reproduction": "Revisar manifest YAML y provenance-source-check.json.",
+      "expected": "Evidencia documental aplicable o decisión explícita de admisibilidad.",
+      "effect": "La procedencia no permite abrir la campaña."
+    },
+    {
+      "id": "AUD-READ05",
+      "severity": "high",
+      "requirements": [
+        "SC-GOV-018"
+      ],
+      "observed": "No hay segunda copia independiente, backup reconciliado ni ensayo de restauración acreditado.",
+      "reproduction": "Contrastar inventario EV-14 y ausencia del runtime original.",
+      "expected": "Copia independiente, hashes y ensayo con fixtures.",
+      "effect": "sc-02 y A permanecen bloqueados."
+    },
+    {
+      "id": "AUD-READ06",
+      "severity": "critical",
+      "requirements": [
+        "ADR-0011-condition-4"
+      ],
+      "observed": "El commit ejecutable 214735e42ee04f018156cd630591e798aadd8bf3 no es ancestro de origin/main local y el protocolo difiere.",
+      "reproduction": "git merge-base --is-ancestor 214735e42ee04f018156cd630591e798aadd8bf3 refs/remotes/origin/main; git diff --quiet 214735e42ee04f018156cd630591e798aadd8bf3 refs/remotes/origin/main -- docs/research/controlled-daily-v4-external-pergamino-protocol.md",
+      "expected": "ADR y protocolo incorporados en main antes de ejecutar.",
+      "effect": "La precondición normativa de A no está satisfecha."
+    },
+    {
+      "id": "AUD-READ07",
+      "severity": "high",
+      "requirements": [
+        "SC-GOV-002",
+        "SC-GOV-006",
+        "SC-GOV-007",
+        "SC-GOV-009",
+        "SC-GOV-017",
+        "SC-GOV-018",
+        "SC-GOV-019",
+        "SC-GOV-020"
+      ],
+      "observed": "sc-02-runtime-readiness sigue PLANNED y carece de sus artefactos auditables.",
+      "reproduction": "Revisar changes.json y ausencia de authorizations.json, agent-capabilities.json, execution-manifest.json, provenance-assessment.json, recovery-rehearsal.json, checkpoints.json y structural-validation.json.",
+      "expected": "sc-02 aprobado, implementado, revisado y con PASS independiente.",
+      "effect": "G1 no está satisfecho."
+    },
+    {
+      "id": "AUD-READ08",
+      "severity": "high",
+      "requirements": [
+        "SC-GOV-020"
+      ],
+      "observed": "CRIT-CHK-01..04 no pueden cerrarse porque Ruff y Black no fueron ejecutados en el entorno reproducible y falta auditoría completa del checker.",
+      "reproduction": "Contrastar report.md y observations.json con la ausencia de Docker/Ruff/Black.",
+      "expected": "Lint y formato reproducibles, crítica resuelta y auditoría PASS del alcance completo.",
+      "effect": "El checker está estructuralmente validado, pero su cierre formal permanece bloqueado."
+    }
+  ],
+  "scientific_execution": {
+    "A": "NOT_EXECUTED",
+    "B": "NOT_EXECUTED",
+    "C": "NOT_EXECUTED",
+    "auxiliaries": "NOT_EXECUTED",
+    "ledger": "NOT_INITIALIZED",
+    "holdouts_inspected": false,
+    "metrics_generated": false
+  }
+}

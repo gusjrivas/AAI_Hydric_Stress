@@ -1,0 +1,140 @@
+{
+  "schema_version": "scientific_closure_registration_reviews.v1",
+  "timestamp_utc": "2026-09-19 08:47:10 UTC",
+  "actor": {
+    "session": "/root",
+    "role": "orchestrator",
+    "effective_model": null,
+    "effective_sandbox": "danger-full-access"
+  },
+  "object": {
+    "scope": "Archivo posterior de respuestas exactas de lectores del registro; no altera archivos revisados",
+    "base_commit": "a0d8bf7412bbb68448cf3bcec262097cd1571ab3",
+    "registration_manifest_sha256": "c6b33181c6cb35e1336a748c1f35c29e154cad886abe800d3713aa154d9d587e"
+  },
+  "command": "Preservar respuestas originales de collaboration; JSON normalizado sin cambiar campos/valores",
+  "exit_code": 0,
+  "output": {
+    "checker": {
+      "session": "/root/mechanical_snapshot",
+      "message_type": "FINAL_ANSWER",
+      "exact_text": "Integridad mecánica final:\n\n- Commit observado: `a0d8bf7412bbb68448cf3bcec262097cd1571ab3`, rama correcta.\n- Manifiesto `registration-validation.json`: 12/12 hashes y tamaños coinciden; el propio manifiesto se excluye conforme al diseño.\n- Artefactos de auditoría, revisión y reproducción: JSON válidos; hashes de archivo calculados correctamente.\n- Auditoría registrada: `sc01 PASS`; readiness global `BLOCKED`.\n- Estados y eventos: `sc01 PASS`; `sc02`–`sc10 BLOCKED`, con dependencias y referencias de auditoría coherentes.\n- Claims, decisiones y preservación de snapshot `a0d8bf7`: consistentes. No se inspeccionaron holdouts.\n- Verificación previa documentada: 48/48 tests y checker formal PASS.\n- `git diff --check`: PASS.\n- No se realizaron escrituras ni nuevos tests científicos.\n- El cambio de código posterior corresponde únicamente a la línea `audit=None` en la fixture; los demás cambios son registros/documentación.\n\nLimitación: el árbol actual contiene cambios no comprometidos esperados del registro; no se atribuye un nuevo PASS científico."
+    },
+    "critic": {
+      "session": "/root/critic_preparation",
+      "message_type": "FINAL_ANSWER",
+      "exact_text": "**Veredicto crítico:** sin hallazgos materiales nuevos en el registro posterior. El snapshot queda habilitado para auditoría independiente acotada al registro. Esto no amplía el PASS de `sc-01`, no convierte readiness en PASS y no autoriza A/B/C.\n\nObjeto revisado:\n\n- Base auditada: `a0d8bf7412bbb68448cf3bcec262097cd1571ab3`.\n- Manifiesto del registro: `registration-validation.json`, SHA-256 `c6b33181c6cb35e1336a748c1f35c29e154cad886abe800d3713aa154d9d587e`.\n- Doce archivos incluidos en el manifiesto; el propio manifiesto queda excluido explícitamente.\n- Los 12/12 archivos coinciden en SHA-256 y tamaño.\n- Árbol congelado con cuatro archivos modificados y nueve nuevos, coherente con un snapshot previo al commit.\n\nIntentos de refutación y resultados:\n\n- **Dictamen:** `audit-final.json` conserva correctamente un veredicto global `BLOCKED` y un PASS limitado a `sc-01-evidence-scope`. `changes.json` referencia el fragmento de ese PASS y no presenta el dictamen global como PASS.\n- **Estados:** `sc-01` recorre `REVIEW → PASS`, conserva `scientific_execution_authorized=false` y enlaza auditor, snapshot y evidencia. `sc-02..10` pasan de `PLANNED → BLOCKED`, mantienen aprobación y autorización científica en `false`, y explican dependencia o bloqueo.\n- **Complementos:** R/N/S `NOT_REQUIRED` permanecen decisiones de alcance auditadas, sin presentarse como experimentos ejecutados ni como cierres individuales. H continúa `REQUIRED` y pendiente.\n- **Tareas:** los casilleros cerrados de `sc-01` se limitan a SC-GOV-001/003/004/005 y al ciclo documental auditado. El texto excluye readiness, aislamiento efectivo y ejecución científica.\n- **Fixture negativa:** `audit=None` evita heredar el PASS real de `self.changes[0]`. Es una corrección mínima de una línea; no modifica `validate_state`, checker ni criterios científicos.\n- **Informe terminal:** declara `SCIENTIFIC_CLOSURE_BLOCKED`, ausencia de A/B/C, auxiliares, ledger, métricas, push y recomendación de merge. No inventa cierres ni resultados.\n- **Archivo de revisiones:** hashes, actores, tipos de mensaje y separación entre snapshot auditado y registro posterior son coherentes. La comparación externa byte a byte contra el transporte original no está disponible desde el checkout; esta limitación está declarada y no altera los veredictos preservados.\n- **Reproducción limpia:** la copia archivada coincide byte a byte con `/tmp/scientific-closure-clean-4gjv7zrj/reproduction.json`, SHA-256 `7d134fbf6de37e2ccf096f39dbc5bdf6fb0958d5949fd099234fb334d0673d47`.\n\nComprobaciones independientes:\n\n- 48/48 pruebas: PASS.\n- Checker formal: `PASS (estructura; runtime no verificado)`.\n- JSON del registro: parseo correcto.\n- `git diff --check`: PASS.\n- Estados finales: `sc-01 PASS`; `sc-02..10 BLOCKED`.\n- No se encontraron cambios en código científico, UI, protocolos, ADR, datos ni resultados históricos.\n\nLos bloqueos `AUD-READ01..08`, `CRIT-CHK-01..04` y `CRIT-SUB-01` permanecen abiertos. Son bloqueos externos o de readiness ya acreditados, no defectos nuevos del registro. No corresponde repetir la auditoría científica global para confirmar este cambio documental.\n\nPerfil nominal: `scientific_critic`, `gpt-5.6-sol`, esfuerzo `high`, sandbox `read-only`. Modelo y esfuerzo efectivos no son introspectables; sandbox heredado `danger-full-access`, con conducta estrictamente de solo lectura."
+    },
+    "auditor": {
+      "session": "/root/readiness_auditor",
+      "message_type": "FINAL_ANSWER",
+      "exact_object": {
+        "verdict": "PASS",
+        "scope": "Auditoría acotada de integridad y fidelidad del registro posterior al dictamen; no reevalúa ciencia ni readiness global.",
+        "snapshot": {
+          "base_commit": "a0d8bf7412bbb68448cf3bcec262097cd1571ab3",
+          "branch": "feat/scientific-closure",
+          "registration_manifest": "openspec/scientific-closure/readiness-linux-2026-09-19/registration-validation.json",
+          "registration_manifest_sha256": "c6b33181c6cb35e1336a748c1f35c29e154cad886abe800d3713aa154d9d587e",
+          "manifest_entries": 12,
+          "manifest_self_excluded": true
+        },
+        "checked_at": "2026-09-19T08:45:53Z",
+        "independent_actor": {
+          "session": "/root/readiness_auditor",
+          "role": "scientific_auditor",
+          "assigned_model": "gpt-5.6-sol",
+          "assigned_reasoning_effort": "xhigh",
+          "effective_model": null,
+          "effective_reasoning_effort": null,
+          "nominal_sandbox": "read-only",
+          "effective_sandbox": "danger-full-access inherited",
+          "behavior": "read-only"
+        },
+        "checks": [
+          {
+            "check": "Integridad del manifiesto",
+            "result": "PASS",
+            "evidence": "Las 12 rutas tienen SHA-256 y tamaño coincidentes; cero discrepancias."
+          },
+          {
+            "check": "Fidelidad de dictámenes",
+            "result": "PASS",
+            "evidence": "audit-final.json y audit-final.md conservan respectivamente el objeto estructurado y el informe original: sc-01 PASS y readiness BLOCKED sobre a0d8bf7."
+          },
+          {
+            "check": "Archivo de revisiones",
+            "result": "PASS",
+            "evidence": "Las cinco transcripciones referenciadas por review-archive.json coinciden en hash y tamaño."
+          },
+          {
+            "check": "Registro OpenSpec",
+            "result": "PASS",
+            "evidence": "sc-01 registra REVIEW→PASS con actor, timestamp, snapshot y evidencia del auditor; sc-02..10 registran BLOCKED y mantienen approved_for_implementation=false y scientific_execution_authorized=false."
+          },
+          {
+            "check": "Tareas sc-01",
+            "result": "PASS",
+            "evidence": "T01/T03/T04/T05 y REVIEW-1..5/CLOSE están marcadas exclusivamente para el alcance documental auditado, con advertencia explícita de que no acreditan ejecución científica ni aislamiento efectivo."
+          },
+          {
+            "check": "Corrección de fixture",
+            "result": "PASS",
+            "evidence": "El único cambio de código posterior a a0d8bf7 agrega audit=None a la fixture negativa test_pass_requires_independent_audit_evidence; no modifica validador, checker ni criterios."
+          },
+          {
+            "check": "Fallo previo preservado",
+            "result": "PASS",
+            "evidence": "registration-fixture.json conserva el fallo 47/48, su causa, la corrección mínima y las respuestas de explorador e implementador."
+          },
+          {
+            "check": "Validación posterior",
+            "result": "PASS",
+            "evidence": "Reejecución independiente: 48/48 pruebas aprobadas; checker formal PASS estructural; git diff --check sin salida."
+          },
+          {
+            "check": "Reproducción archivada",
+            "result": "PASS",
+            "evidence": "clean-checkout-reproduction.json es byte a byte idéntico al registro suplementario original del clon limpio."
+          },
+          {
+            "check": "Preservación",
+            "result": "PASS",
+            "evidence": "Diff protegido desde 329cb60 sobre frontend, backend, src, data, docs/research y docs/adr vacío."
+          },
+          {
+            "check": "Informe terminal",
+            "result": "PASS",
+            "evidence": "report.md conserva los ocho bloqueos, no afirma métricas o ejecuciones inexistentes, no recomienda merge y distingue commits documentales de identidad ejecutable."
+          }
+        ],
+        "findings": [],
+        "preserved_verdicts": {
+          "sc-01-evidence-scope": "PASS",
+          "readiness-integral": "BLOCKED"
+        },
+        "scientific_execution": {
+          "A": "NOT_EXECUTED",
+          "B": "NOT_EXECUTED",
+          "C": "NOT_EXECUTED",
+          "auxiliaries": "NOT_EXECUTED",
+          "ledger": "NOT_INITIALIZED",
+          "holdouts_inspected": false
+        },
+        "limitations": [
+          "Este PASS cubre únicamente el registro posterior al dictamen y la corrección de fixture.",
+          "No amplía el PASS de sc-01 más allá del snapshot a0d8bf7412bbb68448cf3bcec262097cd1571ab3.",
+          "Readiness permanece BLOCKED por AUD-READ01..08.",
+          "No cierra CRIT-CHK-01..04, CRIT-SUB-01, SC-GOV-006, sc-02 ni el cierre científico.",
+          "El sandbox efectivo de esta sesión no acredita enforcement read-only; la conducta observada fue de solo lectura.",
+          "El manifiesto identifica un worktree congelado previo a commit y se excluye a sí mismo."
+        ]
+      }
+    }
+  },
+  "result": "REGISTRATION_PASS; SCIENTIFIC_CLOSURE_BLOCKED",
+  "limitations": [
+    "Este archivo se agrega después de revisar el snapshot; preserva respuestas del transporte y no se atribuye una auditoría de sí mismo.",
+    "El PASS del auditor es exclusivo del registro; readiness permanece BLOCKED."
+  ]
+}

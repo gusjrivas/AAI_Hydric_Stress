@@ -1,0 +1,54 @@
+{
+  "schema_version": "scientific_closure_precommit_observation.v1",
+  "timestamp_utc": "2026-09-19 08:49:04 UTC",
+  "actor": {
+    "session": "/root",
+    "role": "orchestrator",
+    "effective_model": null,
+    "effective_sandbox": "danger-full-access"
+  },
+  "object": {
+    "scope": "Observación posterior al staging; mantiene bytes del snapshot auditado",
+    "audited_base_commit": "a0d8bf7412bbb68448cf3bcec262097cd1571ab3",
+    "registration_manifest_sha256": "c6b33181c6cb35e1336a748c1f35c29e154cad886abe800d3713aa154d9d587e"
+  },
+  "command": "git diff --cached --check; diagnóstico adicional sin configuración persistente",
+  "exit_code": 2,
+  "output": {
+    "standard_check": {
+      "argv": [
+        "git",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "exit_code": 2,
+      "output": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.md:60: new blank line at EOF.\nopenspec/scientific-closure/readiness-linux-2026-09-19/checker-final.md:23: new blank line at EOF.\nopenspec/scientific-closure/readiness-linux-2026-09-19/critique-final-message.md:20: new blank line at EOF.\nopenspec/scientific-closure/readiness-linux-2026-09-19/critique-final.md:23: new blank line at EOF.\n"
+    },
+    "diagnostic_check": {
+      "argv": [
+        "git",
+        "-c",
+        "core.whitespace=-blank-at-eof",
+        "diff",
+        "--cached",
+        "--check"
+      ],
+      "exit_code": 0,
+      "output": ""
+    },
+    "critical_advice": {
+      "actor": "/root/critic_preparation",
+      "message_type": "FINAL_ANSWER",
+      "exact_text": "No hay hallazgo material científico. En registro sería material solo si se siguiera afirmando que `git diff --check` cubrió los archivos nuevos.\n\nLa propuesta es correcta:\n\n- preservar los bytes y hashes de las transcripciones;\n- registrar `git diff --cached --check` con exit 2 y su stdout exacto;\n- aclarar que el check anterior omitió untracked;\n- usar `core.whitespace=-blank-at-eof` solo para demostrar que no existen otros hallazgos, sin presentarlo como PASS de la política normal;\n- mantener lint/formato y `CRIT-CHK-01..04` abiertos.\n\nLa actualización exige recalcular los hashes del registro afectado, pero no repetir la auditoría científica de `a0d8bf7`."
+    }
+  },
+  "result": "FOUR_TRAILING_BLANK_LINE_WARNINGS_PRESERVED; SCIENTIFIC_CLOSURE_BLOCKED",
+  "limitations": [
+    "El git diff --check anterior omitió los archivos nuevos untracked; sus exit0 archivados NO certifican que estos fueran comprobados.",
+    "El chequeo normal de staged NO pasó: exit2, únicamente cuatro líneas vacías al final de transcripciones exactas.",
+    "El diagnóstico con core.whitespace=-blank-at-eof NO se presenta como PASS de la política normal ni de Ruff/Black; no cambia configuración persistente.",
+    "Se preservan bytes/hashes auditados. Este registro nuevo no reemplaza ni altera los registros previos; sus hashes siguen coincidiendo. No se cierra CRIT-CHK-01..04.",
+    "La auditoría de sc01 sobre a0d8bf7 no se amplía; readiness permanece BLOCKED."
+  ]
+}

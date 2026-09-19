@@ -25,7 +25,7 @@
         "T04",
         "T05"
       ],
-      "status": "REVIEW",
+      "status": "PASS",
       "approved_for_implementation": true,
       "scientific_execution_authorized": false,
       "extra_gate": "Identity verified AND preparation scope authorized; do not read closed holdouts",
@@ -38,7 +38,14 @@
         "scope": "Preparación documental sc-01: inventario, preservación y suficiencia CL-01..10; sin ejecución científica ni apertura de holdouts",
         "source": "openspec/scientific-closure/readiness-linux-2026-09-19/report.md: Autoridad vigente; prompt del responsable FASE 4"
       },
-      "audit": null,
+      "audit": {
+        "verdict": "PASS",
+        "snapshot": "a0d8bf7412bbb68448cf3bcec262097cd1571ab3",
+        "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json#/scopes/sc-01-evidence-scope",
+        "actor": "/root/readiness_auditor",
+        "timestamp_utc": "2026-09-19T08:34:25Z",
+        "scope": "SC-GOV-001/003/004/005 en sc-01; alcance documental, no readiness ni ejecución científica"
+      },
       "state_events": [
         {
           "from": "PLANNED",
@@ -63,6 +70,14 @@
           "timestamp_utc": "2026-09-19T08:22:18Z",
           "reason": "Implementación sc01 y correcciones documentales congeladas; owner liberó escritura. Revisión por hashes del snapshot en verification-final.json; todavía sin auditoría ni cierre.",
           "evidence": "openspec/changes/sc-01-evidence-scope/verification-final.json"
+        },
+        {
+          "from": "REVIEW",
+          "to": "PASS",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "PASS independiente del auditor sobre sc01; registrar cierre acotado sin habilitar runtime/campaña.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
         }
       ]
     },
@@ -99,14 +114,23 @@
         "T19",
         "T20"
       ],
-      "status": "PLANNED",
+      "status": "BLOCKED",
       "approved_for_implementation": false,
       "scientific_execution_authorized": false,
       "extra_gate": "sc-01 PASS AND preparation approved; verify authorization mechanism, not future B/C permissions; unresolved runtime/provenance/ADR/backup blocks campaign",
       "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
       "approval": null,
       "audit": null,
-      "state_events": []
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Readiness integral BLOCKED: AUD-READ01..08; faltan insumos externos originales, custodia, entorno, aislamiento y otros gates. No implementar dependientes ni ejecutar campañas.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        }
+      ]
     },
     {
       "id": "sc-03-stage-a",
@@ -133,14 +157,23 @@
         "T11",
         "T15"
       ],
-      "status": "PLANNED",
+      "status": "BLOCKED",
       "approved_for_implementation": false,
       "scientific_execution_authorized": false,
       "extra_gate": "sc-02 PASS AND G1 satisfied AND authorization A recorded AND fixed executable/image verified",
       "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
       "approval": null,
       "audit": null,
-      "state_events": []
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Dependencias sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        }
+      ]
     },
     {
       "id": "sc-04-stage-b",
@@ -164,14 +197,23 @@
         "T12",
         "T13"
       ],
-      "status": "PLANNED",
+      "status": "BLOCKED",
       "approved_for_implementation": false,
       "scientific_execution_authorized": false,
       "extra_gate": "sc-03 PASS AND A scientific_run AND primary_selection AND candidate_produced AND support valid AND authorization B recorded AND custody unused; NO_VALID_SELECTION blocks B",
       "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
       "approval": null,
       "audit": null,
-      "state_events": []
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Dependencias sc-03-stage-a sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        }
+      ]
     },
     {
       "id": "sc-05-stage-c",
@@ -195,14 +237,23 @@
       "tasks": [
         "T14"
       ],
-      "status": "PLANNED",
+      "status": "BLOCKED",
       "approved_for_implementation": false,
       "scientific_execution_authorized": false,
       "extra_gate": "sc-04 PASS AND B CANDIDATE_VALIDATED AND authorization C recorded AND ledger initialization separately authorized AND custody admissible; CANDIDATE_NOT_VALIDATED blocks C",
       "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
       "approval": null,
       "audit": null,
-      "state_events": []
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Dependencias sc-04-stage-b sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        }
+      ]
     },
     {
       "id": "sc-06-scientific-synthesis",
@@ -230,14 +281,23 @@
         "T16",
         "T25"
       ],
-      "status": "PLANNED",
+      "status": "BLOCKED",
       "approved_for_implementation": false,
       "scientific_execution_authorized": false,
       "extra_gate": "Audited terminal A or B or C AND all REQUIRED auxiliaries audited; UNRESOLVED blocks closure",
       "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
       "approval": null,
       "audit": null,
-      "state_events": []
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Dependencias sc-01-evidence-scope, sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        }
+      ]
     },
     {
       "id": "sc-07-aux-regression",
@@ -262,14 +322,23 @@
       "tasks": [
         "T21"
       ],
-      "status": "PLANNED",
+      "status": "BLOCKED",
       "approved_for_implementation": false,
       "scientific_execution_authorized": false,
       "extra_gate": "R REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization R; NOT_REQUIRED/UNRESOLVED blocks execution",
       "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
       "approval": null,
       "audit": null,
-      "state_events": []
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Dependencias sc-01-evidence-scope, sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas. Su decisión NOT_REQUIRED auditada no equivale a ejecución ni cierre individual del change.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        }
+      ]
     },
     {
       "id": "sc-08-aux-hitl",
@@ -294,14 +363,23 @@
       "tasks": [
         "T22"
       ],
-      "status": "PLANNED",
+      "status": "BLOCKED",
       "approved_for_implementation": false,
       "scientific_execution_authorized": false,
       "extra_gate": "H REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization H; NOT_REQUIRED/UNRESOLVED blocks execution",
       "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
       "approval": null,
       "audit": null,
-      "state_events": []
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Dependencias sc-01-evidence-scope, sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        }
+      ]
     },
     {
       "id": "sc-09-aux-anomalies",
@@ -326,14 +404,23 @@
       "tasks": [
         "T23"
       ],
-      "status": "PLANNED",
+      "status": "BLOCKED",
       "approved_for_implementation": false,
       "scientific_execution_authorized": false,
       "extra_gate": "N REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization N; NOT_REQUIRED/UNRESOLVED blocks execution",
       "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
       "approval": null,
       "audit": null,
-      "state_events": []
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Dependencias sc-01-evidence-scope, sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas. Su decisión NOT_REQUIRED auditada no equivale a ejecución ni cierre individual del change.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        }
+      ]
     },
     {
       "id": "sc-10-aux-robustness",
@@ -358,14 +445,23 @@
       "tasks": [
         "T24"
       ],
-      "status": "PLANNED",
+      "status": "BLOCKED",
       "approved_for_implementation": false,
       "scientific_execution_authorized": false,
       "extra_gate": "S REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization S; NOT_REQUIRED/UNRESOLVED blocks execution",
       "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
       "approval": null,
       "audit": null,
-      "state_events": []
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Dependencias sc-01-evidence-scope, sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas. Su decisión NOT_REQUIRED auditada no equivale a ejecución ni cierre individual del change.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        }
+      ]
     }
   ]
 }

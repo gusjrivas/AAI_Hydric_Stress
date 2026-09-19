@@ -1,0 +1,79 @@
+{
+  "schema_version": "scientific_closure_review_archive.v1",
+  "campaign_id": null,
+  "change_id": "sc-01-evidence-scope",
+  "requirement_ids": [
+    "SC-GOV-001",
+    "SC-GOV-003",
+    "SC-GOV-004",
+    "SC-GOV-005",
+    "SC-GOV-006",
+    "SC-GOV-020"
+  ],
+  "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+  "actor": {
+    "session": "/root",
+    "role": "orchestrator",
+    "effective_sandbox": "danger-full-access",
+    "effective_model": null,
+    "effective_reasoning_effort": null
+  },
+  "object": {
+    "reviewed_commit": "a0d8bf7412bbb68448cf3bcec262097cd1571ab3",
+    "branch": "feat/scientific-closure",
+    "scope": "Preservación de respuestas de lectores y registro de cierre acotado/bloqueos"
+  },
+  "command": "Transcripción de respuestas collaboration en archivos; copia byte a byte de reproducción documental suplementaria; transiciones de registro según dictamen",
+  "exit_code": 0,
+  "output": {
+    "reports": [
+      {
+        "path": "openspec/scientific-closure/readiness-linux-2026-09-19/checker-final.md",
+        "actor": "/root/mechanical_snapshot",
+        "message_type": "FINAL_ANSWER",
+        "sha256": "04ede02367bde09ebd31b2583b4d763382c3713e8af57b462271583a148adad1",
+        "size_bytes": 1400
+      },
+      {
+        "path": "openspec/scientific-closure/readiness-linux-2026-09-19/critique-final-message.md",
+        "actor": "/root/critic_preparation",
+        "message_type": "MESSAGE",
+        "sha256": "d37122645803b48521ff320980ad7c1dab3fb2657364bf43da6d8e11d8502e34",
+        "size_bytes": 4337
+      },
+      {
+        "path": "openspec/scientific-closure/readiness-linux-2026-09-19/critique-final.md",
+        "actor": "/root/critic_preparation",
+        "message_type": "FINAL_ANSWER",
+        "sha256": "71f975fa7e47ffef2ce7d274b5597400f33247f39071cedceb9cc995109368b3",
+        "size_bytes": 2550
+      },
+      {
+        "path": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.md",
+        "actor": "/root/readiness_auditor",
+        "message_type": "FINAL_ANSWER",
+        "sha256": "6532fc77034292595416bc243833da82cf423e4d6154515fbaedbcad74afaa69",
+        "size_bytes": 5335
+      },
+      {
+        "path": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json",
+        "actor": "/root/readiness_auditor",
+        "message_type": "FINAL_ANSWER_STRUCTURED",
+        "sha256": "7ccf9b1075c79cac0be1bec1c85dcb64209e33b5443328ddaf254a2819f7014b",
+        "size_bytes": 8696
+      }
+    ],
+    "sc01": "PASS",
+    "readiness": "BLOCKED",
+    "dependent_changes": "BLOCKED"
+  },
+  "result": "SCIENTIFIC_CLOSURE_BLOCKED",
+  "limitations": [
+    "Los textos Markdown preservan el contenido exacto de mensajes; se agrega terminador de archivo. El objeto JSON conserva campos y valores con formato normalizado.",
+    "AUD-READ-01..08 en prosa y AUD-READ01..08 en JSON son los mismos ocho hallazgos emitidos por el auditor; se conservan ambos originales.",
+    "Informes son respuestas originales de los roles, no stdout crudo; los comandos locales exactos están en verification-final.json y clean-checkout-reproduction.json.",
+    "Auditó a0d8bf7, no este registro posterior. El manifiesto verification-final.json se verifica contra ese commit; cambios posteriores de changes.json/tasks/report son registro del dictamen, no modificación retroactiva del snapshot.",
+    "Modelo/esfuerzo efectivos no introspectables; ningún reporte acredita enforcement global.",
+    "No es cierre científico ni validación experimental; no se inicializa ledger."
+  ]
+}
