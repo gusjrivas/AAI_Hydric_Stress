@@ -143,6 +143,7 @@ class GovernanceTests(unittest.TestCase):
     def test_pass_requires_independent_audit_evidence(self):
         record = copy.deepcopy(self.changes[0])
         record.update(status='PASS', approved_for_implementation=True,
+                      audit=None,
                       approval=dict(actor='fixture', timestamp_utc='2000-01-01T00:00:00Z',
                                     scope='preparation only', source='fixture'),
                       state_events=[self.event('PLANNED', 'APPROVED'), self.event('APPROVED', 'IN_PROGRESS'),
