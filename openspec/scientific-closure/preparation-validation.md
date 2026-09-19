@@ -1,5 +1,8 @@
 # Registro de preparación
 
+Actualización posterior: ver [auditoría final](final-preparation-audit.md).
+El estado pendiente siguiente describe el checkpoint histórico 0a7e107.
+
 Estado: preparación implementada y validada; auditoría final pendiente.
 Autonomía operativa: BLOCKED por fallo de aprovisionamiento del sandbox.
 No ejecución científica autorizada. Sesión iniciada 2026-09-18, continuada 19/09.
