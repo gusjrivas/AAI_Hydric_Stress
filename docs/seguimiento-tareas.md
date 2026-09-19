@@ -1,5 +1,29 @@
 # Seguimiento de tareas — plan de proyecto vs. estado real del repo
 
+## 2026-09-19 — Primera entrega de catálogo e históricos para productor
+
+HU2/HU6; `data-ingestion`, `architecture-integration` y `alerting-ui`;
+CRISP-DM comprensión/preparación de datos y despliegue/integración. Implementados
+catálogo persistente de sectores y sensores, adopción sin reescritura, selección
+primaria, histórico UTC por snapshot SHA-256 y fachada aditiva `/api/v2` con
+paginación, errores propios, OpenAPI y feature flag
+`PRODUCER_V2_ENABLED`. Ver
+[documentación de la entrega](design/backend-producer-ui-first-delivery.md).
+
+Persistencia con reemplazo atómico y lock entre procesos; concurrencia,
+revisiones optimistas, preservación byte a byte y compatibilidad legacy
+verificadas en directorios temporales. Validación: 33 tests dirigidos de dominio,
+18 de HTTP/sensores legacy, 21 de compatibilidad con escritores existentes,
+suite backend completa 61, demo 56 passed/1 skipped. Ruff, Black, ambos changes
+con `openspec validate --strict` y `git diff --check` pasan. OpenSpec mantiene
+el aviso preexistente de estructura canónica registrado en la tarea 1.12.
+
+ADR-0013 continúa propuesto y los cambios no se archivan. No se implementaron
+modelado, calibración, porcentajes, feedback v2, UI ni autenticación. Sin cambios
+en protocolos, datasets, resultados HU7/HU8, configuraciones experimentales,
+hipótesis, alcance o arquitectura. Aporte a capítulo 3; capítulo 2 preserva
+procedencia, faltantes y límites científicos.
+
 ## 2026-09-18 — Corrección de evidencia de calibración (solo specs)
 HU4/HU6; predictive-modeling y architecture-integration; CRISP-DM modelado,
 evaluación de desarrollo e integración. Se corrige el criterio de publicación:

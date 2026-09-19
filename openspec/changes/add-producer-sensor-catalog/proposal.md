@@ -1,7 +1,8 @@
 # Change: Catálogo de sectores, puntos y lecturas para productores
 
-Estado: propuesta para revisión; no implementada. Rama: `feat/hu6-backend-soporte-ui`.
-No modifica `main`, specs canónicas ni resultados históricos.
+Estado: primera entrega implementada y validada en
+`feat/hu6-backend-soporte-ui`; change todavía no archivado. No modifica specs
+canónicas ni resultados históricos.
 
 ## Why
 La UI exige escribir códigos de sensores y no expone el conjunto de lecturas
