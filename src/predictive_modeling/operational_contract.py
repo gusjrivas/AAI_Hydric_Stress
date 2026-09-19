@@ -90,14 +90,14 @@ class HorizonContract:
             raise ValueError("Versión de contrato operacional no soportada.")
         if self.artifact_state not in {"plan", "trained_bundle"}:
             raise ValueError("artifact_state debe ser plan o trained_bundle.")
-        _non_empty(self.sensor_id, 'sensor_id')
-        _non_empty(self.imputation, 'imputation')
+        _non_empty(self.sensor_id, "sensor_id")
+        _non_empty(self.imputation, "imputation")
         if not _SHA256.fullmatch(self.data_snapshot_sha256):
-            raise ValueError('data_snapshot_sha256 debe ser un SHA-256 hexadecimal minusculo.')
+            raise ValueError("data_snapshot_sha256 debe ser un SHA-256 hexadecimal minusculo.")
         if not isinstance(self.variables, tuple) or not all(
             isinstance(item, VariableMetadata) for item in self.variables
         ):
-            raise ValueError('variables debe ser una tupla de VariableMetadata.')
+            raise ValueError("variables debe ser una tupla de VariableMetadata.")
         if not self.variables or len({item.name for item in self.variables}) != len(self.variables):
             raise ValueError("variables debe ser no vacío y no contener nombres duplicados.")
         _non_empty(self.event_variable, "event_variable")
@@ -111,17 +111,17 @@ class HorizonContract:
             raise ValueError("El contrato solo admite la comparación de evento lt.")
         if (
             isinstance(self.event_threshold, bool)
-            or not isinstance(self.event_threshold, (int, float, np.integer, np.floating))
+            or not isinstance(self.event_threshold, int | float | np.integer | np.floating)
             or not np.isfinite(self.event_threshold)
         ):
             raise ValueError("event_threshold debe ser un valor finito congelado.")
 
         for field, value in (
-            ('trained_through', self.trained_through),
-            ('calibrated_through', self.calibrated_through),
+            ("trained_through", self.trained_through),
+            ("calibrated_through", self.calibrated_through),
         ):
             if value is not None and type(value) is not date:
-                raise ValueError(f'{field} debe ser una fecha diaria sin hora.')
+                raise ValueError(f"{field} debe ser una fecha diaria sin hora.")
 
         identities = (self.model_identity, self.calibrator_identity)
         if any(
@@ -152,25 +152,23 @@ class HorizonContract:
                 )
 
         if self.trained_through is not None and not (
-            self.temporal_cuts.train.start
-            <= self.trained_through
-            <= self.temporal_cuts.train.end
+            self.temporal_cuts.train.start <= self.trained_through <= self.temporal_cuts.train.end
         ):
-            raise ValueError('trained_through debe quedar dentro del rango train declarado.')
+            raise ValueError("trained_through debe quedar dentro del rango train declarado.")
         if self.calibrated_through is not None and not (
             self.temporal_cuts.calibration.start
             <= self.calibrated_through
             <= self.temporal_cuts.calibration.end
         ):
             raise ValueError(
-                'calibrated_through debe quedar dentro del rango calibration declarado.'
+                "calibrated_through debe quedar dentro del rango calibration declarado."
             )
 
     def to_dict(self) -> dict[str, object]:
         common = {
-            'sensor_id': self.sensor_id,
-            'data_snapshot_sha256': self.data_snapshot_sha256,
-            'imputation': self.imputation,
+            "sensor_id": self.sensor_id,
+            "data_snapshot_sha256": self.data_snapshot_sha256,
+            "imputation": self.imputation,
         }
 
         def artifact(value: ArtifactIdentity | None) -> dict[str, object] | None:
@@ -215,9 +213,9 @@ def validate_horizon_contract_family(contracts: tuple[HorizonContract, ...]) -> 
         raise HorizonContractMismatch("Se requieren contratos únicos para h=1, h=2 y h=3.")
     reference = by_horizon[1]
     shared_fields = (
-        'sensor_id',
-        'data_snapshot_sha256',
-        'imputation',
+        "sensor_id",
+        "data_snapshot_sha256",
+        "imputation",
         "contract_version",
         "artifact_state",
         "variables",

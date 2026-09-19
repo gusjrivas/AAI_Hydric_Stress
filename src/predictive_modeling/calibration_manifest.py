@@ -84,7 +84,7 @@ def _number_in_range(
     include_maximum: bool = False,
 ) -> float | None:
     value = _lookup(root, path)
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
+    if isinstance(value, bool) or not isinstance(value, int | float):
         issues.append(f"{path} debe ser numérico")
         return None
     lower_ok = value >= minimum if include_minimum else value > minimum

@@ -9,7 +9,7 @@ No function in this module fits a threshold, a transformer, or a model.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date
 
 import numpy as np
 import pandas as pd
@@ -26,7 +26,7 @@ def _as_date(value: date | str, field: str) -> date:
     if type(value) is date:
         return value
     if not isinstance(value, str):
-        raise ValueError(f'{field} debe ser una fecha ISO YYYY-MM-DD.')
+        raise ValueError(f"{field} debe ser una fecha ISO YYYY-MM-DD.")
     try:
         parsed = date.fromisoformat(value)
     except (TypeError, ValueError) as exc:
@@ -47,7 +47,7 @@ def _validate_horizon(horizon_days: int) -> None:
 
 def _validate_threshold(threshold: float) -> float:
     if isinstance(threshold, bool) or not isinstance(
-        threshold, (int, float, np.integer, np.floating)
+        threshold, int | float | np.integer | np.floating
     ):
         raise ValueError("threshold debe ser un valor numérico finito y explícito.")
     try:
@@ -107,11 +107,11 @@ def add_calendar_target(
 
     result = validate_utc_calendar(df)
     try:
-        target_values = pd.to_numeric(result[column], errors='raise')
+        target_values = pd.to_numeric(result[column], errors="raise")
     except (TypeError, ValueError) as exc:
-        raise ValueError(f'La variable objetivo {column!r} debe ser numerica.') from exc
+        raise ValueError(f"La variable objetivo {column!r} debe ser numerica.") from exc
     if pd.api.types.is_bool_dtype(target_values.dtype):
-        raise ValueError(f'La variable objetivo {column!r} no puede ser booleana.')
+        raise ValueError(f"La variable objetivo {column!r} no puede ser booleana.")
     result[column] = target_values
     result[TARGET_DATE_COLUMN] = result[TIMESTAMP_COLUMN] + pd.Timedelta(days=horizon_days)
     observed_by_date = result.set_index(TIMESTAMP_COLUMN)[column]

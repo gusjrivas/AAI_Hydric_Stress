@@ -26,9 +26,9 @@ def _cuts():
 def _plan(horizon):
     return HorizonContract(
         horizon_days=horizon,
-        sensor_id='synthetic-sensor',
-        data_snapshot_sha256='f' * 64,
-        imputation='forward_fill_inputs_only',
+        sensor_id="synthetic-sensor",
+        data_snapshot_sha256="f" * 64,
+        imputation="forward_fill_inputs_only",
         variables=(
             VariableMetadata("soil_moisture", "m3/m3"),
             VariableMetadata("temperature", "degC"),
