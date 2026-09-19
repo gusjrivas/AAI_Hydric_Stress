@@ -83,8 +83,9 @@ recalibración de `api-contract.md`, además de cualquier consumidor de UI.
 - Suite backend completa: 61 pruebas.
 - Demo acelerada: 56 pruebas aprobadas y 1 skip preexistente documentado.
 
-Las advertencias observadas provienen de dependencias MLflow/FastAPI; no se
-registraron fallos funcionales. Ruff, Black, los dos changes mediante
-`openspec validate --strict` y `git diff --check` pasan. El validador informa
-el problema estructural preexistente de la spec canónica
+Las advertencias observadas son deprecaciones de MLflow/FastAPI y un
+`FutureWarning` de pandas sobre inferencia futura de tipos en el `concat`
+legacy; no se registraron fallos funcionales. Ruff, Black, los dos changes
+mediante `openspec validate --strict` y `git diff --check` pasan. El validador
+informa el problema estructural preexistente de la spec canónica
 `architecture-integration`, ya conservado como tarea pendiente 1.12.
