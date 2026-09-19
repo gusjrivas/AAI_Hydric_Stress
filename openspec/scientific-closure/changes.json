@@ -25,14 +25,38 @@
         "T04",
         "T05"
       ],
-      "status": "PLANNED",
-      "approved_for_implementation": false,
+      "status": "IN_PROGRESS",
+      "approved_for_implementation": true,
       "scientific_execution_authorized": false,
       "extra_gate": "Identity verified AND preparation scope authorized; do not read closed holdouts",
-      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
-      "approval": null,
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
+      "approval": {
+        "actor": "responsable mediante prompt vigente; registrado por /root",
+        "timestamp_utc": "2026-09-19T08:10:31Z",
+        "scope": "Preparación documental sc-01: inventario, preservación y suficiencia CL-01..10; sin ejecución científica ni apertura de holdouts",
+        "source": "openspec/scientific-closure/readiness-linux-2026-09-19/report.md: Autoridad vigente; prompt del responsable FASE 4"
+      },
       "audit": null,
-      "state_events": []
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "APPROVED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:10:31Z",
+          "reason": "Prompt vigente autoriza resolver preparación autónomamente; sc01 sin dependencias. Exploración en scope-exploration.json.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/report.md: Autoridad vigente; prompt del responsable FASE 4"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:10:31Z",
+          "reason": "Gate identidad acreditado: c63fc713bce0158296d23022a7aeeb8db2cfba93 limpio, ruta/rama/upstream correctos. Owner único /root/preparation_metadata para claims.md, inventory.md, decisions.md y registros nuevos sc01. No leer holdouts.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/report.md: Autoridad vigente; prompt del responsable FASE 4"
+        }
+      ]
     },
     {
       "id": "sc-02-runtime-readiness",
