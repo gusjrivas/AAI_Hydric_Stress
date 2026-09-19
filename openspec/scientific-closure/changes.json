@@ -1,0 +1,339 @@
+{
+  "schema_version": "scientific_closure_changes.v1",
+  "changes": [
+    {
+      "id": "sc-01-evidence-scope",
+      "title": "Inventario y suficiencia por afirmación",
+      "deps": [],
+      "conditional": false,
+      "goal": "Contrastar el inventario permitido y fijar afirmaciones/obligaciones de evidencia sin abrir B/C.",
+      "paths": [
+        "openspec/scientific-closure/inventory.md",
+        "openspec/scientific-closure/claims.md",
+        "openspec/scientific-closure/decisions.md"
+      ],
+      "tests": [
+        "tests/test_scientific_closure_governance.py"
+      ],
+      "accept": "Inventario reproducible y evaluación CL-01..10; R/H/N/S justificados; ningún cambio tácito de alcance.",
+      "block": "Datos de procedencia o criterio de suficiencia ausentes; afirmaciones UNRESOLVED no se dan por aceptadas.",
+      "risk": "Confundir ausencia de beneficio con defecto o aceptar evidencia funcional como causal.",
+      "rollback": "Revertir solo documentación nueva revisada; preservar historial, hash y decisiones anteriores.",
+      "tasks": [
+        "T01",
+        "T03",
+        "T04",
+        "T05"
+      ],
+      "status": "PLANNED",
+      "approved_for_implementation": false,
+      "scientific_execution_authorized": false,
+      "extra_gate": "Identity verified AND preparation scope authorized; do not read closed holdouts",
+      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
+      "approval": null,
+      "audit": null,
+      "state_events": []
+    },
+    {
+      "id": "sc-02-runtime-readiness",
+      "title": "Calificar entorno, custodia y autoridad",
+      "deps": [
+        "sc-01-evidence-scope"
+      ],
+      "conditional": false,
+      "goal": "Resolver prerrequisitos operativos y normativos antes de autorizar cualquier campaña.",
+      "paths": [
+        "openspec/scientific-closure/decisions.md",
+        "openspec/scientific-closure/risks.md",
+        "openspec/scientific-closure/preparation-validation.md"
+      ],
+      "tests": [
+        "tests/test_scientific_closure_governance.py",
+        "tests/test_controlled_daily_v4_environment_validation.py",
+        "tests/test_controlled_daily_v4_reproducibility_artifacts.py",
+        "tests/test_controlled_daily_v4_stage_c_recovery.py"
+      ],
+      "accept": "Mecanismo de permisos por etapa verificado (B/ledger/C pueden seguir pendientes), identidad verificada, procedencia admisible, copia independiente y ensayo sintético; agentes efectivos y PASS auditor. Autorización A se exige recién al despachar A.",
+      "block": "Sandbox/modelo/autoridad/backup insuficientes, tensión ADR-0011 sin resolver, hash o identidad divergente.",
+      "risk": "Inicializar ledger prematuramente o tratar un SHA documental como ejecutable.",
+      "rollback": "Descartar solo fixtures propios tras registrar hashes; nunca restaurar estado científico anterior ni borrar registros.",
+      "tasks": [
+        "T02",
+        "T06",
+        "T07",
+        "T09",
+        "T17",
+        "T18",
+        "T19",
+        "T20"
+      ],
+      "status": "PLANNED",
+      "approved_for_implementation": false,
+      "scientific_execution_authorized": false,
+      "extra_gate": "sc-01 PASS AND preparation approved; verify authorization mechanism, not future B/C permissions; unresolved runtime/provenance/ADR/backup blocks campaign",
+      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
+      "approval": null,
+      "audit": null,
+      "state_events": []
+    },
+    {
+      "id": "sc-03-stage-a",
+      "title": "Ejecutar y auditar A autorizada",
+      "deps": [
+        "sc-02-runtime-readiness"
+      ],
+      "conditional": false,
+      "goal": "Producir comparación interna 2015–2022 y candidato congelado o terminal NO_VALID_SELECTION.",
+      "paths": [],
+      "tests": [
+        "tests/test_controlled_daily_v4_stage_a_integration.py",
+        "tests/test_controlled_daily_v4_selection.py",
+        "tests/test_controlled_daily_v4_freezing.py",
+        "tests/test_controlled_daily_v4_bootstrap.py",
+        "tests/test_controlled_daily_v4_stage_window.py"
+      ],
+      "accept": "Artefactos íntegros de A y auditor PASS sobre protocolo; gate A transferible o terminal negativo/insuficiencia documentado.",
+      "block": "Sin autorización A, soporte insuficiente para avanzar a B, error técnico o procedencia inválida.",
+      "risk": "Usar datos posteriores a 2022 o congelar hiperparámetros con resultados de B/C.",
+      "rollback": "Preservar salida parcial y bitácora; no sobrescribir. Falla técnica requiere diagnóstico predeclarado, no repetición oportunista.",
+      "tasks": [
+        "T10",
+        "T11",
+        "T15"
+      ],
+      "status": "PLANNED",
+      "approved_for_implementation": false,
+      "scientific_execution_authorized": false,
+      "extra_gate": "sc-02 PASS AND G1 satisfied AND authorization A recorded AND fixed executable/image verified",
+      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
+      "approval": null,
+      "audit": null,
+      "state_events": []
+    },
+    {
+      "id": "sc-04-stage-b",
+      "title": "Evaluar candidato único en B",
+      "deps": [
+        "sc-03-stage-a"
+      ],
+      "conditional": false,
+      "goal": "Reservar y evaluar una vez 2023 con candidato primario congelado de A.",
+      "paths": [],
+      "tests": [
+        "tests/test_controlled_daily_v4_stage_b_runner.py",
+        "tests/test_controlled_daily_v4_stage_b_integration.py",
+        "tests/test_controlled_daily_v4_scientific_closure.py"
+      ],
+      "accept": "Reserva y artefactos íntegros; PASS auditor sobre ejecución; C solo si CANDIDATE_VALIDATED.",
+      "block": "Gate A sin candidato, sin autorización B, intento previo/incierto, identidad distinta; negativo bloquea C.",
+      "risk": "Cambiar output/candidato para eludir intento único o confundir FAIL técnico y no validación científica.",
+      "rollback": "SOLO recuperación de artefactos completos con hashes y motivo; nunca reentrenar, liberar reserva ni repetir con otro candidato.",
+      "tasks": [
+        "T12",
+        "T13"
+      ],
+      "status": "PLANNED",
+      "approved_for_implementation": false,
+      "scientific_execution_authorized": false,
+      "extra_gate": "sc-03 PASS AND A scientific_run AND primary_selection AND candidate_produced AND support valid AND authorization B recorded AND custody unused; NO_VALID_SELECTION blocks B",
+      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
+      "approval": null,
+      "audit": null,
+      "state_events": []
+    },
+    {
+      "id": "sc-05-stage-c",
+      "title": "Evaluar holdout final bajo custodia",
+      "deps": [
+        "sc-04-stage-b"
+      ],
+      "conditional": false,
+      "goal": "Abrir una sola vez 2024–2025 luego de B validada y autorización adicional.",
+      "paths": [],
+      "tests": [
+        "tests/test_controlled_daily_v4_stage_c_admissibility.py",
+        "tests/test_controlled_daily_v4_holdout_ledger.py",
+        "tests/test_controlled_daily_v4_stage_c_recovery.py",
+        "tests/test_controlled_daily_v4_stage_c_integration.py"
+      ],
+      "accept": "Apertura trazada, resultados íntegros conservados cualquiera sea su signo y auditor PASS; ninguna selección posterior.",
+      "block": "B no validada; falta autorización C/inicialización; ledger ausente sin autorización, indeterminado o intento previo.",
+      "risk": "Apertura irreversible o restauración de backup para repetir holdout.",
+      "rollback": "No existe rollback de conocimiento adquirido; custodiar intento. Recuperación idempotente solo resultado completo íntegro y ledger original.",
+      "tasks": [
+        "T14"
+      ],
+      "status": "PLANNED",
+      "approved_for_implementation": false,
+      "scientific_execution_authorized": false,
+      "extra_gate": "sc-04 PASS AND B CANDIDATE_VALIDATED AND authorization C recorded AND ledger initialization separately authorized AND custody admissible; CANDIDATE_NOT_VALIDATED blocks C",
+      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
+      "approval": null,
+      "audit": null,
+      "state_events": []
+    },
+    {
+      "id": "sc-06-scientific-synthesis",
+      "title": "Consolidar evidencia y auditar cierre",
+      "deps": [
+        "sc-01-evidence-scope",
+        "sc-02-runtime-readiness"
+      ],
+      "conditional": false,
+      "goal": "Evaluar suficiencia del alcance completo y redactar conclusiones honestas con memoria trazada.",
+      "paths": [
+        "openspec/scientific-closure/inventory.md",
+        "openspec/scientific-closure/claims.md",
+        "openspec/scientific-closure/risks.md"
+      ],
+      "tests": [
+        "tests/test_scientific_closure_governance.py"
+      ],
+      "accept": "Terminal A/B/C auditado, todas obligaciones aplicables resueltas, matriz requisito→evidencia completa y PASS independiente de cierre científico.",
+      "block": "Terminal sin auditar, complemento REQUIRED pendiente, afirmación sin respaldo o alcance UNRESOLVED.",
+      "risk": "Declarar tesis cerrada solo por tests verdes o por éxito de clasificación P20.",
+      "rollback": "Retirar solo nuevas afirmaciones incorrectas con corrección trazable; no modificar evidencia fuente ni esconder resultados.",
+      "tasks": [
+        "T08",
+        "T16",
+        "T25"
+      ],
+      "status": "PLANNED",
+      "approved_for_implementation": false,
+      "scientific_execution_authorized": false,
+      "extra_gate": "Audited terminal A or B or C AND all REQUIRED auxiliaries audited; UNRESOLVED blocks closure",
+      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
+      "approval": null,
+      "audit": null,
+      "state_events": []
+    },
+    {
+      "id": "sc-07-aux-regression",
+      "title": "Complemento condicional de regresión",
+      "deps": [
+        "sc-01-evidence-scope",
+        "sc-02-runtime-readiness"
+      ],
+      "conditional": true,
+      "goal": "Implementar y validar auxiliary_soil_regression_v1 solo si R=REQUIRED; ejecutar luego únicamente con autorización científica específica.",
+      "paths": [
+        "src/experiment_runner/scientific_auxiliary/auxiliary_soil_regression_v1.py",
+        "tests/test_auxiliary_soil_regression_v1.py"
+      ],
+      "tests": [
+        "tests/test_auxiliary_soil_regression_v1.py"
+      ],
+      "accept": "Necesidad R=REQUIRED anterior a ejecución, diseño congelado respetado, fixtures aprobados y evidencia auditada. Si NOT_REQUIRED: solo decisión motivada, sin implementación.",
+      "block": "UNRESOLVED/NOT_REQUIRED impide ejecutar; falta autorización o runner validado; intento de consumir 2023–2025/Balcarce.",
+      "risk": "Usar complementos para cambiar selección de A o afirmar validación independiente; confundir simulación con realidad.",
+      "rollback": "Revertir exclusivamente nuevo código antes de ejecución; después preservar todos los artefactos e intentos y documentar corrección.",
+      "tasks": [
+        "T21"
+      ],
+      "status": "PLANNED",
+      "approved_for_implementation": false,
+      "scientific_execution_authorized": false,
+      "extra_gate": "R REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization R; NOT_REQUIRED/UNRESOLVED blocks execution",
+      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
+      "approval": null,
+      "audit": null,
+      "state_events": []
+    },
+    {
+      "id": "sc-08-aux-hitl",
+      "title": "Complemento condicional de HITL",
+      "deps": [
+        "sc-01-evidence-scope",
+        "sc-02-runtime-readiness"
+      ],
+      "conditional": true,
+      "goal": "Implementar y validar auxiliary_hitl_v1 solo si H=REQUIRED; ejecutar luego únicamente con autorización científica específica.",
+      "paths": [
+        "src/experiment_runner/scientific_auxiliary/auxiliary_hitl_v1.py",
+        "tests/test_auxiliary_hitl_v1.py"
+      ],
+      "tests": [
+        "tests/test_auxiliary_hitl_v1.py"
+      ],
+      "accept": "Necesidad H=REQUIRED anterior a ejecución, diseño congelado respetado, fixtures aprobados y evidencia auditada. Si NOT_REQUIRED: solo decisión motivada, sin implementación.",
+      "block": "UNRESOLVED/NOT_REQUIRED impide ejecutar; falta autorización o runner validado; intento de consumir 2023–2025/Balcarce.",
+      "risk": "Usar complementos para cambiar selección de A o afirmar validación independiente; confundir simulación con realidad.",
+      "rollback": "Revertir exclusivamente nuevo código antes de ejecución; después preservar todos los artefactos e intentos y documentar corrección.",
+      "tasks": [
+        "T22"
+      ],
+      "status": "PLANNED",
+      "approved_for_implementation": false,
+      "scientific_execution_authorized": false,
+      "extra_gate": "H REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization H; NOT_REQUIRED/UNRESOLVED blocks execution",
+      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
+      "approval": null,
+      "audit": null,
+      "state_events": []
+    },
+    {
+      "id": "sc-09-aux-anomalies",
+      "title": "Complemento condicional de anomalías",
+      "deps": [
+        "sc-01-evidence-scope",
+        "sc-02-runtime-readiness"
+      ],
+      "conditional": true,
+      "goal": "Implementar y validar auxiliary_anomalies_v1 solo si N=REQUIRED; ejecutar luego únicamente con autorización científica específica.",
+      "paths": [
+        "src/experiment_runner/scientific_auxiliary/auxiliary_anomalies_v1.py",
+        "tests/test_auxiliary_anomalies_v1.py"
+      ],
+      "tests": [
+        "tests/test_auxiliary_anomalies_v1.py"
+      ],
+      "accept": "Necesidad N=REQUIRED anterior a ejecución, diseño congelado respetado, fixtures aprobados y evidencia auditada. Si NOT_REQUIRED: solo decisión motivada, sin implementación.",
+      "block": "UNRESOLVED/NOT_REQUIRED impide ejecutar; falta autorización o runner validado; intento de consumir 2023–2025/Balcarce.",
+      "risk": "Usar complementos para cambiar selección de A o afirmar validación independiente; confundir simulación con realidad.",
+      "rollback": "Revertir exclusivamente nuevo código antes de ejecución; después preservar todos los artefactos e intentos y documentar corrección.",
+      "tasks": [
+        "T23"
+      ],
+      "status": "PLANNED",
+      "approved_for_implementation": false,
+      "scientific_execution_authorized": false,
+      "extra_gate": "N REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization N; NOT_REQUIRED/UNRESOLVED blocks execution",
+      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
+      "approval": null,
+      "audit": null,
+      "state_events": []
+    },
+    {
+      "id": "sc-10-aux-robustness",
+      "title": "Complemento condicional de robustez",
+      "deps": [
+        "sc-01-evidence-scope",
+        "sc-02-runtime-readiness"
+      ],
+      "conditional": true,
+      "goal": "Implementar y validar auxiliary_robustness_v1 solo si S=REQUIRED; ejecutar luego únicamente con autorización científica específica.",
+      "paths": [
+        "src/experiment_runner/scientific_auxiliary/auxiliary_robustness_v1.py",
+        "tests/test_auxiliary_robustness_v1.py"
+      ],
+      "tests": [
+        "tests/test_auxiliary_robustness_v1.py"
+      ],
+      "accept": "Necesidad S=REQUIRED anterior a ejecución, diseño congelado respetado, fixtures aprobados y evidencia auditada. Si NOT_REQUIRED: solo decisión motivada, sin implementación.",
+      "block": "UNRESOLVED/NOT_REQUIRED impide ejecutar; falta autorización o runner validado; intento de consumir 2023–2025/Balcarce.",
+      "risk": "Usar complementos para cambiar selección de A o afirmar validación independiente; confundir simulación con realidad.",
+      "rollback": "Revertir exclusivamente nuevo código antes de ejecución; después preservar todos los artefactos e intentos y documentar corrección.",
+      "tasks": [
+        "T24"
+      ],
+      "status": "PLANNED",
+      "approved_for_implementation": false,
+      "scientific_execution_authorized": false,
+      "extra_gate": "S REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization S; NOT_REQUIRED/UNRESOLVED blocks execution",
+      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
+      "approval": null,
+      "audit": null,
+      "state_events": []
+    }
+  ]
+}
