@@ -5,9 +5,14 @@ validación, reusando `data_ingestion.sensor_naming.validate_sensor_id`.
 
 from __future__ import annotations
 
-from fastapi import HTTPException
+from pathlib import Path
 
+from fastapi import Depends, HTTPException
+
+from data_ingestion.catalog import CatalogRepository
 from data_ingestion.sensor_naming import validate_sensor_id
+
+from .config import get_dataset_data_dir, is_producer_v2_enabled
 
 
 def get_valid_sensor_id(sensor_id: str) -> str:
@@ -15,3 +20,17 @@ def get_valid_sensor_id(sensor_id: str) -> str:
         return validate_sensor_id(sensor_id)
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+def get_catalog_repository(
+    data_dir: Path = Depends(get_dataset_data_dir),
+) -> CatalogRepository:
+    """Repositorio operacional aislable mediante dependency_overrides."""
+    return CatalogRepository(data_dir)
+
+
+def require_producer_v2_enabled(
+    enabled: bool = Depends(is_producer_v2_enabled),
+) -> None:
+    if not enabled:
+        raise HTTPException(status_code=404, detail="Not Found")

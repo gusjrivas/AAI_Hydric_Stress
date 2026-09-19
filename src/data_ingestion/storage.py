@@ -8,12 +8,106 @@ from __future__ import annotations
 
 import hashlib
 import io
+import os
+import tempfile
+import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import BinaryIO
 
 import pandas as pd
 
 from data_ingestion.schema import PROVENANCE_COLUMN, TIMESTAMP_COLUMN, normalize_to_schema
+
+
+class StorageLockTimeout(TimeoutError):
+    """Raised when a storage resource stays locked past the deadline."""
+
+    pass
+
+
+def _acquire_file_lock(handle: BinaryIO) -> None:
+    if os.name == "nt":
+        import msvcrt
+
+        msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+    else:
+        import fcntl
+
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
+def _release_file_lock(handle: BinaryIO) -> None:
+    handle.seek(0)
+    if os.name == "nt":
+        import msvcrt
+
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+    else:
+        import fcntl
+
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+@contextmanager
+def interprocess_lock(lock_path: Path, timeout: float = 10.0) -> Iterator[None]:
+    """Exclude writers in different processes from the same resource."""
+    if timeout < 0:
+        raise ValueError("timeout debe ser mayor o igual que cero")
+
+    lock_path = Path(lock_path)
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    handle = lock_path.open("a+b")
+    handle.seek(0, os.SEEK_END)
+    if handle.tell() == 0:
+        handle.write(b"\0")
+        handle.flush()
+    deadline = time.monotonic() + timeout
+    acquired = False
+    try:
+        while not acquired:
+            try:
+                handle.seek(0)
+                _acquire_file_lock(handle)
+                acquired = True
+            except OSError:
+                if time.monotonic() >= deadline:
+                    raise StorageLockTimeout(f"Timeout al adquirir lock {lock_path}")
+                time.sleep(0.01)
+        yield
+    finally:
+        if acquired:
+            _release_file_lock(handle)
+        handle.close()
+
+
+def atomic_write_bytes(path: Path, content: bytes) -> None:
+    """Replace path atomically without exposing a partial destination."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    temporary_path = Path(temporary_name)
+    try:
+        with os.fdopen(fd, "wb") as temporary:
+            temporary.write(content)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+        os.replace(temporary_path, path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+
+def _serialize_parquet(df: pd.DataFrame) -> bytes:
+    buffer = io.BytesIO()
+    df.to_parquet(buffer, index=False)
+    return buffer.getvalue()
+
+
+def _dataset_lock_path(name: str, data_dir: Path) -> Path:
+    return data_dir / ".locks" / f"{name}.lock"
+
 
 DEFAULT_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
@@ -21,7 +115,9 @@ DEFAULT_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 def save_dataset(name: str, df: pd.DataFrame, data_dir: Path = DEFAULT_DATA_DIR) -> Path:
     data_dir.mkdir(parents=True, exist_ok=True)
     path = data_dir / f"{name}.parquet"
-    df.to_parquet(path, index=False)
+    content = _serialize_parquet(df)
+    with interprocess_lock(_dataset_lock_path(name, data_dir)):
+        atomic_write_bytes(path, content)
     return path
 
 
@@ -115,6 +211,24 @@ def load_dataset_snapshot(
     )
 
 
+def _append_reading_locked(name: str, new_row: pd.DataFrame, data_dir: Path) -> pd.DataFrame:
+    data_dir.mkdir(parents=True, exist_ok=True)
+    path = data_dir / f"{name}.parquet"
+    with interprocess_lock(_dataset_lock_path(name, data_dir)):
+        try:
+            existing = load_dataset(name, data_dir=data_dir)
+            updated = pd.concat([existing, new_row], ignore_index=True)
+        except FileNotFoundError:
+            updated = new_row
+        updated = updated.sort_values(TIMESTAMP_COLUMN).reset_index(drop=True)
+        updated = updated.drop_duplicates(subset=TIMESTAMP_COLUMN, keep="last").reset_index(
+            drop=True
+        )
+        content = _serialize_parquet(updated)
+        atomic_write_bytes(path, content)
+        return pd.read_parquet(io.BytesIO(content))
+
+
 def append_reading(name: str, row: dict, data_dir: Path = DEFAULT_DATA_DIR) -> pd.DataFrame:
     """Agrega `row` (un dict con al menos `timestamp`) como una fila
     nueva al dataset `name`, normalizada al esquema completo. Crea el
@@ -124,15 +238,4 @@ def append_reading(name: str, row: dict, data_dir: Path = DEFAULT_DATA_DIR) -> p
     """
     provenance = row.get(PROVENANCE_COLUMN, "real")
     new_row = normalize_to_schema(pd.DataFrame([row]), provenance=provenance)
-
-    try:
-        existing = load_dataset(name, data_dir=data_dir)
-        updated = pd.concat([existing, new_row], ignore_index=True)
-    except FileNotFoundError:
-        updated = new_row
-
-    updated = updated.sort_values(TIMESTAMP_COLUMN).reset_index(drop=True)
-    updated = updated.drop_duplicates(subset=TIMESTAMP_COLUMN, keep="last").reset_index(drop=True)
-    save_dataset(name, updated, data_dir=data_dir)
-    # Reload to ensure returned DataFrame has consistent dtypes with persisted data
-    return load_dataset(name, data_dir=data_dir)
+    return _append_reading_locked(name, new_row, data_dir)
