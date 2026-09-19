@@ -5,6 +5,11 @@ Fecha: 2026-09-18. Rama auditada: `feat/hu6-backend-soporte-ui`, commit base
 implementaron funcionalidades, no se modificaron datos, modelos, experimentos,
 specs canónicas ni protocolos.
 
+> Actualización de gobernanza (2026-09-19): el autor aceptó ADR-0013 y los cuatro
+> changes. Se levanta el gate de aprobación para implementar, pero permanecen los
+> bloqueos técnicos y metodológicos identificados por esta auditoría, incluido el
+> manifiesto obligatorio previo al primer ajuste multihorizonte.
+
 ## Conclusión por change
 
 | Change | Conclusión | Fundamento y siguiente condición |
@@ -14,9 +19,9 @@ specs canónicas ni protocolos.
 | [`extend-dated-alert-feedback`](../../openspec/changes/extend-dated-alert-feedback/proposal.md) | **Listo con condiciones** | El almacén append-only, revisión e idempotencia pueden construirse contra fixtures. La integración real depende de una identidad v2 persistida y de resolver la autoridad del bloqueo de demo. No depende de que las probabilidades califiquen. |
 | [`add-producer-forecast-api`](../../openspec/changes/add-producer-forecast-api/proposal.md) | **Bloqueado para cierre integral; listo en su porción catálogo/histórico** | La fachada aditiva es compatible con FastAPI y legacy, pero emisión, feedback y assessments dependen de los otros changes. Catálogo y `GET readings` pueden entregarse sin esperar al modelado. |
 
-El [ADR-0013](../adr/0013-backend-ui-productor.md) continúa **Propuesto**. Su
-aceptación y la aprobación de los cuatro changes son el gate de gobernanza previo
-a implementar; esta auditoría no los acepta de manera implícita.
+El [ADR-0013](../adr/0013-backend-ui-productor.md) y los cuatro changes fueron
+aceptados por el autor el 2026-09-19. Esta aceptación posterior levanta el gate de
+gobernanza, sin alterar los hallazgos ni autorizar por sí sola ajustes experimentales.
 
 ## Trazabilidad e impacto
 

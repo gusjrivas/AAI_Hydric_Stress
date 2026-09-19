@@ -1,7 +1,8 @@
 # Change: Predictores operativos independientes a uno, dos y tres días
 
-Estado: propuesta para revisión; no implementada. Rama: `feat/hu6-backend-soporte-ui`.
-No modifica `main`, specs canónicas ni resultados históricos.
+Estado: aceptado por el autor el 2026-09-19; implementación parcial en
+`feat/hu6-backend-soporte-ui`. No modifica `main`, specs canónicas ni resultados
+históricos. El primer ajuste continúa bloqueado hasta congelar el manifiesto previo.
 
 ## Why
 El predictor actual responde únicamente t+3. La UI requiere estimaciones para

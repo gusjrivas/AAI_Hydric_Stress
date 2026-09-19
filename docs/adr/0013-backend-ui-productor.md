@@ -1,6 +1,7 @@
 # ADR-0013: Contratos operativos para una UI orientada al productor
 
-Estado: **Propuesto**, no aceptado ni implementado.
+Estado: **Aceptado por el autor el 2026-09-19**. Implementación incremental en
+`feat/hu6-backend-soporte-ui`; la aceptación no declara completas las entregas.
 
 ## Contexto
 El backend base PR #205 emite una predicción t+3 por sensor/día, usa la fecha
@@ -44,5 +45,6 @@ compatibilidad legacy sin reescribir archivos históricos. No incluye migración
 ## Implementación y aprobación
 El plan y los cuatro changes están en
 [backend-producer-ui-plan.md](../design/backend-producer-ui-plan.md).
-Aceptar este ADR requiere revisión del PR de especificaciones; no está aceptado
-por la mera existencia de este archivo. No autoriza experimentos formales.
+El autor aceptó este ADR y los cuatro changes vinculados el 2026-09-19. La
+aceptación habilita su implementación incremental, pero no autoriza experimentos
+formales ni reemplaza los gates metodológicos de cada change.

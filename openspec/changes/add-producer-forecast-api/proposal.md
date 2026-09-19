@@ -1,5 +1,8 @@
 # Change: API de soporte a la experiencia del productor
 
+Estado: aceptado por el autor el 2026-09-19; implementación parcial mediante las
+porciones de catálogo/histórico, con emisión v2 todavía pendiente.
+
 ## Why
 La pantalla necesita un contrato coherente para sectores, historial, tres días
 pronosticados y opiniones persistentes. El backend actual no ofrece esa vista
@@ -9,7 +12,7 @@ y no corresponde reconstruir significado científico dentro del frontend.
 - API v2 aditiva con catálogo, lecturas, resumen, emisiones y revisión.
 - Contrato documentado con fechas, unidades, faltantes y procedencia explícitos.
 - Integración de los changes HU2, HU4 y HU5 y regresión de API/demo legacy.
-- Sin implementación de frontend ni backend en esta propuesta.
+- La aceptación habilita implementación incremental; frontend permanece fuera de alcance.
 
 ## Impact
 HU6; architecture-integration y alerting-ui. Dependencias:

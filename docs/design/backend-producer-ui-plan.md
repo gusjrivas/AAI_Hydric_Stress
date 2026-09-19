@@ -1,7 +1,8 @@
 # Backend para la UI orientada al productor
 
-Estado: propuesta para revisión; no implementada. Rama: `feat/hu6-backend-soporte-ui`.
-No modifica `main`, specs canónicas ni resultados históricos.
+Estado: aceptado por el autor el 2026-09-19; implementación incremental en
+`feat/hu6-backend-soporte-ui`. No modifica `main`, specs canónicas ni resultados
+históricos hasta completar validación y cierre de cada change.
 
 ## Objetivo y decisiones de usuario
 Dar soporte a sectores con nombres reconocibles, registros de sensores, tres
