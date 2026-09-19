@@ -1,0 +1,4 @@
+# Configuración de proyecto: no sustituye preferencias globales.
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 4
