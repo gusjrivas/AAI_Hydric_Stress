@@ -1,6 +1,77 @@
 # Checkpoint de ejecución actual — 2026-09-19
 
-Estado del checkpoint: `CHECKPOINT_DIRTY_RECOVERABLE`.
+Estado actual: `CHECKER_REMEDIATION_BLOCKED` para cierre auditado; corrección
+técnica validada. El registro original `CHECKPOINT_DIRTY_RECOVERABLE` se conserva
+debajo como historia de recuperación y sus pendientes quedan actualizados por
+esta sección.
+
+## Recuperación Linux — 2026-09-19
+
+- Autorización: instrucción explícita de sesión para recuperar el checkpoint,
+  corregir únicamente `UnboundLocalError`, validar y crear commit si pasan los
+  tests. Autoriza esta delegación acotada y reemplaza las restricciones históricas
+  de ruta/delegación; no autoriza ninguna campaña ni cierra `sc-02`.
+- Worktree vigente: `/home/gus/work/AAI_Hydric_Stress_scientific_closure`.
+  Rama `feat/scientific-closure`, upstream `origin/feat/scientific-closure`.
+  HEAD inicial `59612ab2d1822e7bef6f22255985866de73b6cda`; el SHA Windows
+  registrado más abajo es exclusivamente histórico.
+- Preflight conforme: exactamente los tres archivos pendientes conocidos.
+  SHA-256 y tamaños coinciden con los tres archivos del respaldo
+  `/mnt/c/Repo/AAI_Hydric_Stress_scientific_closure` antes de editar.
+- HU7/HU8, `scientific-closure`, CRISP-DM evaluación/documentación.
+  Sin impacto en configuraciones experimentales, hipótesis, alcance ni
+  arquitectura. Trazabilidad técnica pertinente a capítulos 2/3.
+- Causa reproducida: `audit` se asignaba dentro de la rama terminal, pero el
+  `elif` la consultaba para estados no terminales. Test mínimo: 1 ERROR,
+  exit 1, traceback conservado. Arreglo: mover la asignación inmediatamente
+  antes del `if`, sin cambiar condiciones, errores ni códigos de salida.
+- Un ciclo de corrección. Los tests existentes ya cubren estado normal y audit
+  mal tipado; permanecen idénticos al respaldo, sin duplicar pruebas.
+- Validación ordenada: mínimo 1/1 OK; afectado 1/1 OK (7 subtests); suite
+  completa 33/33 OK, 0 errores/fallos; checker formal exit 0,
+  `PASS (estructura; runtime no verificado)`; Ruff y Black no disponibles
+  (exit 1: módulos ausentes); `git diff --check` exit 0.
+  No se atribuye PASS a lint/formato. Python disponible: 3.14.4 mediante
+  `python3`; no existe alias `python` ni `pip`.
+- Comprobación adicional: CLI con audit mal tipado conserva exit 1 y mensaje
+  AUDIT sin traceback; ocho casos terminales con audit ausente/inválido
+  rechazados. La cifra histórica de 48 tests no coincide con los 33 métodos
+  presentes en el archivo cuyo hash fue acreditado; no se eliminaron tests.
+- Snapshot congelado: checker SHA-256
+  `a68a47f1e7df128d2ba227a810a183531f013cbd9653091934b49d30c74a2ebf`;
+  tests `ee40b2ddc0be3ad798500818d5ef0bcdaa5ec74a4f161725eabc700b68d74940`.
+  El evidence_checker confirmó mecánicamente hashes, diferencia de una
+  asignación movida, tests intactos, sintaxis y diff sin problemas.
+- Explorador y evidence_checker completaron lectura. Implementador, crítico
+  y auditor nominales fueron rechazados antes de ejecutar: `gpt-5.6` no
+  compatible con la cuenta. El orquestador aplicó la corrección mínima;
+  no se alteraron perfiles, modelos ni permisos. No existe crítica ni
+  auditoría PASS sobre este snapshot; la solicitud al auditor registró
+  explícitamente la falta del prerrequisito de crítica.
+- `CRIT-CHK-01`, `CRIT-CHK-02`, `CRIT-CHK-03` y `CRIT-CHK-04`: pruebas verdes,
+  cierre pendiente de revisión independiente. Ningún change se marca PASS.
+- Probe temporal: preservado sin modificaciones y fuera del commit. Aunque
+  su contenido no es científico, el checkpoint lo conserva como evidencia
+  de preparación y no se acredita que borrarlo preserve su trazabilidad.
+- Commit solicitado: `fix(science): complete formal checker remediation`.
+  No creado: `git add --` de las cuatro rutas autorizadas terminó con exit 128,
+  `Unable to create .../.git/index.lock: Read-only file system`.
+  El sandbox monta `.git` de solo lectura; no se elude con otro índice ni se
+  amplían permisos. Alternativa compatible: preservar implementación, tests
+  y trazabilidad en el árbol de trabajo para un futuro commit autorizado.
+  HEAD final permanece `59612ab2d1822e7bef6f22255985866de73b6cda`;
+  árbol dirty con checker, tests y checkpoint modificados, registro JSON
+  nuevo y probe preservado. No hay identidad ejecutable nueva ni push.
+- Pendientes separados: CRIT-SUB-01; modelos nominales incompatibles;
+  permisos efectivos; aislamiento read-only; ADR-0011; identidad ejecutable;
+  backup y recuperación; procedencia y licencias. Ninguno se resolvió aquí.
+- Próximo paso: lint/formato y revisión independiente del snapshot con
+  herramientas/perfiles disponibles en una ejecución autorizada; no A/B/C.
+
+Comandos, códigos de salida, traceback, resultados y respuestas exactas de
+lectores se conservan en [registro de remediación](checker-remediation-linux.json).
+
+## Registro histórico del checkpoint interrumpido
 
 Este registro es exclusivamente de recuperación. No autoriza ejecución
 científica, no cambia el estado de ningún `sc-*` y no acredita readiness.
