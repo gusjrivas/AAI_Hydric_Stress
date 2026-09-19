@@ -1,0 +1,255 @@
+{
+  "schema_version": "scientific_closure_requirements.v1",
+  "requirements": [
+    {
+      "id": "SC-GOV-001",
+      "title": "Identidad y aislamiento",
+      "norm": "El orquestador DEBE comprobar worktree, rama, HEAD, upstream y árbol limpio antes de escribir o ejecutar.",
+      "acceptance": "Coinciden ruta y rama fijadas; status vacío; se conserva SHA inicial y final. Cualquier discrepancia impide modificaciones.",
+      "change": "sc-01-evidence-scope",
+      "task": "T01",
+      "check": "git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD; git status --porcelain=v1 --untracked-files=all",
+      "evidence": "session-identity.json"
+    },
+    {
+      "id": "SC-GOV-002",
+      "title": "Autoridad y autorización",
+      "norm": "El sistema DEBE separar especificación, preparación y autorización de cada etapa; nunca inferir permiso de ejecución de un PASS técnico.",
+      "acceptance": "Para cada etapa al despacharla, existe autorización trazable por responsable, alcance y fecha; la ausencia bloquea solo esa etapa. Readiness verifica el mecanismo y registra permisos pendientes, sin exigir B/ledger/C anticipadamente.",
+      "change": "sc-02-runtime-readiness",
+      "task": "T02",
+      "check": "Revisión de autorización contra instrucciones de sesión, protocolo y ADR-0011; registrar discrepancias sin resolverlas unilateralmente.",
+      "evidence": "authorizations.json"
+    },
+    {
+      "id": "SC-GOV-003",
+      "title": "Preservación",
+      "norm": "El sistema DEBE preservar v3, evidencia histórica, main, UI, datos fuente y registros de intentos.",
+      "acceptance": "Diff de campaña solo contiene rutas autorizadas; hashes de artefactos históricos preservados; no push/merge/rebase/tag/release/PR sin encargo futuro explícito.",
+      "change": "sc-01-evidence-scope",
+      "task": "T03",
+      "check": "git diff --name-status BASE..HEAD; comparar hashes de archivos históricos sin analizar sus resultados.",
+      "evidence": "preservation.json"
+    },
+    {
+      "id": "SC-GOV-004",
+      "title": "Inventario con procedencia",
+      "norm": "El explorador DEBE clasificar evidencia existente, referenciada, faltante y no inspeccionada sin equiparar estos estados.",
+      "acceptance": "Cada entrada tiene ubicación, procedencia, fecha, estado de inspección, HU/afirmación y limitación; faltantes permanecen explícitos.",
+      "change": "sc-01-evidence-scope",
+      "task": "T04",
+      "check": "Contrastar inventario con rutas y documentación permitidas; jamás llenar resultados por inferencia.",
+      "evidence": "inventory.json"
+    },
+    {
+      "id": "SC-GOV-005",
+      "title": "Alcance de afirmaciones",
+      "norm": "El sistema DEBE decidir necesidad de evidencia por afirmación y alcance aprobado, sin hacer obligatorios automáticamente R/H/N/S.",
+      "acceptance": "Cada afirmación tiene fuente, evidencia suficiente o brecha; cada complemento REQUIRED/NOT_REQUIRED/UNRESOLVED con justificación anterior a ejecución; no reducir hipótesis tácitamente.",
+      "change": "sc-01-evidence-scope",
+      "task": "T05",
+      "check": "Auditoría de claims.md contra project.md, ADR-0009/0010/0011 y decisiones de cierre.",
+      "evidence": "claims-assessment.json"
+    },
+    {
+      "id": "SC-GOV-006",
+      "title": "Separación de roles",
+      "norm": "El sistema DEBE usar explorador, implementador, checker, crítico y auditor independientes según sus permisos.",
+      "acceptance": "Agentes con nombre/descripción/instrucciones; cuatro lectores read-only; implementador no aprueba; máximo cuatro subagentes; modelos y sustituciones explícitos.",
+      "change": "sc-02-runtime-readiness",
+      "task": "T06",
+      "check": "python -m unittest discover -s tests -p test_scientific_closure_governance.py; verificar carga efectiva y permisos en Codex.",
+      "evidence": "agent-capabilities.json"
+    },
+    {
+      "id": "SC-GOV-007",
+      "title": "Cambios y dependencias",
+      "norm": "El orquestador DEBE elegir solo cambios aprobados con dependencias satisfechas y un único escritor por archivo.",
+      "acceptance": "Registro identifica cambio, dueño, rutas, dependencias PASS y sesión; lectores revisan snapshot estable; tareas no se cierran con solo tests verdes.",
+      "change": "sc-02-runtime-readiness",
+      "task": "T07",
+      "check": "Inspección del DAG, registro de asignaciones y manifiestos de revisión por SHA.",
+      "evidence": "workflow-events.jsonl"
+    },
+    {
+      "id": "SC-GOV-008",
+      "title": "Revisión independiente",
+      "norm": "El sistema DEBE cerrar cambios solo con PASS del auditor posterior a checker y crítico sin hallazgos materiales abiertos.",
+      "acceptance": "Informe identifica snapshot, requisitos revisados, comandos, resultados y hallazgos reproducibles; FAIL corrige y repite; BLOCKED suspende dependientes.",
+      "change": "sc-06-scientific-synthesis",
+      "task": "T08",
+      "check": "Aplicar operations.md a cada cambio y verificar identidad distinta implementador/auditor.",
+      "evidence": "audit.json"
+    },
+    {
+      "id": "SC-GOV-009",
+      "title": "Identidad reproducible",
+      "norm": "Cada ejecución DEBE registrar commit ejecutable, imagen inmutable, configuración, semillas, datos/hashes, comandos, entorno y resultados.",
+      "acceptance": "Misma identidad ejecutable e imagen A/B/C; SHA documental separado; constraints contrastados; semillas modelo 42 y bootstrap 20250109, 5000 réplicas.",
+      "change": "sc-02-runtime-readiness",
+      "task": "T09",
+      "check": "tests/test_controlled_daily_v4_reproducibility_artifacts.py; tests/test_controlled_daily_v4_environment_validation.py; docker inspect y pip check.",
+      "evidence": "execution-manifest.json"
+    },
+    {
+      "id": "SC-GOV-010",
+      "title": "Causalidad temporal",
+      "norm": "El sistema DEBE respetar fronteras v4, target observado t+3, P20 train, imputación causal solo de entradas y fit fold-local.",
+      "acceptance": "No se agregan ni generan features fuera de etapa autorizada; max target train < min emisión validación; ocho features iguales entre candidatos.",
+      "change": "sc-03-stage-a",
+      "task": "T10",
+      "check": "tests/test_controlled_daily_v4_stage_window.py; tests/test_controlled_daily_v4_splits.py; tests/test_controlled_daily_v4_features.py.",
+      "evidence": "temporal-contract-check.json"
+    },
+    {
+      "id": "SC-GOV-011",
+      "title": "Gate A",
+      "norm": "A DEBE seleccionar y congelar solo con desarrollo 2015–2022 conforme a protocolo y soporte, sin consultar B/C.",
+      "acceptance": "Contrato transferible scientific_run, candidato primary_selection y soporte válido; NO_VALID_SELECTION conserva diagnósticos y bloquea B; empate práctico no se llama superioridad.",
+      "change": "sc-03-stage-a",
+      "task": "T11",
+      "check": "tests/test_controlled_daily_v4_selection.py; tests/test_controlled_daily_v4_freezing.py; tests/test_controlled_daily_v4_stage_a_integration.py; auditar frozen_config.json.",
+      "evidence": "A/gate-review.json"
+    },
+    {
+      "id": "SC-GOV-012",
+      "title": "Gate B",
+      "norm": "B DEBE evaluar una sola vez el candidato congelado sobre 2023, tras gate A y autorización.",
+      "acceptance": "CANDIDATE_VALIDATED únicamente si MCC>0 y límite inferior CI delta frente a persistencia >=-0.05 con soporte; monoclase o negativo no habilitan C ni otro candidato.",
+      "change": "sc-04-stage-b",
+      "task": "T12",
+      "check": "tests/test_controlled_daily_v4_stage_b_runner.py; tests/test_controlled_daily_v4_stage_b_integration.py; contrastar decision.json.",
+      "evidence": "B/gate-review.json"
+    },
+    {
+      "id": "SC-GOV-013",
+      "title": "Custodia de B",
+      "norm": "B DEBE reservar un intento en registro persistente único antes de analizar valores y conservar toda falla posterior.",
+      "acceptance": "Clave fija protocolo/sitio/profundidad/2023; reserva guarda candidato/identidad/hashes; segundo intento bloqueado; recuperación solo de artefactos completos íntegros sin entrenar.",
+      "change": "sc-04-stage-b",
+      "task": "T13",
+      "check": "tests/test_controlled_daily_v4_scientific_closure.py: custodia, concurrencia, reserva antes de validación y recuperación.",
+      "evidence": "B/custody-review.json"
+    },
+    {
+      "id": "SC-GOV-014",
+      "title": "Gate C y holdout",
+      "norm": "C DEBE requerir B validada, autorización adicional e inicialización explícita custodiada; jamás seleccionar con holdout.",
+      "acceptance": "Train targets <=2023-12-31; emisiones 2024-01-01..2025-12-28; apertura única 2024–2025; no ajuste/repetición; estado incierto se trata como abierto.",
+      "change": "sc-05-stage-c",
+      "task": "T14",
+      "check": "tests/test_controlled_daily_v4_stage_c_admissibility.py; tests/test_controlled_daily_v4_holdout_ledger.py; tests/test_controlled_daily_v4_stage_c_recovery.py.",
+      "evidence": "C/holdout-review.json"
+    },
+    {
+      "id": "SC-GOV-015",
+      "title": "Estadística y soporte",
+      "norm": "El reporte DEBE conservar indefiniciones, soportes y limitaciones de inferencia del protocolo.",
+      "acceptance": ">=2 de 3 folds definidos por familia y >=4000/5000 bootstrap; bloques 30 días no circulares por segmento; null con razón, sin sustitución por cero; no tratar seeds como poblaciones.",
+      "change": "sc-03-stage-a",
+      "task": "T15",
+      "check": "tests/test_controlled_daily_v4_bootstrap.py; tests/test_controlled_daily_v4_metrics.py; tests/test_controlled_daily_v4_scientific_closure.py.",
+      "evidence": "statistical-review.json"
+    },
+    {
+      "id": "SC-GOV-016",
+      "title": "Interpretación científica",
+      "norm": "El cierre DEBE distinguir hechos, resultados, inferencias, limitaciones y pendientes; aceptar conclusiones negativas válidas.",
+      "acceptance": "No afirmar estrés fisiológico, mejora general, anticipación operativa, portabilidad o eficacia HITL sin evidencia propia; onset y episode_recall diferenciados.",
+      "change": "sc-06-scientific-synthesis",
+      "task": "T16",
+      "check": "Revisión frase a frase de síntesis contra claims.md, predicciones autorizadas y métricas con soporte.",
+      "evidence": "claim-evidence-review.json"
+    },
+    {
+      "id": "SC-GOV-017",
+      "title": "Procedencia desconocida",
+      "norm": "El sistema DEBE registrar adquisición/licencia/versiones históricas desconocidas y resolver su admisibilidad antes de ejecutar.",
+      "acceptance": "No se inventan fecha ni URL real de descarga; fuentes verificadas se distinguen de adquisición efectiva; conflicto normativo o licencia sin decisión bloquea gate de preparación.",
+      "change": "sc-02-runtime-readiness",
+      "task": "T17",
+      "check": "Revisar manifiesto v4, ADR-0011 y evidencia documental aportada por responsable; no consultar valores reservados.",
+      "evidence": "provenance-assessment.json"
+    },
+    {
+      "id": "SC-GOV-018",
+      "title": "Backup y recuperación",
+      "norm": "El sistema DEBE respaldar evidencia y ledger coherentemente sin permitir volver a un estado previo para obtener otro intento.",
+      "acceptance": "Copia nueva con hashes y segunda copia independiente; SQLite quiescente o API backup; ensayo de restauración con fixtures; intento incompleto no liberado.",
+      "change": "sc-02-runtime-readiness",
+      "task": "T18",
+      "check": "Ensayo sintético de backup/restauración más tests/test_controlled_daily_v4_stage_c_recovery.py; revisión de rutas por responsable.",
+      "evidence": "recovery-rehearsal.json"
+    },
+    {
+      "id": "SC-GOV-019",
+      "title": "Checkpoints",
+      "norm": "El orquestador DEBE crear commits pequeños revisados y distinguir commit de checkpoint de cierre auditado.",
+      "acceptance": "git add con rutas explícitas; diff completo y staged revisados; SHA y alcance por checkpoint; no git add -A ni push en preparación.",
+      "change": "sc-02-runtime-readiness",
+      "task": "T19",
+      "check": "git diff --check; git diff --cached; git log; registro de checkpoints y estado.",
+      "evidence": "checkpoints.json"
+    },
+    {
+      "id": "SC-GOV-020",
+      "title": "Validación de especificaciones",
+      "norm": "El sistema DEBE validar OpenSpec, TOML, referencias, IDs y matriz antes de entregar preparación.",
+      "acceptance": "OpenSpec estricto para capacidad y cambios nuevos; tests documentales pasan; cada requisito tiene tarea/comprobación/artefacto; ningún PASS estructural equivale a cierre científico.",
+      "change": "sc-02-runtime-readiness",
+      "task": "T20",
+      "check": "OpenSpec 1.13.1 validate; python -m unittest discover -s tests -p test_scientific_closure_governance.py.",
+      "evidence": "structural-validation.json"
+    },
+    {
+      "id": "SC-GOV-021",
+      "title": "Regresión condicional",
+      "norm": "R DEBE activarse solo si se pretende sostener desempeño sobre humedad continua y la evidencia existente no lo cubre.",
+      "acceptance": "NOT_REQUIRED para sola clasificación P20; REQUIRED exige diseño R, runner validado, MAE/RMSE en m3/m3 y comparación contra persistencia; sin confundir con MCC.",
+      "change": "sc-07-aux-regression",
+      "task": "T21",
+      "check": "Revisión claims-assessment y fixtures específicos del diseño auxiliary_soil_regression_v1 antes de cualquier ejecución.",
+      "evidence": "auxiliary/R/review.json"
+    },
+    {
+      "id": "SC-GOV-022",
+      "title": "HITL condicional",
+      "norm": "H DEBE activarse si se sostendrá aporte cuantitativo de correcciones y falta evaluación prospectiva válida.",
+      "acceptance": "Tres brazos y maduración separados, 20 eventos/seed conforme diseño H; simulación identificada; implementación funcional HU5 no prueba beneficio.",
+      "change": "sc-08-aux-hitl",
+      "task": "T22",
+      "check": "Revisión de fechas de feedback, separación de refit/correcciones, fixtures del diseño auxiliary_hitl_v1.",
+      "evidence": "auxiliary/H/review.json"
+    },
+    {
+      "id": "SC-GOV-023",
+      "title": "Anomalías condicionales",
+      "norm": "N DEBE activarse si se afirmará detección reservada de corrupciones y la demostración disponible es insuficiente.",
+      "acceptance": "Fit solo train, inyección reservada conocida y métricas/soporte conforme diseño N; no convertir anomalías simuladas en fallas reales.",
+      "change": "sc-09-aux-anomalies",
+      "task": "T23",
+      "check": "Fixtures de inyección, fit/reserva y matriz de confusión del diseño auxiliary_anomalies_v1.",
+      "evidence": "auxiliary/N/review.json"
+    },
+    {
+      "id": "SC-GOV-024",
+      "title": "Robustez condicional",
+      "norm": "S DEBE activarse si se sostendrá robustez ante ausencia de mediciones/ruido más allá de evidencia ya válida.",
+      "acceptance": "Cuatro condiciones fijas, cinco seeds, target limpio común, máscaras e imputación registradas; escasez de etiquetas no equivale a sensores ausentes.",
+      "change": "sc-10-aux-robustness",
+      "task": "T24",
+      "check": "Fixtures de grilla causal, perturbaciones y fechas comunes del diseño auxiliary_robustness_v1.",
+      "evidence": "auxiliary/S/review.json"
+    },
+    {
+      "id": "SC-GOV-025",
+      "title": "Cierre científico",
+      "norm": "El auditor DEBE evaluar el alcance científico completo aprobado y no solo software o candidato.",
+      "acceptance": "Todas las afirmaciones tienen evidencia o limitación aceptada; terminal negativo válido documentado; complementos justificados; memoria caps.2/3 trazada; ningún obligatorio sin resolver.",
+      "change": "sc-06-scientific-synthesis",
+      "task": "T25",
+      "check": "Auditoría final independiente requisito por requisito y evaluación de suficiencia científica sobre el alcance aprobado.",
+      "evidence": "scientific-closure-audit.json"
+    }
+  ]
+}
