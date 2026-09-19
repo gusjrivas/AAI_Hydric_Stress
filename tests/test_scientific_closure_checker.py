@@ -156,11 +156,11 @@ class CheckerTests(unittest.TestCase):
     def test_runtime_evidence_explicit_model_substitution_passes(self):
         payload = self.runtime_evidence()
         agent = next(item for item in payload["agents"] if item["name"] == "scientific_implementer")
-        agent["effective"]["model"] = "gpt-5.6-sol"
+        agent["effective"]["model"] = "gpt-5.6-terra"
         agent["substitution"] = {
-            "requested_model": "gpt-5.6",
+            "requested_model": "gpt-5.6-sol",
             "requested_reasoning_effort": "medium",
-            "effective_model": "gpt-5.6-sol",
+            "effective_model": "gpt-5.6-terra",
             "effective_reasoning_effort": "medium",
             "reason": "backend rejected requested role before execution",
             "source": "orchestrator session report",

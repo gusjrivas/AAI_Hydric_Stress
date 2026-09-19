@@ -183,9 +183,9 @@ class GovernanceTests(unittest.TestCase):
     def test_agents_toml_fields_models_and_permissions(self):
         expected = {
             "scientific_explorer": ("gpt-5.6-terra", "medium", "read-only"),
-            "scientific_implementer": ("gpt-5.6", "medium", "workspace-write"),
-            "scientific_critic": ("gpt-5.6", "high", "read-only"),
-            "scientific_auditor": ("gpt-5.6", "xhigh", "read-only"),
+            "scientific_implementer": ("gpt-5.6-sol", "medium", "workspace-write"),
+            "scientific_critic": ("gpt-5.6-sol", "high", "read-only"),
+            "scientific_auditor": ("gpt-5.6-sol", "xhigh", "read-only"),
             "evidence_checker": ("gpt-5.6-luna", "low", "read-only"),
         }
         found = {}
