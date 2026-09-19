@@ -12,7 +12,7 @@ Todas son decisiones de preparación, no resultados científicos. Fecha 2026-09-
 | GD-06 | Usar OpenSpec CLI 1.13.1 por npx fijado, sin instalación global ni reemplazar dependencias científicas | npm view consultado; no había CLI global ni config.yaml |
 | GD-07 | TOML autónomos en .codex/agents, agents.enabled y max_concurrent_threads_per_session=4 | Documentación oficial consultada; límite excluye padre. Runtime actual ofrece 4 slots totales: usar como máximo 3 hijos aquí |
 | GD-08 | Conservar modelo solicitado gpt-5.6 en archivos | Documentación identifica alias de gpt-5.6-sol. Herramienta de colaboración ofrece nombre canónico; si se usa, registrar resolución sin afirmar degradación |
-| GD-09 | Bloqueo de sandbox no equivale a hallazgo científico | Shell aislado falla setup refresh; lecturas del padre requirieron escalación. Explorador no pudo leer y no emitió revisión |
+| GD-09 | Bloqueo de sandbox no equivale a hallazgo científico | Primer intento del explorador bloqueado por setup refresh; la segunda lectura con escalación completó la inspección, como registra preparation-validation.md. No emitió veredicto final |
 | GD-10 | Readiness del sistema no es autorización para campaña | La siguiente sesión puede resolver preparación; A/B/ledger/C necesitan autorización explícita vigente y gates |
 
 Modelos configurados: explorer gpt-5.6-terra/medium; implementer
