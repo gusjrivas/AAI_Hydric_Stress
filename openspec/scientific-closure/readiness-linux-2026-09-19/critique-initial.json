@@ -1,0 +1,45 @@
+{
+  "schema_version": "scientific_closure_critique_transcript.v1",
+  "campaign_id": null,
+  "change_id": "preparation-remediation",
+  "requirement_ids": [
+    "SC-GOV-005",
+    "SC-GOV-006",
+    "SC-GOV-008"
+  ],
+  "timestamp_utc": "2026-09-19 08:03:26 UTC",
+  "timestamp_meaning": "Transcripción; no hora inferida de ejecución del lector",
+  "actor": "/root",
+  "source_session": "/root/critic_preparation",
+  "source_message": "FINAL_ANSWER",
+  "reviewer_role": "scientific_critic",
+  "assigned_model": "gpt-5.6-sol",
+  "assigned_reasoning_effort": "high",
+  "effective_model": null,
+  "effective_reasoning_effort": null,
+  "effective_sandbox": "danger-full-access inherited; read-only behavior",
+  "object": {
+    "base_commit": "329cb600deee0d75d48644b5cafa18e93999d134",
+    "snapshot": {
+      ".codex/agents/scientific_implementer.toml": "54e90dbfe21b7929af5515a70ee60cea5b5121ed9467deca19f9ad40288f7724",
+      ".codex/agents/scientific_critic.toml": "bd86937574e7ee02d00c749c300c5dbf3cbdd67189b45def381be90d249dfa87",
+      ".codex/agents/scientific_auditor.toml": "d4eefe725efc973f9627f94e44173a2aa5c3ddd20990866e889ec9813498fcc4",
+      "scripts/check_scientific_closure.py": "891246bb701fd4054315a144842e48780bc191d21e97e3e0402dbf614df442cf",
+      "tests/test_scientific_closure_checker.py": "4e4a406d74296106caecec5c0c39064737ec1970a6eef548877ec363ed6ad877",
+      "tests/test_scientific_closure_governance.py": "10b35ed85fc3107830ab9f388c29c67476ae9592037a1997c450288c33e7d63f",
+      "openspec/scientific-closure/readiness-linux-2026-09-19/model-catalog.json": "04930ab967e80478951001128bbc261aaee7ad05b8c3d68626dbbdb83b95e361",
+      "openspec/scientific-closure/readiness-linux-2026-09-19/observations.json": "d51eda63e7c583a5299a238b55ae97e9ed80c01fb15d9c9d1d7365a0fe8b44de",
+      "openspec/scientific-closure/readiness-linux-2026-09-19/reader-reports.json": "f5141abcb8a1a1a80abf26268d2147e332b036651cf68f438a19b78195be7ad5",
+      "openspec/scientific-closure/readiness-linux-2026-09-19/report.md": "33f3e941edd552af3899374262cb5c51778f96ad803c09df5543c7e1a2267183",
+      "openspec/scientific-closure/readiness-linux-2026-09-19/sandbox-probe.json": "d944c86c719cc94fd53ddcfb47cf9b46c241225239b4fda0685f78e593b2a2d6"
+    }
+  },
+  "command": null,
+  "exit_code": null,
+  "result": "MATERIAL_FINDING_OPEN",
+  "exact_final": "Revisión crítica del snapshot refijado completada.\n\nSe mantienen abiertos:\n\n- **CRIT-PREP-01 — Alta:** `sc-01` sigue `PLANNED`; CL-01..10 y R/H/N/S continúan sin decisión. Es trabajo documental independiente de raw/runtime y debe agotarse antes de auditar readiness completo.\n- **CRIT-PREP-02 — Media:** `model-catalog.json` y `sandbox-probe.json` no reúnen todos los metadatos obligatorios de trazabilidad definidos en README: timestamp, requisito/change, comando y resultado reproducible, hash/tamaño de fuente y limitaciones estructuradas.\n\nNo encontré una regresión funcional nueva en CRIT-CHK-01..04:\n\n- 48/48 pruebas aprobadas.\n- Checker formal PASS estructural, runtime no verificado.\n- Cinco TOML válidos.\n- Digest de configuración: `e348b034971ae82d71b010404108c83069ed1dc92e1f22f6b7653f12d2915373`.\n- `git diff --check` limpio.\n\nCRIT-CHK-01..04 deben permanecer abiertos porque Ruff/Black no están disponibles y falta auditoría posterior. La suite bajo el wrapper CLI read-only no pudo crear fixtures temporales: 39 errores de infraestructura por ausencia de un directorio temporal escribible. Esto no contradice los 48/48 obtenidos fuera del wrapper y confirma que el probe EROFS no acredita el aislamiento integral de roles.\n\nEl informe representa correctamente los bloqueos externos, la ausencia de ejecución A/B/C/ledger, la incertidumbre de custodia, ADR-0011 y procedencia/licencias. No inspeccioné datos ni holdouts.\n\nPerfil nominal de esta revisión: `scientific_critic`, `gpt-5.6-sol/high/read-only`. Modelo y esfuerzo efectivos no introspectables; sandbox heredado `danger-full-access`, con conducta read-only. CRIT-SUB-01 sigue abierto.\n\nEl snapshot cambió una vez durante la revisión al agregarse catálogo y transcripciones. Después fue refijado y revisé el conjunto actualizado. Cualquier corrección o transcripción posterior exige nueva revisión de las rutas afectadas.",
+  "limitations": [
+    "No es PASS de auditor ni cierre de readiness.",
+    "Comandos y resultados propios del lector se transcriben; no se atribuyen al orquestador."
+  ]
+}

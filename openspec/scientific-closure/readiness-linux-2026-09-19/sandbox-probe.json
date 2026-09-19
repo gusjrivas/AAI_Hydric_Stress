@@ -1,0 +1,57 @@
+{
+  "schema_version": "sandbox_probe_observations.v2",
+  "campaign_id": null,
+  "change_id": "preparation-remediation",
+  "requirement_ids": ["SC-GOV-006"],
+  "timestamp_utc": "2026-09-19T08:04:05Z",
+  "timestamp_meaning": "Última recolección nueva; el timestamp original faltante permanece null en su observación.",
+  "actor": {
+    "session": "/root/preparation_metadata",
+    "role": "scientific_implementer",
+    "assigned_model": "gpt-5.6-sol",
+    "assigned_reasoning_effort": "medium",
+    "effective_model": null,
+    "effective_reasoning_effort": null,
+    "nominal_sandbox": "workspace-write",
+    "effective_sandbox": "danger-full-access inherited"
+  },
+  "object": {
+    "path_at_observation": "openspec/scientific-closure/validation-read-only-probe.tmp",
+    "sha256_before": "5f32a4bf1e4462d70cd8d17d805e297d88629a9745c2a6459d32e5ed9b548976",
+    "sha256_after": "5f32a4bf1e4462d70cd8d17d805e297d88629a9745c2a6459d32e5ed9b548976",
+    "size_bytes_before": 131,
+    "size_bytes_after": 131,
+    "mode": "0755",
+    "image": null
+  },
+  "command": "codex -c 'sandbox_mode=\"read-only\"' sandbox -- python3 -c 'import os; p=\"openspec/scientific-closure/validation-read-only-probe.tmp\"; f=os.open(p,os.O_WRONLY); os.close(f); print(\"WRITE_OPEN_ALLOWED_WITHOUT_WRITING\")'",
+  "exit_code": 1,
+  "result": "EXPECTED_EROFS_OBSERVED_IN_LATEST_COLLECTION",
+  "observations": [
+    {
+      "observation_id": "original-preserved-record",
+      "timestamp_utc": null,
+      "timestamp_status": "NOT_RECORDED_AT_SOURCE",
+      "command": "codex -c 'sandbox_mode=\"read-only\"' sandbox -- python3 -c 'import os; p=\"openspec/scientific-closure/validation-read-only-probe.tmp\"; f=os.open(p,os.O_WRONLY); os.close(f); print(\"WRITE_OPEN_ALLOWED_WITHOUT_WRITING\")'",
+      "exit_code": 1,
+      "output": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    import os; p=\"openspec/scientific-closure/validation-read-only-probe.tmp\"; f=os.open(p,os.O_WRONLY); os.close(f); print(\"WRITE_OPEN_ALLOWED_WITHOUT_WRITING\")\n                                                                                 ~~~~~~~^^^^^^^^^^^^^^^\nOSError: [Errno 30] Read-only file system: 'openspec/scientific-closure/validation-read-only-probe.tmp'\n",
+      "result": "EXPECTED_EROFS_OBSERVED",
+      "source_record_note": "Resultado original preservado; no se inventa su timestamp faltante."
+    },
+    {
+      "observation_id": "repeat-2026-09-19T08:04:05Z",
+      "timestamp_utc": "2026-09-19T08:04:05Z",
+      "command": "codex -c 'sandbox_mode=\"read-only\"' sandbox -- python3 -c 'import os; p=\"openspec/scientific-closure/validation-read-only-probe.tmp\"; f=os.open(p,os.O_WRONLY); os.close(f); print(\"WRITE_OPEN_ALLOWED_WITHOUT_WRITING\")'",
+      "exit_code": 1,
+      "output": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    import os; p=\"openspec/scientific-closure/validation-read-only-probe.tmp\"; f=os.open(p,os.O_WRONLY); os.close(f); print(\"WRITE_OPEN_ALLOWED_WITHOUT_WRITING\")\n                                                                                 ~~~~~~~^^^^^^^^^^^^^^^\nOSError: [Errno 30] Read-only file system: 'openspec/scientific-closure/validation-read-only-probe.tmp'\n",
+      "result": "EXPECTED_EROFS_OBSERVED"
+    }
+  ],
+  "expected": "OSError EROFS al abrir sin truncar el probe preexistente con O_WRONLY",
+  "scope": "Invocaciones aisladas del CLI read-only; no escribieron bytes.",
+  "limitations": [
+    "La prueba no certifica enforcement de sandbox en subagentes ni readiness.",
+    "La prueba no acredita el workspace-write nominal ni el danger-full-access heredado de esta sesión.",
+    "El probe fue trasladado después de estas observaciones; su cadena de custodia está en probe-archive.json."
+  ]
+}

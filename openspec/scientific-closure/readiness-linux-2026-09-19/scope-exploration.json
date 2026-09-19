@@ -1,0 +1,43 @@
+{
+  "schema_version": "scientific_closure_scope_exploration.v1",
+  "campaign_id": null,
+  "change_id": "sc-01-evidence-scope",
+  "requirement_ids": [
+    "SC-GOV-003",
+    "SC-GOV-004",
+    "SC-GOV-005"
+  ],
+  "timestamp_utc": "2026-09-19 08:04:03 UTC",
+  "timestamp_meaning": "Transcripción del orquestador; no se infiere hora de checks del lector",
+  "actor": "/root",
+  "source_session": "/root/preparation_explorer",
+  "source_message": "FINAL_ANSWER",
+  "assigned_model": "gpt-5.6-terra",
+  "assigned_reasoning_effort": "medium",
+  "effective_model": null,
+  "effective_reasoning_effort": null,
+  "object": {
+    "base_commit": "329cb600deee0d75d48644b5cafa18e93999d134"
+  },
+  "command": null,
+  "exit_code": null,
+  "result": "EVIDENCE_AND_CONDITIONAL_RECOMMENDATIONS",
+  "exact_final": "Investigación documental completada sin escrituras, raw ni holdouts.\n\nLa evidencia permite completar el assessment de sc-01, pero no cerrar globalmente la tesis:\n\n- CL-01..03 requieren A/B/C futuras; R/H/N/S no son necesarios.\n- CL-04 puede limitarse a la referencia formal v3 preservada. N no es necesario para esa afirmación histórica limitada.\n- CL-05: R es opcional salvo que se sostenga predicción continua.\n- CL-06: H es necesario para cuantificar correcciones supervisadas; para feedback humano real hace falta evidencia prospectiva externa.\n- CL-07: N solo es necesario para afirmar detección de corrupciones reservadas.\n- CL-08: S solo es necesario para afirmar ausencia de mediciones; v3 distingue eso de escasez de etiquetas.\n- CL-09 requiere métricas onset v4; no exige auxiliares.\n- CL-10 queda UNRESOLVED hasta una decisión explícita de suficiencia por el responsable.\n\nLa referencia v3 fue verificada como archivo existente y congelado, con hashes `b876d2…b45a` (JSON) y `29639c…d47c` (tabla); sus resultados permanecen evidencia referenciada, no recalculada.\n\nEl traslado del probe a una ruta versionada de readiness es compatible con SC-GOV-001/003 si conserva exactamente sus 131 bytes, SHA, ruta original, modo fuente y la limitación de que no acredita sandbox efectivo ni evidencia científica. La instrucción histórica de no agregarlo al commit corresponde al snapshot anterior; no prohíbe un archivo técnico trazable bajo la autorización vigente.",
+  "resolution_note": "La interpretación de que se necesitaría nueva intervención del responsable para fijar suficiencia fue contrastada posteriormente por el crítico contra la delegación autónoma del prompt vigente. Ver propuesta/decisión posterior; no se modifica el informe exacto del explorador.",
+  "advisory": {
+    "source_session": "/root/critic_preparation",
+    "source_message": "FINAL_ANSWER de consulta metodológica posterior; no auditoría",
+    "exact_final": "No hay contradicción normativa que exija nueva autoridad. La propuesta aplica el alcance vigente de forma conservadora, siempre que:\n\n- R quede `NOT_REQUIRED` solo para clasificación P20.\n- N no se use para afirmar detección reservada o anomalías reales.\n- S limite la afirmación a escasez de etiquetas/ruido efectivamente documentados, excluyendo sensores ausentes.\n- H sea `REQUIRED`, pero sus resultados simulados no se presenten como beneficio humano real.\n- La evidencia v3 permanezca `REFERENCED`.\n- CL-10 acepte terminales negativos válidos en A/B y métricas indefinidas por soporte.\n- La decisión no se interprete como autorización para ejecutar H o A/B/C.\n\nCon esos límites, basta justificarla y someterla a crítica y auditoría. Nueva autoridad sería necesaria para ampliar esas afirmaciones o reducir el propósito del proyecto."
+  },
+  "preservation": {
+    "chunk_id": "d5e9e0",
+    "wall_time_seconds": 0.000006142,
+    "exit_code": 0,
+    "original_token_count": 247,
+    "output": "{\"path\": \"docs/research/protocolo-experimental-v3.md\", \"exists\": true, \"matches_initial_commit\": true, \"sha256\": \"3d8528e89eb235c94e71d536706292b99badc5c29557a71e917d641898940892\"}\n{\"path\": \"docs/research/controlled-daily-v4-external-pergamino-protocol.md\", \"exists\": true, \"matches_initial_commit\": true, \"sha256\": \"e3fa7b6644171d0f80cfca6f3088e3e1fec44a0a6e63990deb05c26af5f8218a\"}\n{\"path\": \"docs/adr/0011-protocolo-controlled-daily-v4-external-pergamino.md\", \"exists\": true, \"matches_initial_commit\": true, \"sha256\": \"a8dabbc4b85367d5fb473195972870fb5c7de43ed5726a99910e3fed8c83d9cb\"}\n{\"path\": \"docs/research/reference-v3-formal-results.json\", \"exists\": true, \"matches_initial_commit\": true, \"sha256\": \"b876d21cf655075cede4f9532696eb9abc4357fe43b9b7c29414cf6e1e83445a\"}\n{\"path\": \"docs/research/reference-v3-formal-table.md\", \"exists\": true, \"matches_initial_commit\": true, \"sha256\": \"29639c4871033f5abb008258f47c4dfa4dd12c394d4a377fd365a1eda9c4d47c\"}\nprotected_diff_exit 0 output ''\n"
+  },
+  "limitations": [
+    "La existencia/hash de reportes v3 no revalida sus resultados ni su procedencia original.",
+    "No es cierre sc01 ni permiso de ejecutar complementos."
+  ]
+}

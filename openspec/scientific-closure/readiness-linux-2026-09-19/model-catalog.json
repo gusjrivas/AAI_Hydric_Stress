@@ -1,0 +1,82 @@
+{
+  "schema_version": "local_model_catalog_observation.v2",
+  "campaign_id": null,
+  "change_id": "preparation-remediation",
+  "requirement_ids": ["SC-GOV-006"],
+  "timestamp_utc": "2026-09-19T08:08:38Z",
+  "timestamp_meaning": "Última verificación de identidad de la fuente; la salida filtrada se volvió a comprobar inmediatamente antes.",
+  "actor": {
+    "session": "/root/preparation_metadata",
+    "role": "scientific_implementer",
+    "assigned_model": "gpt-5.6-sol",
+    "assigned_reasoning_effort": "medium",
+    "effective_model": null,
+    "effective_reasoning_effort": null,
+    "nominal_sandbox": "workspace-write",
+    "effective_sandbox": "danger-full-access inherited"
+  },
+  "object": {
+    "path": "/home/gus/.codex/models_cache.json",
+    "sha256": "9bc78759d95e87e24c4de32aee38af5f847b580562921aaa5ce58fdb0ceb5010",
+    "size_bytes": 228511,
+    "mode": "0644",
+    "mtime_observed": "2026-09-19 08:08:01.757909579 +0000",
+    "image": null
+  },
+  "command": "python3 - <<'PY'\nimport json\nfrom pathlib import Path\nsource = Path('/home/gus/.codex/models_cache.json')\ndata = json.loads(source.read_text(encoding='utf-8'))\nselected = []\nfor model in data['models']:\n    if model.get('slug') in {'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna'}:\n        selected.append({key: model.get(key) for key in ('slug', 'supported_reasoning_levels', 'default_reasoning_level', 'visibility')})\nselected.sort(key=lambda item: item['slug'])\nprint(json.dumps(selected, ensure_ascii=False, sort_keys=True, separators=(',', ':')))\nPY",
+  "exit_code": 0,
+  "result": {
+    "status": "OBSERVED",
+    "selected_model_count": 3,
+    "stdout_sha256": "3c382e5663ed5754be9863982fce330d223489c818fcc0acc2248bb87c37e2ec",
+    "stdout_size_bytes": 1712,
+    "stdout_ends_with_newline": true
+  },
+  "scope": "Catálogo local permitido; no es telemetría del backend ni garantía de acceso, modelo efectivo o permisos por sesión.",
+  "models": [
+    {
+      "slug": "gpt-5.6-luna",
+      "supported_reasoning_levels": [
+        {"effort": "low", "description": "Fast responses with lighter reasoning"},
+        {"effort": "medium", "description": "Balances speed and reasoning depth for everyday tasks"},
+        {"effort": "high", "description": "Greater reasoning depth for complex problems"},
+        {"effort": "xhigh", "description": "Extra high reasoning depth for complex problems"},
+        {"effort": "max", "description": "Maximum reasoning depth for the hardest problems"}
+      ],
+      "default_reasoning_level": "medium",
+      "visibility": "list"
+    },
+    {
+      "slug": "gpt-5.6-sol",
+      "supported_reasoning_levels": [
+        {"effort": "low", "description": "Fast responses with lighter reasoning"},
+        {"effort": "medium", "description": "Balances speed and reasoning depth for everyday tasks"},
+        {"effort": "high", "description": "Greater reasoning depth for complex problems"},
+        {"effort": "xhigh", "description": "Extra high reasoning depth for complex problems"},
+        {"effort": "max", "description": "Maximum reasoning depth for the hardest problems"},
+        {"effort": "ultra", "description": "Maximum reasoning with automatic task delegation"}
+      ],
+      "default_reasoning_level": "low",
+      "visibility": "list"
+    },
+    {
+      "slug": "gpt-5.6-terra",
+      "supported_reasoning_levels": [
+        {"effort": "low", "description": "Fast responses with lighter reasoning"},
+        {"effort": "medium", "description": "Balances speed and reasoning depth for everyday tasks"},
+        {"effort": "high", "description": "Greater reasoning depth for complex problems"},
+        {"effort": "xhigh", "description": "Extra high reasoning depth for complex problems"},
+        {"effort": "max", "description": "Maximum reasoning depth for the hardest problems"},
+        {"effort": "ultra", "description": "Maximum reasoning with automatic task delegation"}
+      ],
+      "default_reasoning_level": "medium",
+      "visibility": "list"
+    }
+  ],
+  "limitations": [
+    "El catálogo es una observación local del archivo indicado.",
+    "No se copiaron identity, etag ni otros campos potencialmente sensibles del archivo fuente.",
+    "Modelo y esfuerzo efectivos no son introspectables desde esta sesión.",
+    "El sandbox efectivo heredado no acredita el workspace-write nominal del perfil."
+  ]
+}

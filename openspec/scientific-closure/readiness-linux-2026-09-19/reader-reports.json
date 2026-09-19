@@ -1,0 +1,37 @@
+{
+  "schema_version": "scientific_closure_reader_transcripts.v1",
+  "scope": "Informes exactos; null indica no acreditado; no es agent-capabilities de runtime",
+  "reports": [
+    {
+      "session": "/root/preparation_explorer",
+      "role": "scientific_explorer",
+      "assigned_model": "gpt-5.6-terra",
+      "assigned_reasoning": "medium",
+      "effective_model": null,
+      "effective_reasoning": null,
+      "effective_sandbox": "danger-full-access inherited; read-only behavior only",
+      "exact_final": "Inspección read-only completada. No modifiqué archivos ni ejecuté campañas, auxiliares, ledger o acceso a datos/holdouts.\n\nHechos relevantes:\n\n- Rama `feat/scientific-closure`, HEAD `329cb600deee0d75d48644b5cafa18e93999d134`; único untracked: el probe.\n- Docker, `uv` y `npx` no están disponibles en Linux. No se hallaron las raíces externas runtime/raw bajo `/home/gus` mediante inventario de nombres y metadatos.\n- El sandbox efectivo heredado no acredita read-only; el perfil declara Terra/medium/read-only, pero el modelo efectivo tampoco es introspectable.\n- `origin/main` no contiene `214735e…`; ADR-0011 exige protocolo/ADR mergeados en main antes de ejecutar.\n- Siguen faltando confirmación de licencia NASA/adquisición histórica, segunda copia y ensayo de recuperación.\n- Los changes continúan `PLANNED`, sin permisos de implementación ni ejecución.\n\nProbe: SHA-256 `5f32a4bf1e4462d70cd8d17d805e297d88629a9745c2a6459d32e5ed9b548976`. Su tratamiento ya documentado es preservarlo sin agregarlo a commits ni atribuirle valor científico, según [checker-remediation-linux.json](/home/gus/work/AAI_Hydric_Stress_scientific_closure/openspec/scientific-closure/checker-remediation-linux.json:176).\n\nRecomendé cambiar únicamente los tres modelos incompatibles a `gpt-5.6-sol`, conservando medium/high/xhigh, y documentar cualquier uso de rol `default` como sustitución del perfil especializado."
+    },
+    {
+      "session": "/root/repair_agent_profiles",
+      "role": "scientific_implementer",
+      "mechanism": "default with explicit role/model/effort",
+      "assigned_model": "gpt-5.6-sol",
+      "assigned_reasoning": "medium",
+      "effective_model": null,
+      "effective_reasoning": null,
+      "effective_sandbox": "danger-full-access inherited; workspace-write not enforced",
+      "exact_final": "Implementación congelada sobre `feat/scientific-closure` en HEAD base `329cb600deee0d75d48644b5cafa18e93999d134`, sin commit.\n\nCambios:\n\n- `scientific_implementer`: `gpt-5.6-sol` / `medium` / `workspace-write`\n- `scientific_critic`: `gpt-5.6-sol` / `high` / `read-only`\n- `scientific_auditor`: `gpt-5.6-sol` / `xhigh` / `read-only`\n- Actualizados `REQUIRED_AGENTS` y la expectativa de gobernanza.\n- Adaptada la fixture de sustitución explícita sin relajar su validación.\n- 6 archivos, 12 inserciones y 12 eliminaciones.\n\nValidación:\n\n- TOML: carga correcta.\n- Checker tests: 33/33 PASS.\n- Governance tests: 15/15 PASS.\n- Checker formal: `PASS (estructura; runtime no verificado)`.\n- `git diff --check`: PASS.\n\nHash agregado de configuración del checker:\n\n`e348b034971ae82d71b010404108c83069ed1dc92e1f22f6b7653f12d2915373`\n\nHashes del snapshot:\n\n```text\n54e90dbfe21b7929af5515a70ee60cea5b5121ed9467deca19f9ad40288f7724  .codex/agents/scientific_implementer.toml\nbd86937574e7ee02d00c749c300c5dbf3cbdd67189b45def381be90d249dfa87  .codex/agents/scientific_critic.toml\nd4eefe725efc973f9627f94e44173a2aa5c3ddd20990866e889ec9813498fcc4  .codex/agents/scientific_auditor.toml\n891246bb701fd4054315a144842e48780bc191d21e97e3e0402dbf614df442cf  scripts/check_scientific_closure.py\n4e4a406d74296106caecec5c0c39064737ec1970a6eef548877ec363ed6ad877  tests/test_scientific_closure_checker.py\n10b35ed85fc3107830ab9f388c29c67476ae9592037a1997c450288c33e7d63f  tests/test_scientific_closure_governance.py\n```\n\nLimitaciones: la sesión fue asignada como sustituto `gpt-5.6-sol/medium`, pero no dispone de introspección independiente del modelo efectivo. El sandbox heredado fue `danger-full-access`; por tanto, esta ejecución no certifica enforcement de `workspace-write`. El rechazo de `gpt-5.6` pertenece a evidencia histórica, no a esta sesión. Los untracked `readiness-linux-2026-09-19/` y `validation-read-only-probe.tmp` son ajenos y no fueron modificados."
+    },
+    {
+      "session": "/root/mechanical_snapshot",
+      "role": "evidence_checker",
+      "assigned_model": "gpt-5.6-luna",
+      "assigned_reasoning": "low",
+      "effective_model": null,
+      "effective_reasoning": null,
+      "effective_sandbox": null,
+      "exact_final": "Verificación mecánica read-only completada sobre `feat/scientific-closure`, HEAD `329cb600deee0d75d48644b5cafa18e93999d134`.\n\nHechos y comandos:\n\n- Hashes verificados:\n  - `scripts/check_scientific_closure.py`: `891246bb701fd4054315a144842e48780bc191d21e97e3e0402dbf614df442cf`\n  - `tests/test_scientific_closure_checker.py`: `4e4a406d74296106caecec5c0c39064737ec1970a6eef548877ec363ed6ad877`\n  - `tests/test_scientific_closure_governance.py`: `10b35ed85fc3107830ab9f388c29c67476ae9592037a1997c450288c33e7d63f`\n- TOML parse:\n  - `.codex/config.toml` y los cinco perfiles `.codex/agents/*.toml`: válidos mediante `tomllib`.\n- Pruebas:\n  - `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_scientific_closure_checker.py tests/test_scientific_closure_governance.py`\n  - Resultado: `Ran 48 tests ... OK` (33 checker + 15 gobernanza).\n- Checker formal:\n  - `PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_scientific_closure.py`\n  - Resultado: `scientific-closure checker: PASS (estructura; runtime no verificado)`.\n- `git diff --check`: PASS.\n- Probe presente, sin modificar: `131 bytes`.\n- Docker, `ruff`, `black` y `npx` no están disponibles. Los módulos `ruff` y `black` tampoco (`No module named ruff/black`); no se inventa lint/formato.\n- Modelo efectivo y enforcement real del sandbox no son introspectables desde este rol. Los TOML declaran `evidence_checker=gpt-5.6-luna/low/read-only`; auditor y crítico `gpt-5.6-sol`; implementador `gpt-5.6-sol`. No se ejecutaron campañas, auxiliares, holdouts ni ledger.\n\nEstado observado incluye los seis archivos modificados esperados, el directorio `readiness-linux-2026-09-19/` y el probe no versionados. No hubo escrituras ni commits."
+    }
+  ]
+}
