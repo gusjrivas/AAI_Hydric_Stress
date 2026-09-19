@@ -1,0 +1,36 @@
+{
+  "schema_version": "scientific_closure_session_identity.v1",
+  "campaign_id": null,
+  "change_id": "sc-01-evidence-scope",
+  "requirement_ids": ["SC-GOV-001"],
+  "timestamp_utc": "2026-09-19T08:11:50Z",
+  "actor": {
+    "session": "/root/preparation_metadata",
+    "role": "scientific_implementer",
+    "assigned_model": "gpt-5.6-sol",
+    "assigned_reasoning_effort": "medium",
+    "effective_model": null,
+    "effective_reasoning_effort": null,
+    "nominal_sandbox": "workspace-write",
+    "effective_sandbox": "danger-full-access inherited"
+  },
+  "object": {
+    "repository": "/home/gus/work/AAI_Hydric_Stress_scientific_closure",
+    "branch": "feat/scientific-closure",
+    "input_commit_sha": "a70022d3dd84495421c35186ec91abf765828e6c",
+    "clean_gate_commit_sha": "c63fc713bce0158296d23022a7aeeb8db2cfba93",
+    "upstream": "origin/feat/scientific-closure",
+    "image": null,
+    "seeds": null
+  },
+  "command": "date -u +%Y-%m-%dT%H:%M:%SZ; git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD; git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}'; git status --porcelain=v1 --untracked-files=all",
+  "exit_code": 0,
+  "output": "2026-09-19T08:11:50Z\n/home/gus/work/AAI_Hydric_Stress_scientific_closure\nfeat/scientific-closure\na70022d3dd84495421c35186ec91abf765828e6c\norigin/feat/scientific-closure\n",
+  "result": "IDENTITY_AND_CLEAN_INPUT_TREE_VERIFIED",
+  "authorization": "changes.json registra APPROVED→IN_PROGRESS para preparación documental sc-01; scientific_execution_authorized=false.",
+  "limitations": [
+    "La identidad documental no es identidad ejecutable de campaña.",
+    "El sandbox efectivo heredado no acredita el workspace-write nominal.",
+    "No se inicializó campaña, imagen, semillas ni ledger."
+  ]
+}

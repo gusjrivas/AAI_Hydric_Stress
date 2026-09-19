@@ -25,7 +25,7 @@
         "T04",
         "T05"
       ],
-      "status": "IN_PROGRESS",
+      "status": "REVIEW",
       "approved_for_implementation": true,
       "scientific_execution_authorized": false,
       "extra_gate": "Identity verified AND preparation scope authorized; do not read closed holdouts",
@@ -55,6 +55,14 @@
           "timestamp_utc": "2026-09-19T08:10:31Z",
           "reason": "Gate identidad acreditado: c63fc713bce0158296d23022a7aeeb8db2cfba93 limpio, ruta/rama/upstream correctos. Owner único /root/preparation_metadata para claims.md, inventory.md, decisions.md y registros nuevos sc01. No leer holdouts.",
           "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/report.md: Autoridad vigente; prompt del responsable FASE 4"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "REVIEW",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:22:18Z",
+          "reason": "Implementación sc01 y correcciones documentales congeladas; owner liberó escritura. Revisión por hashes del snapshot en verification-final.json; todavía sin auditoría ni cierre.",
+          "evidence": "openspec/changes/sc-01-evidence-scope/verification-final.json"
         }
       ]
     },

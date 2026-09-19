@@ -69,7 +69,7 @@ acceso de cuenta ni aislamiento en esta sesión.
 | LNX-04 | origin/main local=f7c4ef72ebee9f745bd80deadcd8ad69d9183274; 214735e no es ancestro; diff del protocolo vigente frente a esa referencia no vacío. main local no existe. | Resolver formalmente condición 4 de ADR-0011 sin que este agente haga merge o modifique main. No se presume excepción ni se afirma conocer el remoto actualizado. |
 | LNX-05 | Manifiesto: acquisition_date=null y licencia NASA PENDING_CONFIRMATION. Fuentes oficiales históricamente referenciadas no prueban adquisición efectiva. | Evidencia documental aplicable o decisión explícita de admisibilidad/descarte conforme ADR-0011 y SC-GOV-017. No se inventan fechas/URLs/licencias. |
 | LNX-06 | Segunda copia independiente y ensayo de recuperación no acreditados; runtime original ausente. | Destino independiente verificable y ensayo con fixtures, más reconciliación de custodia original. |
-| LNX-07 | `CRIT-PREP-01`: CL-01..10 y suficiencia R/H/N/S están en resolución dentro de `sc-01`. Es trabajo documental autorizado e independiente de raw/runtime, no un bloqueo externo. | Completar `sc-01` con evidencia permitida y crítica/auditoría; no retirar componentes para lograr cierre. |
+| LNX-07 | `CRIT-PREP-01`: assessment CL-01..10 implementado en `sc-01`; R/N/S `NOT_REQUIRED` con límites y H `REQUIRED`. La evidencia científica futura permanece `PENDING`. | Crítica y auditoría independientes del snapshot; no cerrar ni ejecutar por la sola implementación. |
 
 LNX-01 es información externa imprescindible: no se puede reconstruir historia
 de custodia desde este checkout ni certificarse primer intento creando otra raíz.
@@ -108,8 +108,9 @@ No existen métricas, intervalos, predicciones ni resultados negativos nuevos.
 La ausencia de resultados es bloqueo de preparación, no un resultado científico negativo.
 
 `CRIT-PREP-02` fue corregido en los registros de catálogo y probe; requiere nueva
-revisión independiente del snapshot. `CRIT-PREP-01` continúa en resolución por
-el flujo `sc-01`, sin presentarse como insumo externo.
+revisión independiente del snapshot. El assessment de `CRIT-PREP-01` fue
+implementado por `sc-01` y está pendiente de crítica/auditoría; no se presenta
+como insumo externo ni como evidencia científica ejecutada.
 
 CRIT-CHK-01..04 no se cierran sin crítica y auditoría PASS del alcance completo,
 incluido lint/formato solicitado. Los tests verdes no satisfacen esa condición.

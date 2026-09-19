@@ -1,6 +1,7 @@
 # Registro de decisiones de gobernanza
 
-Todas son decisiones de preparación, no resultados científicos. Fecha 2026-09-18.
+Todas son decisiones de preparación, no resultados científicos. Decisiones
+GD-01..10: 2026-09-18; GD-11..12: 2026-09-19.
 
 | ID | Decisión y fundamento | Impacto / autoridad |
 | --- | --- | --- |
@@ -14,13 +15,14 @@ Todas son decisiones de preparación, no resultados científicos. Fecha 2026-09-
 | GD-08 | Conservar modelo solicitado gpt-5.6 en archivos | Documentación identifica alias de gpt-5.6-sol. Herramienta de colaboración ofrece nombre canónico; si se usa, registrar resolución sin afirmar degradación |
 | GD-09 | Bloqueo de sandbox no equivale a hallazgo científico | Primer intento del explorador bloqueado por setup refresh; la segunda lectura con escalación completó la inspección, como registra preparation-validation.md. No emitió veredicto final |
 | GD-10 | Readiness del sistema no es autorización para campaña | La siguiente sesión puede resolver preparación; A/B/ledger/C necesitan autorización explícita vigente y gates |
+| GD-11 | Sustituir la instrucción operativa GD-08: los perfiles incompatibles `gpt-5.6` se reemplazan por `gpt-5.6-sol`, conservando medium/high/xhigh; Terra/medium y Luna/low se mantienen | Prompt vigente y catálogo local observado; requested/effective permanecen separados y el modelo efectivo no observable queda `null`. No acredita sandbox ni disponibilidad de campaña |
+| GD-12 | Fijar antes de ejecución la suficiencia delegada: R `NOT_REQUIRED` para clasificación P20; H `REQUIRED` solo para correcciones simuladas; N `NOT_REQUIRED` sin afirmar detección reservada/fallas reales; S `NOT_REQUIRED` para el límite histórico de etiquetas+ruido, sin sensores ausentes | Autoridad delegada del prompt vigente, exploración y advisory crítico. CL-10 admite terminal negativo A/B, soporte insuficiente/onset indefinido, v3 `REFERENCED`, H auditado y límites; no certifica humano real, HU1 ni tesis completa. Pendiente crítica/auditoría de este snapshot |
 
-Modelos configurados: explorer gpt-5.6-terra/medium; implementer
-gpt-5.6/medium; critic gpt-5.6/high; auditor gpt-5.6/xhigh;
-checker gpt-5.6-luna/low. No sustitución silenciosa. Si el proveedor rechaza
-un modelo, registrar solicitado/efectivo, motivo, esfuerzo y pérdida posible.
-Elegir el disponible más próximo y revalidar rol; si no conserva capacidad
-necesaria, BLOCKED. No sustituir simplemente por una recomendación más nueva.
+Modelos configurados vigentes: explorer gpt-5.6-terra/medium; implementer
+gpt-5.6-sol/medium; critic gpt-5.6-sol/high; auditor gpt-5.6-sol/xhigh;
+checker gpt-5.6-luna/low. Registrar por sesión modelo y esfuerzo asignados,
+efectivos cuando sean observables, sandbox nominal/efectivo y toda sustitución.
+Un catálogo local no acredita carga del backend ni aislamiento.
 
 Fuentes oficiales de formato y modelos consultadas con OpenAI Docs:
 [agentes personalizados](https://developers.openai.com/fr-FR/docs/agent-configuration/subagents),

@@ -1,0 +1,46 @@
+{
+  "schema_version": "scientific_closure_provenance_source_check.v1",
+  "campaign_id": null,
+  "change_id": "preparation-remediation",
+  "requirement_ids": [
+    "SC-GOV-004",
+    "SC-GOV-017"
+  ],
+  "timestamp_utc": "2026-09-19 08:14:36 UTC",
+  "actor": {
+    "session": "/root",
+    "role": "orchestrator",
+    "effective_model": null
+  },
+  "object": {
+    "repository_commit": "a70022d3dd84495421c35186ec91abf765828e6c",
+    "image": null,
+    "sources": [
+      {
+        "url": "https://open-meteo.com/en/terms",
+        "retrieval": "WEB_OPEN_SUCCESS",
+        "sha256": null,
+        "size_bytes": null,
+        "observation": "Los términos consultados asignan CC-BY 4.0 a los datos y distinguen el uso no comercial de la API gratuita."
+      },
+      {
+        "url": "https://power.larc.nasa.gov/docs/referencing/",
+        "retrieval": "WEB_OPEN_SUCCESS",
+        "sha256": null,
+        "size_bytes": null,
+        "observation": "La guía de atribución solicita referencia de POWER y del producto, incluyendo servicio, versión y fecha de acceso. No acredita por sí sola la licencia del archivo histórico local."
+      }
+    ]
+  },
+  "command": "web.run open [\"https://open-meteo.com/en/terms\", \"https://power.larc.nasa.gov/docs/referencing/\"]",
+  "exit_code": null,
+  "output": "Ambas páginas oficiales pudieron leerse; las observaciones son resúmenes documentales, no descargas de datasets.",
+  "result": "OFFICIAL_DOCUMENTATION_CHECKED_HISTORICAL_ADMISSIBILITY_UNRESOLVED",
+  "limitations": [
+    "No se descargaron bytes originales de páginas para hash/tamaño; null no significa hash verificado.",
+    "Las páginas actuales no prueban URL/fecha/versión de adquisición histórica de los CSV del manifiesto.",
+    "No se consultaron valores ni endpoints de datos; no se reabrieron holdouts.",
+    "SC-GOV-017 permanece sin decisión de admisibilidad sobre originales ausentes; no se emite asesoramiento jurídico ni licencia inferida.",
+    "Registro preparatorio parcial, no provenance-assessment PASS de sc02."
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "schema_version": "scientific_closure_preservation_check.v1",
+  "campaign_id": null,
+  "change_id": "sc-01-evidence-scope",
+  "requirement_ids": ["SC-GOV-003"],
+  "timestamp_utc": "2026-09-19T08:11:50Z",
+  "actor": {
+    "session": "/root/preparation_metadata",
+    "role": "scientific_implementer",
+    "assigned_model": "gpt-5.6-sol",
+    "assigned_reasoning_effort": "medium",
+    "effective_model": null,
+    "effective_reasoning_effort": null,
+    "nominal_sandbox": "workspace-write",
+    "effective_sandbox": "danger-full-access inherited"
+  },
+  "object": {
+    "comparison_from_sha": "c63fc713bce0158296d23022a7aeeb8db2cfba93",
+    "comparison_to_sha": "a70022d3dd84495421c35186ec91abf765828e6c",
+    "image": null,
+    "seeds": null,
+    "protected_files": [
+      {"path": "docs/research/protocolo-experimental-v3.md", "sha256": "3d8528e89eb235c94e71d536706292b99badc5c29557a71e917d641898940892", "size_bytes": 9732},
+      {"path": "docs/research/controlled-daily-v4-external-pergamino-protocol.md", "sha256": "e3fa7b6644171d0f80cfca6f3088e3e1fec44a0a6e63990deb05c26af5f8218a", "size_bytes": 31968},
+      {"path": "docs/adr/0011-protocolo-controlled-daily-v4-external-pergamino.md", "sha256": "a8dabbc4b85367d5fb473195972870fb5c7de43ed5726a99910e3fed8c83d9cb", "size_bytes": 13723},
+      {"path": "docs/research/reference-v3-formal-results.json", "sha256": "b876d21cf655075cede4f9532696eb9abc4357fe43b9b7c29414cf6e1e83445a", "size_bytes": 1561988},
+      {"path": "docs/research/reference-v3-formal-table.md", "sha256": "29639c4871033f5abb008258f47c4dfa4dd12c394d4a377fd365a1eda9c4d47c", "size_bytes": 819}
+    ]
+  },
+  "command": "date -u +%Y-%m-%dT%H:%M:%SZ; git diff --name-status c63fc713bce0158296d23022a7aeeb8db2cfba93..a70022d3dd84495421c35186ec91abf765828e6c; for p in docs/research/protocolo-experimental-v3.md docs/research/controlled-daily-v4-external-pergamino-protocol.md docs/adr/0011-protocolo-controlled-daily-v4-external-pergamino.md docs/research/reference-v3-formal-results.json docs/research/reference-v3-formal-table.md; do sha256sum \"$p\"; stat -c '%s %a %n' \"$p\"; done",
+  "exit_code": 0,
+  "output": "M\topenspec/scientific-closure/changes.json; los cinco hashes/tamaños coinciden con scope-exploration.json y el worktree de entrada.",
+  "output_kind": "summary_not_raw_stdout",
+  "result": "PROTECTED_FILES_PRESERVED_AT_INPUT",
+  "authorization": "Solo documentación sc-01 y registros nuevos; sin tocar v3, main, UI, datos fuente o evidencia histórica.",
+  "limitations": [
+    "Los hashes verifican bytes, no revalidan resultados históricos.",
+    "La comprobación final de rutas modificadas se registra en validation.json.",
+    "No se accedió a raw, runtime externo ni holdouts."
+  ]
+}

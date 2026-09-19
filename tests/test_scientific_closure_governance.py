@@ -98,7 +98,8 @@ class GovernanceTests(unittest.TestCase):
 
     def test_rejects_fake_approval_and_non_object_events(self):
         record = copy.deepcopy(self.changes[0])
-        record.update(status='APPROVED', state_events=['x'])
+        record.update(status='APPROVED', approved_for_implementation=False,
+                      approval=None, state_events=['x'])
         with self.assertRaises(ValueError):
             validate_state(record)
         record['state_events'] = [self.event('PLANNED', 'APPROVED')]

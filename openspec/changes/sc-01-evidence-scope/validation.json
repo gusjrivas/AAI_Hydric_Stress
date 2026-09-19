@@ -1,0 +1,67 @@
+{
+  "schema_version": "scientific_closure_sc01_validation.v1",
+  "campaign_id": null,
+  "change_id": "sc-01-evidence-scope",
+  "requirement_ids": ["SC-GOV-001", "SC-GOV-003", "SC-GOV-004", "SC-GOV-005", "SC-GOV-020"],
+  "timestamp_utc": "2026-09-19T08:17:02Z",
+  "actor": {
+    "session": "/root/preparation_metadata",
+    "role": "scientific_implementer",
+    "assigned_model": "gpt-5.6-sol",
+    "assigned_reasoning_effort": "medium",
+    "effective_model": null,
+    "effective_reasoning_effort": null,
+    "nominal_sandbox": "workspace-write",
+    "effective_sandbox": "danger-full-access inherited"
+  },
+  "object": {
+    "input_commit_sha": "a70022d3dd84495421c35186ec91abf765828e6c",
+    "image": null,
+    "seeds": null,
+    "snapshot": [
+      {"path": "tests/test_scientific_closure_governance.py", "sha256": "f1bcc1e085835baa403a6c07cdf3709c8ba0610365cee24b1f5457a560020a75", "size_bytes": 12269},
+      {"path": "openspec/scientific-closure/claims.md", "sha256": "eb02d961b762fe4ebaaee77375059a64935f12c91884b8d7c8e842daf4205dc4", "size_bytes": 5301},
+      {"path": "openspec/scientific-closure/inventory.md", "sha256": "b728e76a59d92c4d9146f2de2feba48982ad2735e7883732c875fdb9a322f0d3", "size_bytes": 4578},
+      {"path": "openspec/scientific-closure/decisions.md", "sha256": "5058169ff5ebdaaede697667c20e5ff9776c0fc9e2ee55615fc1cf98bae039b5", "size_bytes": 4074},
+      {"path": "openspec/scientific-closure/readiness-linux-2026-09-19/report.md", "sha256": "db34645603c4f27478d295dca1db1ae87905b6c9a4b15e611ccf2fdc04c1c321", "size_bytes": 8421},
+      {"path": "openspec/changes/sc-01-evidence-scope/session-identity.json", "sha256": "e4e554231cd4633dfa9cf2cd536db1045ae9432509e8ce6a6c149101e19f6eae", "size_bytes": 1787},
+      {"path": "openspec/changes/sc-01-evidence-scope/preservation.json", "sha256": "944262470a34b91f5a1296f8c520a5239125d7fbaf274b1e33639bb8ed8f31d5", "size_bytes": 2741},
+      {"path": "openspec/changes/sc-01-evidence-scope/inventory.json", "sha256": "a917ed693815ca5d127c156e56941b5c213353047bea919881877bfea4d67030", "size_bytes": 7844},
+      {"path": "openspec/changes/sc-01-evidence-scope/claims-assessment.json", "sha256": "2c42d693a8cfd21aa6fd09ce00ba401aaa53d4c1ce683d24e6a47ebb5463a0dd", "size_bytes": 7804}
+    ]
+  },
+  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_scientific_closure_checker.py tests/test_scientific_closure_governance.py",
+  "exit_code": 0,
+  "output": "Reejecución final: Ran 48 tests in 0.517s, OK. Checker: scientific-closure checker: PASS (estructura; runtime no verificado). JSON/cross-hashes: OK. git diff --check: sin salida, exit 0.",
+  "output_kind": "summary_not_raw_stdout",
+  "result": "IMPLEMENTATION_VALIDATED_PENDING_CHECKER_CRITIC_AUDITOR",
+  "attempts": [
+    {
+      "attempt": 1,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_scientific_closure_checker.py tests/test_scientific_closure_governance.py",
+      "exit_code": 1,
+      "output": "Ran 48 tests in 0.496s; FAILED (failures=1): test_rejects_fake_approval_and_non_object_events esperaba ValueError con approval heredada del change vivo.",
+      "output_kind": "summary_not_raw_stdout",
+      "classification": "FIXTURE_ASSUMPTION_AFTER_AUTHORIZED_STATE_TRANSITION"
+    },
+    {
+      "attempt": 2,
+      "authorized_fix": "La fixture sintética restablece approved_for_implementation=false y approval=null; no cambia el validador ni registros reales.",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_scientific_closure_checker.py tests/test_scientific_closure_governance.py",
+      "exit_code": 0,
+      "output": "Ran 48 tests in 0.517s; OK.",
+      "output_kind": "summary_not_raw_stdout"
+    }
+  ],
+  "additional_checks": [
+    {"command": "PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_scientific_closure.py", "exit_code": 0, "output": "scientific-closure checker: PASS (estructura; runtime no verificado)"},
+    {"command": "for f in openspec/changes/sc-01-evidence-scope/session-identity.json openspec/changes/sc-01-evidence-scope/preservation.json openspec/changes/sc-01-evidence-scope/inventory.json openspec/changes/sc-01-evidence-scope/claims-assessment.json; do python3 -m json.tool \"$f\" >/dev/null || exit 1; done", "exit_code": 0, "output": ""},
+    {"command": "git diff --check", "exit_code": 0, "output": ""}
+  ],
+  "limitations": [
+    "PASS estructural no es validación científica ni cierre de sc-01.",
+    "No se ejecutaron Ruff/Black, campañas, auxiliares, ledger o holdouts.",
+    "El snapshot requiere checker mecánico, crítica y auditoría independientes.",
+    "El effective_model/effective_reasoning no son introspectables y el sandbox heredado no acredita el nominal."
+  ]
+}
