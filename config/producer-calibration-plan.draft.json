@@ -1,0 +1,68 @@
+{
+  "schema_version": "producer_calibration_plan_v1",
+  "contract_version": "producer_daily_h123_v1",
+  "status": "draft",
+  "calendar_timezone": "UTC",
+  "horizons": [
+    1,
+    2,
+    3
+  ],
+  "dataset": {
+    "dataset_id": "melchor_romero_2024_consolidado",
+    "sha256": "121697dd5af202633f24adf4244a793477d34bf5e4cf4a1f10d7b2ca1b33ba8e",
+    "source_kind": "real",
+    "site": "Melchor Romero",
+    "population": "Observaciones diarias del sitio durante 2024 con target de humedad observado",
+    "provenance": "Variables climáticas de NASA POWER y humedad de suelo de ESA CCI; conservar sitio, unidades y procedencia",
+    "prior_exposure": "Dataset ya explorado en controlled_daily_v3 y auditorías; uso exclusivo de desarrollo, sin holdout independiente",
+    "allowed_dates": {
+      "start": "2024-01-01",
+      "end": "2024-12-31"
+    }
+  },
+  "intended_use": "Evaluar si un bundle exacto permite mostrar probabilidades agrupadas de desarrollo para +1/+2/+3 en una UI de apoyo; no acredita diagnóstico fisiológico, validación externa ni recomendación automática de riego",
+  "event": {
+    "variable": "soil_moisture",
+    "unit": "m3/m3",
+    "comparison": "lt",
+    "percentile": 20,
+    "threshold_source": "training_observations_only",
+    "threshold_reference": {
+      "start": "2024-01-01",
+      "end": "2024-08-06"
+    }
+  },
+  "partitions": {
+    "train": {
+      "start": "2024-01-01",
+      "end": "2024-08-06"
+    },
+    "calibration": {
+      "start": "2024-08-07",
+      "end": "2024-10-18"
+    },
+    "evaluation": {
+      "start": "2024-10-19",
+      "end": "2024-12-31"
+    }
+  },
+  "model_plan": {
+    "family": "random_forest"
+  },
+  "training_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "calibration": {
+    "method": "sigmoid"
+  },
+  "probability_bins": {
+    "strategy": "equal_width",
+    "count": 10,
+    "include_one_in_last": true
+  }
+}
