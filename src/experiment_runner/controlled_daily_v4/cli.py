@@ -222,6 +222,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
             "explícitamente como no científica."
         ),
     )
+    parser.add_argument("--stage-b-registry-path", type=Path)
+    parser.add_argument("--image-id")
+    parser.add_argument("--recover-stage-b", action="store_true")
+    parser.add_argument("--recovery-reason")
     return parser
 
 
@@ -350,7 +354,7 @@ def main(argv: list[str] | None = None) -> int:
     # encargo). Se difiere hasta después de la confirmación durable, dentro
     # de `_run_stage_c`.
     report = None
-    if args.stage != STAGE_C:
+    if args.stage not in (STAGE_B, STAGE_C):
         report = validate_pergamino_provenance(
             args.era5_csv, args.nasa_power_csv, mode=args.input_mode
         )
@@ -360,6 +364,12 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"  - {issue}", file=sys.stderr)
             return 3
 
+    if args.validate_inputs_only and args.stage == STAGE_B:
+        print(
+            "B input access requires scientific custody; use A metadata validation.",
+            file=sys.stderr,
+        )
+        return 2
     if args.validate_inputs_only:
         if args.input_mode == INPUT_MODE_SYNTHETIC:
             print("Provenance OK [NO CIENTÍFICO: --input-mode synthetic]. No se entrena nada.")
@@ -403,14 +413,22 @@ def main(argv: list[str] | None = None) -> int:
     from experiment_runner.controlled_daily_v4.stage_a_runner import run_stage_a
 
     if args.stage == STAGE_B:
-        return _run_stage_b(
-            args,
-            report=report,
-            environment_info=environment_info,
-            environment_report=environment_report,
-            code_identity=code_identity,
-            constraints_identity=constraints_identity,
-        )
+        from experiment_runner.controlled_daily_v4.stage_b_custody import guarded_stage_b
+
+        try:
+            return guarded_stage_b(
+                args,
+                _run_stage_b,
+                report=report,
+                environment_info=environment_info,
+                environment_report=environment_report,
+                code_identity=code_identity,
+                constraints_identity=constraints_identity,
+            )
+
+        except (ValueError, OSError) as exc:
+            print(f"ERROR: B custody: {exc}", file=sys.stderr)
+            return 10
 
     if args.stage == STAGE_C:
         return _run_stage_c(
@@ -484,6 +502,7 @@ def main(argv: list[str] | None = None) -> int:
         input_mode=args.input_mode,
         scientific_run=scientific_run,
         resolved_config={
+            "image_id": args.image_id,
             "stage": STAGE_A,
             "seed": args.seed,
             "bootstrap_replicas": args.bootstrap_replicas,
@@ -671,6 +690,7 @@ def _run_stage_b(
         input_mode=args.input_mode,
         scientific_run=scientific_run,
         resolved_config={
+            "image_id": args.image_id,
             "stage": STAGE_B,
             "producer_dir": str(args.producer_dir),
             "seed": args.seed,
@@ -992,6 +1012,7 @@ def _run_stage_c(
         input_mode=args.input_mode,
         scientific_run=scientific_run,
         resolved_config={
+            "image_id": args.image_id,
             "stage": STAGE_C,
             "producer_dir": str(args.producer_dir),
             "stage_b_dir": str(args.stage_b_dir),
