@@ -44,3 +44,14 @@ NO_VALID_SELECTION por soporte informa insuficiencia, no prueba equivalencia.
 Decisión vigente previa a ejecución: R `NOT_REQUIRED`, H `REQUIRED`, N
 `NOT_REQUIRED`, S `NOT_REQUIRED`. Esta decisión permanece pendiente de crítica
 y auditoría independiente; no autoriza ejecutar H, A, B, C ni abrir holdouts.
+
+**Consecuencia registrada el 2026-09-20 (hallazgo C-09, decisión GD-23).**
+Mientras esa auditoría independiente no exista, los requisitos SC-GOV-021,
+SC-GOV-023 y SC-GOV-024 **no** pueden figurar como `NOT_APPLICABLE`, porque ese
+estado es terminal para el checker normativo, tan definitivo como `PASS`, y su
+única base sería esta decisión autodeclarada no auditada. Los tres figuran
+`BLOCKED` en la matriz de trazabilidad. La decisión de fondo —R, N y S
+`NOT_REQUIRED` para el alcance aprobado— **no** se revierte: lo que se revierte
+es atribuirle un estado terminal. Los artefactos `auxiliary/R/review.json`,
+`auxiliary/N/review.json` y `auxiliary/S/review.json` no existen, y esa ausencia
+se declara aquí en lugar de omitirse.

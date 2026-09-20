@@ -467,3 +467,93 @@ En orden de dependencia:
 5. Resolver H (`REQUIRED`) o revisar su decisión de suficiencia con auditoría.
 
 Ninguno de estos pasos puede darse por cumplido con evidencia parcial.
+
+---
+
+## 14. Actualización — sesión de verificación de cierre (2026-09-20)
+
+Esta sección **añade** hechos verificados posteriormente. No debilita, refuerza
+ni elimina ninguna afirmación anterior: la revisión frase a frase independiente
+de este documento contra `claims.md` no encontró ninguna sobreafirmación que
+corregir. El artefacto de esa revisión es
+`openspec/scientific-closure/closure-verification-2026-09-20/claim-evidence-review.json`.
+
+**Qué se reverificó.** Todas las verificaciones técnicas del §8.3 fueron
+reejecutadas en una sesión distinta, sobre el commit **publicado** y no sobre
+uno anterior: 545 pruebas pasan (486 `controlled_daily_v4` + 48
+gobernanza/checker + 11 enforcement de solo lectura) en 1036,33 s; checker
+formal exit 0; `ruff` y `black` exit 0; OpenSpec `--strict` 11/11; enforcement
+de solo lectura PASS; procedencia del runner exit 0 sin entrenar y sin producir
+artefactos. Un verificador de evidencia independiente recomputó los 31 hashes
+del manifiesto (31/31) y confirmó, por identidad de árboles y blobs y no sólo
+por diff vacío, que `src`, `docker` y `pyproject.toml` son byte-idénticos a
+`214735e…`. **Ningún resultado técnico registrado fue refutado.**
+
+**Hechos negativos nuevos, registrados como resultados.**
+
+1. **La rama fue publicada dos veces durante la preparación**, contra la
+   cláusula «no push en preparación» del criterio de aceptación de SC-GOV-019 y
+   contra `AGENTS.md`: `dc0d3f5` a las 03:52:42Z y `b9fefbf` a las 05:54:37Z del
+   2026-09-20, demostrado por el reflog local y confirmado por `git ls-remote`.
+   Dos informes de auditoría de aquella sesión afirman lo contrario; se
+   conservan sin alterar y la corrección se registra aparte. Ningún revisor lo
+   detectó porque los tres corrieron sin red, aunque el reflog es local.
+   SC-GOV-019 quedó degradado a `BLOCKED`. El incumplimiento queda **registrado,
+   no subsanado**: deshacerlo exigiría reescribir historia publicada.
+2. **El comando de validación estructural no era reproducible como estaba
+   escrito.** Con el `PATH` por defecto, `npx` resuelve al binario de Windows,
+   que no puede entrar al directorio WSL y no lee ningún repositorio: las once
+   validaciones terminan 1 y un identificador de change **inexistente** produce
+   exactamente el mismo mensaje. Con el node Linux primero en `PATH`, el
+   resultado 11/11 se reproduce exactamente.
+3. **Un hash de evidencia no tiene corroboración.** El
+   `supersedes.initial_snapshot_sha256` de `implementation-snapshot.json` no
+   corresponde a ningún objeto del almacén de Git tras rehashear todos los
+   blobs. Es autoatestiguado. Se etiqueta como tal en lugar de contarse entre
+   los verificados.
+
+**Precisiones que cambian el enunciado de dos bloqueos, sin levantarlos.**
+
+- **La imagen aprobada existe y fue ejecutada.** `final-preparation-audit.md`
+  registra que `sha256:55bc923e…b297af` corrió 15 pruebas documentales el
+  2026-09-19 desde el host Windows. Lo inalcanzable es el **runtime de
+  contenedores desde esta distro WSL**, no la imagen. Consecuencia añadida: el
+  runbook invoca cada comando A/B/C —y la inicialización del ledger— a través de
+  `docker`, de modo que este bloqueo impide **ejecutar la campaña**, no sólo
+  inspeccionar la imagen. La campaña está bloqueada por **dos causas externas
+  independientes**, no por una.
+- **La independencia física del respaldo es más difícil de lo registrado.** El
+  sistema de archivos raíz está respaldado por `ext4.vhdx` **dentro del volumen
+  C:**; montar `/dev/sdd` no está demostrado que logre independencia. El insumo
+  faltante es almacenamiento no respaldado por el mismo volumen del host, no
+  sólo privilegio de root.
+
+**Condición 4 de ADR-0011: confirmada `NOT_SATISFIED` por un crítico
+independiente que intentó refutarla.** Su conclusión, con argumentos en ambas
+direcciones, es que la divergencia con `main` es **normativa y no cosmética**:
+la sección 4 del protocolo en `main` afirma un contrato de features
+**falso** frente al código; falta la sección que declara los pisos de soporte y
+las definiciones de interpretación; y dos documentos normativos para la rama
+—`scientific-closure-decisions.md` y `scientific-closure-runbook.md`— **no
+existen en `main`**. Ejecutar bajo el texto de `main` preregistraría un contrato
+falso. Retener la campaña es correcto, no excesivamente conservador.
+
+**Precisión sobre la palabra «bloqueado».** `BLOCKED` **no** es un estado
+terminal en este repositorio: el checker normativo considera terminales sólo
+`PASS` y `NOT_APPLICABLE` y admite la transición `BLOCKED → APPROVED`. El
+veredicto de cierre es **suspensivo**: describe dónde se detuvo el trabajo, no
+que el trabajo sea irrealizable. Los tres insumos faltantes son acciones
+ordinarias del responsable.
+
+**Efecto sobre el estado por requisito.** Tras la crítica independiente, cinco
+filas **empeoran** (SC-GOV-006, 019, 021, 023, 024) y una **mejora** con
+artefacto nuevo (SC-GOV-016). El recuento pasa a `PASS` 0,
+`PASS_WITH_LIMITATIONS` 8, `BLOCKED` 17, `NOT_APPLICABLE` 0. Ninguna mejora
+proviene de ejecución científica, porque no la hubo. Ninguna fila se degradó por
+evidencia nueva en contra, sino porque el estado anterior **excedía** la
+evidencia que lo sostenía.
+
+**Lo que esta sección no cambia.** Las diez limitaciones del §10 siguen
+íntegras. Sigue sin existir métrica, predicción, modelo ni comparación sobre
+Pergamino. El holdout 2024–2025 sigue cerrado, el ledger sin inicializar, y
+ningún valor reservado fue leído: reverificado mecánicamente, no asumido.

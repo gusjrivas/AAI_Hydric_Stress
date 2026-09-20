@@ -1,0 +1,130 @@
+{
+  "schema_version": "1.0",
+  "record": "independent_verification_of_published_snapshot",
+  "campaign_id": "closure-verification-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": ["SC-GOV-006", "SC-GOV-009", "SC-GOV-017", "SC-GOV-018", "SC-GOV-020"],
+  "snapshot_verified": "b9fefbf36037ca259f4b17b68642d330bc489d39",
+  "environment": "reconstructed venv /home/gus/scientific-closure-runtime/env/venv-v4 (Python 3.11.16, constraints-pinned). NOT the historic image. No equivalence claimed.",
+  "purpose": "Re-verify, in a new session and without trusting the prior session's records, the technical state of the published snapshot; and probe whether any recorded external blocker is resolvable here.",
+  "results": [
+    {
+      "id": "W-01",
+      "scope": "full scientific-closure test selection on the PUBLISHED snapshot",
+      "command": "PYTHONPATH=src python -m pytest -q tests/test_controlled_daily_v4_*.py tests/test_scientific_closure_governance.py tests/test_scientific_closure_checker.py tests/test_readonly_role_sandbox.py --no-header",
+      "started_utc": "2026-09-20T17:42:36Z",
+      "ended_utc": "2026-09-20T17:59:53Z",
+      "duration_s": 1036.33,
+      "exit_code": 0,
+      "result": "545 passed, 14 subtests passed",
+      "interpretation": "Technical evidence about software on synthetic fixtures. NOT scientific evidence. The duration is a fixture duration and must not be extrapolated to a scientific run.",
+      "note": "Reproduces the 545-test count recorded by the previous session for cycle 3, this time run on the commit that is actually published rather than before it."
+    },
+    {
+      "id": "W-02",
+      "scope": "formal scientific-closure checker",
+      "command": "PYTHONPATH=src python scripts/check_scientific_closure.py",
+      "exit_code": 0,
+      "result": "scientific-closure checker: PASS (estructura; runtime no verificado)"
+    },
+    {
+      "id": "W-03",
+      "scope": "negative testing of the formal checker on a tampered COPY of the tree (never on the repository itself)",
+      "method": "The tree was copied to a scratch directory and the checker was run with --root pointing at the copy. The repository was not modified.",
+      "cases": [
+        {"case": "N-1", "mutation": "changes.json: sc-03-stage-a BLOCKED -> PASS", "expected": "rejection", "observed": "FAIL (5 incumplimientos), exit 1: STATE chain ends in BLOCKED; APPROVAL incomplete; approved state without approved_for_implementation; AUDIT PASS required and identified; DEPS-GATE advanced with dependencies not PASS ['sc-02-runtime-readiness']", "verdict": "CHECKER_REJECTS"},
+        {"case": "N-2", "mutation": "changes.json: sc-08-aux-hitl BLOCKED -> NOT_APPLICABLE", "expected": "rejection", "observed": "FAIL (2 incumplimientos), exit 1: STATE chain ends in BLOCKED; AUDIT PASS required and identified", "verdict": "CHECKER_REJECTS"},
+        {"case": "N-3", "mutation": "attempt to forge a status field on SC-GOV-011 in requirements.json", "expected": "n/a", "observed": "NO-OP: requirements.json entries carry no status field (keys: id, title, norm, acceptance, change, task, check, evidence). Nothing to forge at that location.", "verdict": "NOT_APPLICABLE"},
+        {"case": "N-4", "mutation": "deletion of openspec/changes/sc-01-evidence-scope/session-identity.json, an expected-evidence artefact of the only change recorded PASS", "expected": "undetermined", "observed": "checker still exits 0 with PASS", "verdict": "CHECKER_DOES_NOT_DETECT", "adjudication": "NOT a defect. This is the checker's documented boundary: README states that the relative names in requirements.json are EXPECTED governance artefacts of a future campaign directory, not files that must already exist. Binding a requirement's evidence name to a file on disk is the evidence_checker's mechanical role, which was exercised separately in this session. Recorded so the boundary is explicit rather than assumed."}
+      ],
+      "conclusion": "The formal checker is not vacuous for the rules it owns (state chain, approval, identified PASS audit, dependency gates). It does not, by design, verify artefact existence on disk."
+    },
+    {
+      "id": "W-04",
+      "scope": "lint (ruff 0.16.6) over the files this branch owns",
+      "command": "ruff check scripts/check_scientific_closure.py tests/test_scientific_closure_governance.py tests/test_scientific_closure_checker.py tests/test_readonly_role_sandbox.py",
+      "exit_code": 0,
+      "result": "All checks passed!"
+    },
+    {
+      "id": "W-05",
+      "scope": "format (black 26.5.1) over the same four files",
+      "command": "black --check <same four files>",
+      "exit_code": 0,
+      "result": "4 files would be left unchanged"
+    },
+    {
+      "id": "W-06",
+      "scope": "OpenSpec strict validation, scientific-closure scope",
+      "command": "PATH=/home/gus/scientific-closure-runtime/env/node/bin:$PATH npx --yes @fission-ai/openspec@1.13.1 validate <item> --type <change|spec> --strict",
+      "exit_code": 0,
+      "result": "11/11 exit 0 (10 sc-* changes + spec scientific-closure)",
+      "reproducibility_defect_found": {
+        "id": "E-01",
+        "severity": "MATERIAL_FOR_REPRODUCIBILITY",
+        "observed": "With the default login PATH of this environment, `npx` resolves to /mnt/c/Program Files/nodejs/npx, a Windows binary. CMD.EXE refuses the \\\\wsl.localhost UNC working directory, falls back to C:\\Windows, and the CLI then reads no OpenSpec root at all. Every one of the 11 validations exits 1 with 'Change must have at least one delta. No deltas found.' A deliberately nonexistent change id ('zz-nonexistent-change') produces the IDENTICAL message and exit code, proving the CLI never reads the repository.",
+        "consequence": "The command string recorded in structural-validation.json is not reproducible as written. It is only reproducible with the Linux node at /home/gus/scientific-closure-runtime/env/node/bin placed first on PATH.",
+        "prior_record_status": "NOT REFUTED. Once the Linux node is on PATH the recorded 11/11 exit 0 reproduces exactly. structural-validation.json already records node v22.20.0 / npm 10.9.3, which is that Linux installation. What was missing is the PATH precondition.",
+        "resolution": "The PATH precondition is now recorded here and in decisions.md GD-20."
+      }
+    },
+    {
+      "id": "W-07",
+      "scope": "provenance of the Linux node used for W-06",
+      "commands": ["curl -fsSLO https://nodejs.org/dist/v22.20.0/node-v22.20.0-linux-x64.tar.xz", "curl -fsSLO https://nodejs.org/dist/v22.20.0/SHASUMS256.txt", "sha256sum -c (filtered)", "cmp <extracted>/bin/node /home/gus/scientific-closure-runtime/env/node/bin/node"],
+      "result": "The official tarball checksum verified against the published SHASUMS256.txt (00bbd05e306ea68b6e13e17360d0e2f680b493ef95f2fea1c4296ff7437530bc). The pre-existing node binary at /home/gus/scientific-closure-runtime/env/node/bin/node is BYTE-IDENTICAL to the official v22.20.0 linux-x64 release binary (sha256 b1cbec894e45a5814b6ab756e1e14f8a76516273197e67e0412b57c1e10d0d9f).",
+      "cleanup": "The downloaded archive and its duplicate extraction were removed; SHASUMS256.txt was kept as provenance. The pre-existing installation was not modified.",
+      "limitation": "This attests the identity of the node binary against the official distribution retrieved TODAY. It does not attest when or how the pre-existing copy was originally obtained."
+    },
+    {
+      "id": "W-08",
+      "scope": "read-only role sandbox enforcement, re-run independently",
+      "command": "bash scripts/verify_readonly_sandbox.sh",
+      "exit_code": 0,
+      "result": "verdict PASS. read_repository_succeeds true; write_repository_fails true (EROFS); write_real_home_fails true; network_dns_unavailable true; repository/home/dev probes absent after; wsl_windows_binaries_unreachable true; mnt_is_empty true; wsl_interop_sockets_unreachable true; run_entries 0",
+      "limitation_preserved": "Attests read-only and no-network FOR LINUX PROCESSES with the two known WSL interop escape routes closed. It does not prove no third route exists, and it does not place a subagent process inside the sandbox. The subagents used in THIS session were instructed read-only, not sandboxed; see session-identity.json agent_substitution."
+    },
+    {
+      "id": "W-09",
+      "scope": "dataset provenance identity via the runner itself, metadata only",
+      "command": "PYTHONPATH=src python -m experiment_runner.controlled_daily_v4.cli --stage A --validate-inputs-only --era5-csv <...> --nasa-power-csv <...> --output-dir <scratch> --input-mode scientific",
+      "exit_code": 0,
+      "result": "Provenance OK. --validate-inputs-only: no se entrena nada.",
+      "artefacts_produced": "none (the output directory remained empty)",
+      "note": "Permitted on stage A only. No model was fitted, no holdout value was read. Hashing a whole CSV is not reading reserved values."
+    },
+    {
+      "id": "W-10",
+      "scope": "storage topology and backup independence, re-verified",
+      "result": "All four roots share device 2128: repository checkout, /home/gus/scientific-closure-runtime, /home/gus/scientific-closure-inputs, /home/gus/scientific-closure-backup. Both Pergamino CSVs are byte-identical between inputs and backup (cmp exit 0). Physical independence NOT achieved.",
+      "new_precision_found": {
+        "id": "E-04",
+        "observed": "The writable Linux root filesystem (/dev/sdf, ext4, device 2128) is backed by the file /mnt/c/Users/gusta/AppData/Local/wsl/{5f70ee9f-c4f5-4a9f-b182-e94458fcd4dc}/ext4.vhdx, which resides on the C: volume. The read-only copy of the source CSVs under /mnt/c (device 217) therefore lives on the same underlying host volume as the primary.",
+        "consequence": "Mounting the unmounted /dev/sdd is NOT demonstrated to achieve physical independence, because a WSL block device of that kind is itself typically a VHDX file on the same host volume. This is stated as an INFERENCE about /dev/sdd (its backing file was not located) resting on a VERIFIED fact about /dev/sdf.",
+        "implication_for_the_blocking_input": "The missing input is storage not backed by the same host volume - external media, a second physical disk, or a network target - not merely root privilege to run mount."
+      }
+    },
+    {
+      "id": "W-11",
+      "scope": "container runtime reachability, re-probed independently",
+      "commands": ["ls /var/run/docker.sock", "connect() to every socket under /mnt/wsl/docker-desktop/shared-sockets", "docker version", "sudo -n true", "ls /usr/bin/newuidmap /usr/bin/newgidmap", "apt-get install --dry-run podman"],
+      "result": "/var/run/docker.sock absent. All 33 Docker Desktop sockets under shared-sockets are root:root and connect() returns EACCES for uid 1000 (the guest-services sockets are srwxr-xr-x, so 'others' lack write permission, which connect() requires). The docker CLI on PATH is the Windows binary and reports the distro has no Docker integration. sudo -n exits 1 ('interactive authentication is required'). podman, skopeo, umoci, buildah, nerdctl are all absent and apt-get requires root. newuidmap and newgidmap do NOT exist, so rootless podman/buildah could not be made to work even if installed.",
+      "conclusion": "No container runtime is obtainable in this distro without operator action. Confirms the prior record independently."
+    }
+  ],
+  "not_attempted_and_why": [
+    {
+      "item": "rebuilding a reproducible image from the frozen commit, constraints and Dockerfile",
+      "reason": "The session instruction permits this and requires it be registered as a RECONSTRUCTED image with a new digest, never passed off as the historic one. It was not attempted because it cannot unblock anything: (a) no container runtime exists here to build or run one; (b) the runbook executes every A/B/C command through `docker`, so a new image would still be unrunnable; (c) ADR-0011 precondition 4 blocks execution independently. Building an unusable artefact would add work without changing any state."
+    },
+    {
+      "item": "stage A, B or C on Pergamino data",
+      "reason": "Gate G1 unsatisfied on three independent counts (ADR-0011 precondition 4; approved image not inspectable and the runbook requires docker; no physically independent backup). No stage command was issued."
+    },
+    {
+      "item": "auxiliary studies R, H, N, S",
+      "reason": "R, N and S are NOT_REQUIRED under the pre-execution sufficiency decision GD-12. H is REQUIRED and has no runner; its gate depends on sc-02 PASS, which is not reached."
+    }
+  ],
+  "overall": "Every technical claim the previous session recorded about the published snapshot reproduced in this session, in a separate context, with one reproducibility precondition added (E-01) and two precisions added (E-04, and the image reachability reconciliation recorded in decisions.md GD-21). No recorded technical result was refuted."
+}

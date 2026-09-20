@@ -42,10 +42,22 @@ borran**: se indica cuáles quedan superadas y por qué. Ninguna entrada de esta
 sección acredita ejecución científica; todas son verificaciones de identidad,
 existencia y custodia.
 
-Contexto verificado: rama `feat/scientific-closure`, HEAD documental
-`dc0d3f5b4dbed235078c1bc93a3c863b6f65d3c6`, upstream
+Contexto verificado: rama `feat/scientific-closure`, upstream
 `origin/feat/scientific-closure`, `origin/main`
-`9fcbfd9f4dd4860a07f7e99d5b16d849ac81c4af` (tras `git fetch` del 2026-09-20).
+`9fcbfd9f4dd4860a07f7e99d5b16d849ac81c4af` (reverificado tras `git fetch` el
+2026-09-20 por la sesión de verificación de cierre).
+
+**Corrección 2026-09-20 (hallazgo C-06).** Esta sección declaraba como «HEAD
+documental» el commit `dc0d3f5b4dbed235078c1bc93a3c863b6f65d3c6`. Esa
+afirmación quedó falsa: `dc0d3f5` es ancestro del HEAD publicado y está diez
+commits atrás. El texto ya no fija un SHA de HEAD, porque cualquier SHA escrito
+aquí queda obsoleto en el mismo commit que lo escribe; la identidad por commit
+vive en `closure-verification-2026-09-20/checkpoints.json` y en
+`readiness-resolution-linux-2026-09-20/checkpoints.json`. Los hechos verificados
+de las filas siguientes **no** dependían de ese SHA y se conservan intactos; el
+verificador de evidencia independiente los recontrastó contra el disco el
+2026-09-20 y halló la partición de artefactos presentes/ausentes idéntica a la
+declarada.
 
 | ID | Estado 2026-09-20 | Hecho verificado | Efecto sobre la fila histórica |
 | --- | --- | --- | --- |

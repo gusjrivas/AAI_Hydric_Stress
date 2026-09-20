@@ -210,5 +210,32 @@
   },
   "note": "Every entry here is technical or governance evidence. None of it is evidence about the scientific hypothesis.",
   "self_reference_limit": "This manifest is generated as the last content step of the session, after every other file is final, so every hash listed matches the published state. It cannot list or hash itself. The 'commit' field below is the HEAD at generation time, which is the commit BEFORE the one that publishes this manifest: a manifest cannot name a commit that does not yet exist. The re-audit flagged an earlier version whose header named the previously audited commit without saying so (finding NF-03); this field says so.",
-  "published_in_commit": "the commit immediately following 'commit' below; recoverable with git log --oneline dc0d3f5..HEAD"
+  "published_in_commit": "the commit immediately following 'commit' below; recoverable with git log --oneline dc0d3f5..HEAD",
+  "corrections_2026_09_20": {
+    "applied_by": "closure-verification-2026-09-20 session, as an ANNOTATION only",
+    "principle": "No hash in this manifest was edited, and no entry was removed. This manifest is a historical record of the evidence set as it stood at commit 8e31f78 and it is preserved as such. The corrections below are annotations so that a later reader does not mistake a known, declared change for tampering.",
+    "C-12_stale_recovery_hint": "The 'published_in_commit' field says the manifest is recoverable with 'git log --oneline dc0d3f5..HEAD'. That range returned one commit when written and returns more as the branch advances. The correct, stable range is 'git log --oneline 8e31f78..HEAD', taking the value of the 'commit' field as the base. The original wording is left in place and corrected here.",
+    "entries_that_no_longer_match_HEAD": {
+      "reason": "The closure-verification session of 2026-09-20 edited three governance documents to close independent-critique findings C-02..C-09 and C-11..C-17. Their content therefore changed after this manifest was generated, and their sha256 entries here no longer match the file on disk. This is expected and declared, not a custody failure.",
+      "paths": [
+        {
+          "path": "openspec/scientific-closure/traceability.md",
+          "sha256_at_8e31f78": "7070b74fb4fe6b86d19218bf8510c663eb67c73438a7ad0b91474f1c0657a88b",
+          "status": "SUPERSEDED_BY_LATER_EDIT"
+        },
+        {
+          "path": "openspec/scientific-closure/decisions.md",
+          "sha256_at_8e31f78": "c3337b0d44b76fe3b29e6c46f4074ab77888b814e647a133c3b35fc65882339b",
+          "status": "SUPERSEDED_BY_LATER_EDIT"
+        },
+        {
+          "path": "openspec/scientific-closure/risks.md",
+          "sha256_at_8e31f78": "6591dce9bbbcf1d1f8a99b80f02ae4dafe6f0cc9324ed93803c6fcf6bfa9ec6f",
+          "status": "SUPERSEDED_BY_LATER_EDIT"
+        }
+      ],
+      "current_hashes_recorded_in": "openspec/scientific-closure/closure-verification-2026-09-20/evidence-manifest.json",
+      "verification_at_8e31f78": "Before those edits, an independent evidence checker recomputed all 31 declared hashes in this manifest against disk and found 31/31 MATCH, zero missing."
+    }
+  }
 }

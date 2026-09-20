@@ -1,72 +1,76 @@
-# Checkpoint de ejecución actual — 2026-09-19
+# Checkpoint de ejecución actual
 
-## Estado vigente 2026-09-20
+## Estado vigente — 2026-09-20, sesión de verificación de cierre
 
-Esta sección **reemplaza la lectura del encabezado histórico** que aparece
-inmediatamente debajo. Todo lo que sigue a partir de «Estado actual:
-`CHECKER_REMEDIATION_BLOCKED`» es **registro histórico del 2026-09-19**: se
-conserva íntegro como historia de recuperación y ya no describe el estado del
-repositorio. En particular, quedan desactualizados el HEAD `59612ab…`, el árbol
-dirty y la imposibilidad de commit por `.git` de solo lectura.
+Esta sección **reemplaza toda lectura de las secciones posteriores**, que son
+registro histórico y se conservan íntegras como historia de recuperación.
 
-**Estado real verificado (2026-09-20):**
+**Qué hizo esta sesión.** Reverificó, sin confiar en los registros previos, el
+estado técnico del snapshot publicado; sometió ese snapshot a un verificador de
+evidencia y a un crítico adversarial independientes, en contextos separados; y
+corrigió los estados y documentos que la crítica demostró falsos o excedidos.
+No ejecutó ninguna campaña.
 
-- Rama `feat/scientific-closure`, upstream `origin/feat/scientific-closure`.
-  HEAD **al inicio** de la sesión del 2026-09-20:
-  `dc0d3f5b4dbed235078c1bc93a3c863b6f65d3c6`, con el árbol limpio. Esa sesión
-  agregó commits propios, de modo que el HEAD publicado es posterior; el SHA
-  exacto y el alcance de cada uno están en
-  `readiness-resolution-linux-2026-09-20/checkpoints.json`, que es la fuente
-  autoritativa. Este archivo no repite un SHA de HEAD que quedaría obsoleto en
-  el mismo commit que lo escribe (hallazgo N-05 de la crítica independiente).
-  Los commits `fe55bef`, `e669bf8`, `5e10d6a` y `dc0d3f5` incorporaron la
-  remediación y los registros previos, por lo que el bloqueo de commit del
-  2026-09-19 **ya no está vigente**.
-- `origin/main` verificado tras `git fetch`:
-  `9fcbfd9f4dd4860a07f7e99d5b16d849ac81c4af`. La referencia
-  `f7c4ef72ebee9f745bd80deadcd8ad69d9183274` citada en documentos previos está
-  **desactualizada** y no debe usarse para evaluar condiciones de ADR-0011.
-- Checker formal: `python scripts/check_scientific_closure.py` exit 0,
-  `PASS (estructura; runtime no verificado)`. OpenSpec CLI:
-  `@fission-ai/openspec@1.13.1`; los 10 changes `sc-*` y la spec
-  `scientific-closure` pasan `validate --strict` (11/11). Estos resultados son
-  **estructurales**; no acreditan runtime ni resultado científico.
-- Enforcement de solo lectura por rol: resuelto técnicamente mediante
-  `scripts/readonly_role_sandbox.sh` y `scripts/verify_readonly_sandbox.sh`
-  (bubblewrap 0.11.1), verificados PASS. Limitación declarada: el harness no
-  coloca el proceso del subagente dentro del sandbox.
+**Resultado en una línea:** la preparación está resuelta hasta el límite de lo
+alcanzable localmente; la ejecución científica sigue **suspendida** por tres
+bloqueos externos, y el registro documental quedó corregido tras diez hallazgos
+materiales de crítica independiente.
 
-**Estado de bloqueo que sigue vigente (no resuelto aquí):**
+**Hechos negativos explícitos, reverificados mecánicamente en esta sesión:** el
+ledger definitivo **no** está inicializado (`/home/gus/scientific-closure-runtime/ledger/`
+verificado vacío); A, B y C **no** se ejecutaron y no existe ningún artefacto de
+etapa en ninguna raíz alcanzable; el holdout 2024–2025 permanece cerrado y
+ningún valor reservado fue leído; no existe métrica, predicción ni modelo
+producido. Los únicos SQLite existentes son fixtures de ensayo cuyo contenido se
+autodeclara sintético.
 
-- Condición 4 de ADR-0011 `NOT_SATISFIED`: el ADR está mergeado byte a byte en
-  `origin/main`, pero el protocolo detallado allí es una versión anterior (le
-  falta la sección titulada «Condiciones de interpretación y soporte»; el número «16» está duplicado en el protocolo y «16. Provenance» sí está en `main`) y el runner en
-  `main` diverge; `214735e42ee04f018156cd630591e798aadd8bf3` no es ancestro de
-  `origin/main`. **Mientras esto no se resuelva, A, B y C no pueden ejecutarse.**
-- Imagen aprobada `sha256:55bc923e…b297af` **no inspeccionada**: Docker no es
-  alcanzable (integración WSL deshabilitada; sockets de Docker Desktop deniegan
-  `connect()` a uid 1000; `sudo` exige autenticación interactiva). El entorno
-  `/home/gus/scientific-closure-runtime/env/venv-v4` (Python 3.11.16) es una
-  **reconstrucción**, no la imagen histórica, y no se afirma equivalencia.
-- Respaldo **sin independencia física**: todas las copias comparten el
-  dispositivo 2128 (`/dev/sdf`, ext4). `/dev/sdd` existe sin montar y montarlo
-  requiere root.
+**Verificaciones técnicas reproducidas (evidencia técnica, no científica):**
+545 pruebas pasan sobre el snapshot publicado; checker formal exit 0; `ruff` y
+`black` exit 0 sobre los archivos propios de la rama; OpenSpec `--strict` 11/11;
+enforcement de solo lectura reejecutado PASS; validación de procedencia del
+runner exit 0 sin entrenar; pruebas negativas del checker sobre una copia del
+árbol, que rechazan un `PASS` y un `NOT_APPLICABLE` forjados. Detalle en
+[`closure-verification-2026-09-20/independent-verification.json`](closure-verification-2026-09-20/independent-verification.json).
 
-**Hechos negativos explícitos (2026-09-20):** el ledger definitivo **no** está
-inicializado; A, B y C **no** se ejecutaron; el holdout 2024–2025 permanece
-cerrado y ningún valor reservado fue leído; no existe métrica, predicción ni
-modelo producido en esta preparación. `sc-01-evidence-scope` es el único change
-con auditoría PASS (alcance documental, snapshot `a0d8bf7`); `sc-02` a `sc-10`
-siguen `BLOCKED`. El estado por requisito está en
-[matriz de trazabilidad](traceability.md), sección «Estado por requisito —
-2026-09-20»; la reconciliación de evidencia, en
-[inventario](inventory.md), sección «Actualización 2026-09-20».
+**Los tres bloqueos externos vigentes** —ninguno resoluble desde este entorno,
+los tres resolubles por el responsable:
 
-**Pendiente inmediato:** entrada externa para (a) resolver la condición 4 de
-ADR-0011 mediante una decisión de integración que este flujo no puede inferir ni
-ejecutar, (b) habilitar acceso a un runtime de contenedores para inspeccionar la
-imagen aprobada por digest, y (c) proveer almacenamiento persistente físicamente
-independiente. Ninguna de las tres se resuelve con más trabajo documental.
+- **EXT-01 — condición 4 de ADR-0011, `NOT_SATISFIED`.** El ADR está mergeado
+  byte a byte en `origin/main`, pero el protocolo detallado allí es una versión
+  anterior: le falta la sección «Condiciones de interpretación y soporte previas
+  a ejecución» y su sección 4 afirma un contrato de features falso frente al
+  código. `scientific-closure-decisions.md` y `scientific-closure-runbook.md`,
+  normativos para la rama, no existen en `main`. Resolverlo exige un merge a
+  `main`, fuera de la autorización de esta sesión. **Bloquea A, B y C.**
+- **EXT-02 — runtime de contenedores inalcanzable desde esta distro WSL.** La
+  imagen aprobada `sha256:55bc923e…b297af` existe y fue ejecutada el 2026-09-19
+  desde el host Windows; lo que falta es acceso desde aquí. Además el runbook
+  invoca cada comando A/B/C a través de `docker`, de modo que esto impide
+  ejecutar la campaña, no sólo inspeccionar la imagen.
+- **EXT-03 — sin respaldo físicamente independiente.** Las cuatro raíces
+  comparten el dispositivo 2128, y el sistema de archivos raíz está respaldado
+  por un `ext4.vhdx` dentro del volumen C:, de modo que montar otro dispositivo
+  WSL no está demostrado que logre independencia.
+
+**Incumplimiento registrado, no subsanado (RK-14, GD-19).** El reflog demuestra
+dos `git push` durante la preparación del 2026-09-20, contra la cláusula «no
+push en preparación» del criterio de aceptación de SC-GOV-019 y contra
+`AGENTS.md`. Dos informes de auditoría de aquella sesión afirman lo contrario;
+se conservan sin alterar y la corrección se registra aparte. SC-GOV-019 quedó
+degradado a `BLOCKED`.
+
+**Estado por requisito:** `PASS` 0; `PASS_WITH_LIMITATIONS` 8; `BLOCKED` 17;
+`NOT_APPLICABLE` 0. Cinco filas empeoraron tras la crítica independiente y una
+mejoró con artefacto nuevo. Ver [matriz de trazabilidad](traceability.md).
+`BLOCKED` **no** es terminal: significa irresuelto y suspendido.
+
+**Pendiente inmediato — insumos externos exactos:** (a) integrar en `main` el
+protocolo detallado vigente y, sensatamente, la implementación de A/B/C; (b)
+habilitar un runtime de contenedores en esta distro, o decidir y registrar
+formalmente que la campaña fija una identidad ejecutable nueva; (c) proveer
+almacenamiento no respaldado por el mismo volumen del host. Ninguno de los tres
+se resuelve con más trabajo documental, y los tres fueron intentados y agotados
+en esta sesión.
 
 ## Registro histórico del 2026-09-19 (superado)
 
