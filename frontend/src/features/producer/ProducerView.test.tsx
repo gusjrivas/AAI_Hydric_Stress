@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProducerView } from "./ProducerView";
 import * as catalogApi from "./catalogApi";
 import * as readingsApi from "./readingsApi";
+import * as forecastsApi from "./forecastsApi";
 
 const sector: catalogApi.Sector = {
   sector_id: "norte",
@@ -25,7 +26,7 @@ const sensor: catalogApi.SensorSummary = {
 describe("ProducerView", () => {
   beforeEach(() => vi.restoreAllMocks());
 
-  it("shows a synthetic-data tag and states forecasts are not integrated yet", async () => {
+  it("shows a synthetic-data tag and the honest empty state for forecasts", async () => {
     vi.spyOn(catalogApi, "listSectors").mockResolvedValue({ items: [sector], next_cursor: null });
     vi.spyOn(catalogApi, "listSensors").mockResolvedValue({ items: [sensor], next_cursor: null });
     vi.spyOn(readingsApi, "getSensorReadings").mockResolvedValue({
@@ -43,11 +44,18 @@ describe("ProducerView", () => {
       data_age_days: null,
       provenance: "unknown",
     });
+    vi.spyOn(forecastsApi, "listForecasts").mockResolvedValue({
+      items: [],
+      next_cursor: null,
+      pending_total: 0,
+      reviewable_pending_total: 0,
+    });
 
     render(<ProducerView />);
 
     expect(await screen.findByText("Datos simulados")).toBeInTheDocument();
-    expect(screen.getByText(/pronósticos del catálogo v2 todavía no están integrados/i)).toBeInTheDocument();
+    expect(await screen.findByText(/todavía no hay pronósticos disponibles/i)).toBeInTheDocument();
+    expect(screen.getByText(/no tenés pronósticos pendientes de revisar/i)).toBeInTheDocument();
   });
 
   it("prompts to pick a sensor before showing history", () => {

@@ -1,13 +1,13 @@
 import { useCallback, useState } from "react";
 import { SectorSensorPicker } from "./SectorSensorPicker";
 import { ProducerHistoryPanel } from "./ProducerHistoryPanel";
+import { ForecastsSection } from "./ForecastsSection";
 import type { SensorSummary } from "./catalogApi";
 import "./ProducerView.css";
 
 /**
- * Primera entrega de la UI orientada al productor (HU6): selección de
- * sector/sensor contra el catálogo v2 y visualización de sus mediciones
- * históricas. Los pronósticos v2 todavía no están integrados aquí.
+ * UI orientada al productor (HU6): selección de sector/sensor contra el
+ * catálogo v2, mediciones históricas y consulta/revisión de pronósticos.
  */
 export function ProducerView() {
   const [sensor, setSensor] = useState<SensorSummary | null>(null);
@@ -33,19 +33,13 @@ export function ProducerView() {
       )}
 
       {sensor ? (
-        <ProducerHistoryPanel sensorId={sensor.sensor_id} />
+        <>
+          <ProducerHistoryPanel sensorId={sensor.sensor_id} />
+          <ForecastsSection sensorId={sensor.sensor_id} />
+        </>
       ) : (
-        <p role="status">Elegí un punto de medición para ver su historial.</p>
+        <p role="status">Elegí un punto de medición para ver su historial y sus pronósticos.</p>
       )}
-
-      <section className="producer-forecast-note" aria-label="Estado del pronóstico">
-        <h3>Pronóstico</h3>
-        <p>
-          Los pronósticos del catálogo v2 todavía no están integrados en esta pantalla. Para
-          consultar un pronóstico ya emitido, usá la sección «Resumen» con el identificador del
-          sensor.
-        </p>
-      </section>
     </div>
   );
 }
