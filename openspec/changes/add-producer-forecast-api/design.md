@@ -27,9 +27,7 @@ disponible en detalle, con traducción comprensible en la futura UI.
 
 ## Compatibilidad y despliegue
 Rutas v2 y almacenamiento separados; los endpoints vigentes y la demo acelerada
-mantienen contratos. No ampliar el controlador demo en este change. Durante
-demo activa, las mutaciones manuales que interfieren con su sensor retornan
-demo_write_locked; consultas siguen permitidas. Registrar metadatos no cambia
+mantienen contratos. No ampliar el controlador demo en este change. Los sensores demo- quedan reservados permanentemente al flujo legacy: emisión, reviews y recalibración v2 retornan demo_write_locked; consultas y catálogo descriptivo siguen permitidos. Registrar metadatos no cambia
 series existentes. No hay migración destructiva ni reescritura de parquet formal.
 Configurar activación explícita de v2; desactivarla conserva todos sus registros.
 No ejecutar train desde inicio del servidor o GET. Preparar rollback de facade
@@ -41,3 +39,9 @@ Tests de contrato con fixtures disponibles/parciales/vacíos/errores, aislamient
 de sensores y catálogo, consistencia tras reinicio, causalidad y regresión legacy.
 Verificar OpenAPI contra ejemplos y pruebas de consumo frontend independientes.
 No declarar CI verde ni tareas completas hasta ejecutarlas en implementación.
+
+
+## Dependencias resueltas el 2026-09-20
+La identidad exacta, transacciones y reserva demo- se rigen por
+[decisiones de emisiones y feedback](../../../docs/design/backend-producer-ui-emission-dependencies.md).
+La reserva permanente reemplaza la comprobacion de demo activa para mutaciones v2.

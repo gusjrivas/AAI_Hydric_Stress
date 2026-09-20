@@ -104,7 +104,7 @@ Tanda:
   y bloquean emisión si impiden verificar compatibilidad.
 - review se define abajo. Identidad estable por sensor+as_of_date+h+contrato;
   target_date=as_of_date+h. No deducir identidad únicamente de target_date.
-Una tanda sin lecturas tiene as_of_date=null y slots con target_date=null,
+Una tanda sin lecturas no se persiste: batch_id=null, revision=0 y as_of_date=null y slots con target_date=null,
 status=unavailable, reason_code=no_readings; no inventar días observables.
 El primario no altera el sensor real al cual pertenece la emisión.
 Completar slots previamente fallidos requiere otra clave, mismo snapshot
@@ -227,3 +227,9 @@ agronómica o externa. El detalle del informe debe poder recuperarse mediante
 GET /sensors/{sensor_id}/assessments/{assessment_reference}, de solo lectura,
 con el mismo aislamiento y política de acceso; desconocido o de otro sensor:404.
 No devolver rutas locales ni permitir acceso arbitrario a archivos.
+
+
+## Dependencias resueltas el 2026-09-20
+La identidad exacta, transacciones y reserva demo- se rigen por
+[decisiones de emisiones y feedback](../../../docs/design/backend-producer-ui-emission-dependencies.md).
+La reserva permanente reemplaza la comprobacion de demo activa para mutaciones v2.

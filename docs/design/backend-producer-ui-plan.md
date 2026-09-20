@@ -71,3 +71,8 @@ están fuera de su sección Requirements. No invalida estos deltas, pero impide
 archivar ese change hasta corregir la estructura canónica sin cambiar semántica.
 Se deja como tarea explícita previa al archivado; no se altera la spec base aquí.
 No se ejecutan tests de aplicación: este commit solo agrega documentación.
+
+## Dependencias de la siguiente entrega
+Identidad y reserva de demo resueltas en
+[decisiones del 2026-09-20](backend-producer-ui-emission-dependencies.md).
+Implementacion y pruebas pendientes; el manifiesto estadistico sigue DRAFT.

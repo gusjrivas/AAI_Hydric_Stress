@@ -3,7 +3,7 @@
 ### Requirement: Revisión operacional desde la fecha objetivo
 Las emisiones v2 MUST admitir revisión desde las 00:00 UTC del día objetivo,
 sin vencimiento posterior y con identidad por emisión. MUST preservar el bloqueo
-de escritura de demo activa y no aceptar relojes del cliente.
+de escritura v2 para sensores reservados demo- en cualquier estado y no aceptar relojes del cliente.
 
 #### Scenario: Revisión tardía
 - **GIVEN** una alerta pendiente de hace tres semanas y un nuevo modelo activo

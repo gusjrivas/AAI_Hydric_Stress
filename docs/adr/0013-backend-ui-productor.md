@@ -48,3 +48,9 @@ El plan y los cuatro changes están en
 El autor aceptó este ADR y los cuatro changes vinculados el 2026-09-19. La
 aceptación habilita su implementación incremental, pero no autoriza experimentos
 formales ni reemplaza los gates metodológicos de cada change.
+
+## Precision operacional del 2026-09-20
+Se especifican identidad sin reemision exitosa y reserva permanente demo- para v2
+en [dependencias](../design/backend-producer-ui-emission-dependencies.md).
+La demo legacy sigue operativa; integrar reviews v2 en ella queda fuera de esta
+entrega. Implementacion y pruebas pendientes; no habilita ajuste ni porcentajes.

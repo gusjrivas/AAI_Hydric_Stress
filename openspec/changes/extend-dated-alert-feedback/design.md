@@ -3,7 +3,7 @@
 ## Identidad y persistencia
 forecast_id identifica sensor, fecha de datos, horizonte y versión de contrato.
 El registro inmutable conserva fecha objetivo, emisión, predicción, score, modelo,
-snapshot y procedencia. Dos emisiones para el mismo día siguen siendo distintas.
+snapshot y procedencia. Dos emisiones con igual target_date son distintas si difieren en as_of_date u horizonte; la misma clave lógica no admite reemisión exitosa.
 La revisión es un evento append-only en almacenamiento v2 separado: review_id,
 request_id, revision, forecast_id, action, observed_label, comment, reviewed_at.
 La fecha de revisión la asigna el servidor. Escritura atómica y bloqueo entre
@@ -15,7 +15,7 @@ calendar_timezone=UTC para explicar la fecha sin convertirla por navegador.
 Antes de esa fecha se rechaza la escritura. Desde entonces no vence, aunque
 haya nuevas emisiones o cambie el modelo. Los pendientes antiguos permanecen
 consultables. No se altera esta regla usando un reloj enviado por el cliente.
-Los bloqueos de escritura de una demo activa siguen vigentes.
+Los sensores del espacio demo- permanecen reservados al flujo legacy en todos sus estados; la regla normativa está en el documento de dependencias enlazado abajo.
 
 confirm registra observed_label igual a la alerta emitida; reject registra su
 complemento binario. Ambos aceptan comentario opcional de hasta 2000 caracteres.
@@ -58,3 +58,9 @@ Reloj controlado: instante anterior a apertura, apertura exacta, fin de día y
 semanas después. Reinicio, peticiones concurrentes, retry, revisión de modelo
 antiguo y dos horizontes con misma fecha objetivo. Probar por separado captura,
 selección de entrenamiento y linaje; ninguna prueba necesita abrir holdouts.
+
+
+## Dependencias resueltas el 2026-09-20
+La identidad exacta, transacciones y reserva demo- se rigen por
+[decisiones de emisiones y feedback](../../../docs/design/backend-producer-ui-emission-dependencies.md).
+La reserva permanente reemplaza la comprobacion de demo activa para mutaciones v2.

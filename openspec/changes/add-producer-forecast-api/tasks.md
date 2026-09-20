@@ -22,3 +22,6 @@
       un manifiesto de calibración congelado, sin entrenar ni evaluar.
 - [ ] 1.13b Exponer evidencia inmutable de assessment con aislamiento por sensor y
       probar los motivos de porcentaje no publicable.
+
+- [ ] 1.14 Implementar identidad y transaccion operacional por sensor segun decisiones del 2026-09-20; probar concurrencia, caidas y replay.
+- [ ] 1.15 Aplicar reserva permanente demo- a mutaciones operacionales v2; probar estados, ausencia de manifiesto y compatibilidad legacy.
