@@ -1,0 +1,77 @@
+{
+  "recorded_at_utc": "2026-09-20T03:38:26.473769+00:00",
+  "actor": "/root",
+  "documentary_checkpoint": "5e10d6aff6f251669ae27f86a18a4d146343e99a",
+  "base": "e669bf8d0034d0776464822d668c34208f0dd412",
+  "purpose": "Verified migration evidence, residual LNX blockers and exact review records. No executable scientific identity created.",
+  "staged_review_before_commit": {
+    "command": "git diff --cached --check",
+    "exit_code": 0,
+    "scope": "23 explicitly staged new migration documentation files",
+    "observation_reference": "root exec chunk55cf77 and preceding chunk8360a9"
+  },
+  "validation": "review-validation-recheck.json: 33 checker + 15 governance tests and formal structural checker PASS; runtime dependencies unavailable",
+  "implementation_snapshot_sha256": "f9356d78bbd1cffe557c7a06a822a007db06ec0b70eb9c399bca9a62c49ba1fe",
+  "commit_does_not_close_change": true,
+  "scientific_execution_authorized": false,
+  "no_push": true,
+  "commands": [
+    {
+      "command": [
+        "git",
+        "show",
+        "--no-patch",
+        "--format=fuller",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "stdout": "commit 5e10d6aff6f251669ae27f86a18a4d146343e99a\nAuthor:     gusjrivas <54255294+gusjrivas@users.noreply.github.com>\nAuthorDate: Sun Sep 20 03:35:48 2026 +0000\nCommit:     gusjrivas <54255294+gusjrivas@users.noreply.github.com>\nCommitDate: Sun Sep 20 03:35:48 2026 +0000\n\n    docs(scientific-closure): record verified Linux input migration and residual LNX blockers\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "e669bf8",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--name-status",
+        "e669bf8",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "stdout": "A\topenspec/scientific-closure/input-migration-linux-2026-09-20/adr-0011-assessment.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/blocker-definitions.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/command-recheck.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/expected-inventory.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/implementation-snapshot.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/mount-check.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/orchestrator.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/provenance-assessment.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/recovery-rehearsal.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/report.md\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/review-checker-cycle0.md\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/review-checker-cycle1.md\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/review-explorer.md\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/review-implementer-clarification.md\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/review-implementer-cycle1.md\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/review-implementer.md\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/review-runtime-metadata.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/review-validation-recheck.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/runtime-image.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/snapshot-v1-superseded.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/source-inventory.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/transfer-manifest.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/validation.json\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "e669bf8",
+        "HEAD",
+        "--",
+        "docs/research",
+        "docs/adr",
+        "docker/experiment-v4",
+        "openspec/scientific-closure/changes.json",
+        "src",
+        "tests",
+        "frontend",
+        "backend"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ]
+}
