@@ -1,0 +1,35 @@
+.producer-picker {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.producer-picker-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 14rem;
+}
+
+.producer-picker-field select {
+  min-height: 44px;
+  font-size: 1rem;
+}
+
+.producer-sensor-tag {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 0.5rem;
+  background: #e8efe4;
+  color: #275f43;
+  font-size: 0.8rem;
+  margin-left: 0.5rem;
+}
+
+.producer-forecast-note {
+  border: 1px solid #dce4d9;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-top: 1.25rem;
+}
