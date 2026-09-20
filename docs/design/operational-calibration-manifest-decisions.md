@@ -1,5 +1,94 @@
 # Decisiones cerradas del manifiesto operacional +1/+2/+3
 
+## Actualizacion 2026-09-21 — correccion del ECE y congelamiento v2
+
+**El congelamiento v1 (2026-09-20, `config/producer-calibration-plan.frozen.json`,
+`content_sha256=0301207e5d750002694a73b3e9313ee2ea6bff58f1081fcd4797c2ef9279cbd1`)
+queda SUSTITUIDO. No usar como manifiesto activo.**
+
+Hallazgo: `uncertainty.method` de v1 calculaba el ECE "solo bins con soporte
+en esa replica" (filtrando por `minimum_bin_count`). Esto contradice
+[`design.md`](../../openspec/changes/add-daily-multihorizon-predictors/design.md):
+"ECE se define como suma de n_b/N por abs(frecuencia_b - probabilidad_media_b)
+sobre los intervalos no vacíos del conjunto evaluado (...) No omitir
+intervalos de poco soporte del cálculo para mejorar la cifra." `support.minimum_bin_count`
+gobierna `coverage` y las afirmaciones individuales por bin, no la suma del
+ECE. v1 no se abrio ni se evaluo con datos reales; el error es puramente de
+especificacion (texto del manifiesto), detectado antes de cualquier ajuste.
+
+Correccion aplicada sobre `config/producer-calibration-plan.draft.json`
+(nueva revision del borrador, no se toco `frozen.json` de v1 ni su
+identidad, que siguen intactos como evidencia historica):
+
+- `uncertainty.method` ya no dice "solo bins con soporte"; el ECE suma
+  ahora sobre todos los bins con al menos 1 observacion del alcance.
+- Se separan tres conceptos con campos propios, para que no vuelvan a
+  confundirse:
+  - `uncertainty.ece_bin_inclusion`: bins incluidos en el ECE (todos los
+    no vacios; el conjunto se fija una unica vez por alcance a partir del
+    conjunto observado completo sin remuestrear, y es identico en las
+    5000 replicas — nunca cambia segun lo que ocurra en una replica
+    particular).
+  - `uncertainty.backed_bin_family`: bins respaldados (>= `minimum_bin_count`)
+    usados para `coverage`, para publicar un porcentaje individual por bin y
+    para el error absoluto sujeto a `epsilon_bin`; tambien fijo por alcance.
+  - `uncertainty.invalid_replicate_rule`: reescrita para que una replica
+    solo se invalide por condiciones estructurales (clase o bloques
+    temporales insuficientes), nunca porque un bin puntual pierda soporte;
+    perder soporte en un bin de `backed_bin_family` excluye unicamente el
+    termino de ese bin en esa replica, sin invalidar la replica ni su ECE
+    ni sacar al bin de la familia predeclarada. Esto resuelve la
+    ambiguedad entre "excluir replicas invalidas" (regla de soporte,
+    ciega al resultado) y "no descartar replicas o intervalos
+    desfavorables" (prohibicion de cherry-picking): son compatibles
+    porque actuan en momentos y sobre criterios distintos, y la familia
+    de comparacion no cambia silenciosamente entre replicas.
+- `multiplicity.method` referencia ahora explicitamente ambas familias
+  fijas (`ece_bin_inclusion` para ECE, `backed_bin_family` para el error
+  por bin) en vez de una unica nocion ambigua de "bins con soporte".
+
+No se modificaron tolerancias (`epsilon_ece=0.10`, `epsilon_bin=0.15`),
+particiones, soporte (10/10/4), cobertura (0.80), ventanas de estabilidad,
+semillas, dataset ni hiperparametros: solo el texto que define el ECE y la
+regla de invalidez de replicas.
+
+Pruebas agregadas en `tests/test_calibration_manifest.py`:
+`test_frozen_v1_manifest_is_preserved_untouched_but_superseded` (guarda el
+hash de v1 y confirma que conserva el texto con el error, como evidencia
+historica), `test_draft_separates_ece_inclusion_backed_bins_and_replicate_invalidity`
+(verifica que el borrador ya no dice "solo bins con soporte" y sí declara
+las tres piezas separadas) y
+`test_synthetic_ece_over_all_nonempty_bins_differs_from_support_filtered_ece`
+(fixture sintetico que muestra numericamente cuanto subestima el ECE la
+regla incorrecta: con un bin no vacio pero sin soporte muy mal calibrado,
+el ECE correcto es mayor que 0 y el filtrado por soporte da 0). No se
+implemento ni se ejecuto codigo real de calculo de ECE (esa
+implementacion, tarea 10 de `tasks.md`, sigue pendiente); estas son
+pruebas sobre la especificacion del manifiesto y sobre la definicion
+matematica, con datos sinteticos.
+
+`inspect_calibration_manifest` sobre el borrador corregido (contenedor
+`python:3.12-slim`) devuelve `issues=()`. Se congelo una nueva revision:
+[`config/producer-calibration-plan.frozen.v2.json`](../../config/producer-calibration-plan.frozen.v2.json)
+(+ `producer-calibration-plan.frozen.v2.json.identity.json`,
+`content_sha256=0c3bbe8a9364ac26c40da3f603fc2e14cf6c97af20e48cd533d9361ea9dca918`,
+`byte_length=11248`, `frozen_at=2026-09-21T01:00:00Z`).
+`verify_frozen_calibration_manifest` confirma su identidad y
+`require_ready_for_fit` pasa. `producer-calibration-plan.draft.json` sigue
+siendo el antecedente vivo (status=draft), ahora con la correccion
+incorporada.
+
+**Referencia activa:** desde esta actualizacion, el manifiesto congelado
+vigente es `producer-calibration-plan.frozen.v2.json`, no
+`producer-calibration-plan.frozen.json` (v1, sustituido y preservado solo
+como evidencia).
+
+No se entreno, calibro ni evaluo ningun modelo; no se abrio el tramo de
+evaluacion ni holdouts; no se modificaron `controlled_daily_v3`,
+protocolos v3/v4, specs canonicas, hipotesis, alcance ni arquitectura.
+Trazabilidad: HU4/HU6, capacidad `predictive-modeling`, CRISP-DM
+modelado/evaluacion de desarrollo.
+
 ## Actualizacion 2026-09-20 (2) — congelamiento tecnico
 
 Se resolvieron los cuatro pendientes tecnicos dejados abiertos por la
