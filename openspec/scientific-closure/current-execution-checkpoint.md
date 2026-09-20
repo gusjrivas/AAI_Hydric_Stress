@@ -95,6 +95,22 @@ instruye recomputar los hashes en lugar de confiar en un número. RA-02 a RA-05
 también quedaron aplicados. Informe exacto en
 [`review-audit-2.md`](closure-verification-2026-09-20/review-audit-2.md).
 
+**Tercer ciclo de auditoría independiente y decisión de detenerse.** Declaró
+cerrados los cinco hallazgos del ciclo anterior, reconfirmó todos los
+invariantes y el veredicto de sesión, y encontró una **cuarta instancia de la
+misma clase de defecto**, ya sin severidad material: tres registros decían
+«tres lectores» cuando eran cuatro, y la cifra la había falsado el propio commit
+auditado al agregar el cuarto informe. El auditor caracterizó el mecanismo como
+**estructural y no descuidado** —cada ciclo agrega un lector y un conjunto de
+hallazgos, lo que falsa cualquier cardinalidad que el ciclo anterior escribió
+sobre esos mismos conjuntos— y **recomendó expresamente detener la iteración**:
+un cuarto ciclo agregaría un quinto lector y produciría una quinta instancia.
+Se siguió esa recomendación, que además coincide con la regla de no perseguir
+indefinidamente una causa que persiste tras tres ciclos. El remedio se
+generalizó —sustituir recuentos por instrucciones de recomputación o acotarlos a
+un snapshot nombrado— y la clase quedó registrada como **KL-01**. Informe exacto
+en [`review-audit-3.md`](closure-verification-2026-09-20/review-audit-3.md).
+
 **Lo que ningún ciclo de corrección cambió:** los tres insumos externos, la
 ausencia de campaña, el ledger sin inicializar y el holdout cerrado. Tres
 rondas de revisión independiente mejoraron el **registro**; ninguna produjo ni

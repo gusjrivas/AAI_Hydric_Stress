@@ -3,12 +3,23 @@
   "record": "findings_and_resolution",
   "campaign_id": "closure-verification-2026-09-20",
   "change_id": "sc-02-runtime-readiness",
-  "snapshot_reviewed": "b9fefbf36037ca259f4b17b68642d330bc489d39",
+  "snapshot_reviewed": {
+    "note": "This file resolves findings raised against SEVERAL snapshots, so a single scalar was wrong (finding FA-04). Each review names the snapshot it covered; the authoritative mapping is below and is also derivable from each review-*.md header.",
+    "b9fefbf36037ca259f4b17b68642d330bc489d39": "evidence checker and adversarial critic (C-01..C-20, D-1..D-4)",
+    "5b40a55ef62f19cfa9125aa29146e53976661692": "first independent final audit (AUD-F-01..AUD-F-06)",
+    "4940ffccbca34a2970a0eb4b54dcb7af03b2b62d": "independent re-audit (RA-01..RA-05)",
+    "88304765076cf51a21c059bcef0807c00609868d": "third and final independent audit cycle (FA-01..FA-05)"
+  },
   "sources": {
-    "critic": "review-critic.md (exact report preserved; 10 material, 7 minor, 3 observations)",
-    "evidence_checker": "review-evidence-checker.md (exact report preserved; 10 verified, 2 discrepancies, 1 not verifiable, 2 notes)",
-    "orchestrator": "independent-verification.json (findings prefixed E-)",
-    "auditor": "review-audit.md (exact report preserved; verdict BLOCKED, suspensive; 2 material, 2 minor, 2 observations; 22 of 24 reader findings ruled fully closed)"
+    "derivation_rule": "Do not trust this list over the filesystem. The readers of this campaign are exactly the files matching closure-verification-2026-09-20/review-*.md; each carries its role, its substitute runtime, the snapshot it reviewed and its verdict line. Enumerate them rather than relying on a count stated in prose (findings FA-01, FA-02).",
+    "reports_present_when_this_field_was_last_written": [
+      "review-evidence-checker.md (evidence checker, snapshot b9fefbf; 10 verified, 2 discrepancies, 1 not verifiable, 2 notes)",
+      "review-critic.md (adversarial critic, snapshot b9fefbf; CRITIC_MATERIAL_FINDINGS(10) plus 7 minor and 3 observations)",
+      "review-audit.md (final audit, snapshot 5b40a55; AUDIT_VERDICT: BLOCKED; AUD-F-01..AUD-F-06)",
+      "review-audit-2.md (re-audit, snapshot 4940ffc; REAUDIT_VERDICT: BLOCKED; RA-01..RA-05)",
+      "review-audit-3.md (third and final cycle, snapshot 8830476; FINAL_AUDIT_VERDICT: BLOCKED; FA-01..FA-05)"
+    ],
+    "orchestrator_findings": "independent-verification.json, prefixed E-"
   },
   "principle": "Reader reports are preserved verbatim and are never edited to match a later state. Where a reader report contains a statement this session proved false, the report stays as written and the correction is recorded HERE. That applies in particular to review-audit.json and review-audit-2.json of the previous campaign, both of which assert 'no push'.",
   "findings": [
@@ -130,7 +141,7 @@
       "severity": "MINOR",
       "claim_challenged": "The SC-GOV-007 row omits the single-writer exception that agent-capabilities.json declares for traceability.md itself",
       "accepted": true,
-      "resolution": "APPLIED. The exception is now stated in the row, together with the fact that in this session the orchestrator was sole writer and the three readers wrote nothing."
+      "resolution": "APPLIED. The exception is now stated in the row, together with the fact that in this session the orchestrator was sole writer of every edited file and no independent reader wrote anything."
     },
     {
       "id": "C-17",
@@ -335,33 +346,119 @@
       "claim_challenged": "Two records used the present tense for things that had not happened: checkpoints.json said the push 'is performed', and C-10's resolution said the final audit covered 'the snapshot this session publishes' when it covered an intermediate one.",
       "accepted": true,
       "resolution": "APPLIED. Both are restated in the correct tense, and C-10 now names the exact snapshots each review covered."
+    },
+    {
+      "id": "FA-01",
+      "severity": "MINOR",
+      "source": "auditor (third cycle, snapshot 8830476)",
+      "claim_challenged": "Three records said 'three readers'; there are four. The string was true at 4940ffc and falsified by the commit 8830476 itself, which added the fourth report.",
+      "accepted": true,
+      "resolution": "APPLIED, and generalised. The cardinality is removed rather than corrected: the affected fields now instruct the reader to enumerate review-*.md. Correcting the number would only have reset the same clock."
+    },
+    {
+      "id": "FA-02",
+      "severity": "MINOR",
+      "source": "auditor (third cycle)",
+      "claim_challenged": "The sources index omitted the re-auditor whose findings the commit was written to close.",
+      "accepted": true,
+      "resolution": "APPLIED. sources is now a derivation rule plus a snapshot-scoped list."
+    },
+    {
+      "id": "FA-03",
+      "severity": "OBSERVATION",
+      "source": "auditor (third cycle)",
+      "claim_challenged": "audit_cycle recorded only cycle 1 although this file carried cycle-2 findings.",
+      "accepted": true,
+      "resolution": "APPLIED. All three cycles recorded, with a derivation rule."
+    },
+    {
+      "id": "FA-04",
+      "severity": "OBSERVATION",
+      "source": "auditor (third cycle)",
+      "claim_challenged": "snapshot_reviewed was a single scalar while the file resolves findings from several snapshots.",
+      "accepted": true,
+      "resolution": "APPLIED. Replaced by an explicit snapshot-to-review mapping."
+    },
+    {
+      "id": "FA-05",
+      "severity": "OBSERVATION",
+      "source": "auditor (third cycle)",
+      "claim_challenged": "The previous campaign's manifest was edited by this session and its post-edit hash is recorded in no manifest.",
+      "accepted": true,
+      "resolution": "APPLIED. It is now an entry of this campaign's manifest. Integrity was never lost - the file is git-tracked - but the omission was the same species as AUD-F-03."
     }
   ],
   "counts": {
     "counting_rule": "One entry per findings[] element, tallied by its severity field verbatim. Reproducible with: python -c \"import json,collections;d=json.load(open(<this file>));print(collections.Counter(f.get('severity','UNSPECIFIED') for f in d['findings']))\"",
-    "total_findings": 41,
+    "total_findings": 46,
     "by_severity": {
       "LOW": 1,
       "MATERIAL": 15,
       "MATERIAL_FOR_REPRODUCIBILITY": 1,
-      "MINOR": 11,
+      "MINOR": 13,
       "NOTE": 1,
       "NOT_VERIFIABLE": 1,
-      "OBSERVATION": 11
+      "OBSERVATION": 14
     }
   },
-  "disagreements_with_readers": "None. Every material finding from all three readers was accepted and applied. C-20 was downgraded by the critic itself. No reader finding was overruled, including the two that were findings against the orchestrator's own work in this session.",
+  "disagreements_with_readers": "None, across every review of this campaign. Every material finding from every independent reader was accepted and applied, including the four raised against the orchestrator's own work in this session (AUD-F-01, AUD-F-02, RA-01, and the FA- set). C-20 was downgraded by the critic itself. No reader finding was overruled. Deliberately stated without a reader count: a count written here is falsified by the next cycle, which is finding FA-01. Enumerate review-*.md instead.",
   "convergence_note": "C-04 and D-1 are the same defect found independently by two readers in separate contexts. That convergence is recorded because it raises confidence in both reports, and because the defect had already been raised once before as audit finding A-04 and had recurred.",
   "audit_cycle": {
+    "derivation_rule": "One cycle per review-audit*.md under this directory; each names its snapshot and its verdict line. Listed here for convenience, not as the source of truth (finding FA-03).",
     "cycle_1": {
-      "snapshot": "5b40a55ef62f19cfa9125aa29146e53976661692",
+      "snapshot": "5b40a55",
       "verdict": "BLOCKED (suspensive)",
-      "material_findings": [
+      "material": [
         "AUD-F-01",
         "AUD-F-02"
       ],
-      "disposition": "Returned to the implementer, corrected, re-tested, re-submitted - the disposition the auditor itself prescribed and the one operations.md requires."
+      "disposition": "returned, corrected, re-submitted"
     },
-    "rule": "A change closes only on an auditor PASS over the snapshot actually reviewed. Cycle 1 did not produce that, so nothing was closed on its strength."
+    "cycle_2": {
+      "snapshot": "4940ffc",
+      "verdict": "BLOCKED (suspensive)",
+      "material": [
+        "RA-01"
+      ],
+      "other": [
+        "RA-02",
+        "RA-03",
+        "RA-04",
+        "RA-05"
+      ],
+      "disposition": "returned, corrected, re-submitted; the auditor ruled all six cycle-1 findings CLOSED"
+    },
+    "cycle_3": {
+      "snapshot": "8830476",
+      "verdict": "BLOCKED (suspensive)",
+      "material": [],
+      "other": [
+        "FA-01",
+        "FA-02",
+        "FA-03",
+        "FA-04",
+        "FA-05"
+      ],
+      "disposition": "corrected, and the recurring class recorded as a known limitation rather than chased further; the auditor ruled all five cycle-2 findings CLOSED and recommended stopping"
+    },
+    "rule": "A change closes only on an auditor PASS over the snapshot actually reviewed. No cycle produced that, so no change was closed on the strength of any of them."
+  },
+  "recurring_defect_class_recorded_as_a_known_limitation": {
+    "id": "KL-01",
+    "raised_by": "the third-cycle auditor, and accepted",
+    "class": "A record that states a cardinality or asserts an artefact, written during a process whose next step changes that cardinality or creates that artefact.",
+    "instances": [
+      "C-04 and D-1 (checkpoint said one unlisted commit; two)",
+      "AUD-F-01 (matrix credited an audit artefact that did not exist, and pre-stated its verdict)",
+      "RA-01 (three records said three superseded hashes; six)",
+      "RA-02 and RA-05 (present tense for things that had not happened)",
+      "FA-01 and FA-02 (three readers; four)"
+    ],
+    "severity_trend": "Strictly decreasing: MATERIAL in the normative matrix, then MATERIAL in the evidence-integrity layer, then MINOR in narrative and index fields.",
+    "mechanism": "Structural, not careless. Each correction cycle adds a reader and a finding set, which falsifies any cardinality the previous cycle wrote about those same sets. A fourth cycle would add a fifth reader and predictably produce a fifth instance.",
+    "remedy_applied": "Replace stated cardinalities with derivation instructions, or scope each one to a named snapshot. Applied to the manifests (always_current_check and self_reference_limit), to sources, audit_cycle, snapshot_reviewed, disagreements_with_readers, and to the SC-GOV-007 row.",
+    "decision": "STOP ITERATING and record the class. This follows the third auditor's own recommendation and the session instruction's rule that a cause persisting across three correction cycles is documented as a stable condition rather than pursued indefinitely.",
+    "honest_residual": "The remedy is applied where the class was found. It is not proven absent elsewhere in the record. A later reader should recompute any number that matters rather than trust it, and should treat an unverified count in this campaign as an assertion, not a fact.",
+    "what_it_does_not_touch": "No instance of this class ever touched custody, leakage, code identity, a requirement status, or any scientific claim. All four independent readers stated this independently."
   }
 }

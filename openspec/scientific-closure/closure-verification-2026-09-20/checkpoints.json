@@ -54,9 +54,17 @@
       "audited": "Re-audited. Verdict BLOCKED (suspensive): all six prior findings CLOSED, one new material finding RA-01 plus RA-02..RA-05."
     },
     {
-      "sha": "pending at the time this record was written; it is the commit that publishes this file",
+      "sha": "88304765076cf51a21c059bcef0807c00609868d",
       "subject": "fix(science): close re-audit findings RA-01..RA-05",
-      "purpose": "Correct a false count in the evidence-integrity layer and four wording defects, preserve the re-auditor's exact report, and remove the failure mode by instructing recomputation instead of stating a number that later edits invalidate.",
+      "files": 8,
+      "diff_reviewed": true,
+      "validations_before_commit": "checker exit 0; governance+checker tests 48 passed with 14 subtests; ruff and black exit 0; OpenSpec --strict 11/11; manifest 30/30 recomputed; git diff --check exit 0",
+      "audited": "Third and final audit cycle. Verdict BLOCKED (suspensive): all five cycle-2 findings CLOSED, five new findings FA-01..FA-05, none material, and an explicit recommendation to stop iterating."
+    },
+    {
+      "sha": "pending at the time this record was written; it is the commit that publishes this file",
+      "subject": "fix(science): close FA-01..FA-05 and record the recurring record defect as KL-01",
+      "purpose": "Generalise the remedy the third auditor recommended - replace stated cardinalities with derivation instructions or scope them to a named snapshot - and stop iterating, recording the class as a known limitation instead of chasing a fifth instance.",
       "diff_reviewed": true,
       "self_reference": "By the rule stated above, this record cannot carry its own publishing SHA. The authoritative list is: git log --oneline b9fefbf..HEAD"
     }
@@ -104,6 +112,21 @@
       ],
       "action": "returned to implementer, corrected, re-tested, re-submitted",
       "note": "The re-auditor ruled all six findings of cycle 1 CLOSED and confirmed the session-outcome ruling, while declining to sign a PASS on the preparation record because of RA-01."
+    },
+    {
+      "cycle": 3,
+      "snapshot": "88304765076cf51a21c059bcef0807c00609868d",
+      "verdict": "BLOCKED (suspensive)",
+      "material": [],
+      "other": [
+        "FA-01",
+        "FA-02",
+        "FA-03",
+        "FA-04",
+        "FA-05"
+      ],
+      "action": "corrected, and the recurring class recorded as KL-01 rather than pursued further, on the auditor's own recommendation and under the session rule that a cause persisting across three cycles is documented as a stable condition"
     }
-  ]
+  ],
+  "stopping_rule_applied": "Three correction cycles were run. Each closed every finding of the previous one and produced a new instance of the same structural class at lower severity. The third auditor recommended stopping and recording the class; that is what was done (KL-01 in findings-resolution.json). The three grounds that actually block closure are external and are untouched by any amount of further documentary correction."
 }

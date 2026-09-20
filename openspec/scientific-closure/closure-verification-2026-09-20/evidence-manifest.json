@@ -2,8 +2,8 @@
   "schema_version": "1.0",
   "record": "evidence_manifest",
   "campaign_id": "closure-verification-2026-09-20",
-  "generated_at_utc": "2026-09-20T18:55:00Z",
-  "commit_at_generation": "4940ffccbca34a2970a0eb4b54dcb7af03b2b62d",
+  "generated_at_utc": "2026-09-20T19:10:00Z",
+  "commit_at_generation": "88304765076cf51a21c059bcef0807c00609868d",
   "branch": "feat/scientific-closure",
   "tree_clean_at_generation": false,
   "tree_clean_note": "False by construction: this manifest is generated over a working tree that already contains the corrections it hashes, immediately before the commit that publishes them. Every hash listed is the state that commit publishes. The previous version of this manifest declared true, which was accurate for its own generation moment and is not restated here.",
@@ -57,8 +57,8 @@
     },
     {
       "path": "openspec/scientific-closure/closure-verification-2026-09-20/checkpoints.json",
-      "sha256": "b8fdf86dcf150e5fbdf5395894c9839d5ab78455588cadd4b93ab3e277f91942",
-      "bytes": 6911,
+      "sha256": "654310f60b56d63c71261910b9d889741f947641f31b0659124b4ad057d7857c",
+      "bytes": 8501,
       "type": "technical_or_governance"
     },
     {
@@ -69,8 +69,8 @@
     },
     {
       "path": "openspec/scientific-closure/closure-verification-2026-09-20/findings-resolution.json",
-      "sha256": "11a3e732fc7464ca2ecca0a477fd72e0812cd46960daa22581c486ec8e773d83",
-      "bytes": 27749,
+      "sha256": "4abf313922dc4811252391c06f2319ae951ae8c47c1a03654ec54d6739cd2257",
+      "bytes": 34212,
       "type": "technical_or_governance"
     },
     {
@@ -83,6 +83,12 @@
       "path": "openspec/scientific-closure/closure-verification-2026-09-20/review-audit-2.md",
       "sha256": "5f7955d077db5208113878d7acaf87a4c1c5bb5780947e9418931226edfe4c44",
       "bytes": 20848,
+      "type": "technical_or_governance"
+    },
+    {
+      "path": "openspec/scientific-closure/closure-verification-2026-09-20/review-audit-3.md",
+      "sha256": "1a90343fdda0a5711245ded8d3774949a3891038e96fc19f5dc5e01bf36d00ac",
+      "bytes": 15192,
       "type": "technical_or_governance"
     },
     {
@@ -117,8 +123,8 @@
     },
     {
       "path": "openspec/scientific-closure/current-execution-checkpoint.md",
-      "sha256": "ff8f86004c645f83ccab49812d895541b28013c93fbbf70b6e8476b11073e347",
-      "bytes": 19933,
+      "sha256": "490a316d67cfbfc52f7849b695d2cc7c86e31fdf86ab561ab56aec1a803ac438",
+      "bytes": 21127,
       "type": "technical_or_governance"
     },
     {
@@ -140,6 +146,12 @@
       "type": "technical_or_governance"
     },
     {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/evidence-manifest.json",
+      "sha256": "a939cd8c93f93c29179cd703f29641b43219dc00d04243784453aa89cafcfed3",
+      "bytes": 13718,
+      "type": "technical_or_governance"
+    },
+    {
       "path": "openspec/scientific-closure/requirements.json",
       "sha256": "e12563e42d3a09de0e4cc393bf927a76924375622dca13431103c752d125c19e",
       "bytes": 16009,
@@ -153,8 +165,8 @@
     },
     {
       "path": "openspec/scientific-closure/traceability.md",
-      "sha256": "9ede6136a9cdc24c44a469f30fd87135a0930c9f495843e4cd9839f1ffd747d9",
-      "bytes": 29178,
+      "sha256": "13c66a5d605dee7cdaad09c4453983347ba9c694e3fbb0f4412924b510a45e12",
+      "bytes": 30752,
       "type": "technical_or_governance"
     },
     {
@@ -201,12 +213,13 @@
     }
   ],
   "count": {
-    "governance_files": 28,
+    "governance_files": 30,
     "scientific_inputs": 2,
     "scientific_result_artifacts": 0
   },
   "note": "Every entry here is technical or governance evidence. None of it is evidence about the scientific hypothesis.",
   "self_reference_limit": "This manifest cannot list or hash itself, and cannot name the commit that publishes it, because that commit does not exist yet. 'commit_at_generation' is the HEAD at generation time; the publishing commit is its immediate child, recoverable with: git log --oneline <commit_at_generation>..HEAD . Do not trust any count stated in prose anywhere in this campaign over a recomputation: sha256 every declared path and compare. That instruction exists because a stated count was found false twice in this session (C-04, RA-01).",
   "relationship_to_the_previous_manifest": "readiness-resolution-linux-2026-09-20/evidence-manifest.json remains the record of the PREVIOUS campaign at commit 8e31f78 and was not rewritten. SIX of its entries no longer match disk because this session edited those files: traceability.md, decisions.md, risks.md, inventory.md, current-execution-checkpoint.md and docs/research/scientific-closure-synthesis-2026-09-20.md. The first version of this field and of the annotation on that manifest both said THREE; the re-audit of snapshot 4940ffc proved the count false (finding RA-01) and it is corrected here. No hash there was altered and no entry removed - the first auditor verified 31 entries before and after, with no changed hashes and one added key. To check rather than trust, recompute every declared sha256 in that file against disk.",
-  "uncorroborated_hash_declared": "implementation-snapshot.json declares supersedes.initial_snapshot_sha256 = 39f3d55e... which matches no object in the git store after re-hashing every blob (finding D-2). It is self-attested and is named here rather than counted among verified hashes."
+  "uncorroborated_hash_declared": "implementation-snapshot.json declares supersedes.initial_snapshot_sha256 = 39f3d55e... which matches no object in the git store after re-hashing every blob (finding D-2). It is self-attested and is named here rather than counted among verified hashes.",
+  "covers_the_previous_campaign_manifest": "Finding FA-05: readiness-resolution-linux-2026-09-20/evidence-manifest.json was annotated by this session and its post-annotation hash was recorded nowhere. It is now an entry above."
 }
