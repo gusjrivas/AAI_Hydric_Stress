@@ -1,0 +1,70 @@
+{
+  "actor": "/root",
+  "scope": "structural checks only, no scientific data",
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TMPDIR": "/home/gus/codex-runs/scientific-closure-20260919/migration-20260920/tmp"
+  },
+  "checks": [
+    {
+      "command": [
+        "python3",
+        "--version"
+      ],
+      "started_at_utc": "2026-09-20T03:28:52.497223+00:00",
+      "finished_at_utc": "2026-09-20T03:28:52.498820+00:00",
+      "exit_code": 0,
+      "stdout": "Python 3.14.4\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/check_scientific_closure.py",
+        "--root",
+        "."
+      ],
+      "started_at_utc": "2026-09-20T03:28:52.498836+00:00",
+      "finished_at_utc": "2026-09-20T03:28:52.559752+00:00",
+      "exit_code": 0,
+      "stdout": "scientific-closure checker: PASS (estructura; runtime no verificado)\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_scientific_closure_checker.py",
+        "-v"
+      ],
+      "started_at_utc": "2026-09-20T03:28:52.559783+00:00",
+      "finished_at_utc": "2026-09-20T03:28:53.386317+00:00",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "test_b_cannot_advance_without_a_pass (test_scientific_closure_checker.CheckerTests.test_b_cannot_advance_without_a_pass) ... ok\ntest_contradictory_scientific_approval_fails (test_scientific_closure_checker.CheckerTests.test_contradictory_scientific_approval_fails) ... ok\ntest_dependency_cycle_fails (test_scientific_closure_checker.CheckerTests.test_dependency_cycle_fails) ... ok\ntest_disabled_multiagent_fails (test_scientific_closure_checker.CheckerTests.test_disabled_multiagent_fails) ... ok\ntest_duplicate_requirement_fails (test_scientific_closure_checker.CheckerTests.test_duplicate_requirement_fails) ... ok\ntest_invalid_agent_toml_fails (test_scientific_closure_checker.CheckerTests.test_invalid_agent_toml_fails) ... ok\ntest_invalid_reference_fails (test_scientific_closure_checker.CheckerTests.test_invalid_reference_fails) ... ok\ntest_json_wrong_types_fail_without_exception (test_scientific_closure_checker.CheckerTests.test_json_wrong_types_fail_without_exception) ... ok\ntest_matrix_mismatch_fails (test_scientific_closure_checker.CheckerTests.test_matrix_mismatch_fails) ... ok\ntest_missing_acceptance_fails (test_scientific_closure_checker.CheckerTests.test_missing_acceptance_fails) ... ok\ntest_missing_agent_fails (test_scientific_closure_checker.CheckerTests.test_missing_agent_fails) ... ok\ntest_missing_dependency_fails (test_scientific_closure_checker.CheckerTests.test_missing_dependency_fails) ... ok\ntest_missing_stage_gate_fails (test_scientific_closure_checker.CheckerTests.test_missing_stage_gate_fails) ... ok\ntest_repository_passes (test_scientific_closure_checker.CheckerTests.test_repository_passes) ... ok\ntest_runtime_evidence_config_divergence_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_config_divergence_fails) ... ok\ntest_runtime_evidence_configuration_digest_and_replay_fail (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_configuration_digest_and_replay_fail) ... ok\ntest_runtime_evidence_duplicate_role_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_duplicate_role_fails) ... ok\ntest_runtime_evidence_duplicate_session_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_duplicate_session_fails) ... ok\ntest_runtime_evidence_effective_divergence_without_substitution_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_effective_divergence_without_substitution_fails) ... ok\ntest_runtime_evidence_explicit_model_substitution_passes (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_explicit_model_substitution_passes) ... ok\ntest_runtime_evidence_inconsistent_substitution_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_inconsistent_substitution_fails) ... ok\ntest_runtime_evidence_load_not_loaded_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_load_not_loaded_fails) ... ok\ntest_runtime_evidence_malformed_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_malformed_fails) ... ok\ntest_runtime_evidence_missing_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_missing_fails) ... ok\ntest_runtime_evidence_missing_forged_and_escape_output_fail (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_missing_forged_and_escape_output_fail) ... ok\ntest_runtime_evidence_missing_role_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_missing_role_fails) ... ok\ntest_runtime_evidence_non_string_role_fails_without_exception (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_non_string_role_fails_without_exception) ... ok\ntest_runtime_evidence_nonzero_exit_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_nonzero_exit_fails) ... ok\ntest_runtime_evidence_passes_api_and_cli (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_passes_api_and_cli) ... ok\ntest_runtime_evidence_sandbox_not_enforced_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_sandbox_not_enforced_fails) ... ok\ntest_runtime_evidence_schema_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_schema_fails) ... ok\ntest_title_norm_and_check_must_match_spec (test_scientific_closure_checker.CheckerTests.test_title_norm_and_check_must_match_spec) ... ok\ntest_unknown_status_fails (test_scientific_closure_checker.CheckerTests.test_unknown_status_fails) ... ok\n\n----------------------------------------------------------------------\nRan 33 tests in 0.770s\n\nOK\n"
+    },
+    {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_scientific_closure_governance.py",
+        "-v"
+      ],
+      "started_at_utc": "2026-09-20T03:28:53.386355+00:00",
+      "finished_at_utc": "2026-09-20T03:28:53.444383+00:00",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "test_accepts_documented_approval_without_scientific_permission (test_scientific_closure_governance.GovernanceTests.test_accepts_documented_approval_without_scientific_permission) ... ok\ntest_agents_toml_fields_models_and_permissions (test_scientific_closure_governance.GovernanceTests.test_agents_toml_fields_models_and_permissions) ... ok\ntest_auxiliaries_are_conditional (test_scientific_closure_governance.GovernanceTests.test_auxiliaries_are_conditional) ... ok\ntest_change_contracts_and_no_authorization (test_scientific_closure_governance.GovernanceTests.test_change_contracts_and_no_authorization) ... ok\ntest_dependencies_and_terminal_gate (test_scientific_closure_governance.GovernanceTests.test_dependencies_and_terminal_gate) ... ok\ntest_document_links_resolve (test_scientific_closure_governance.GovernanceTests.test_document_links_resolve) ... ok\ntest_evidence_paths_and_safe_resume (test_scientific_closure_governance.GovernanceTests.test_evidence_paths_and_safe_resume) ... ok\ntest_existing_and_planned_paths (test_scientific_closure_governance.GovernanceTests.test_existing_and_planned_paths) ... ok\ntest_not_applicable_is_not_a_shortcut_for_core_changes (test_scientific_closure_governance.GovernanceTests.test_not_applicable_is_not_a_shortcut_for_core_changes) ... ok\ntest_pass_requires_independent_audit_evidence (test_scientific_closure_governance.GovernanceTests.test_pass_requires_independent_audit_evidence) ... ok\ntest_project_toml_concurrency (test_scientific_closure_governance.GovernanceTests.test_project_toml_concurrency) ... ok\ntest_rejects_fake_approval_and_non_object_events (test_scientific_closure_governance.GovernanceTests.test_rejects_fake_approval_and_non_object_events) ... ok\ntest_rejects_illegal_or_incomplete_event_chains (test_scientific_closure_governance.GovernanceTests.test_rejects_illegal_or_incomplete_event_chains) ... ok\ntest_requirement_ids_and_fields (test_scientific_closure_governance.GovernanceTests.test_requirement_ids_and_fields) ... ok\ntest_spec_matrix_tasks_are_consistent (test_scientific_closure_governance.GovernanceTests.test_spec_matrix_tasks_are_consistent) ... ok\n\n----------------------------------------------------------------------\nRan 15 tests in 0.006s\n\nOK\n"
+    }
+  ]
+}

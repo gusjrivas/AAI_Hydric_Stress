@@ -1,0 +1,113 @@
+{
+  "observed_at_utc": "2026-09-20T03:31:15.753327+00:00",
+  "actor": "/root",
+  "scope": "Metadata only from migrated technical environment record; no dataset values",
+  "checks": [
+    {
+      "path": "docker/experiment-v4/constraints.txt",
+      "ref": "214735e42ee04f018156cd630591e798aadd8bf3",
+      "git_blob_sha256": "aa05b7b17ee4677839e724af7a768f532ba669514fb06ffe23f525cddd1efd6b",
+      "lf_sha256": "aa05b7b17ee4677839e724af7a768f532ba669514fb06ffe23f525cddd1efd6b",
+      "crlf_transformation_sha256": "d47cdb8c2e70998a95f431cdc6c0e84359aa72736f4399d113a206623b631554",
+      "historical_expected_sha256": "d47cdb8c2e70998a95f431cdc6c0e84359aa72736f4399d113a206623b631554",
+      "note": "In-memory line-ending comparison only; no source changed; equality of transformed hash is evidence of line-ending compatibility, not live image verification"
+    },
+    {
+      "path": "docker/experiment-v4/constraints.txt",
+      "ref": "HEAD",
+      "git_blob_sha256": "aa05b7b17ee4677839e724af7a768f532ba669514fb06ffe23f525cddd1efd6b",
+      "lf_sha256": "aa05b7b17ee4677839e724af7a768f532ba669514fb06ffe23f525cddd1efd6b",
+      "crlf_transformation_sha256": "d47cdb8c2e70998a95f431cdc6c0e84359aa72736f4399d113a206623b631554",
+      "historical_expected_sha256": "d47cdb8c2e70998a95f431cdc6c0e84359aa72736f4399d113a206623b631554",
+      "note": "In-memory line-ending comparison only; no source changed; equality of transformed hash is evidence of line-ending compatibility, not live image verification"
+    },
+    {
+      "path": "docs/research/controlled-daily-v4-external-pergamino-manifest.yaml",
+      "ref": "214735e42ee04f018156cd630591e798aadd8bf3",
+      "git_blob_sha256": "c07a9175b27518521828b526f12c7357095581c651650777419516e47058ba83",
+      "lf_sha256": "c07a9175b27518521828b526f12c7357095581c651650777419516e47058ba83",
+      "crlf_transformation_sha256": "f2d6f7722093c3cdeb7ffe4eedfc0f5dacfeb62653b093c19f6ba17aeeebef8f",
+      "historical_expected_sha256": "c07a9175b27518521828b526f12c7357095581c651650777419516e47058ba83",
+      "note": "In-memory line-ending comparison only; no source changed; equality of transformed hash is evidence of line-ending compatibility, not live image verification"
+    },
+    {
+      "path": "docs/research/controlled-daily-v4-external-pergamino-manifest.yaml",
+      "ref": "HEAD",
+      "git_blob_sha256": "c07a9175b27518521828b526f12c7357095581c651650777419516e47058ba83",
+      "lf_sha256": "c07a9175b27518521828b526f12c7357095581c651650777419516e47058ba83",
+      "crlf_transformation_sha256": "f2d6f7722093c3cdeb7ffe4eedfc0f5dacfeb62653b093c19f6ba17aeeebef8f",
+      "historical_expected_sha256": "c07a9175b27518521828b526f12c7357095581c651650777419516e47058ba83",
+      "note": "In-memory line-ending comparison only; no source changed; equality of transformed hash is evidence of line-ending compatibility, not live image verification"
+    }
+  ],
+  "metadata_file": {
+    "path": "/home/gus/scientific-closure-inputs/migration-20260920/AAI_Hydric_Stress_scientific_runtime/validation/preexecution-environment.json",
+    "sha256": "03aa0d2871d815b19496c4da5018a44ccdb0a72c6605de23f70a11713b88e6cd",
+    "historical_claims": {
+      "status": "TECHNICAL_PREEXECUTION_ONLY",
+      "code_identity": {
+        "available": true,
+        "source": "build_metadata_file",
+        "commit": "214735e42ee04f018156cd630591e798aadd8bf3",
+        "dirty": false,
+        "reason": null
+      },
+      "image_id": "sha256:55bc923efac009b1b6de45acc634774b7910d4829fdfd0b2c963dd5748b297af",
+      "captured_at_utc": "2026-09-18T04:27:58.910388+00:00",
+      "environment": {
+        "python_version": "3.11.16",
+        "python_implementation": "CPython",
+        "python_executable": "/usr/local/bin/python",
+        "platform": "Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.41",
+        "machine": "x86_64",
+        "processor_architecture": "64bit",
+        "packages": {
+          "numpy": "2.4.6",
+          "pandas": "3.0.5",
+          "scipy": "1.17.1",
+          "scikit-learn": "1.9.0",
+          "pyarrow": "25.0.1",
+          "joblib": "1.6.0",
+          "threadpoolctl": "3.6.0"
+        }
+      },
+      "constraints_sha256": "d47cdb8c2e70998a95f431cdc6c0e84359aa72736f4399d113a206623b631554",
+      "protocol_manifest_sha256": "c07a9175b27518521828b526f12c7357095581c651650777419516e47058ba83",
+      "feature_contract": {
+        "version": "pergamino_features.v1",
+        "model_features": [
+          "soil_moisture",
+          "RH2M",
+          "ALLSKY_SFC_SW_DWN",
+          "lag1",
+          "lag2",
+          "lag3",
+          "roll_mean_3",
+          "roll_mean_7"
+        ],
+        "include_current": true,
+        "temporal_variables": [
+          "soil_moisture"
+        ],
+        "lags": [
+          1,
+          2,
+          3
+        ],
+        "rolling_windows": [
+          3,
+          7
+        ],
+        "rolling_includes_current": true,
+        "horizon_days": 3,
+        "issuance": "after_both_daily_products_available",
+        "day_alignment": "local_calendar_approximation_ERA5_BuenosAires_NASA_LST"
+      },
+      "raw_data_mounted": false,
+      "ledger_initialized": false,
+      "scientific_experiments_executed": false,
+      "build_seconds_with_cached_dependencies": 5.9290215
+    },
+    "limitation": "Historical metadata declaration, not live image inspection or custody certification"
+  }
+}

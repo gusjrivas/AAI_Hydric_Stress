@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "checked_at_utc": null,
+  "checked_at_status": "UNKNOWN_NOT_CAPTURED_DURING_INITIAL_CHECK",
+  "approved_image_id": "sha256:55bc923efac009b1b6de45acc634774b7910d4829fdfd0b2c963dd5748b297af",
+  "documented_executable_commit": "214735e42ee04f018156cd630591e798aadd8bf3",
+  "linux_docker": {
+    "command_resolution": "/mnt/c/Program Files/Docker/Docker/resources/bin/docker",
+    "native_linux_cli_available": false,
+    "socket": "/var/run/docker.sock",
+    "socket_available": false,
+    "docker_version_exit": 1,
+    "docker_info_exit": 1,
+    "image_inspect_exit": 1,
+    "exact_error": "The command 'docker' could not be found in this WSL 2 distro. We recommend to activate the WSL integration in Docker Desktop settings.",
+    "image_accessible_and_verified": false
+  },
+  "image_export_required": {
+    "status": "REQUIRED_FROM_A_HOST_THAT_CAN_INSPECT_THE_APPROVED_IMAGE",
+    "artifacts": [
+      "docker image inspect sha256:55bc923efac009b1b6de45acc634774b7910d4829fdfd0b2c963dd5748b297af output as JSON",
+      "docker save of exactly sha256:55bc923efac009b1b6de45acc634774b7910d4829fdfd0b2c963dd5748b297af to an immutable tar archive",
+      "SHA-256 and byte size of the tar archive, plus exporter host/time/responsible evidence",
+      "post-import docker image inspect proving Id equals the approved digest"
+    ],
+    "warning": "A rebuild from Dockerfile is not the historical approved image and cannot satisfy this item. No export was attempted through Windows executables."
+  },
+  "reproducible_tools": {
+    "constraints_path": "docker/experiment-v4/constraints.txt",
+    "constraints_sha256": "aa05b7b17ee4677839e724af7a768f532ba669514fb06ffe23f525cddd1efd6b",
+    "dockerfile_path": "docker/experiment-v4/Dockerfile",
+    "dockerfile_sha256": "8e9f8ab262bc42f5b2e8060a6294b711af79f6449f60cd3c4f0409872c04c27a",
+    "python": "3.11 base image fixed by digest in Dockerfile",
+    "ruff": "0.16.6 fixed in constraints",
+    "black": "26.5.1 fixed in constraints",
+    "host_ruff_available": false,
+    "host_black_available": false,
+    "global_install_performed": false
+  },
+  "timestamped_recheck": "command-recheck.json",
+  "historical_metadata_review": "review-runtime-metadata.json is a root-owned review of the migrated preexecution-environment.json and pip-freeze.txt. It confirms only historical declarations for image, commit and Python; it does not verify the live image.",
+  "result": "BLOCKED_IMAGE_UNAVAILABLE"
+}

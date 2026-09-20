@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "checked_at_utc": null,
+  "checked_at_status": "UNKNOWN; 2026-09-20T03:21:52Z was recorded later and was not the exact command time",
+  "reference": "refs/remotes/origin/main",
+  "origin_main_after_fetch": "9fcbfd9f4dd4860a07f7e99d5b16d849ac81c4af",
+  "documented_executable_commit": "214735e42ee04f018156cd630591e798aadd8bf3",
+  "checks": [
+    {"command":"git merge-base --is-ancestor 214735e42ee04f018156cd630591e798aadd8bf3 refs/remotes/origin/main","exit_code":1,"meaning":"documented executable commit is not an ancestor of current origin/main"},
+    {"command":"git diff --quiet 214735e42ee04f018156cd630591e798aadd8bf3 refs/remotes/origin/main -- docs/research/controlled-daily-v4-external-pergamino-protocol.md","exit_code":1,"meaning":"protocol differs"},
+    {"command":"git diff --numstat 214735e42ee04f018156cd630591e798aadd8bf3 refs/remotes/origin/main -- docs/research/controlled-daily-v4-external-pergamino-protocol.md","exit_code":0,"stdout":"2\t42\tdocs/research/controlled-daily-v4-external-pergamino-protocol.md"},
+    {"command":"git diff --numstat refs/remotes/origin/main HEAD -- docs/research/controlled-daily-v4-external-pergamino-protocol.md","exit_code":0,"stdout":"42\t2\tdocs/research/controlled-daily-v4-external-pergamino-protocol.md","meaning":"current branch protocol has 42 additions and 2 deletions relative to current origin/main"}
+  ],
+  "condition_4": "BLOCKED",
+  "conclusion": "The current remote reference does not establish incorporation of the frozen ADR/protocol state required before execution. Resolving the divergence requires a methodological/integration decision that this migration cannot infer.",
+  "repository_actions": "fetch only; no merge, rebase, main modification, push, PR, tag or release"
+}

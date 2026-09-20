@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "performed_at_utc": null,
+  "performed_at_status": "UNKNOWN_NOT_CAPTURED_DURING_INITIAL_CHECKS",
+  "environment": {
+    "python": "3.14.4 host",
+    "tmpdir": "/home/gus/codex-runs/scientific-closure-20260919/migration-20260920/tmp",
+    "python_dont_write_bytecode": true,
+    "global_installs": false
+  },
+  "checks": [
+    {"command":"python3 scripts/check_scientific_closure.py --root .","exit_code":0,"output":"scientific-closure checker: PASS (estructura; runtime no verificado)","classification":"PASS_STRUCTURAL_ONLY"},
+    {"command":"python3 -m unittest discover -s tests -p test_scientific_closure_governance.py -v","exit_code":0,"tests_run":15,"result":"OK"},
+    {"command":"PYTHONPATH=src python3 -m unittest discover -s tests -p test_controlled_daily_v4_environment_validation.py -v","exit_code":1,"result":"BLOCKED_MISSING_DEPENDENCY","output":"ModuleNotFoundError: No module named 'numpy'"},
+    {"command":"PYTHONPATH=src python3 -m unittest discover -s tests -p test_controlled_daily_v4_reproducibility_artifacts.py -v","exit_code":1,"result":"BLOCKED_MISSING_DEPENDENCY","output":"ModuleNotFoundError: No module named 'pytest'"},
+    {"command":"PYTHONPATH=src python3 -m unittest discover -s tests -p test_controlled_daily_v4_stage_c_recovery.py -v","exit_code":1,"result":"BLOCKED_MISSING_DEPENDENCY","output":"ModuleNotFoundError: No module named 'numpy'"},
+    {"command":"python3 -m ruff check --no-cache scripts/check_scientific_closure.py tests/test_scientific_closure_checker.py","exit_code":1,"result":"BLOCKED_TOOL_ABSENT","output":"/usr/bin/python3: No module named ruff"},
+    {"command":"BLACK_CACHE_DIR=$TMPDIR/black python3 -m black --check scripts/check_scientific_closure.py tests/test_scientific_closure_checker.py","exit_code":1,"result":"BLOCKED_TOOL_ABSENT","output":"/usr/bin/python3: No module named black"},
+    {"command":"git diff --check -- openspec/scientific-closure/input-migration-linux-2026-09-20","exit_code":0,"result":"LIMITED_PASS","limitation":"The directory was untracked, so git diff --check did not evaluate its contents. This exit code is not evidence that the untracked files were checked; the orchestrator must validate the staged snapshot."}
+  ],
+  "copy_checks": {"files":6,"source_primary_cmp_exit_0":6,"source_backup_cmp_exit_0":6,"recovery_fixture_cmp_exit":0},
+  "overall": "PARTIAL",
+  "orchestrator_exact_recheck": "review-validation-recheck.json records the root-owned exact checker 33 and governance 15 outputs; this file does not restate them as implementer evidence.",
+  "reason": "Structural checker, governance tests, byte identity and fixture recovery pass. Scientific runtime tests, lint, format and image inspection remain unavailable in the fixed environment. The initial git diff --check did not cover untracked files."
+}

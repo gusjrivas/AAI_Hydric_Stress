@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "created_at_utc": null,
+  "created_at_status": "UNKNOWN; 2026-09-20T03:21:52Z was a later date command, not the exact creation instant",
+  "inspection_policy": "Metadata, byte count and SHA-256 only; no CSV parsing and no scientific value inspection.",
+  "datasets": [
+    {
+      "source_path": "/mnt/c/Repo/AAI_Hydric_Stress_external_data/raw/pergamino_era5land_soil_hourly_2015_2025.csv",
+      "size_bytes": 3954003,
+      "filesystem_mtime": "2026-09-08 03:36:18.744321300 +0000",
+      "filesystem_mtime_is_acquisition_date": false,
+      "sha256": "318edffb89c64d5f500e35b5530e6064cb02f68b89bd28a71262c2ebb01f485f",
+      "documented_expected_sha256": "318edffb89c64d5f500e35b5530e6064cb02f68b89bd28a71262c2ebb01f485f",
+      "expected_size_bytes": 3954003,
+      "match": true,
+      "role_in_protocol": ["A-development","B-2023","C-2024-2025-closed"],
+      "access_condition": "source mounted read-only; content not parsed"
+    },
+    {
+      "source_path": "/mnt/c/Repo/AAI_Hydric_Stress_external_data/raw/pergamino_nasa_power_daily_2015_2025.csv",
+      "size_bytes": 127568,
+      "filesystem_mtime": "2026-09-08 03:36:38.247366500 +0000",
+      "filesystem_mtime_is_acquisition_date": false,
+      "sha256": "415b4f71abb78e419b765110f4a42c3f32587b204d12897812df9573c5c2202b",
+      "documented_expected_sha256": "415b4f71abb78e419b765110f4a42c3f32587b204d12897812df9573c5c2202b",
+      "expected_size_bytes": 127568,
+      "match": true,
+      "role_in_protocol": ["A-development","B-2023","C-2024-2025-closed"],
+      "access_condition": "source mounted read-only; content not parsed"
+    }
+  ],
+  "runtime": {
+    "root": "/mnt/c/Repo/AAI_Hydric_Stress_scientific_runtime",
+    "directories": [
+      {"path":"evidence","filesystem_mtime":"2026-09-18 03:44:59.956629900 +0000","observed_entries_maxdepth4":0,"interpretation":"Presence and emptiness observed; no inference about historical custody or prior contents."},
+      {"path":"ledger","filesystem_mtime":"2026-09-18 03:44:59.975896600 +0000","observed_entries_maxdepth4":0,"interpretation":"Presence and emptiness observed; no ledger initialized or copied; no inference about historical custody."},
+      {"path":"backups","filesystem_mtime":"2026-09-18 03:44:59.975896600 +0000","observed_entries_maxdepth4":0,"interpretation":"Presence and emptiness observed; no inference about historical backups."},
+      {"path":"validation","filesystem_mtime":"2026-09-18 04:29:00.936793000 +0000","observed_entries_maxdepth4":4}
+    ],
+    "validation_files": [
+      {"name":"v4-tests.xml","size_bytes":73874,"filesystem_mtime":"2026-09-18 04:27:49.652333800 +0000","sha256":"0ee57b78da281d660b32d6f4032a8a16ab6a8e76278574d3be30270370eac196"},
+      {"name":"image-acceptance-tests.xml","size_bytes":8317,"filesystem_mtime":"2026-09-18 04:29:00.941213200 +0000","sha256":"a67e2b465cde165b1dfd5fb37d61db05a65572accfbe8a66fbb82c6f0c07f34d"},
+      {"name":"preexecution-environment.json","size_bytes":1850,"filesystem_mtime":"2026-09-18 04:27:58.912927800 +0000","sha256":"03aa0d2871d815b19496c4da5018a44ccdb0a72c6605de23f70a11713b88e6cd"},
+      {"name":"pip-freeze.txt","size_bytes":426,"filesystem_mtime":"2026-09-18 04:27:59.316019600 +0000","sha256":"d0f0b9129c8229ce0ea281e02cf0066bbb00d369e511737fc07547956a387667"}
+    ],
+    "content_handling": "Validation files were hashed and copied opaquely. Evidence/ledger/backups were not read as scientific content and were not copied."
+  }
+}

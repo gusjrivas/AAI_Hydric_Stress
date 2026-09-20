@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "sources": {
+    "lnx": "openspec/scientific-closure/readiness-linux-2026-09-19/report.md:71-76",
+    "audit": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json:findings"
+  },
+  "lnx": [
+    {"id":"LNX-01","definition":"No raíces raw/runtime originales encontradas bajo /home/gus por explorador; tampoco existen las rutas hermanas previstas bajo /home/gus/work.","resolution_input":"CSV originales con hashes verificables y traslado documentado del runtime/custodia original a Linux. No alcanza una descarga nueva ni directorios vacíos."},
+    {"id":"LNX-02","definition":"Docker y /var/run/docker.sock ausentes; Ruff/Black en imagen fijada fallan antes de iniciar (exit 127). No hay npx para OpenSpec CLI 1.13.1 (exit 127).","resolution_input":"Entorno Linux reproducible operativo e imagen accesible/verificada; herramientas de validación."},
+    {"id":"LNX-03","definition":"Sandbox efectivo de cinco roles no acreditado; prueba CLI parcial no resuelve CRIT-SUB-01.","resolution_input":"Runtime que imponga permisos por rol y entregue evidencia verificable vinculada a cada sesión."},
+    {"id":"LNX-04","definition":"origin/main local=f7c4ef72ebee9f745bd80deadcd8ad69d9183274; 214735e no es ancestro; diff del protocolo vigente frente a esa referencia no vacío. main local no existe.","resolution_input":"Resolver formalmente condición 4 de ADR-0011 sin que este agente haga merge o modifique main. No se presume excepción ni se afirma conocer el remoto actualizado."},
+    {"id":"LNX-05","definition":"Manifiesto: acquisition_date=null y licencia NASA PENDING_CONFIRMATION. Fuentes oficiales históricamente referenciadas no prueban adquisición efectiva.","resolution_input":"Evidencia documental aplicable o decisión explícita de admisibilidad/descarte conforme ADR-0011 y SC-GOV-017. No se inventan fechas/URLs/licencias."},
+    {"id":"LNX-06","definition":"Segunda copia independiente y ensayo de recuperación no acreditados; runtime original ausente.","resolution_input":"Destino independiente verificable y ensayo con fixtures, más reconciliación de custodia original."}
+  ],
+  "audit_findings": [
+    {"id":"AUD-READ01","severity":"critical","requirements":["SC-GOV-009","SC-GOV-013","SC-GOV-014"],"observed":"Las raíces Linux originales de runtime y raw están ausentes.","expected":"Runtime y datos originales con hashes y custodia verificables.","effect":"No puede certificarse el estado histórico de holdouts, ledger ni primer intento."},
+    {"id":"AUD-READ02","severity":"critical","requirements":["SC-GOV-009","SC-GOV-020"],"observed":"Docker, socket Docker, Ruff, Black y npx no están disponibles.","expected":"Imagen reproducible inspeccionable, dependencias verificadas, lint, formato y OpenSpec estricto ejecutables.","effect":"La imagen y el commit ejecutable referenciados no pueden certificarse."},
+    {"id":"AUD-READ03","severity":"critical","requirements":["SC-GOV-006"],"observed":"El sandbox efectivo de los cinco roles no está acreditado; las sesiones heredaron danger-full-access.","expected":"Aislamiento efectivo verificable por sesión y rol.","effect":"CRIT-SUB-01 permanece abierto; el probe EROFS aislado no acredita todos los canales."},
+    {"id":"AUD-READ04","severity":"high","requirements":["SC-GOV-017"],"observed":"Adquisición efectiva, versión histórica y licencia aplicable de NASA POWER siguen desconocidas.","expected":"Evidencia documental aplicable o decisión explícita de admisibilidad.","effect":"La procedencia no permite abrir la campaña."},
+    {"id":"AUD-READ05","severity":"high","requirements":["SC-GOV-018"],"observed":"No hay segunda copia independiente, backup reconciliado ni ensayo de restauración acreditado.","expected":"Copia independiente, hashes y ensayo con fixtures.","effect":"sc-02 y A permanecen bloqueados."},
+    {"id":"AUD-READ06","severity":"critical","requirements":["ADR-0011-condition-4"],"observed":"El commit ejecutable 214735e42ee04f018156cd630591e798aadd8bf3 no es ancestro de origin/main local y el protocolo difiere.","expected":"ADR y protocolo incorporados en main antes de ejecutar.","effect":"La precondición normativa de A no está satisfecha."},
+    {"id":"AUD-READ07","severity":"high","requirements":["SC-GOV-002","SC-GOV-006","SC-GOV-007","SC-GOV-009","SC-GOV-017","SC-GOV-018","SC-GOV-019","SC-GOV-020"],"observed":"sc-02-runtime-readiness sigue PLANNED y carece de sus artefactos auditables.","expected":"sc-02 aprobado, implementado, revisado y con PASS independiente.","effect":"G1 no está satisfecho."},
+    {"id":"AUD-READ08","severity":"high","requirements":["SC-GOV-020"],"observed":"CRIT-CHK-01..04 no pueden cerrarse porque Ruff y Black no fueron ejecutados en el entorno reproducible y falta auditoría completa del checker.","expected":"Lint y formato reproducibles, crítica resuelta y auditoría PASS del alcance completo.","effect":"El checker está estructuralmente validado, pero su cierre formal permanece bloqueado."}
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "frozen_at_utc": "2026-09-20T03:27:00Z",
+  "git_base": "e669bf8d0034d0776464822d668c34208f0dd412",
+  "writer": {
+    "role": "scientific_implementer",
+    "requested_model": "gpt-5.6-sol",
+    "requested_reasoning_effort": "medium",
+    "effective_backend_model": "NOT_INTROSPECTABLE_NOT_ACCREDITED",
+    "nominal_sandbox": "workspace-write",
+    "effective_inherited_sandbox": "danger-full-access",
+    "scope_enforced_by_conduct": true
+  },
+  "files": [
+    {"path":"adr-0011-assessment.json","sha256":"cb07d6b2dc7f046987b6d30f47347e28ec4d67aa470cf61dd4e63194b0122122"},
+    {"path":"blocker-definitions.json","sha256":"2a94fd7e2b2f793234d3a7bb0d346d036850fa775988ac0e623c0ad36e3d14ba"},
+    {"path":"expected-inventory.json","sha256":"897f9905ccbc0865278357201327f33cbf5d5a3ab92938092fb16cdcc13e442d"},
+    {"path":"mount-check.json","sha256":"331e7e11b6a91685d1e799fbcca1cb561e27ec091120515329ce2b52020ed448"},
+    {"path":"provenance-assessment.json","sha256":"f4891b4b7b76cbfe26ced7670b3de2adc9bf42382b94d8e681f98e7803fc8168"},
+    {"path":"recovery-rehearsal.json","sha256":"2e4cb05a028df8a18502730f241adba61c76ab0e8b44c7703f43f8544c8db84e"},
+    {"path":"report.md","sha256":"233165227261a01e199feecbd4f56254cb804540cdbc784bb6927318e67e3874"},
+    {"path":"runtime-image.json","sha256":"c899fabded7f4e6a6d56ca8f003efc7d1abf1975420526202e692fcd7e7fc7e0"},
+    {"path":"source-inventory.json","sha256":"f5f38d0a6aac31db91a557803854da7129c4a8d6e1d48d31d69b1f79bb018097"},
+    {"path":"transfer-manifest.json","sha256":"99742e4db60cc103924bd847c79a68f3df5d6cee8be12d2a194685fa5a909d8b"},
+    {"path":"validation.json","sha256":"138f7eb05231d9b2a6994472a032524276c3e46664040c6db2a3f2afd22cf27c"}
+  ],
+  "excluded_from_snapshot": ["implementation-snapshot.json","orchestrator.json","review-*","audit-*"],
+  "external_copy_identity": "transfer-manifest.json",
+  "verification": {"json_parse":"PASS","transfer_recheck":"PASS 12/12","git_diff_check":"PASS"},
+  "writer_released": true,
+  "change_closed": false,
+  "overall": "INPUT_MIGRATION_PARTIAL",
+  "superseded": true,
+  "supersession_reason": "Checker found estimated timestamps represented as observed, a normalized probe stderr, and an overbroad interpretation of git diff --check on untracked files. Preserved byte-for-byte content of the initial implementation snapshot plus only these supersession metadata fields."
+}
