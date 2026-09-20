@@ -8,17 +8,17 @@ no abre datos y no crea artefactos de campaña.
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
 import hashlib
 import json
 import os
 import re
 import stat
 import sys
-import tomllib
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import tomllib
 
 ALLOWED_STATES = {
     "PLANNED",
@@ -62,9 +62,7 @@ RUNTIME_SCHEMA_VERSION = "runtime-agent-capabilities/v1"
 MAX_RUNTIME_EVIDENCE_BYTES = 1024 * 1024
 HEX64_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 HEX40_RE = re.compile(r"^[0-9a-fA-F]{40}$")
-UTC_TIMESTAMP_RE = re.compile(
-    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$"
-)
+UTC_TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$")
 SCIENTIFIC_EXECUTION_CHANGES = {
     "sc-03-stage-a",
     "sc-04-stage-b",
@@ -257,9 +255,15 @@ class ClosureChecker:
                 elif dep not in mapping:
                     self.error("DEPS", f"{cid}: dependencia inexistente {dep}")
             change_status = change.get("status")
-            if isinstance(change_status, str) and change_status in {"IN_PROGRESS", "REVIEW", "PASS", "FAIL"}:
+            if isinstance(change_status, str) and change_status in {
+                "IN_PROGRESS",
+                "REVIEW",
+                "PASS",
+                "FAIL",
+            }:
                 unmet = [
-                    dep for dep in deps
+                    dep
+                    for dep in deps
                     if isinstance(dep, str) and mapping.get(dep, {}).get("status") != "PASS"
                 ]
                 if unmet:
@@ -349,11 +353,14 @@ class ClosureChecker:
                 self.error("STATE", f"{cid}: evento no es objeto")
                 continue
             invalid = [
-                key for key in ("from", "to", "actor", "reason", "evidence")
+                key
+                for key in ("from", "to", "actor", "reason", "evidence")
                 if not self._is_nonempty_string(event.get(key))
             ]
             if invalid:
-                self.error("STATE", f"{cid}: campos de evento deben ser strings no vacíos: {invalid}")
+                self.error(
+                    "STATE", f"{cid}: campos de evento deben ser strings no vacíos: {invalid}"
+                )
                 continue
             self._check_timestamp(event.get("timestamp_utc"), f"{cid}.state_events.timestamp_utc")
             if event["from"] != previous or event["to"] not in EDGES.get(previous, set()):
@@ -367,7 +374,9 @@ class ClosureChecker:
         approval = change.get("approval")
         if not isinstance(approved, bool) or not isinstance(scientific, bool):
             self.error("APPROVAL", f"{cid}: flags de aprobación deben ser booleanos")
-        approval_needed = status in {"APPROVED", "IN_PROGRESS", "REVIEW", "PASS"} or approved or scientific
+        approval_needed = (
+            status in {"APPROVED", "IN_PROGRESS", "REVIEW", "PASS"} or approved or scientific
+        )
         if approval_needed:
             if not isinstance(approval, dict):
                 self.error("APPROVAL", f"{cid}: aprobación incompleta")
@@ -375,7 +384,9 @@ class ClosureChecker:
                 for key in ("actor", "scope", "source"):
                     if not self._is_nonempty_string(approval.get(key)):
                         self.error("APPROVAL", f"{cid}: approval.{key} debe ser string no vacío")
-                self._check_timestamp(approval.get("timestamp_utc"), f"{cid}.approval.timestamp_utc")
+                self._check_timestamp(
+                    approval.get("timestamp_utc"), f"{cid}.approval.timestamp_utc"
+                )
         elif approval is not None:
             self.error("APPROVAL", f"{cid}: aprobación contradictoria sin flags/estado")
         if status in {"APPROVED", "IN_PROGRESS", "REVIEW", "PASS"} and approved is not True:
@@ -390,8 +401,15 @@ class ClosureChecker:
             self.error("STATE", f"{cid}: solo complementos pueden ser NOT_APPLICABLE")
         audit = change.get("audit")
         if status in {"PASS", "NOT_APPLICABLE"} or terminal_seen:
-            if not isinstance(audit, dict) or audit.get("verdict") != "PASS" or not self._is_nonempty_string(audit.get("snapshot")) or not self._is_nonempty_string(audit.get("evidence")):
-                self.error("AUDIT", f"{cid}: PASS/NOT_APPLICABLE requiere auditoría PASS identificada")
+            if (
+                not isinstance(audit, dict)
+                or audit.get("verdict") != "PASS"
+                or not self._is_nonempty_string(audit.get("snapshot"))
+                or not self._is_nonempty_string(audit.get("evidence"))
+            ):
+                self.error(
+                    "AUDIT", f"{cid}: PASS/NOT_APPLICABLE requiere auditoría PASS identificada"
+                )
 
         elif audit is not None and not isinstance(audit, dict):
             self.error("AUDIT", f"{cid}: audit debe ser objeto o null")
@@ -428,7 +446,10 @@ class ClosureChecker:
                 continue
             if name in observed:
                 self.error("AGENT", f"agente duplicado {name}")
-            if not str(payload.get("description", "")).strip() or not str(payload.get("developer_instructions", "")).strip():
+            if (
+                not str(payload.get("description", "")).strip()
+                or not str(payload.get("developer_instructions", "")).strip()
+            ):
                 self.error("AGENT", f"{path.name}: description/instructions faltantes")
             observed[name] = (
                 payload.get("model"),
@@ -493,7 +514,10 @@ class ClosureChecker:
             return
         if len(raw) > MAX_RUNTIME_EVIDENCE_BYTES:
             self.error("RUNTIME-EVIDENCE", f"{location}.output_path: excede el límite de 1 MiB")
-        elif isinstance(expected_hash, str) and hashlib.sha256(raw).hexdigest() != expected_hash.lower():
+        elif (
+            isinstance(expected_hash, str)
+            and hashlib.sha256(raw).hexdigest() != expected_hash.lower()
+        ):
             self.error("RUNTIME-EVIDENCE", f"{location}.output_sha256: no coincide con el sidecar")
 
     def _check_observation(self, value: Any, location: str) -> None:
@@ -545,7 +569,13 @@ class ClosureChecker:
         payload = self._read_runtime_evidence()
         if payload is None:
             return
-        expected_top = {"schema_version", "collected_at_utc", "configuration_sha256", "collector", "agents"}
+        expected_top = {
+            "schema_version",
+            "collected_at_utc",
+            "configuration_sha256",
+            "collector",
+            "agents",
+        }
         allowed_top = expected_top | {"repository_commit"}
         if not expected_top.issubset(payload) or not set(payload).issubset(allowed_top):
             self.error("SCHEMA", f"runtime evidence: campos esperados={sorted(expected_top)}")
@@ -559,8 +589,14 @@ class ClosureChecker:
             self.error("RUNTIME-EVIDENCE", f"configuration_sha256: no se pudo calcular: {exc}")
         else:
             reported_configuration = payload.get("configuration_sha256")
-            if isinstance(reported_configuration, str) and reported_configuration.lower() != actual_configuration:
-                self.error("RUNTIME-EVIDENCE", "configuration_sha256 no coincide con la configuración actual")
+            if (
+                isinstance(reported_configuration, str)
+                and reported_configuration.lower() != actual_configuration
+            ):
+                self.error(
+                    "RUNTIME-EVIDENCE",
+                    "configuration_sha256 no coincide con la configuración actual",
+                )
         repository_commit = payload.get("repository_commit")
         if repository_commit is not None:
             if not isinstance(repository_commit, str) or not HEX40_RE.fullmatch(repository_commit):
@@ -571,13 +607,22 @@ class ClosureChecker:
         if not isinstance(collector, dict):
             self.error("SCHEMA", "collector: debe ser un objeto")
         else:
-            expected_collector = {"session_id", "command", "exit_code", "output_path", "output_sha256"}
+            expected_collector = {
+                "session_id",
+                "command",
+                "exit_code",
+                "output_path",
+                "output_sha256",
+            }
             if set(collector) != expected_collector:
                 self.error("SCHEMA", f"collector: campos esperados={sorted(expected_collector)}")
             if not self._is_nonempty_string(collector.get("session_id")):
                 self.error("SCHEMA", "collector.session_id: debe ser string no vacío")
             self._check_observation(
-                {key: collector.get(key) for key in ("command", "exit_code", "output_path", "output_sha256")},
+                {
+                    key: collector.get(key)
+                    for key in ("command", "exit_code", "output_path", "output_sha256")
+                },
                 "collector",
             )
 
@@ -613,8 +658,14 @@ class ClosureChecker:
             if required is None:
                 continue
             expected_agent = {
-                "name", "configured", "effective", "session_id", "observed_at_utc",
-                "load_status", "sandbox_status", "observation",
+                "name",
+                "configured",
+                "effective",
+                "session_id",
+                "observed_at_utc",
+                "load_status",
+                "sandbox_status",
+                "observation",
             }
             allowed_agent = expected_agent | {"substitution"}
             if not expected_agent.issubset(agent) or not set(agent).issubset(allowed_agent):
@@ -647,20 +698,28 @@ class ClosureChecker:
                 if not self._is_nonempty_string(effective.get(key)):
                     self.error("EFFECTIVE", f"{location}.effective.{key}: debe ser string no vacío")
             if effective.get("sandbox_mode") != expected_config["sandbox_mode"]:
-                self.error("SANDBOX", f"{location}.effective.sandbox_mode: debe coincidir con configured")
+                self.error(
+                    "SANDBOX", f"{location}.effective.sandbox_mode: debe coincidir con configured"
+                )
 
             changed = any(
-                effective.get(key) != expected_config[key]
-                for key in ("model", "reasoning_effort")
+                effective.get(key) != expected_config[key] for key in ("model", "reasoning_effort")
             )
             substitution = agent.get("substitution")
             if changed:
                 expected_substitution = {
-                    "requested_model", "requested_reasoning_effort", "effective_model",
-                    "effective_reasoning_effort", "reason", "source",
+                    "requested_model",
+                    "requested_reasoning_effort",
+                    "effective_model",
+                    "effective_reasoning_effort",
+                    "reason",
+                    "source",
                 }
                 if not isinstance(substitution, dict) or set(substitution) != expected_substitution:
-                    self.error("SUBSTITUTION", f"{location}: divergencia efectiva requiere substitution completa")
+                    self.error(
+                        "SUBSTITUTION",
+                        f"{location}: divergencia efectiva requiere substitution completa",
+                    )
                 else:
                     expected_values = {
                         "requested_model": expected_config["model"],
@@ -668,11 +727,18 @@ class ClosureChecker:
                         "effective_model": effective.get("model"),
                         "effective_reasoning_effort": effective.get("reasoning_effort"),
                     }
-                    if any(substitution.get(key) != value for key, value in expected_values.items()):
-                        self.error("SUBSTITUTION", f"{location}.substitution: valores inconsistentes")
+                    if any(
+                        substitution.get(key) != value for key, value in expected_values.items()
+                    ):
+                        self.error(
+                            "SUBSTITUTION", f"{location}.substitution: valores inconsistentes"
+                        )
                     for key in ("reason", "source"):
                         if not self._is_nonempty_string(substitution.get(key)):
-                            self.error("SUBSTITUTION", f"{location}.substitution.{key}: debe ser string no vacío")
+                            self.error(
+                                "SUBSTITUTION",
+                                f"{location}.substitution.{key}: debe ser string no vacío",
+                            )
             elif substitution is not None:
                 self.error("SUBSTITUTION", f"{location}: substitution sin divergencia efectiva")
 
@@ -742,7 +808,8 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print(
             "scientific-closure checker: PASS "
-            "(runtime con formato/consistencia verificados; no autoriza ejecución ni acredita readiness)"
+            "(runtime con formato/consistencia verificados; "
+            "no autoriza ejecución ni acredita readiness)"
         )
     return 0
 

@@ -6,13 +6,12 @@ import copy
 import hashlib
 import importlib.util
 import json
-from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/check_scientific_closure.py"
@@ -54,7 +53,9 @@ class CheckerTests(unittest.TestCase):
 
     @staticmethod
     def save(root: Path, relative: str, payload: dict) -> None:
-        (root / relative).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        (root / relative).write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
     def runtime_evidence(self) -> dict:
         agents = []
@@ -265,13 +266,41 @@ class CheckerTests(unittest.TestCase):
 
     def test_json_wrong_types_fail_without_exception(self):
         mutations = (
-            ("openspec/scientific-closure/requirements.json", lambda p: p["requirements"][0].__setitem__("id", []), "REQ-ID"),
-            ("openspec/scientific-closure/changes.json", lambda p: p["changes"][0].__setitem__("deps", None), "DEPS"),
-            ("openspec/scientific-closure/changes.json", lambda p: p["changes"][0].__setitem__("deps", [{}]), "DEPS"),
-            ("openspec/scientific-closure/changes.json", lambda p: p["changes"][0].__setitem__("status", []), "STATE"),
-            ("openspec/scientific-closure/changes.json", lambda p: p["changes"][0].__setitem__("state_events", ["truthy"]), "STATE"),
-            ("openspec/scientific-closure/changes.json", lambda p: p["changes"][0].__setitem__("approval", "truthy"), "APPROVAL"),
-            ("openspec/scientific-closure/changes.json", lambda p: p["changes"][0].__setitem__("audit", "truthy"), "AUDIT"),
+            (
+                "openspec/scientific-closure/requirements.json",
+                lambda p: p["requirements"][0].__setitem__("id", []),
+                "REQ-ID",
+            ),
+            (
+                "openspec/scientific-closure/changes.json",
+                lambda p: p["changes"][0].__setitem__("deps", None),
+                "DEPS",
+            ),
+            (
+                "openspec/scientific-closure/changes.json",
+                lambda p: p["changes"][0].__setitem__("deps", [{}]),
+                "DEPS",
+            ),
+            (
+                "openspec/scientific-closure/changes.json",
+                lambda p: p["changes"][0].__setitem__("status", []),
+                "STATE",
+            ),
+            (
+                "openspec/scientific-closure/changes.json",
+                lambda p: p["changes"][0].__setitem__("state_events", ["truthy"]),
+                "STATE",
+            ),
+            (
+                "openspec/scientific-closure/changes.json",
+                lambda p: p["changes"][0].__setitem__("approval", "truthy"),
+                "APPROVAL",
+            ),
+            (
+                "openspec/scientific-closure/changes.json",
+                lambda p: p["changes"][0].__setitem__("audit", "truthy"),
+                "AUDIT",
+            ),
         )
         for relative, mutate, code in mutations:
             with self.subTest(relative=relative, code=code):
@@ -307,7 +336,10 @@ class CheckerTests(unittest.TestCase):
     def test_matrix_mismatch_fails(self):
         root = self.make_fixture()
         path = root / "openspec/scientific-closure/traceability.md"
-        path.write_text(path.read_text(encoding="utf-8").replace("| SC-GOV-001 |", "| SC-GOV-999 |", 1), encoding="utf-8")
+        path.write_text(
+            path.read_text(encoding="utf-8").replace("| SC-GOV-001 |", "| SC-GOV-999 |", 1),
+            encoding="utf-8",
+        )
         self.assert_error(root, "MATRIX")
 
     def test_missing_dependency_fails(self):
@@ -345,10 +377,29 @@ class CheckerTests(unittest.TestCase):
         stage_b.update(
             status="IN_PROGRESS",
             approved_for_implementation=True,
-            approval={"actor": "fixture", "timestamp_utc": "2000-01-01T00:00:00Z", "scope": "fixture", "source": "fixture"},
+            approval={
+                "actor": "fixture",
+                "timestamp_utc": "2000-01-01T00:00:00Z",
+                "scope": "fixture",
+                "source": "fixture",
+            },
             state_events=[
-                {"from": "PLANNED", "to": "APPROVED", "actor": "fixture", "timestamp_utc": "2000-01-01T00:00:00Z", "reason": "fixture", "evidence": "fixture"},
-                {"from": "APPROVED", "to": "IN_PROGRESS", "actor": "fixture", "timestamp_utc": "2000-01-01T00:00:01Z", "reason": "fixture", "evidence": "fixture"},
+                {
+                    "from": "PLANNED",
+                    "to": "APPROVED",
+                    "actor": "fixture",
+                    "timestamp_utc": "2000-01-01T00:00:00Z",
+                    "reason": "fixture",
+                    "evidence": "fixture",
+                },
+                {
+                    "from": "APPROVED",
+                    "to": "IN_PROGRESS",
+                    "actor": "fixture",
+                    "timestamp_utc": "2000-01-01T00:00:01Z",
+                    "reason": "fixture",
+                    "evidence": "fixture",
+                },
             ],
         )
         self.save(root, "openspec/scientific-closure/changes.json", payload)
@@ -376,7 +427,10 @@ class CheckerTests(unittest.TestCase):
     def test_disabled_multiagent_fails(self):
         root = self.make_fixture()
         path = root / ".codex/config.toml"
-        path.write_text(path.read_text(encoding="utf-8").replace("enabled = true", "enabled = false"), encoding="utf-8")
+        path.write_text(
+            path.read_text(encoding="utf-8").replace("enabled = true", "enabled = false"),
+            encoding="utf-8",
+        )
         self.assert_error(root, "AGENT-CONFIG")
 
     def test_invalid_reference_fails(self):
