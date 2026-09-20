@@ -34,7 +34,7 @@ Se adopta el protocolo `controlled_daily_v4_external_pergamino`, documentado en 
 
 - **Usar `controlled_daily_v4` sin sufijo de sitio.** Descartada: colisionaría con la posibilidad, dejada abierta por ADR-0010, de una iteración v4 sobre el sitio original con un nuevo holdout local.
 - **Incorporar Balcarce en esta misma iteración.** Descartada por ahora: multiplicaría el alcance sin necesidad — se prioriza validar el protocolo completo sobre un único sitio externo antes de replicarlo, y Balcarce queda registrado como validación geográfica futura, no descartada.
-- **Incluir temperatura y precipitación en el conjunto de features principal.** Descartada para el protocolo principal: el contrato de `controlled_daily_v3` no las incluye, y agregarlas confundiría cualquier diferencia observada entre "efecto del sitio/dominio" y "efecto de variables adicionales". Quedan como sensibilidad separada, predeclarada, no obligatoria.
+- **Incluir temperatura y precipitación en el conjunto de features principal.** Descartada para el protocolo principal: se acota el análisis a las tres magnitudes físicas predeclaradas (humedad de suelo, humedad relativa y radiación solar). Quedan como sensibilidad separada, predeclarada, no obligatoria. ~~el contrato de `controlled_daily_v3` no las incluye, y agregarlas confundiría cualquier diferencia observada entre "efecto del sitio/dominio" y "efecto de variables adicionales".~~ **Corrección (2026-09-20):** esa justificación era incorrecta. Limitar v4 a las mismas tres magnitudes de v3 **no** iguala el contrato de features: v4 usa ocho features (`include_current=true`, derivaciones temporales solo sobre humedad de suelo) y v3 usa quince variables temporales (`include_current=false`, lags y medias móviles sobre las tres magnitudes). Ver "Contrato de features vigente" más abajo.
 - **Fijar un margen práctico numérico derivado del desvío estándar bootstrap de la Etapa A.** Descartada por decisión explícita de dirección de proyecto: se prefiere un margen fijo (`δ=0.05`) declarado antes de observar cualquier resultado, más simple de auditar y defender que un margen cuyo valor concreto solo existiría después de ejecutar la Etapa A.
 - **Usar `class_weight` del constructor de cada modelo para el balanceo de clases.** Descartada por decisión explícita de dirección de proyecto: introduce una dependencia no confirmada de la versión exacta de scikit-learn (no hay lockfile en el repositorio); se reemplaza por `sample_weight` calculado explícitamente, soportado de forma universal.
 
@@ -69,9 +69,64 @@ Este ADR es la condición previa #3 de ADR-0010 ("definirse el protocolo complet
 ## Condiciones previas a la ejecución
 
 1. ~~Existencia de un manifiesto o lock experimental con las versiones exactas y validadas de Python, NumPy, pandas, SciPy, PyArrow y scikit-learn (`PRECONDITION_FOR_EXECUTION`, ver `docs/research/controlled-daily-v4-external-pergamino-protocol.md`).~~ **Cumplida (2026-09-12):** `docker/experiment-v4/constraints.txt` + `environment.validate_environment()`. Sigue pendiente registrar `repository_state.commit` (identidad de código de la corrida real) en el manifiesto de provenance al momento de ejecutar.
-2. Confirmación (o descarte explícito) de las URLs exactas de adquisición de los CSV de Pergamino y de sus licencias/términos de uso (Open-Meteo/ERA5-Land vía Copernicus/ECMWF, NASA POWER), hoy marcadas `PENDING_CONFIRMATION` en el manifiesto de provenance.
+2. Confirmación (o descarte explícito) de las URLs exactas de adquisición de los CSV de Pergamino y de sus licencias/términos de uso (Open-Meteo/ERA5-Land vía Copernicus/ECMWF, NASA POWER). **Parcialmente avanzada (2026-09-20):** el manifiesto de provenance registra los términos oficiales verificados de Open-Meteo/ERA5-Land (`license_status: OFFICIAL_TERMS_CHECKED_2026_09_17`, con DOI y catálogo Copernicus) y la guía oficial de citación de NASA POWER, cuya licencia específica **sigue** `PENDING_CONFIRMATION`. Las fechas de adquisición pasan a `null` con el valor informado por el proyecto marcado explícitamente como no verificado. La condición **no** queda cumplida.
 3. Implementación del código del protocolo (fuera de alcance de este ADR y de la tarea que lo originó, exclusivamente documental) como un *change* de OpenSpec propio, con su propia propuesta, delta de especificación y tareas.
-4. Ninguna ejecución puede comenzar sin que este ADR y el protocolo detallado ya estén mergeados en `main`.
+4. ~~Ninguna ejecución puede comenzar sin que este ADR y el protocolo detallado ya estén mergeados en `main`.~~ **Cumplida al mergear este cambio (2026-09-20):** el ADR ya estaba en `main`, pero el protocolo detallado presente en `main` era una versión anterior cuya sección 4 afirmaba un contrato de features falso (ver "Contrato de features vigente"). Este cambio integra en `main` la versión vigente del protocolo, las decisiones preejecución (`docs/research/scientific-closure-decisions.md`), la guía de ejecución (`docs/research/scientific-closure-runbook.md`) y el runner correspondiente. La condición 4 es un prerrequisito de integración, no una autorización: **no habilita por sí sola ejecutar A, B ni C**, que siguen exigiendo autorización explícita y el cumplimiento de sus propias compuertas.
+
+## Contrato de features vigente (2026-09-20)
+
+El contrato ejecutable es `pergamino_features.v1`, serializado por
+`features.feature_contract()` y escrito en `resolved_config.json` de las tres etapas y en el
+contrato congelado de transferencia de la Etapa A. La Etapa B científica rechaza ejecutarse si el
+contrato congelado difiere del contrato ejecutable.
+
+Son **ocho** features (`FEATURE_COLUMNS` en
+`src/experiment_runner/controlled_daily_v4/features.py`): tres valores del día actual
+(humedad de suelo 0–7 cm, `RH2M`, `ALLSKY_SFC_SW_DWN`) y cinco transformaciones temporales
+**solo de humedad de suelo** (`lag1`, `lag2`, `lag3`, `roll_mean_3`, `roll_mean_7`, con las
+medias móviles incluyendo el día actual). Horizonte `t+3`.
+
+`controlled_daily_v4_external_pergamino` **no es una réplica del contrato de
+`controlled_daily_v3`**, que usa quince variables temporales (lags 1–3 y medias móviles 3 y 7
+sobre las tres magnitudes) con `include_current=false`. En consecuencia, **una diferencia de
+desempeño v3→v4 no identifica por sí sola un efecto de sitio, de período ni de modelo**: el
+contrato de features también cambió. Las comparaciones internas de v4 (entre las cuatro familias
+candidatas y frente a sus baselines) sí usan exactamente el mismo contrato y no están afectadas
+por esta advertencia.
+
+La afirmación corregida —que el contrato era "heredado de `controlled_daily_v3`, sin
+modificación"— provenía de la sección 4 del protocolo detallado, no de este ADR; esa
+sección quedó reescrita en el mismo cambio que incorpora esta sección. Aquí se deja el
+registro normativo del contrato verdadero. `controlled_daily_v3` no se modifica ni se
+recalcula.
+
+## Ratificación de gobernanza (2026-09-20)
+
+El responsable del trabajo ratifica expresamente los dos pushes históricos identificados por
+`RK-14`, realizados el 2026-09-20 sobre la rama `feat/scientific-closure` bajo una
+autorización de preparación que prohibía hacer push. Los instantes provienen del reflog de
+`refs/remotes/origin/feat/scientific-closure`, que es donde queda registrada la publicación
+efectiva (el reflog local de `refs/heads` registra la creación del commit, no su envío):
+
+| Push | Commit publicado | Instante de publicación (UTC) |
+| --- | --- | --- |
+| 1 | `dc0d3f5` | 2026-09-20 03:52:42 |
+| 2 | `b9fefbf` | 2026-09-20 05:54:37 |
+
+Para no inducir a error: el mismo reflog registra un **tercer** push posterior, `a83c09c`
+(2026-09-20 18:54:11), realizado ya bajo una instrucción que autorizaba publicar hacia
+adelante. Ese tercer push **no** forma parte de `RK-14` y no requiere ratificación; se lo
+menciona para que el registro no sugiera que sólo hubo dos publicaciones en la rama.
+
+La ratificación **reconoce la desviación** y **autoriza conservar la historia publicada**, para
+no reescribir historia ya distribuida. Deja constancia explícita de que:
+
+- no convierte retroactivamente en verdadera ninguna afirmación histórica incorrecta — los
+  registros de auditoría que declararon "sin push" quedan inalterados y siguen siendo erróneos
+  en ese punto;
+- no subsana el incumplimiento: `RK-14` permanece registrado como desviación reconocida;
+- no sustituye ni relaja ninguna compuerta de ejecución científica (A, B, C, apertura del
+  holdout o inicialización del ledger definitivo), que conservan sus requisitos íntegros.
 
 ## Criterios de apertura del holdout (2024–2025)
 
