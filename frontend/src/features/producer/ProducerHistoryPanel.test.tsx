@@ -35,6 +35,11 @@ describe("ProducerHistoryPanel", () => {
     expect(screen.getByText(/antigüedad: 2 días/i)).toBeInTheDocument();
     expect(screen.getByText(/1 fecha falta/i)).toBeInTheDocument();
     expect(screen.getAllByText("20.0 %").length).toBeGreaterThan(0);
+    // Bug real detectado contra el backend v2: mostraba el código crudo
+    // del backend ("degC", "mm/day") en vez de una unidad legible.
+    expect(screen.getAllByText("20.0 °C").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("0.0 mm").length).toBeGreaterThan(0);
+    expect(screen.queryByText(/degc|mm\/day/i)).not.toBeInTheDocument();
     await userEvent.click(screen.getByText(/ver mediciones por fecha/i));
     expect(screen.getByRole("table")).toBeVisible();
     expect(screen.getByText("Sin medición")).toBeInTheDocument();

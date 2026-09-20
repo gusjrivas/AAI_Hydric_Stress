@@ -113,9 +113,28 @@ export function originLabel(origin: ReadingRow["origin"]): string {
   return ORIGIN_LABELS[origin];
 }
 
+// El backend expone unidades como códigos estables en inglés (contrato v2,
+// api-contract.md), no pensados para mostrarse tal cual a un productor sin
+// conocimientos técnicos (bug detectado al verificar contra el backend v2
+// real: se veían literalmente "degC"/"mm/day"). Traducción de presentación
+// only; si aparece una unidad nueva no mapeada, se muestra el código crudo
+// del backend antes que ocultar la unidad.
+const UNIT_DISPLAY_LABELS: Record<string, string> = {
+  "degC": "°C",
+  "mm/day": "mm",
+  "MJ/m2/day": "MJ/m²/día",
+  "m/s": "m/s",
+  "%": "%",
+};
+
+function displayUnit(unit: string | undefined): string {
+  if (!unit) return "";
+  return UNIT_DISPLAY_LABELS[unit] ?? unit;
+}
+
 export function formatReadingValue(variable: ReadingVariable, value: number | null, unit: string | undefined): string {
   if (value === null) return "Sin medición";
   if (variable === "soil_moisture") return `${(value * 100).toFixed(1)} %`;
-  const suffix = unit ? ` ${unit}` : "";
-  return `${value.toFixed(1)}${suffix}`;
+  const suffix = displayUnit(unit);
+  return suffix ? `${value.toFixed(1)} ${suffix}` : value.toFixed(1);
 }
