@@ -1,5 +1,27 @@
 # Decisiones cerradas del manifiesto operacional +1/+2/+3
 
+## Actualizacion 2026-09-20 — tolerancias aprobadas
+El autor aprobo explicitamente epsilon_ece=0.10 y epsilon_bin=0.15 como
+criterios de producto para evaluacion exploratoria. Se registran en el JSON.
+Esta actualizacion reemplaza el pendiente de tolerancias descrito en la nota
+historica siguiente. No cambia soporte, ventanas, modelos o datos.
+
+El archivo permanece draft: aceptar tolerancias no congela el plan ni acredita
+calibracion. Antes de congelar, verificar hash del dataset sin evaluar resultados,
+variables/unidades y versiones efectivas del entorno como exige el diseno.
+Precisar tambien el algoritmo de limites simultaneos (estadistico centrado y
+construccion del limite) y la regla para replicas invalidas: el texto actual
+dice que se excluyen, pero tambien afirma que no se descartan replicas.
+La longitud de huecos no justifica por si sola la dependencia temporal.
+Son comprobaciones tecnicas pendientes; no requieren volver a pedir aprobacion
+de estas dos tolerancias ni permiten ajustarlas mirando resultados.
+
+Trazabilidad: HU4/predictive-modeling, CRISP-DM modelado/evaluacion de desarrollo.
+Sin cambio de protocolos v3/v4, configuraciones formales, hipotesis, arquitectura,
+datasets o resultados HU7/HU8. No se entreno, calibro ni evaluo ningun modelo.
+
+## Registro previo a la aprobacion (historico)
+
 Trazabilidad: HU4/HU6; capacidades `predictive-modeling` y
 `architecture-integration`; CRISP-DM modelado y evaluación de desarrollo. Cierra
 parte de las decisiones pendientes de

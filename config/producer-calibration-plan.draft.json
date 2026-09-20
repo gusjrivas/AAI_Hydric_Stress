@@ -86,7 +86,14 @@
     "minimum": 0.8
   },
   "tolerances": {
-    "justification": "epsilon_ece y epsilon_bin quedan sin valor numerico: representan el error de calibracion (en puntos de probabilidad, sobre limites superiores simultaneos, nunca sobre estimaciones puntuales) que todavia seria honesto mostrarle al productor, y esa es una decision de producto sobre el costo de sobreconfianza/subconfianza, no una constante estadistica derivable del dataset o de las specs. Los valores de referencia 0.10 (ECE) y 0.15 (por bin) discutidos en docs/design/operational-calibration-manifest-proposal.md no se adoptan aqui porque no tienen respaldo evidencial para este uso; congelarlos por conveniencia violaria la regla de no aprobar porcentajes sin fundamento. Hasta que producto ratifique un valor (o los rechace), display_probability permanece null y el manifiesto permanece en status=draft."
+    "epsilon_ece": 0.1,
+    "epsilon_bin": 0.15,
+    "justification": "Aprobacion explicita del autor el 2026-09-20: tolerancias operacionales de 10 puntos porcentuales para el limite superior de ECE y 15 para el limite superior del error por intervalo respaldado. Solo evaluacion exploratoria del prototipo; no son garantias estadisticas ni validacion agronomica. No equivalen a accuracy ni autorizan publicar porcentajes sin superar todos los criterios del assessment.",
+    "approval": {
+      "date": "2026-09-20",
+      "scope": "exploratory_operational_product_tolerances",
+      "approved_by": "project_author"
+    }
   },
   "log_loss": {
     "clipping_epsilon": 1e-15

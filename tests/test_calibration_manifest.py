@@ -122,7 +122,7 @@ def test_incomplete_draft_is_distinct_from_a_ready_plan_and_cannot_enable_fit():
         require_ready_for_fit(draft)
 
 
-def test_operational_draft_closes_ratified_decisions_but_keeps_tolerances_pending():
+def test_approved_tolerances_do_not_automatically_enable_fitting():
     path = Path(__file__).resolve().parents[1] / "config" / "producer-calibration-plan.draft.json"
     draft = json.loads(path.read_text(encoding="utf-8"))
 
@@ -146,16 +146,12 @@ def test_operational_draft_closes_ratified_decisions_but_keeps_tolerances_pendin
     ):
         assert ratified_section in draft
 
-    # Única decisión sustantiva pendiente: tolerancias de producto para ECE/bin.
-    assert "tolerances" in draft
-    assert "epsilon_ece" not in draft["tolerances"]
-    assert "epsilon_bin" not in draft["tolerances"]
+    # Approved product tolerances do not automatically authorize fitting.
+    assert draft["tolerances"]["epsilon_ece"] == 0.10
+    assert draft["tolerances"]["epsilon_bin"] == 0.15
     assert draft["tolerances"]["justification"]
-
-    assert report.issues == (
-        "tolerances.epsilon_ece debe ser numérico",
-        "tolerances.epsilon_bin debe ser numérico",
-    )
+    assert draft["tolerances"]["approval"]["date"] == "2026-09-20"
+    assert report.issues == ()
 
     with pytest.raises(CalibrationManifestError, match="status no es ready_for_fit"):
         require_ready_for_fit(draft)
