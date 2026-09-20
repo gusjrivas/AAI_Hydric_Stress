@@ -6,39 +6,36 @@
   "requirement_ids": [
     "SC-GOV-019"
   ],
-  "captured_at_utc": "2026-09-20T04:42:51.191834+00:00",
+  "captured_at_utc": "2026-09-20T04:59:59.948289+00:00",
   "base_commit": "dc0d3f5b4dbed235078c1bc93a3c863b6f65d3c6",
-  "head_at_capture": "010a45e0e2c74ae5319f329d8f54c86f6965941a",
+  "head_at_capture": "023a9425f724400ba87f43aa806c2b3287f080d7",
   "branch": "feat/scientific-closure",
   "upstream": "origin/feat/scientific-closure",
-  "tree_clean_at_capture": true,
   "checkpoints": [
     {
       "sha": "c23b8c3cfdbc9503dd1385dc40461d57339bbf11",
       "subject": "feat(science): enforce read-only isolation for reader roles",
       "author_date_utc": "2026-09-20T04:42:03Z",
-      "purpose": "Enforcement tecnico de solo lectura para roles lectores (GD-17). Cierra el fondo de AUD-READ03 / LNX-03 / CRIT-SUB-01.",
+      "purpose": "Enforcement tecnico de solo lectura para roles lectores (GD-17). Resuelve el fondo de AUD-READ03 / LNX-03 / CRIT-SUB-01.",
       "files": [
         "scripts/readonly_role_sandbox.sh",
         "scripts/verify_readonly_sandbox.sh",
         "tests/test_readonly_role_sandbox.py"
       ],
       "diff_check_exit": 0,
-      "review": "diff reviewed before commit; explicit paths staged (never git add -A); no secrets, no raw datasets, no UI or main changes",
       "is_acceptance": false
     },
     {
       "sha": "cc5334656608ffe3cd27c49e4a0fd3bb78424344",
       "subject": "style(science): apply ruff and black in the pinned environment",
       "author_date_utc": "2026-09-20T04:42:12Z",
-      "purpose": "Lint y formato en el entorno fijado (AUD-READ08). Solo formato e imports; sin cambio de comportamiento.",
+      "purpose": "Lint y formato en el entorno fijado (AUD-READ08). Verificado por el critico via AST: solo reordenamiento de imports.",
       "files": [
         "scripts/check_scientific_closure.py",
         "tests/test_scientific_closure_checker.py",
         "tests/test_scientific_closure_governance.py"
       ],
       "diff_check_exit": 0,
-      "review": "diff reviewed before commit; explicit paths staged (never git add -A); no secrets, no raw datasets, no UI or main changes",
       "is_acceptance": false
     },
     {
@@ -64,14 +61,13 @@
         "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/workflow-events.jsonl"
       ],
       "diff_check_exit": 0,
-      "review": "diff reviewed before commit; explicit paths staged (never git add -A); no secrets, no raw datasets, no UI or main changes",
       "is_acceptance": false
     },
     {
       "sha": "010a45e0e2c74ae5319f329d8f54c86f6965941a",
       "subject": "docs(science): reconcile state documents and add scientific synthesis",
       "author_date_utc": "2026-09-20T04:42:33Z",
-      "purpose": "Reconciliacion de documentos de estado y sintesis cientifica (SC-GOV-016 / SC-GOV-025).",
+      "purpose": "Reconciliacion de documentos de estado y sintesis cientifica.",
       "files": [
         "docs/research/scientific-closure-runbook.md",
         "docs/research/scientific-closure-synthesis-2026-09-20.md",
@@ -80,11 +76,52 @@
         "openspec/scientific-closure/traceability.md"
       ],
       "diff_check_exit": 0,
-      "review": "diff reviewed before commit; explicit paths staged (never git add -A); no secrets, no raw datasets, no UI or main changes",
+      "is_acceptance": false
+    },
+    {
+      "sha": "a881207691812ab0a41ca0e2c447ed0274a2c2e5",
+      "subject": "docs(science): close the last two non-terminal requirement states",
+      "author_date_utc": "2026-09-20T04:43:29Z",
+      "purpose": "Cierre de los dos ultimos requisitos no terminales (SC-GOV-007 y SC-GOV-019).",
+      "files": [
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/checkpoints.json",
+        "openspec/scientific-closure/traceability.md"
+      ],
+      "diff_check_exit": 0,
+      "is_acceptance": false
+    },
+    {
+      "sha": "023a9425f724400ba87f43aa806c2b3287f080d7",
+      "subject": "fix(science): apply independent critic findings F-01..F-11 and N-01..N-06",
+      "author_date_utc": "2026-09-20T04:59:39Z",
+      "purpose": "Aplicacion de los 11 hallazgos materiales y 6 observaciones del critico independiente.",
+      "files": [
+        "docs/research/scientific-closure-runbook.md",
+        "docs/research/scientific-closure-synthesis-2026-09-20.md",
+        "openspec/scientific-closure/current-execution-checkpoint.md",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/agent-capabilities.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/authorizations.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/blocker-reassessment.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/clean-checkout-reproduction.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/code-identity-and-adr0011.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/provenance-and-licence-assessment.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/review-critic.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/role-sandbox-enforcement.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/runtime-environment.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/workflow-events.jsonl",
+        "openspec/scientific-closure/risks.md",
+        "openspec/scientific-closure/traceability.md",
+        "scripts/readonly_role_sandbox.sh",
+        "scripts/verify_readonly_sandbox.sh",
+        "tests/test_readonly_role_sandbox.py"
+      ],
+      "diff_check_exit": 0,
       "is_acceptance": false
     }
   ],
-  "distinction": "A checkpoint is a recoverable commit of work. It is NOT an acceptance, NOT an audit PASS and NOT an authorization. None of these commits closes a change: sc-02 through sc-10 remain BLOCKED in changes.json.",
+  "what_these_commits_are": "Atomic, reviewed commits, each with explicit paths staged. They are NOT incremental recovery points taken while the work progressed: the session began at 04:16 UTC and the commits were created near its end, once each unit of work was complete and validated. An independent critic raised this (finding F-10) and the description is corrected here rather than left implied.",
+  "self_reference_limit": "A checkpoint record cannot contain the hash of the commit that introduces it. The final commit of this session, whose purpose is to add this regenerated record together with evidence-manifest.json, is therefore necessarily absent from the list above. Its SHA is recoverable with 'git log --oneline dc0d3f5..HEAD'. This limit is declared, not hidden: the previous version of this file omitted a commit without saying so, which the evidence checker flagged.",
+  "distinction": "A checkpoint is a recoverable commit of work. It is NOT an acceptance, NOT an audit PASS and NOT an authorization. None of these commits closes a change: sc-02 through sc-10 remain BLOCKED in changes.json, which was not modified in this session.",
   "prohibited_operations_not_used": [
     "git add -A",
     "git push --force",

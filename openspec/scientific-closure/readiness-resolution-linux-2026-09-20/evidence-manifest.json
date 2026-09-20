@@ -1,0 +1,200 @@
+{
+  "schema_version": "1.0",
+  "record": "evidence_manifest",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "generated_at_utc": "2026-09-20T04:59:59.983679+00:00",
+  "commit": "023a9425f724400ba87f43aa806c2b3287f080d7",
+  "branch": "feat/scientific-closure",
+  "tree_clean": false,
+  "scientific_evidence": {
+    "exists": false,
+    "reason": "No campaign was executed. There are no metrics, predictions, frozen configs or ledger entries.",
+    "evidence_root_declared": "/home/gus/scientific-closure-runtime/evidence",
+    "ledger_path_declared": "/home/gus/scientific-closure-runtime/ledger/holdout.sqlite",
+    "ledger_initialised": false
+  },
+  "scientific_inputs": [
+    {
+      "path": "/home/gus/scientific-closure-inputs/migration-20260920/AAI_Hydric_Stress_external_data/raw/pergamino_era5land_soil_hourly_2015_2025.csv",
+      "sha256": "318edffb89c64d5f500e35b5530e6064cb02f68b89bd28a71262c2ebb01f485f",
+      "size_bytes": 3954003,
+      "type": "scientific_input_not_in_git"
+    },
+    {
+      "path": "/home/gus/scientific-closure-inputs/migration-20260920/AAI_Hydric_Stress_external_data/raw/pergamino_nasa_power_daily_2015_2025.csv",
+      "sha256": "415b4f71abb78e419b765110f4a42c3f32587b204d12897812df9573c5c2202b",
+      "size_bytes": 127568,
+      "type": "scientific_input_not_in_git"
+    }
+  ],
+  "governance_evidence": [
+    {
+      "path": "docs/research/scientific-closure-runbook.md",
+      "sha256": "30e0e1b795215894901c82cfdf22cfc3ce2eeb1d69adfe963ca43fa85cd7eb4d",
+      "size_bytes": 12758,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "docs/research/scientific-closure-synthesis-2026-09-20.md",
+      "sha256": "ea1f1e5186a05b3419a2883693a8503357d112099ce4e8e01209ba6e966de960",
+      "size_bytes": 23251,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/current-execution-checkpoint.md",
+      "sha256": "35bcea5134780ef19d8db0863cbddf41c658933c85e26dbf34b6b62a10291a9f",
+      "size_bytes": 16906,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/decisions.md",
+      "sha256": "c3337b0d44b76fe3b29e6c46f4074ab77888b814e647a133c3b35fc65882339b",
+      "size_bytes": 8212,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/inventory.md",
+      "sha256": "078831f3ef832d6e5141c379ab4e638f6b9c34e5885ed02bc1d1477dd410aa31",
+      "size_bytes": 11220,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/agent-capabilities.json",
+      "sha256": "e4368b87e7c19702ae6ae4643a9a13e500635a56cab373e03177232af1dfce6c",
+      "size_bytes": 7228,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/authorizations.json",
+      "sha256": "16e28a6d1019f168a940234808598bcd437f12286b0d53bfb710981ea541cbaa",
+      "size_bytes": 5585,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/blocker-reassessment.json",
+      "sha256": "d2fc759c4a854e864015adaa4fd08212070427c1a5f30fc1bceb89388e35ff2a",
+      "size_bytes": 12268,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/checkpoints.json",
+      "sha256": "bebd614b1dbafdbeaaec0dc903bf0b286bf85d0500e026718d275a3497ba7bba",
+      "size_bytes": 8123,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/clean-checkout-reproduction.json",
+      "sha256": "dc73fdf330f2a47baabb8054d8009e9ab504dc5db256a5619185b018ae945745",
+      "size_bytes": 1761,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/code-identity-and-adr0011.json",
+      "sha256": "8ad321597b1d66f4f45c168b0c8c994e030680536ac245ae032e8666f6cbfacc",
+      "size_bytes": 11530,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/container-runtime-and-image.json",
+      "sha256": "87f666b719a959a326cb7c8c57d2cf3f7bfb30561e13e21490309f9998c7dac8",
+      "size_bytes": 5723,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/execution-manifest.json",
+      "sha256": "6f7b334aecd65125b6dbd93c2964f4ff79fc6145363ee55a04fad922fabba3c2",
+      "size_bytes": 3224,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/provenance-and-licence-assessment.json",
+      "sha256": "3f39ef3444214c606d337937a64f503619327747ce7a5c4ebbb3d8bd47011075",
+      "size_bytes": 10747,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/recovery-rehearsal.json",
+      "sha256": "61a66ac1ec658e68eff74f5e54046abb6ea3ebf2501913d6d03adc839425d556",
+      "size_bytes": 2600,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/review-critic.json",
+      "sha256": "bd758ee81cec200f9d87826bfed05ed82f7dc6d577342c7730b53501ce92a753",
+      "size_bytes": 9606,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/role-sandbox-enforcement.json",
+      "sha256": "a5ba6bcb9543d1bd66302278522a0bf6ac77439388cac4176512d62b0b765986",
+      "size_bytes": 1244,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/runtime-environment.json",
+      "sha256": "af018556a3c66e9173ec333c9e6e705bb1ba66748923808cabdbb0f84f28e924",
+      "size_bytes": 5921,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/storage-and-backup-independence.json",
+      "sha256": "45cea70875e38829ab3ebe9caab8b56fab60e52831fbceac216943777f8f82b7",
+      "size_bytes": 4075,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/structural-validation.json",
+      "sha256": "dc67a08af32d6e1f6b4d717a4adfeb0f9389f53b90c4eb15cec5c84be41f6e86",
+      "size_bytes": 4208,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/validation-results.json",
+      "sha256": "583ff98d60fe1db9a712018afe23267a02a06c457a6a1c1cba21c2809f7386c3",
+      "size_bytes": 5374,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/workflow-events.jsonl",
+      "sha256": "e44c38059723efeb9a3fe4ba27fe34297bbdabe6dd332b367033c9ac176505b7",
+      "size_bytes": 9385,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/risks.md",
+      "sha256": "6591dce9bbbcf1d1f8a99b80f02ae4dafe6f0cc9324ed93803c6fcf6bfa9ec6f",
+      "size_bytes": 4974,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/traceability.md",
+      "sha256": "568618c16b8bbc987ce174750421259d98201a337688b20d38e4959f682f0a33",
+      "size_bytes": 17184,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "scripts/readonly_role_sandbox.sh",
+      "sha256": "be646606b1de75d575fb467c1f72fbc9e802daf1047f6d7712059d14c78c3945",
+      "size_bytes": 2550,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "scripts/verify_readonly_sandbox.sh",
+      "sha256": "514f0922b11867bcc71c7afb40e2d81e812fc37c0b474e13e3f971d8feb94a8c",
+      "size_bytes": 4423,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "tests/test_readonly_role_sandbox.py",
+      "sha256": "dd07a1fec936db7fd15723235402c39ef19fef7bed30321166ce3124bab57ed1",
+      "size_bytes": 4720,
+      "type": "technical_governance_evidence"
+    }
+  ],
+  "count": {
+    "governance_files": 27,
+    "scientific_inputs": 2,
+    "scientific_result_artifacts": 0
+  },
+  "note": "Every entry here is technical or governance evidence. None of it is evidence about the scientific hypothesis."
+}
