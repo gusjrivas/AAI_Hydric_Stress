@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0",
+  "record": "agent_capabilities_and_role_separation",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": ["SC-GOV-006", "SC-GOV-007"],
+  "captured_at_utc": "2026-09-20T04:34:00Z",
+  "runtime": {
+    "harness": "Claude Code",
+    "orchestrator_model_declared_by_runtime": "claude-opus-5",
+    "effective_model_introspectable": false,
+    "effective_reasoning_effort_introspectable": false,
+    "permission_mode": "bypassPermissions",
+    "subagent_mechanism": "Agent tool; each subagent runs in a separate context with its own transcript"
+  },
+  "substitution_notice": {
+    "configured_profiles_source": ".codex/agents/*.toml",
+    "configured_models": {
+      "scientific_explorer": "gpt-5.6-terra / medium / read-only",
+      "scientific_implementer": "gpt-5.6-sol / medium / workspace-write",
+      "evidence_checker": "gpt-5.6-luna / low / read-only",
+      "scientific_critic": "gpt-5.6-sol / high / read-only",
+      "scientific_auditor": "gpt-5.6-sol / xhigh / read-only"
+    },
+    "effective_models_used_in_this_session": "claude-opus-5 for every role",
+    "reason": "The .codex/agents profiles target a different runtime (Codex). This session runs under Claude Code, where those profiles are not loadable. The substitution is declared here and is NOT presented as compliance with the configured profiles.",
+    "explicit_non_claim": "No statement in this record asserts that a gpt-5.6 profile, its reasoning effort, or its nominal sandbox_mode was effectively in force."
+  },
+  "role_separation_as_practised": {
+    "explorer": {
+      "independent_context": true,
+      "wrote_files": false,
+      "note": "Read-only by instruction and by observed behaviour."
+    },
+    "implementer": {
+      "independent_context": true,
+      "wrote_files": true,
+      "assigned_paths_exclusive": [
+        "docs/research/scientific-closure-runbook.md",
+        "openspec/scientific-closure/inventory.md",
+        "openspec/scientific-closure/traceability.md",
+        "openspec/scientific-closure/current-execution-checkpoint.md"
+      ]
+    },
+    "orchestrator_acting_as_implementer": {
+      "declared": true,
+      "assigned_paths_exclusive": [
+        "scripts/readonly_role_sandbox.sh",
+        "scripts/verify_readonly_sandbox.sh",
+        "tests/test_readonly_role_sandbox.py",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/*",
+        "openspec/scientific-closure/changes.json",
+        "openspec/scientific-closure/decisions.md"
+      ],
+      "note": "Declared explicitly because the orchestrator must not approve its own work: every artefact it wrote is submitted to an independent critic and an independent auditor that read the snapshot directly."
+    },
+    "evidence_checker_critic_auditor": {
+      "independent_context": true,
+      "wrote_files": false,
+      "enforcement": "Instructed to run every shell command through scripts/readonly_role_sandbox.sh, which imposes a read-only view of the whole filesystem and no network. See role-sandbox-enforcement.json."
+    },
+    "single_writer_per_file": "Enforced by explicit path assignment; no two writers were assigned the same path."
+  },
+  "enforcement_status": {
+    "previous_state": "AUD-READ03 / LNX-03 / CRIT-SUB-01: reader roles were read-only by BEHAVIOUR only; no technical isolation was accredited.",
+    "resolution": "A reproducible enforcement mechanism now exists in the repository (scripts/readonly_role_sandbox.sh) and is verified by scripts/verify_readonly_sandbox.sh and tests/test_readonly_role_sandbox.py (8 tests). Writes to the repository and to the real HOME fail with EROFS; DNS resolution is unavailable; the sandbox /tmp is ephemeral; no probe survives outside.",
+    "residual_limitation": "The harness itself does not place a subagent process inside the sandbox. Enforcement applies to the shell commands a reader role executes through the wrapper, which is where its filesystem access happens. The subagent's own tool calls outside that wrapper remain behaviourally, not technically, constrained. This distinction is preserved and NOT presented as full per-process isolation.",
+    "status": "PASS_WITH_LIMITATIONS"
+  }
+}

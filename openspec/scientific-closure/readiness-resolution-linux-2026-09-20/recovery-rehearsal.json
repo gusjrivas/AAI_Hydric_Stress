@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "record": "recovery_rehearsal",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": [
+    "SC-GOV-018"
+  ],
+  "captured_at_utc": "2026-09-20T04:36:02.430640+00:00",
+  "fixture_only": true,
+  "explicit_non_claim": "This rehearsal used SYNTHETIC fixtures only. No real evidence, no real ledger and no holdout value took part. The real scientific ledger remains NOT INITIALISED.",
+  "source_root": "/home/gus/scientific-closure-runtime/backups/rehearsal-20260920/source",
+  "backup_root": "/home/gus/scientific-closure-runtime/backups/rehearsal-20260920/backup",
+  "restored_root": "/home/gus/scientific-closure-runtime/backups/rehearsal-20260920/restored",
+  "source_hashes": {
+    "ledger/fixture_holdout.sqlite": "e7067fe07d42c722f4e7e2145662419cd9ceb85d7b34de3d19130424786360ca",
+    "evidence/A/fixture_metrics.json": "d921e6a1e5ec385341a151c40330ad0f7894706bf141d1b77c01cc91cf3cfb01",
+    "evidence/A/fixture_predictions.csv": "0558cd644bc42462fb26c783e1052c4e20111b1ef397104cbb53b8fd20f93084"
+  },
+  "restored_hashes": {
+    "ledger/fixture_holdout.sqlite": "bd81f8cf4e1edcd84070ff758bcfed772e6914dea6bb1aff6bfc81c1ce4f5255",
+    "evidence/A/fixture_metrics.json": "d921e6a1e5ec385341a151c40330ad0f7894706bf141d1b77c01cc91cf3cfb01",
+    "evidence/A/fixture_predictions.csv": "0558cd644bc42462fb26c783e1052c4e20111b1ef397104cbb53b8fd20f93084"
+  },
+  "sqlite_backup_method": "sqlite3 Connection.backup() online API on a quiescent database (no other writer); byte equality is NOT expected nor claimed for SQLite, content equality is verified instead",
+  "sqlite_quiescence_checkpoint": {
+    "command": "sqlite3 '/home/gus/scientific-closure-runtime/backups/rehearsal-20260920/source/ledger/fixture_holdout.sqlite' 'PRAGMA wal_checkpoint(TRUNCATE);' 2>/dev/null || true",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "verification": {
+    "non_sqlite_files_hash_identical": true,
+    "non_sqlite_cmp_exit_codes": [
+      0,
+      0
+    ],
+    "sqlite_row_content_identical": true,
+    "restore_target_is_new_path": true
+  },
+  "physical_independence": {
+    "achieved": false,
+    "source_device": 2128,
+    "backup_device": 2128,
+    "restored_device": 2128,
+    "note": "All three share the same device. This is a LOGICAL copy. See storage-and-backup-independence.json for the exact missing input."
+  },
+  "rollback_rule_restated": "A backup is never restored to obtain a fresh scientific attempt. An incomplete attempt is never released.",
+  "verdict": "PASS_WITH_LIMITATIONS"
+}

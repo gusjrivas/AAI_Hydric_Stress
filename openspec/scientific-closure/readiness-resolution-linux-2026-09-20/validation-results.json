@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.0",
+  "record": "validation_results",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": ["SC-GOV-006", "SC-GOV-020"],
+  "environment": "reconstructed venv /home/gus/scientific-closure-runtime/env/venv-v4 (Python 3.11.16, constraints-pinned); NOT the historic image",
+  "results": [
+    {
+      "id": "V-01",
+      "scope": "controlled_daily_v4 suite (the same selection the frozen image CMD runs)",
+      "command": "PYTHONPATH=src python -m pytest -q tests/test_controlled_daily_v4_*.py --no-header",
+      "started_utc": "2026-09-20T04:17:56Z",
+      "duration_s": 995,
+      "exit_code": 0,
+      "result": "486 passed",
+      "interpretation": "The frozen stage A/B/C implementation passes its full synthetic test suite in the reconstructed environment. This is TECHNICAL evidence about software, not scientific evidence about the hypothesis."
+    },
+    {
+      "id": "V-02",
+      "scope": "governance + formal checker tests",
+      "command": "PYTHONPATH=src python -m pytest -q tests/test_scientific_closure_governance.py tests/test_scientific_closure_checker.py --no-header",
+      "exit_code": 0,
+      "result": "48 passed, 14 subtests passed"
+    },
+    {
+      "id": "V-03",
+      "scope": "read-only role sandbox enforcement tests (new)",
+      "command": "PYTHONPATH=src python -m pytest -q tests/test_readonly_role_sandbox.py --no-header",
+      "exit_code": 0,
+      "result": "8 passed",
+      "covers": ["positive read", "negative write to repository (EROFS)", "negative write to real HOME", "ephemeral tmp not shared", "no network", "verifier PASS", "explicit failure without arguments"]
+    },
+    {
+      "id": "V-04",
+      "scope": "formal scientific-closure checker",
+      "command": "PYTHONPATH=src python scripts/check_scientific_closure.py",
+      "exit_code": 0,
+      "result": "scientific-closure checker: PASS (estructura; runtime no verificado)"
+    },
+    {
+      "id": "V-05",
+      "scope": "lint (ruff 0.16.6) over the files this branch owns",
+      "command": "ruff check scripts/check_scientific_closure.py tests/test_scientific_closure_governance.py tests/test_scientific_closure_checker.py tests/test_readonly_role_sandbox.py",
+      "exit_code": 0,
+      "result": "All checks passed",
+      "note": "48 violations (45 E501 + 3 I001) were present and were fixed in this session. Two further E501 violations remain in scripts/run_hu7_experiments.py and scripts/run_hu7_scenarios.py; both files pre-exist in origin/main, are unrelated to scientific closure, and were deliberately NOT modified to keep this closure isolated."
+    },
+    {
+      "id": "V-06",
+      "scope": "format (black 26.5.1) over the files this branch owns",
+      "command": "black --check scripts/check_scientific_closure.py tests/test_scientific_closure_governance.py tests/test_scientific_closure_checker.py tests/test_readonly_role_sandbox.py",
+      "exit_code": 0,
+      "result": "4 files would be left unchanged",
+      "note": "scripts/export_hu7_reference.py also fails black --check; it pre-exists in origin/main and is out of scope."
+    },
+    {
+      "id": "V-07",
+      "scope": "OpenSpec strict validation, scientific-closure scope",
+      "command": "npx --yes @fission-ai/openspec@1.13.1 validate <item> --type <change|spec> --strict",
+      "exit_code": 0,
+      "result": "11/11 PASS (10 changes sc-* + spec/scientific-closure)",
+      "note": "See structural-validation.json. The repository-wide --all run exits 1 because of 42 unrelated pre-existing items (UI and other capabilities) that emit RFC-2119 warnings under --strict; those are out of scope and untouched."
+    },
+    {
+      "id": "V-08",
+      "scope": "dependency consistency",
+      "command": "uv pip check --python <venv>",
+      "exit_code": 0,
+      "result": "Checked 23 packages: all installed packages are compatible",
+      "note": "Package set is identical to the historic pip-freeze.txt recovered from the migrated runtime validation directory (23/23 after excluding pip/setuptools/wheel, which uv does not seed)."
+    },
+    {
+      "id": "V-09",
+      "scope": "dataset provenance identity against the versioned manifest",
+      "command": "PYTHONPATH=src python -m experiment_runner.controlled_daily_v4.cli --stage A --validate-inputs-only --era5-csv <...> --nasa-power-csv <...> --output-dir <probe> --input-mode scientific",
+      "exit_code": 0,
+      "result": "Provenance OK. --validate-inputs-only: no se entrena nada.",
+      "note": "Metadata-only. No model was fitted. Permitted on stage A only; the protocol forbids it on stage C because hashing the whole CSV would touch the 2024-2025 holdout."
+    }
+  ],
+  "not_run_and_why": [
+    {
+      "item": "reproducible container build (docker/experiment-v4/build.py)",
+      "reason": "No reachable Docker daemon; see container-runtime-and-image.json. No image was built and none is claimed."
+    },
+    {
+      "item": "tests/demo_simulation",
+      "reason": "Requires mlflow, which the frozen experiment-v4 constraints deliberately exclude. Out of the v4 scientific scope (the frozen image CMD runs only tests/test_controlled_daily_v4_*.py)."
+    },
+    {
+      "item": "stage A, B, C runners on Pergamino data",
+      "reason": "Gate G1 not satisfied (ADR-0011 condition 4). No command issued."
+    }
+  ]
+}

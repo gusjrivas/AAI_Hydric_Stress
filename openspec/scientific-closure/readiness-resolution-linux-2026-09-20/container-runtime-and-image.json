@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0",
+  "record": "container_runtime_and_approved_image_access",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": [
+    "SC-GOV-009"
+  ],
+  "captured_at_utc": "2026-09-20T04:28:02.563311+00:00",
+  "approved_historic_image": "sha256:55bc923efac009b1b6de45acc634774b7910d4829fdfd0b2c963dd5748b297af",
+  "checks": [
+    {
+      "command": "command -v docker",
+      "exit_code": 0,
+      "stdout": "/mnt/c/Program Files/Docker/Docker/resources/bin/docker",
+      "stderr": ""
+    },
+    {
+      "command": "docker version",
+      "exit_code": 1,
+      "stdout": "The command 'docker' could not be found in this WSL 2 distro.\nWe recommend to activate the WSL integration in Docker Desktop settings.\n\nFor details about using Docker Desktop with WSL 2, visit:\n\nhttps://docs.docker.com/go/wsl2/",
+      "stderr": ""
+    },
+    {
+      "command": "test -e /var/run/docker.sock; echo exit=$?",
+      "exit_code": 0,
+      "stdout": "exit=1",
+      "stderr": ""
+    },
+    {
+      "command": "ls -la /mnt/wsl/docker-desktop/shared-sockets/guest-services/",
+      "exit_code": 0,
+      "stdout": "total 0\ndrwxr-xr-x 2 root root 320 Sep 17 17:13 .\ndrwxr-xr-x 4 root root  80 Sep 17 17:13 ..\nsrwxr-xr-x 1 root root   0 Sep 17 17:13 container-filesystem.sock\nsrwxr-xr-x 1 root root   0 Sep 17 17:13 cri-dockerd-proxy.sock\nsrwxr-xr-x 1 root root   0 Sep 17 17:13 diagnosticd.sock\nsrwxr-xr-x 1 root root   0 Sep 17 17:13 docker-api-proxy-control.sock\nsrw-rw---- 1 root root   0 Sep 17 17:13 docker.container-proxy.sock\nsrwxr-xr-x 1 root root   0 Sep 17 17:13 docker.proxy.sock\nsrwxr-xr-x 1 root root   0 Sep 17 17:13 filesystem-event.sock\nsrwxr-xr-x 1 root root   0 Sep 17 17:13 image-inspector.sock\nsrwxr-xr-x 1 root root   0 Sep 17 17:13 procd.sock\nsrwxr-xr-x 1 root root   0 Sep 17 17:13 socketforwarder-receive-fds.sock\nsrwxr-xr-x 1 root root   0 Sep 17 17:13 stats.sock\nsrwxr-xr-x 1 root root   0 Sep 17 17:13 volume-contents.sock\nsrw-rw---- 1 root root   0 Sep 17 17:13 wsl-cross-distro.sock\ns--------- 1 root root   0 Sep 17 17:13 wsl2-bootstrap-expose-ports.sock",
+      "stderr": ""
+    },
+    {
+      "command": "DOCKER_HOST=unix:///mnt/wsl/docker-desktop/shared-sockets/guest-services/docker.proxy.sock /mnt/wsl/docker-desktop/cli-tools/usr/bin/docker version --format '{{.Server.Version}}'",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "permission denied while trying to connect to the docker API at unix:///mnt/wsl/docker-desktop/shared-sockets/guest-services/docker.proxy.sock"
+    },
+    {
+      "command": "DOCKER_HOST=unix:///mnt/wsl/docker-desktop/shared-sockets/guest-services/docker.container-proxy.sock /mnt/wsl/docker-desktop/cli-tools/usr/bin/docker version --format '{{.Server.Version}}'",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "permission denied while trying to connect to the docker API at unix:///mnt/wsl/docker-desktop/shared-sockets/guest-services/docker.container-proxy.sock"
+    },
+    {
+      "command": "DOCKER_HOST=unix:///var/run/docker.sock /mnt/wsl/docker-desktop/cli-tools/usr/bin/docker version --format '{{.Server.Version}}'",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "failed to connect to the docker API at unix:///var/run/docker.sock; check if the path is correct and if the daemon is running: dial unix /var/run/docker.sock: connect: no such file or directory"
+    },
+    {
+      "command": "DOCKER_HOST=unix:///mnt/wsl/docker-desktop/shared-sockets/guest-services/docker.proxy.sock /mnt/wsl/docker-desktop/cli-tools/usr/bin/docker image inspect sha256:55bc923efac009b1b6de45acc634774b7910d4829fdfd0b2c963dd5748b297af",
+      "exit_code": 1,
+      "stdout": "[]",
+      "stderr": "permission denied while trying to connect to the docker API at unix:///mnt/wsl/docker-desktop/shared-sockets/guest-services/docker.proxy.sock"
+    },
+    {
+      "command": "command -v podman; command -v nerdctl; command -v buildah",
+      "exit_code": 127,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "findings": {
+    "docker_cli_present": "YES, two binaries: the Windows wrapper on PATH (/mnt/c/Program Files/Docker/Docker/resources/bin/docker) and the Linux CLI shipped by Docker Desktop at /mnt/wsl/docker-desktop/cli-tools/usr/bin/docker.",
+    "docker_daemon_reachable": "NO",
+    "reason": "Docker Desktop WSL integration is disabled for this distro. The PATH wrapper prints 'The command docker could not be found in this WSL 2 distro' and exits 1. /var/run/docker.sock does not exist. The Docker Desktop proxy sockets under /mnt/wsl/docker-desktop/shared-sockets are owned by root with modes that deny connect() to uid 1000: every attempt returns 'permission denied while trying to connect to the docker API'.",
+    "image_inspected": "NO. The approved image sha256:55bc923e...b297af was NOT inspected, NOT exported, NOT imported and NOT rebuilt. Its local existence and integrity remain unverified from this environment.",
+    "alternative_runtimes": "podman, nerdctl and buildah are absent.",
+    "privilege_note": "Enabling WSL integration, starting a daemon, or changing socket ownership all require privileges not available here (sudo requires interactive authentication).",
+    "blocking_input_required": "Either enable Docker Desktop WSL integration for this distro (a Docker Desktop setting on the Windows host), or grant this user access to a Docker daemon socket, or provide a rootless container runtime. Only then can the approved image be inspected by digest.",
+    "explicit_non_claim": "No statement in this record asserts that any image was verified, rebuilt, or is equivalent to the approved historic image."
+  }
+}

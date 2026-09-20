@@ -1,0 +1,110 @@
+{
+  "schema_version": "1.0",
+  "record": "structural_validation",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": [
+    "SC-GOV-020"
+  ],
+  "captured_at_utc": "2026-09-20T04:30:39.480813+00:00",
+  "openspec_cli": {
+    "package": "@fission-ai/openspec",
+    "version": "1.13.1",
+    "finding": "GD-06 and the project documents refer to 'OpenSpec CLI 1.13.1 por npx'. The bare npm name 'openspec' resolves to a placeholder package whose only published version is 0.0.0. The real distribution is '@fission-ai/openspec', whose latest is exactly 1.13.1. This correction was verified with 'npm view' and is recorded so the command is reproducible.",
+    "node": "v22.20.0",
+    "npm": "10.9.3"
+  },
+  "in_scope_results": [
+    {
+      "item": "sc-01-evidence-scope",
+      "type": "change",
+      "exit_code": 0,
+      "result": "PASS",
+      "command": "npx --yes @fission-ai/openspec@1.13.1 validate sc-01-evidence-scope --type change --strict"
+    },
+    {
+      "item": "sc-02-runtime-readiness",
+      "type": "change",
+      "exit_code": 0,
+      "result": "PASS",
+      "command": "npx --yes @fission-ai/openspec@1.13.1 validate sc-02-runtime-readiness --type change --strict"
+    },
+    {
+      "item": "sc-03-stage-a",
+      "type": "change",
+      "exit_code": 0,
+      "result": "PASS",
+      "command": "npx --yes @fission-ai/openspec@1.13.1 validate sc-03-stage-a --type change --strict"
+    },
+    {
+      "item": "sc-04-stage-b",
+      "type": "change",
+      "exit_code": 0,
+      "result": "PASS",
+      "command": "npx --yes @fission-ai/openspec@1.13.1 validate sc-04-stage-b --type change --strict"
+    },
+    {
+      "item": "sc-05-stage-c",
+      "type": "change",
+      "exit_code": 0,
+      "result": "PASS",
+      "command": "npx --yes @fission-ai/openspec@1.13.1 validate sc-05-stage-c --type change --strict"
+    },
+    {
+      "item": "sc-06-scientific-synthesis",
+      "type": "change",
+      "exit_code": 0,
+      "result": "PASS",
+      "command": "npx --yes @fission-ai/openspec@1.13.1 validate sc-06-scientific-synthesis --type change --strict"
+    },
+    {
+      "item": "sc-07-aux-regression",
+      "type": "change",
+      "exit_code": 0,
+      "result": "PASS",
+      "command": "npx --yes @fission-ai/openspec@1.13.1 validate sc-07-aux-regression --type change --strict"
+    },
+    {
+      "item": "sc-08-aux-hitl",
+      "type": "change",
+      "exit_code": 0,
+      "result": "PASS",
+      "command": "npx --yes @fission-ai/openspec@1.13.1 validate sc-08-aux-hitl --type change --strict"
+    },
+    {
+      "item": "sc-09-aux-anomalies",
+      "type": "change",
+      "exit_code": 0,
+      "result": "PASS",
+      "command": "npx --yes @fission-ai/openspec@1.13.1 validate sc-09-aux-anomalies --type change --strict"
+    },
+    {
+      "item": "sc-10-aux-robustness",
+      "type": "change",
+      "exit_code": 0,
+      "result": "PASS",
+      "command": "npx --yes @fission-ai/openspec@1.13.1 validate sc-10-aux-robustness --type change --strict"
+    },
+    {
+      "item": "scientific-closure",
+      "type": "spec",
+      "exit_code": 0,
+      "result": "PASS",
+      "command": "npx --yes @fission-ai/openspec@1.13.1 validate scientific-closure --type spec --strict"
+    }
+  ],
+  "checker": {
+    "command": "PYTHONPATH=src /home/gus/scientific-closure-runtime/env/venv-v4/bin/python scripts/check_scientific_closure.py",
+    "started_utc": "2026-09-20T04:30:39.599356+00:00",
+    "duration_s": 0.08,
+    "exit_code": 0,
+    "stdout": "scientific-closure checker: PASS (estructura; runtime no verificado)",
+    "stderr": ""
+  },
+  "out_of_scope_note": "'npx @fission-ai/openspec@1.13.1 validate --all --strict' exits 1 overall because 42 pre-existing, unrelated changes in this repository (UI and other capabilities, e.g. simplify-producer-ii/add-accelerated-sensor-demo) emit RFC-2119 warnings under --strict. Those are outside the scientific-closure scope and were NOT modified: this session does not touch the UI or other capabilities. The 11 scientific-closure items all pass individually, as recorded above.",
+  "in_scope_summary": {
+    "total": 11,
+    "passed": 11,
+    "failed": 0
+  }
+}

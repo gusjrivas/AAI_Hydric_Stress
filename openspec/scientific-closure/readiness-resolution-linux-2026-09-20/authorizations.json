@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "record": "authorizations",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": ["SC-GOV-002"],
+  "captured_at_utc": "2026-09-20T04:35:00Z",
+  "mechanism": {
+    "description": "Each stage is dispatched only when (a) its static dependencies are PASS, (b) its declarative extra_gate in changes.json evaluates true against verifiable evidence, and (c) a traceable authorization for that specific stage exists with actor, scope and date. A technical PASS never implies execution permission.",
+    "verified_here": "The mechanism was exercised: every extra_gate clause relevant to dispatching stage A was evaluated against evidence in this directory before deciding not to dispatch. The blocking clause is recorded below."
+  },
+  "authorizations": [
+    {
+      "id": "AUTH-PREP-2026-09-20",
+      "scope": "Resolve readiness blockers; create/modify repository files; install dependencies in a project environment; create virtual environments; run tests, linters, formatters, checkers and builds; inspect dataset metadata where the protocol permits; create atomic commits; push to origin/feat/scientific-closure only.",
+      "actor": "repository owner, via the session instruction of 2026-09-20",
+      "date_utc": "2026-09-20",
+      "source": "session prompt (autonomous scientific closure orchestration)",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "AUTH-ABC-2026-09-20",
+      "scope": "Execute campaigns A, B and C, initialise the scientific ledger and open the holdout, CONDITIONAL on the standing gates being satisfied and that fact being recorded.",
+      "actor": "repository owner, via the session instruction of 2026-09-20",
+      "date_utc": "2026-09-20",
+      "source": "session prompt",
+      "status": "GRANTED_BUT_NOT_EXERCISABLE",
+      "why_not_exercisable": "The authorization is explicitly conditional ('siempre que los gates vigentes esten satisfechos'). Gate G1 is not satisfied: ADR-0011 pre-execution condition 4 requires this ADR AND the detailed protocol to be merged into main before any execution may begin. Verified: the ADR is merged byte-identically, but the protocol version in origin/main is superseded (lacks section 16, the normative support and interpretation criteria) and the runner implementation is not in main. Satisfying condition 4 requires a merge/PR to main, which the same instruction explicitly does NOT authorize."
+    }
+  ],
+  "pending_authorizations": [
+    {
+      "stage": "A",
+      "blocked_by": ["ADR-0011 condition 4 (external)", "container image not inspectable (external)", "backup physical independence (external)"],
+      "note": "No stage A command was issued. No model was fitted on Pergamino data."
+    },
+    {
+      "stage": "B",
+      "blocked_by": ["stage A not executed"],
+      "note": "Custody register untouched; no attempt reserved."
+    },
+    {
+      "stage": "C",
+      "blocked_by": ["stage B not executed", "separate ledger initialisation authorization not exercisable"],
+      "note": "Holdout 2024-2025 remains closed. Ledger NOT initialised."
+    }
+  ],
+  "explicit_non_claims": [
+    "No scientific execution authorization was inferred from any technical PASS in this session.",
+    "The ledger was not initialised. The holdout was not opened. No 2024-2025 value was read."
+  ]
+}
