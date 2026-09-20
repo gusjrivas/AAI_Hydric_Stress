@@ -30,18 +30,19 @@
         "role": "scientific_critic (substitute: Claude Code general-purpose subagent, model requested opus, separate context, instructed read-only)",
         "snapshot": "b9fefbf36037ca259f4b17b68642d330bc489d39",
         "exact_report": "review-critic.md",
-        "verbatim_conclusion": "The synthesis does not overstate. Read against claims.md: no result claimed, no fixture presented as science, no holdout implied touched. It pre-empts the subtlest custody point itself - that hashing the full CSV in Stage A touches 2024-2025 bytes - and correctly distinguishes hashing from reading values. Section 5 correctly labels the Stage C --validate-inputs-only prohibition as 'Regla implementada en codigo, NO en el protocolo'.",
-        "note": "The critic reached this while trying to REFUTE the synthesis; it appears under its heading 'What I could not refute'."
+        "note": "The critic reached this while trying to REFUTE the synthesis; it appears under its heading 'What I could not refute'.",
+        "quoted_conclusion": "The synthesis does not overstate. Read against claims.md: no result claimed, no fixture presented as science, no holdout implied touched. It pre-empts the subtlest custody point itself - that hashing the full CSV in Stage A touches 2024-2025 bytes - and correctly distinguishes hashing from reading values. Section 5 correctly labels the Stage C --validate-inputs-only prohibition as 'Regla implementada en codigo, NO en el protocolo'."
       },
       {
         "role": "scientific_auditor (substitute: Claude Code general-purpose subagent, model requested opus, separate context, instructed read-only)",
         "snapshot": "5b40a55ef62f19cfa9125aa29146e53976661692",
         "exact_report": "review-audit.md",
-        "verbatim_conclusion": "its substance is sound: I re-read the synthesis against claims.md and found no overstatement, no result claimed, no fixture presented as science, no implication the holdout was touched.",
-        "note": "The auditor re-derived this itself while simultaneously raising AUD-F-02 against this artefact's attribution. It separated the substance, which it upheld, from the credit, which it rejected."
+        "note": "The auditor re-derived this itself while simultaneously raising AUD-F-02 against this artefact's attribution. It separated the substance, which it upheld, from the credit, which it rejected.",
+        "quoted_conclusion": "its substance is sound: I re-read the synthesis against claims.md and found no overstatement, no result claimed, no fixture presented as science, no implication the holdout was touched."
       }
     ],
-    "independence_limit": "Both readers ran in separate contexts and read the snapshot directly rather than accepting the orchestrator's summary. They are NOT independent in the stronger senses: same vendor and model family, and read-only status instructed by prompt rather than enforced by a sandbox. See session-identity.json."
+    "independence_limit": "Both readers ran in separate contexts and read the snapshot directly rather than accepting the orchestrator's summary. They are NOT independent in the stronger senses: same vendor and model family, and read-only status instructed by prompt rather than enforced by a sandbox. See session-identity.json.",
+    "quotation_fidelity_note": "Correction RA-03: these quotations are FAITHFUL BUT NOT BYTE-EXACT. Markdown emphasis was stripped and some accents and dashes normalised for JSON transport. No verdict, qualifier or negation was altered. The byte-exact texts are in review-critic.md and review-audit.md and prevail over these excerpts. The field was renamed from 'verbatim_conclusion' because, in an artefact whose whole correction concerned attribution, calling a normalised quote verbatim was the same kind of small overstatement."
   },
   "method": "Sentence-by-sentence reading of the synthesis against claims.md by the ORCHESTRATOR, looking for: a conclusion stronger than its evidence; documentary evidence presented as execution evidence; synthetic or fixture results presented as scientific results; leakage risk; any statement implying a holdout was touched; and confusion between onset anticipation and episode coverage. Two independent readers checked the same object for the same defects in their own words; their conclusions are quoted above and their full reports are preserved.",
   "scope_limit_declared_up_front": "The synthesis contains NO scientific result, because no campaign was executed. This review can therefore only verify that non-execution is stated honestly and that no result is implied. It cannot and does not certify any scientific claim. A PASS here is not a PASS of sc-06 and not a gate.",
@@ -139,7 +140,7 @@
     {
       "id": "CER-16",
       "checked": "Do the protocol's normative support rules actually exist in the code the synthesis describes?",
-      "result": "YES, verified by the reviewer in source: selection.py rejects a family with fewer than two folds of finite MCC as NO_VALID_SELECTION; bootstrap.py enforces the 0.8 valid-replicate floor; config.py carries delta=0.05 and seeds 20250109 and 42. The synthesis does not overstate the implementation.",
+      "result": "YES, verified in source by the independent critic, whose report cites the exact files and lines: selection.py rejects a family with fewer than two folds of finite MCC as NO_VALID_SELECTION; bootstrap.py enforces the 0.8 valid-replicate floor; config.py carries delta=0.05 and seeds 20250109 and 42. The synthesis does not overstate the implementation.",
       "verdict": "COMPLIANT"
     }
   ],
@@ -151,8 +152,8 @@
   "verdict_meaning": "The synthesis does not overstate. Every claim it makes is either a verified fact, a labelled inference, or an explicit statement of absence. This closes the artefact gap of SC-GOV-016 and nothing more: it is not a PASS of sc-06-scientific-synthesis, whose gate additionally requires an audited terminal A/B/C stage that does not exist.",
   "limitations": [
     "A review of claims can only be as strong as the claims available to review. With no execution, the hardest category - a result stated more strongly than its support - could not be exercised at all.",
-    "The reviewer ran without network and could not re-verify the external provenance URLs cited in section 2; those remain single-source, single-observer evidence, as the synthesis itself declares.",
-    "The reviewer's read-only status was instructed by prompt, not enforced by a sandbox.",
+    "The independent critic ran without network and could not re-verify the external provenance URLs cited in section 2; those remain single-source, single-observer evidence, as the synthesis itself declares.",
+    "The independent readers' read-only status was instructed by prompt, not enforced by a sandbox.",
     "The sixteen-item structure is the orchestrator's, not a reader's. Its value rests on two independent readers reaching the same substantive conclusion about the same document, not on the item list being independently produced (finding AUD-F-02)."
   ]
 }

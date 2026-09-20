@@ -2,8 +2,8 @@
   "schema_version": "1.0",
   "record": "evidence_manifest",
   "campaign_id": "closure-verification-2026-09-20",
-  "generated_at_utc": "2026-09-20T18:40:00Z",
-  "commit_at_generation": "5b40a55ef62f19cfa9125aa29146e53976661692",
+  "generated_at_utc": "2026-09-20T18:55:00Z",
+  "commit_at_generation": "4940ffccbca34a2970a0eb4b54dcb7af03b2b62d",
   "branch": "feat/scientific-closure",
   "tree_clean_at_generation": false,
   "tree_clean_note": "False by construction: this manifest is generated over a working tree that already contains the corrections it hashes, immediately before the commit that publishes them. Every hash listed is the state that commit publishes. The previous version of this manifest declared true, which was accurate for its own generation moment and is not restated here.",
@@ -32,27 +32,57 @@
   ],
   "governance_evidence": [
     {
+      "path": "docker/experiment-v4/constraints.txt",
+      "sha256": "aa05b7b17ee4677839e724af7a768f532ba669514fb06ffe23f525cddd1efd6b",
+      "bytes": 1004,
+      "type": "technical_or_governance"
+    },
+    {
+      "path": "docs/research/scientific-closure-synthesis-2026-09-20.md",
+      "sha256": "d8dbf29a1325664b2ea84ce0890781c54c61366bd142f7f11b3b91c968c473eb",
+      "bytes": 29987,
+      "type": "technical_or_governance"
+    },
+    {
+      "path": "openspec/scientific-closure/changes.json",
+      "sha256": "8d9bbbefbf59041374cae92a1d03c37763547b878d16842a2200faee2ca45a6d",
+      "bytes": 23557,
+      "type": "technical_or_governance"
+    },
+    {
+      "path": "openspec/scientific-closure/claims.md",
+      "sha256": "b99812855b6525a490325136d0feffa2836acd6e9d09efce223219d89d27ee95",
+      "bytes": 6043,
+      "type": "technical_or_governance"
+    },
+    {
       "path": "openspec/scientific-closure/closure-verification-2026-09-20/checkpoints.json",
-      "sha256": "777165c36004b34e1096021f42efbde24504edb60b2774da14e207db97ce065e",
-      "bytes": 5259,
+      "sha256": "b8fdf86dcf150e5fbdf5395894c9839d5ab78455588cadd4b93ab3e277f91942",
+      "bytes": 6911,
       "type": "technical_or_governance"
     },
     {
       "path": "openspec/scientific-closure/closure-verification-2026-09-20/claim-evidence-review.json",
-      "sha256": "72bbf9861ae03edb60481c4f4240db79e86f00cfe3f50be56bae1bf980b8153d",
-      "bytes": 12424,
+      "sha256": "6f0184530e95c47dbecd89baf8b7584d2374a1a4104046a4272f2a485d9ee8eb",
+      "bytes": 13030,
       "type": "technical_or_governance"
     },
     {
       "path": "openspec/scientific-closure/closure-verification-2026-09-20/findings-resolution.json",
-      "sha256": "9ce80e68c3476fa97cde4cb73690678489b2f2e56a3b150f48b5107a8c1a7992",
-      "bytes": 22906,
+      "sha256": "11a3e732fc7464ca2ecca0a477fd72e0812cd46960daa22581c486ec8e773d83",
+      "bytes": 27749,
       "type": "technical_or_governance"
     },
     {
       "path": "openspec/scientific-closure/closure-verification-2026-09-20/independent-verification.json",
       "sha256": "15f81865c9079ded9549d9577755aa066da6362cb475357b9937547ea11d5495",
       "bytes": 12998,
+      "type": "technical_or_governance"
+    },
+    {
+      "path": "openspec/scientific-closure/closure-verification-2026-09-20/review-audit-2.md",
+      "sha256": "5f7955d077db5208113878d7acaf87a4c1c5bb5780947e9418931226edfe4c44",
+      "bytes": 20848,
       "type": "technical_or_governance"
     },
     {
@@ -75,8 +105,8 @@
     },
     {
       "path": "openspec/scientific-closure/closure-verification-2026-09-20/scientific-closure-audit.json",
-      "sha256": "fe65e471bf31821adf226b7eb30de614c475cf39525936b6635338a574d394ed",
-      "bytes": 9858,
+      "sha256": "61d8e5608b43f4d737df3456bad72eb303efa33bd029e6f14790d6604ec0d04b",
+      "bytes": 10558,
       "type": "technical_or_governance"
     },
     {
@@ -86,9 +116,9 @@
       "type": "technical_or_governance"
     },
     {
-      "path": "openspec/scientific-closure/traceability.md",
-      "sha256": "9ede6136a9cdc24c44a469f30fd87135a0930c9f495843e4cd9839f1ffd747d9",
-      "bytes": 29178,
+      "path": "openspec/scientific-closure/current-execution-checkpoint.md",
+      "sha256": "ff8f86004c645f83ccab49812d895541b28013c93fbbf70b6e8476b11073e347",
+      "bytes": 19933,
       "type": "technical_or_governance"
     },
     {
@@ -98,27 +128,9 @@
       "type": "technical_or_governance"
     },
     {
-      "path": "openspec/scientific-closure/risks.md",
-      "sha256": "70a4f66c6fd496798f08f1a9268b93d230035c06ccf3a46131bd06f79edcd732",
-      "bytes": 8515,
-      "type": "technical_or_governance"
-    },
-    {
-      "path": "openspec/scientific-closure/claims.md",
-      "sha256": "b99812855b6525a490325136d0feffa2836acd6e9d09efce223219d89d27ee95",
-      "bytes": 6043,
-      "type": "technical_or_governance"
-    },
-    {
       "path": "openspec/scientific-closure/inventory.md",
       "sha256": "5d70067ba4c9d16c6cf6ef0c0f2e12560e18c91154e65b496af87fdc040f49df",
       "bytes": 12001,
-      "type": "technical_or_governance"
-    },
-    {
-      "path": "openspec/scientific-closure/current-execution-checkpoint.md",
-      "sha256": "bb50174dfd9807e2a16de25b7ff89642873afac754cd2e10b0bd873c36662226",
-      "bytes": 18430,
       "type": "technical_or_governance"
     },
     {
@@ -128,27 +140,27 @@
       "type": "technical_or_governance"
     },
     {
-      "path": "openspec/scientific-closure/changes.json",
-      "sha256": "8d9bbbefbf59041374cae92a1d03c37763547b878d16842a2200faee2ca45a6d",
-      "bytes": 23557,
-      "type": "technical_or_governance"
-    },
-    {
       "path": "openspec/scientific-closure/requirements.json",
       "sha256": "e12563e42d3a09de0e4cc393bf927a76924375622dca13431103c752d125c19e",
       "bytes": 16009,
       "type": "technical_or_governance"
     },
     {
-      "path": "openspec/specs/scientific-closure/spec.md",
-      "sha256": "37716bc0d222bf29e5f63cc095c64de76983d8061774bf410a11bacafa540f57",
-      "bytes": 26615,
+      "path": "openspec/scientific-closure/risks.md",
+      "sha256": "70a4f66c6fd496798f08f1a9268b93d230035c06ccf3a46131bd06f79edcd732",
+      "bytes": 8515,
       "type": "technical_or_governance"
     },
     {
-      "path": "docs/research/scientific-closure-synthesis-2026-09-20.md",
-      "sha256": "d8dbf29a1325664b2ea84ce0890781c54c61366bd142f7f11b3b91c968c473eb",
-      "bytes": 29987,
+      "path": "openspec/scientific-closure/traceability.md",
+      "sha256": "9ede6136a9cdc24c44a469f30fd87135a0930c9f495843e4cd9839f1ffd747d9",
+      "bytes": 29178,
+      "type": "technical_or_governance"
+    },
+    {
+      "path": "openspec/specs/scientific-closure/spec.md",
+      "sha256": "37716bc0d222bf29e5f63cc095c64de76983d8061774bf410a11bacafa540f57",
+      "bytes": 26615,
       "type": "technical_or_governance"
     },
     {
@@ -170,6 +182,12 @@
       "type": "technical_or_governance"
     },
     {
+      "path": "tests/test_readonly_role_sandbox.py",
+      "sha256": "250b7f0331cd7ee5c058a2c3336f8541fe725d03238f8ec05854ffd211b1dd5c",
+      "bytes": 6825,
+      "type": "technical_or_governance"
+    },
+    {
       "path": "tests/test_scientific_closure_checker.py",
       "sha256": "78c1e544042ce60bc5070b0137886be1b876f97def7f1c0ce42d10dcb54153d5",
       "bytes": 19428,
@@ -180,27 +198,15 @@
       "sha256": "abad64d057efa4e356bcce67e21001e345230f6bde06fcfef1f168f7d9b34614",
       "bytes": 13039,
       "type": "technical_or_governance"
-    },
-    {
-      "path": "tests/test_readonly_role_sandbox.py",
-      "sha256": "250b7f0331cd7ee5c058a2c3336f8541fe725d03238f8ec05854ffd211b1dd5c",
-      "bytes": 6825,
-      "type": "technical_or_governance"
-    },
-    {
-      "path": "docker/experiment-v4/constraints.txt",
-      "sha256": "aa05b7b17ee4677839e724af7a768f532ba669514fb06ffe23f525cddd1efd6b",
-      "bytes": 1004,
-      "type": "technical_or_governance"
     }
   ],
   "count": {
-    "governance_files": 27,
+    "governance_files": 28,
     "scientific_inputs": 2,
     "scientific_result_artifacts": 0
   },
   "note": "Every entry here is technical or governance evidence. None of it is evidence about the scientific hypothesis.",
-  "self_reference_limit": "This manifest cannot list or hash itself, and cannot name the commit that publishes it, because that commit does not exist yet. 'commit_at_generation' is the HEAD at generation time; the publishing commit is its immediate child, recoverable with: git log --oneline <commit_at_generation>..HEAD",
-  "relationship_to_the_previous_manifest": "readiness-resolution-linux-2026-09-20/evidence-manifest.json remains the record of the PREVIOUS campaign at commit 8e31f78 and was not rewritten. Three of its entries no longer match disk because this session edited those files; that is declared in an annotation on it. The auditor verified the annotation altered no hash and removed no entry: 31 entries before and after.",
+  "self_reference_limit": "This manifest cannot list or hash itself, and cannot name the commit that publishes it, because that commit does not exist yet. 'commit_at_generation' is the HEAD at generation time; the publishing commit is its immediate child, recoverable with: git log --oneline <commit_at_generation>..HEAD . Do not trust any count stated in prose anywhere in this campaign over a recomputation: sha256 every declared path and compare. That instruction exists because a stated count was found false twice in this session (C-04, RA-01).",
+  "relationship_to_the_previous_manifest": "readiness-resolution-linux-2026-09-20/evidence-manifest.json remains the record of the PREVIOUS campaign at commit 8e31f78 and was not rewritten. SIX of its entries no longer match disk because this session edited those files: traceability.md, decisions.md, risks.md, inventory.md, current-execution-checkpoint.md and docs/research/scientific-closure-synthesis-2026-09-20.md. The first version of this field and of the annotation on that manifest both said THREE; the re-audit of snapshot 4940ffc proved the count false (finding RA-01) and it is corrected here. No hash there was altered and no entry removed - the first auditor verified 31 entries before and after, with no changed hashes and one added key. To check rather than trust, recompute every declared sha256 in that file against disk.",
   "uncorroborated_hash_declared": "implementation-snapshot.json declares supersedes.initial_snapshot_sha256 = 39f3d55e... which matches no object in the git store after re-hashing every blob (finding D-2). It is self-attested and is named here rather than counted among verified hashes."
 }

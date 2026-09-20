@@ -78,6 +78,28 @@ exacto en
 artefacto de SC-GOV-025 en
 [`scientific-closure-audit.json`](closure-verification-2026-09-20/scientific-closure-audit.json).
 
+**Reauditoría independiente sobre el snapshot corregido.** Declaró **cerrados
+los seis** hallazgos anteriores, reconfirmó de forma independiente los tres
+bloqueos externos, la custodia limpia, la identidad ejecutable, 29/29 hashes y
+la preservación sin editar de todos los informes de lectores, y **confirmó el
+veredicto de sesión** `SCIENTIFIC_CLOSURE_BLOCKED` suspensivo, rechazando de
+nuevo `PASS_WITH_LIMITATIONS`. Volvió a emitir `BLOCKED` sobre el **registro de
+preparación** por un hallazgo material nuevo, **RA-01**: tres registros decían
+que tres entradas del manifiesto anterior habían quedado superadas cuando eran
+**seis**. Era cierto al escribirse y falso al publicarse, porque después se
+editaron tres archivos más: exactamente el modo de falla que esta sesión venía
+corrigiendo, cometido por tercera vez por el orquestador y detectado por tercera
+vez por un lector independiente. Se corrigió el recuento en las tres
+ubicaciones y, sobre todo, se **eliminó el modo de falla**: la anotación ahora
+instruye recomputar los hashes en lugar de confiar en un número. RA-02 a RA-05
+también quedaron aplicados. Informe exacto en
+[`review-audit-2.md`](closure-verification-2026-09-20/review-audit-2.md).
+
+**Lo que ningún ciclo de corrección cambió:** los tres insumos externos, la
+ausencia de campaña, el ledger sin inicializar y el holdout cerrado. Tres
+rondas de revisión independiente mejoraron el **registro**; ninguna produjo ni
+podía producir evidencia científica.
+
 **Estado por requisito:** `PASS` 0; `PASS_WITH_LIMITATIONS` 8; `BLOCKED` 17;
 `NOT_APPLICABLE` 0. Cinco filas empeoraron tras la crítica independiente y una
 mejoró con artefacto nuevo. Ver [matriz de trazabilidad](traceability.md).

@@ -87,7 +87,7 @@
       "severity": "MATERIAL",
       "claim_challenged": "No independent review exists of the published snapshot b9fefbf",
       "accepted": true,
-      "resolution": "APPLIED. This session commissioned an evidence checker and an adversarial critic on b9fefbf itself, both in separate contexts, and a final independent audit on the snapshot this session publishes. Their exact reports are preserved here."
+      "resolution": "APPLIED. This session commissioned an independent evidence checker and an independent adversarial critic on b9fefbf, an independent final audit on 5b40a55, and an independent re-audit on 4940ffc, each in a separate context. Their exact reports are preserved here. Naming the snapshot each review actually covered matters: the first wording said the audit covered 'the snapshot this session publishes', which was not true of an intermediate snapshot (finding RA-05)."
     },
     {
       "id": "C-11",
@@ -235,8 +235,9 @@
       "id": "E-06",
       "severity": "OBSERVATION",
       "source": "orchestrator",
-      "finding": "Three governance documents listed in the previous campaign's evidence-manifest.json were edited by this session to close the findings above, so their declared hashes no longer match disk",
-      "resolution": "DECLARED, in an annotation on that manifest and in this session's own manifest, so that a later reader does not mistake a known and intended change for tampering. No hash was edited and no entry was removed."
+      "finding": "SIX governance documents listed in the previous campaign's evidence-manifest.json were edited by this session to close the findings above, so their declared hashes no longer match disk: traceability.md, decisions.md, risks.md, inventory.md, current-execution-checkpoint.md and docs/research/scientific-closure-synthesis-2026-09-20.md.",
+      "resolution": "DECLARED, in an annotation on that manifest and in this session's own manifest, so that a later reader does not mistake a known and intended change for tampering. No hash was edited and no entry was removed.",
+      "count_correction_RA-01": "The first version of this entry, and both manifests, said THREE. That was true when written and false when published, because three more files were edited afterwards in the same session. The re-audit found it (RA-01) and it is corrected to six in all three locations."
     },
     {
       "id": "AUD-F-01",
@@ -290,15 +291,64 @@
       "claim_challenged": "session-identity.json records a captured_at_utc later than the start of the session's largest verification run",
       "accepted": true,
       "resolution": "APPLIED. The field is now labelled as the preflight capture instant, with the approximate session start recorded alongside it."
+    },
+    {
+      "id": "RA-01",
+      "severity": "MATERIAL",
+      "source": "auditor (re-audit of 4940ffc)",
+      "claim_challenged": "Three separate records stated that THREE entries of the previous campaign's manifest no longer match disk; six do.",
+      "accepted": true,
+      "verified_independently_by_orchestrator": "Recomputed every declared sha256 of readiness-resolution-linux-2026-09-20/evidence-manifest.json against disk: MISMATCH=6, MISSING=0. The three undeclared paths were inventory.md, current-execution-checkpoint.md and docs/research/scientific-closure-synthesis-2026-09-20.md.",
+      "resolution": "APPLIED in all three locations, with the count and the full path list corrected, plus an instruction to recompute rather than trust the list.",
+      "self_criticism": "The count was true at the instant it was written and false at the commit that published it, because three further files were edited afterwards in the same session. That is exactly the self-invalidating-record failure this session was convened to correct (C-04, AUD-F-01), committed a third time by the orchestrator and caught a third time by an independent reader. The corrected annotation now tells the reader to recompute instead of trusting a number, which removes the failure mode rather than only its instance.",
+      "nothing_concealed": "No hash was altered and no entry removed; 31 entries before and after, verified independently by the first auditor."
+    },
+    {
+      "id": "RA-02",
+      "severity": "MINOR",
+      "source": "auditor (re-audit of 4940ffc)",
+      "claim_challenged": "scientific-closure-audit.json asserted in the present tense that the re-audit 'is recorded in review-audit-2.md and audit-2.json', neither of which existed, and one of those names already belongs to a different campaign.",
+      "accepted": true,
+      "resolution": "APPLIED. The reference is now conditional and names no file that does not exist. The re-audit, having since been performed, is recorded in review-audit-2.md, which now exists.",
+      "note": "Same defect class as AUD-F-01, milder: a procedural field rather than the normative matrix, and it pre-stated no verdict."
+    },
+    {
+      "id": "RA-03",
+      "severity": "OBSERVATION",
+      "source": "auditor (re-audit of 4940ffc)",
+      "claim_challenged": "A field named verbatim_conclusion held faithful but not byte-exact quotations (markdown emphasis stripped, accents and dashes normalised), and residual uses of 'the reviewer' remained in an artefact whose correction was about attribution.",
+      "accepted": true,
+      "resolution": "APPLIED. The field is renamed quoted_conclusion with an explicit normalisation note, and the residual 'the reviewer' wordings are attributed explicitly."
+    },
+    {
+      "id": "RA-04",
+      "severity": "OBSERVATION",
+      "source": "auditor (re-audit of 4940ffc)",
+      "claim_challenged": "The counts block does not reconcile mechanically with the findings list, because the categories were never defined and the orchestrator self-findings carry no 'accepted' key.",
+      "accepted": true,
+      "resolution": "APPLIED. counts is replaced by a mechanically reproducible tally by severity over the findings array, with the counting rule stated so a reader can recompute it."
+    },
+    {
+      "id": "RA-05",
+      "severity": "OBSERVATION",
+      "source": "auditor (re-audit of 4940ffc)",
+      "claim_challenged": "Two records used the present tense for things that had not happened: checkpoints.json said the push 'is performed', and C-10's resolution said the final audit covered 'the snapshot this session publishes' when it covered an intermediate one.",
+      "accepted": true,
+      "resolution": "APPLIED. Both are restated in the correct tense, and C-10 now names the exact snapshots each review covered."
     }
   ],
   "counts": {
-    "material_accepted": 13,
-    "minor_accepted": 9,
-    "observations": 7,
-    "rejected": 0,
-    "partially_accepted": 1,
-    "recorded_without_repair": 3
+    "counting_rule": "One entry per findings[] element, tallied by its severity field verbatim. Reproducible with: python -c \"import json,collections;d=json.load(open(<this file>));print(collections.Counter(f.get('severity','UNSPECIFIED') for f in d['findings']))\"",
+    "total_findings": 41,
+    "by_severity": {
+      "LOW": 1,
+      "MATERIAL": 15,
+      "MATERIAL_FOR_REPRODUCIBILITY": 1,
+      "MINOR": 11,
+      "NOTE": 1,
+      "NOT_VERIFIABLE": 1,
+      "OBSERVATION": 11
+    }
   },
   "disagreements_with_readers": "None. Every material finding from all three readers was accepted and applied. C-20 was downgraded by the critic itself. No reader finding was overruled, including the two that were findings against the orchestrator's own work in this session.",
   "convergence_note": "C-04 and D-1 are the same defect found independently by two readers in separate contexts. That convergence is recorded because it raises confidence in both reports, and because the defect had already been raised once before as audit finding A-04 and had recurred.",

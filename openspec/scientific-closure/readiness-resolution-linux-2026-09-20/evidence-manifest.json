@@ -216,7 +216,7 @@
     "principle": "No hash in this manifest was edited, and no entry was removed. This manifest is a historical record of the evidence set as it stood at commit 8e31f78 and it is preserved as such. The corrections below are annotations so that a later reader does not mistake a known, declared change for tampering.",
     "C-12_stale_recovery_hint": "The 'published_in_commit' field says the manifest is recoverable with 'git log --oneline dc0d3f5..HEAD'. That range returned one commit when written and returns more as the branch advances. The correct, stable range is 'git log --oneline 8e31f78..HEAD', taking the value of the 'commit' field as the base. The original wording is left in place and corrected here.",
     "entries_that_no_longer_match_HEAD": {
-      "reason": "The closure-verification session of 2026-09-20 edited three governance documents to close independent-critique findings C-02..C-09 and C-11..C-17. Their content therefore changed after this manifest was generated, and their sha256 entries here no longer match the file on disk. This is expected and declared, not a custody failure.",
+      "reason": "The closure-verification session of 2026-09-20 edited SIX governance documents listed in this manifest, to close independent-critique findings C-02..C-09 and C-11..C-17 and then audit findings AUD-F-01..AUD-F-06. Their content changed after this manifest was generated, so their sha256 entries here no longer match the file on disk. This is expected and declared, not a custody failure.",
       "paths": [
         {
           "path": "openspec/scientific-closure/traceability.md",
@@ -232,10 +232,27 @@
           "path": "openspec/scientific-closure/risks.md",
           "sha256_at_8e31f78": "6591dce9bbbcf1d1f8a99b80f02ae4dafe6f0cc9324ed93803c6fcf6bfa9ec6f",
           "status": "SUPERSEDED_BY_LATER_EDIT"
+        },
+        {
+          "path": "openspec/scientific-closure/inventory.md",
+          "sha256_at_8e31f78": "078831f3ef832d6e5141c379ab4e638f6b9c34e5885ed02bc1d1477dd410aa31",
+          "status": "SUPERSEDED_BY_LATER_EDIT"
+        },
+        {
+          "path": "openspec/scientific-closure/current-execution-checkpoint.md",
+          "sha256_at_8e31f78": "35bcea5134780ef19d8db0863cbddf41c658933c85e26dbf34b6b62a10291a9f",
+          "status": "SUPERSEDED_BY_LATER_EDIT"
+        },
+        {
+          "path": "docs/research/scientific-closure-synthesis-2026-09-20.md",
+          "sha256_at_8e31f78": "f12f6ec87b38eb4eb700f95f0f74af742030435a67e61a5c201bb134d254b87a",
+          "status": "SUPERSEDED_BY_LATER_EDIT"
         }
       ],
       "current_hashes_recorded_in": "openspec/scientific-closure/closure-verification-2026-09-20/evidence-manifest.json",
-      "verification_at_8e31f78": "Before those edits, an independent evidence checker recomputed all 31 declared hashes in this manifest against disk and found 31/31 MATCH, zero missing."
+      "verification_at_8e31f78": "Before those edits, an independent evidence checker recomputed all 31 declared hashes in this manifest against disk and found 31/31 MATCH, zero missing.",
+      "count_correction_RA-01": "The first version of this annotation named THREE paths. That was true at the instant it was written and FALSE at the commit that published it, because three further files were edited afterwards in the same session: inventory.md, current-execution-checkpoint.md and scientific-closure-synthesis-2026-09-20.md. The re-audit of snapshot 4940ffc found the count false (finding RA-01) and it is corrected here to six. The failure mode is the one this whole session has been correcting: a record stating a number that a later edit invalidates.",
+      "always_current_check": "Do not trust the list above over the filesystem. Recompute: for every entry of governance_evidence and scientific_inputs in this file, sha256 the path and compare. Any mismatch not listed above is a real discrepancy and must be investigated."
     }
   }
 }

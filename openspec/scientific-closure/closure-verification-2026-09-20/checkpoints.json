@@ -45,15 +45,24 @@
       "audited": "This is the snapshot the first independent final audit covered. Verdict BLOCKED (suspensive), with two material findings against this session's own work: AUD-F-01 and AUD-F-02."
     },
     {
-      "sha": "pending at the time this record was written; it is the commit that publishes this file",
+      "sha": "4940ffccbca34a2970a0eb4b54dcb7af03b2b62d",
       "subject": "fix(science): close audit findings AUD-F-01..AUD-F-06",
-      "purpose": "Correct the two material defects the independent auditor found in this session's own output, add the SC-GOV-025 artefact, preserve the auditor's exact report, and refresh the manifest and the next-session prompt.",
+      "purpose": "Correct the two material defects the independent auditor found in this session's own output, add the SC-GOV-025 artefact, preserve the auditor's exact report, refresh the manifest and the next-session prompt.",
+      "files": 10,
+      "diff_reviewed": true,
+      "validations_before_commit": "checker exit 0; governance+checker tests 48 passed with 14 subtests; OpenSpec --strict 11/11; manifest 29/29 recomputed; git diff --check exit 0",
+      "audited": "Re-audited. Verdict BLOCKED (suspensive): all six prior findings CLOSED, one new material finding RA-01 plus RA-02..RA-05."
+    },
+    {
+      "sha": "pending at the time this record was written; it is the commit that publishes this file",
+      "subject": "fix(science): close re-audit findings RA-01..RA-05",
+      "purpose": "Correct a false count in the evidence-integrity layer and four wording defects, preserve the re-auditor's exact report, and remove the failure mode by instructing recomputation instead of stating a number that later edits invalidate.",
       "diff_reviewed": true,
       "self_reference": "By the rule stated above, this record cannot carry its own publishing SHA. The authoritative list is: git log --oneline b9fefbf..HEAD"
     }
   ],
   "push_policy": {
-    "this_session": "The operator's instruction of 2026-09-20 explicitly authorises push to origin/feat/scientific-closure and only to that ref. Push is performed once, at the end, on the snapshot the final audit covers.",
+    "this_session": "The operator's instruction of 2026-09-20 explicitly authorises push to origin/feat/scientific-closure and only to that ref. The intention is a single push at the end, on the snapshot the final re-audit covers. **Correction RA-05:** the first version of this field said the push 'is performed', present tense, in a record of facts, when no push had occurred. Whether it did occur is not established by this file: check `git ls-remote origin refs/heads/feat/scientific-closure` against the HEAD recorded by `git log`.",
     "prior_breach_recorded": "Two pushes occurred during the preparation of 2026-09-20 under an authorisation that forbade push (finding C-02, decision GD-19, risk RK-14). They are recorded, not cured. SC-GOV-019 is BLOCKED because of them.",
     "forbidden_and_not_used": [
       "push --force",
@@ -77,6 +86,24 @@
         "AUD-F-02"
       ],
       "action": "returned to implementer, corrected, re-tested, re-submitted for re-audit"
+    },
+    {
+      "cycle": 2,
+      "snapshot": "4940ffccbca34a2970a0eb4b54dcb7af03b2b62d",
+      "verdict": "BLOCKED (suspensive)",
+      "material": [
+        "RA-01"
+      ],
+      "minor": [
+        "RA-02"
+      ],
+      "observations": [
+        "RA-03",
+        "RA-04",
+        "RA-05"
+      ],
+      "action": "returned to implementer, corrected, re-tested, re-submitted",
+      "note": "The re-auditor ruled all six findings of cycle 1 CLOSED and confirmed the session-outcome ruling, while declining to sign a PASS on the preparation record because of RA-01."
     }
   ]
 }
