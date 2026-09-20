@@ -293,7 +293,7 @@ no una decisión de suficiencia.
 |---|---|---|
 | V-01 | Suite `controlled_daily_v4` en entorno reconstruido | 486/486 en 994,22 s |
 | V-02 | Gobernanza + checker formal | 48 pasadas + 14 subtests |
-| V-03 | Enforcement de solo lectura por rol | 8/8 |
+| V-03 | Enforcement de solo lectura por rol | 10/10 |
 | V-04 | Checker formal | exit 0 |
 | V-05/06 | ruff 0.16.6 y black 26.5.1 sobre archivos propios de la rama | exit 0 |
 | V-07 | OpenSpec 1.13.1 `--strict`, alcance scientific-closure | 11/11 |
@@ -393,20 +393,29 @@ Se conservan explícitamente, sin evidencia que permita modificarlas:
 10. **Copia lógica ≠ respaldo físicamente independiente.**
 11. **Conducta de solo lectura ≠ enforcement técnico.** El enforcement ahora
     existe y está probado, pero cubre los comandos ejecutados a través del
-    envoltorio, no el proceso del subagente en sí.
+    envoltorio, no el proceso del subagente en sí. Además, **la primera versión
+    del mecanismo fue derrotada por el auditor independiente** (hallazgo A-01):
+    un binario de Windows invocado desde dentro del sandbox corre en el host,
+    fuera de los namespaces de Linux, con red y escritura completas. Esa vía
+    fue reproducida, cerrada y cubierta por una prueba de regresión, pero la
+    afirmación correcta es «solo lectura y sin red **para procesos Linux**, con
+    la vía de interop WSL conocida cerrada», nunca aislamiento absoluto.
 
 ---
 
 ## 11. Alcance de cada afirmación y afirmaciones NO sostenidas
 
-**Sostenido por evidencia de esta sesión:**
+**Sostenido por evidencia de esta sesión, tras crítica y auditoría
+independientes que aplicaron 11 y 7 hallazgos respectivamente:**
 
 - La implementación congelada de A/B/C pasa su suite completa de pruebas
   sintéticas en un entorno con los *pins* exactos del protocolo.
 - La identidad de ambos CSV coincide con el manifiesto versionado.
 - El código de runner en `HEAD` es byte-idéntico al commit ejecutable
   declarado.
-- Existe un mecanismo reproducible y probado de solo lectura por rol.
+- Existe un mecanismo reproducible y probado de solo lectura por rol, cuyo
+  alcance exacto está acotado en el §10.11 después de que la auditoría lo
+  derrotara y la vía se cerrara.
 - La admisibilidad de licencias está decidida con evidencia de fuente oficial,
   con los límites del §2.
 

@@ -11,6 +11,9 @@
 #       sobrevive fuera (no es un escape, pero se comprueba en vez de
 #       afirmarse);
 #   5. que no hay resolucion DNS (sin red);
+#   5b. que los binarios de Windows no son alcanzables y /mnt esta vacio, de
+#       modo que la via de escape por interoperabilidad WSL (hallazgo A-01 de
+#       la auditoria independiente) queda cerrada;
 # y, fuera del sandbox:
 #   6. que ninguna de las rutas de prueba (repositorio, $HOME real, /dev)
 #      existe despues.
@@ -43,6 +46,13 @@ echo "write_home_stderr=\$err"
 { echo probe > /dev/readonly-sandbox-probe-$STAMP; } 2>/dev/null; echo "write_dev_exit=\$?"
 
 getent hosts pypi.org >/dev/null 2>&1; echo "dns_exit=\$?"
+
+# Hallazgo A-01: interoperabilidad WSL. Un binario PE invocado desde aqui
+# correria en el host Windows, fuera de los namespaces de Linux, con red y
+# escritura completas. Se comprueba que las unidades de Windows no son
+# alcanzables, en vez de suponerlo.
+ls /mnt/c/Windows/System32/cmd.exe >/dev/null 2>&1; echo "wsl_windows_binaries_reachable_exit=\$?"
+echo "mnt_entries=\$(ls -A /mnt 2>/dev/null | wc -l)"
 INNER
 )
 
@@ -58,6 +68,8 @@ write_home_exit=$(get write_home_exit)
 write_tmp_exit=$(get write_tmp_exit)
 write_dev_exit=$(get write_dev_exit)
 dns_exit=$(get dns_exit)
+win_exit=$(get wsl_windows_binaries_reachable_exit)
+mnt_entries=$(get mnt_entries)
 
 repo_probe_absent=true; [ -e "$REPO_PROBE" ] && repo_probe_absent=false
 home_probe_absent=true; [ -e "$HOME_PROBE" ] && home_probe_absent=false
@@ -72,6 +84,8 @@ pass=true
 [ "$repo_probe_absent" = "true" ] || pass=false
 [ "$home_probe_absent" = "true" ] || pass=false
 [ "$dev_probe_absent" = "true" ] || pass=false
+[ "${win_exit:-0}" != "0" ] || pass=false
+[ "${mnt_entries:-1}" = "0" ] || pass=false
 case "$write_repo_stderr" in *"Read-only file system"*) ;; *) pass=false ;; esac
 
 verdict=FAIL; [ "$pass" = "true" ] && verdict=PASS
@@ -94,14 +108,16 @@ cat <<JSON
     "repository_probe_absent_after": $repo_probe_absent,
     "home_probe_absent_after": $home_probe_absent,
     "ephemeral_dev_write_exit_code": ${write_dev_exit:-null},
-    "dev_probe_absent_after": $dev_probe_absent
+    "dev_probe_absent_after": $dev_probe_absent,
+    "wsl_windows_binaries_unreachable": $( [ "${win_exit:-0}" != "0" ] && echo true || echo false ),
+    "mnt_is_empty": $( [ "${mnt_entries:-1}" = "0" ] && echo true || echo false )
   },
   "probe_paths": {
     "repository": "$REPO_PROBE",
     "home": "$HOME_PROBE"
   },
   "verdict": "$verdict",
-  "limitation": "Acredita que el mecanismo impone solo lectura y ausencia de red. No acredita, por si solo, que un agente revisor concreto haya sido ejecutado a traves de el; eso exige registrar el comando exacto de esa sesion."
+  "limitation": "Acredita que el mecanismo impone solo lectura y ausencia de red A PROCESOS LINUX, y que la via conocida de escape por interoperabilidad WSL (binarios PE via /mnt) esta cerrada. NO demuestra que no exista otra via. NO acredita, por si solo, que un agente revisor concreto haya sido ejecutado a traves de el; eso exige registrar el comando exacto de esa sesion. La primera version de este registro afirmaba solo lectura y ausencia de red sin calificar, lo que el auditor refuto ejecutando curl.exe de Windows desde dentro del sandbox y obteniendo HTTP 200 (hallazgo A-01)."
 }
 JSON
 

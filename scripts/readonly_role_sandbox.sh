@@ -20,6 +20,22 @@
 # seria falso. verify_readonly_sandbox.sh comprueba explicitamente que lo
 # escrito en /dev no sobrevive.
 #
+# ESCAPE CONOCIDO Y CERRADO (hallazgo A-01 de la auditoria independiente):
+# en WSL, la interoperabilidad con Windows permite invocar binarios PE
+# (`/mnt/c/Windows/System32/curl.exe`, `cmd.exe`, ...). Esos procesos NO
+# corren dentro de los namespaces de Linux: se ejecutan en el host Windows,
+# con red completa y con escritura al repositorio a traves de
+# `\\wsl.localhost\...`. Ni `--unshare-net` ni `--ro-bind / /` los alcanzan.
+# El auditor lo demostro creando un archivo en la raiz del repositorio desde
+# dentro del sandbox. Mitigacion aplicada aqui: `--tmpfs /mnt` oculta las
+# unidades de Windows, `--ro-bind /dev/null /init` neutraliza el ayudante de interop registrado en binfmt_misc, y se
+# limpian `WSL_INTEROP`, `WSL_DISTRO_NAME`, `WSLENV` y `WSL2_GUI_APPS_ENABLED`,
+# ademas de fijar un PATH sin rutas de Windows.
+# Limite honesto: esto elimina la via conocida, no demuestra que no exista
+# otra. La afirmacion correcta es "impone solo lectura y ausencia de red a
+# procesos Linux, y cierra la via de interop WSL conocida", nunca un
+# aislamiento absoluto.
+#
 # Qué NO garantiza:
 #   - no sustituye la independencia de sesion/contexto del revisor;
 #   - no acredita que un agente concreto haya sido ejecutado a traves de el:
@@ -55,10 +71,17 @@ exec bwrap \
     --dev /dev \
     --proc /proc \
     --tmpfs /tmp \
+    --tmpfs /mnt \
+    --ro-bind /dev/null /init \
     --unshare-all \
     --die-with-parent \
     --new-session \
+    --unsetenv WSL_INTEROP \
+    --unsetenv WSL_DISTRO_NAME \
+    --unsetenv WSLENV \
+    --unsetenv WSL2_GUI_APPS_ENABLED \
     --setenv REPO "$REPO_ROOT" \
     --setenv HOME /tmp \
+    --setenv PATH /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     --chdir "$REPO_ROOT" \
     -- "$@"

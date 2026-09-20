@@ -2,8 +2,8 @@
   "schema_version": "1.0",
   "record": "evidence_manifest",
   "campaign_id": "readiness-resolution-linux-2026-09-20",
-  "generated_at_utc": "2026-09-20T04:59:59.983679+00:00",
-  "commit": "023a9425f724400ba87f43aa806c2b3287f080d7",
+  "generated_at_utc": "2026-09-20T05:34:27.147531+00:00",
+  "commit": "ccd3a9c5fdbc58b403edf44a0989351e0d642203",
   "branch": "feat/scientific-closure",
   "tree_clean": false,
   "scientific_evidence": {
@@ -36,8 +36,8 @@
     },
     {
       "path": "docs/research/scientific-closure-synthesis-2026-09-20.md",
-      "sha256": "ea1f1e5186a05b3419a2883693a8503357d112099ce4e8e01209ba6e966de960",
-      "size_bytes": 23251,
+      "sha256": "cd1b7308454d4356841cf166c85821f8e1aabfe99695b6715ee25a0f2c0b01f1",
+      "size_bytes": 23962,
       "type": "technical_governance_evidence"
     },
     {
@@ -60,8 +60,8 @@
     },
     {
       "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/agent-capabilities.json",
-      "sha256": "e4368b87e7c19702ae6ae4643a9a13e500635a56cab373e03177232af1dfce6c",
-      "size_bytes": 7228,
+      "sha256": "8ceaff1c172282978b07101676e181d6307571bf8759853e0460ad7eccb5e17b",
+      "size_bytes": 8098,
       "type": "technical_governance_evidence"
     },
     {
@@ -78,8 +78,8 @@
     },
     {
       "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/checkpoints.json",
-      "sha256": "bebd614b1dbafdbeaaec0dc903bf0b286bf85d0500e026718d275a3497ba7bba",
-      "size_bytes": 8123,
+      "sha256": "5f40a8da94d772d5a9dae71c4c30e27a4f0915438e900091e42cf0f583128573",
+      "size_bytes": 9333,
       "type": "technical_governance_evidence"
     },
     {
@@ -119,6 +119,12 @@
       "type": "technical_governance_evidence"
     },
     {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/review-audit.json",
+      "sha256": "64cdb71801c65f90410c0f40d31faf1cd5ba30529964607c89a0fa680f038485",
+      "size_bytes": 9678,
+      "type": "technical_governance_evidence"
+    },
+    {
       "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/review-critic.json",
       "sha256": "bd758ee81cec200f9d87826bfed05ed82f7dc6d577342c7730b53501ce92a753",
       "size_bytes": 9606,
@@ -126,8 +132,8 @@
     },
     {
       "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/role-sandbox-enforcement.json",
-      "sha256": "a5ba6bcb9543d1bd66302278522a0bf6ac77439388cac4176512d62b0b765986",
-      "size_bytes": 1244,
+      "sha256": "465b309285e8e5a24836bb4ee2f9aab7c17f6ebf556d7835eb00a090e16d06c3",
+      "size_bytes": 1676,
       "type": "technical_governance_evidence"
     },
     {
@@ -150,14 +156,14 @@
     },
     {
       "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/validation-results.json",
-      "sha256": "583ff98d60fe1db9a712018afe23267a02a06c457a6a1c1cba21c2809f7386c3",
-      "size_bytes": 5374,
+      "sha256": "5a0c28d14563afd185c0e585b6c75fd117c5acad13acd7f5ab40412e7fa76996",
+      "size_bytes": 8618,
       "type": "technical_governance_evidence"
     },
     {
       "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/workflow-events.jsonl",
-      "sha256": "e44c38059723efeb9a3fe4ba27fe34297bbdabe6dd332b367033c9ac176505b7",
-      "size_bytes": 9385,
+      "sha256": "3f11aa5412d290651c2dbd429a340e3657a3f2dd6001a426d38b24a38d6ad511",
+      "size_bytes": 10714,
       "type": "technical_governance_evidence"
     },
     {
@@ -168,31 +174,31 @@
     },
     {
       "path": "openspec/scientific-closure/traceability.md",
-      "sha256": "568618c16b8bbc987ce174750421259d98201a337688b20d38e4959f682f0a33",
-      "size_bytes": 17184,
+      "sha256": "7070b74fb4fe6b86d19218bf8510c663eb67c73438a7ad0b91474f1c0657a88b",
+      "size_bytes": 17860,
       "type": "technical_governance_evidence"
     },
     {
       "path": "scripts/readonly_role_sandbox.sh",
-      "sha256": "be646606b1de75d575fb467c1f72fbc9e802daf1047f6d7712059d14c78c3945",
-      "size_bytes": 2550,
+      "sha256": "0aa508068b34fe330706fad847ef0f6337ba0a4fc0f5584127ab205c62adb41d",
+      "size_bytes": 3882,
       "type": "technical_governance_evidence"
     },
     {
       "path": "scripts/verify_readonly_sandbox.sh",
-      "sha256": "514f0922b11867bcc71c7afb40e2d81e812fc37c0b474e13e3f971d8feb94a8c",
-      "size_bytes": 4423,
+      "sha256": "b7e9e7edcab9340bb580bbc2e8d7bfefc064801b0e811c78abfc39473358e9d7",
+      "size_bytes": 5752,
       "type": "technical_governance_evidence"
     },
     {
       "path": "tests/test_readonly_role_sandbox.py",
-      "sha256": "dd07a1fec936db7fd15723235402c39ef19fef7bed30321166ce3124bab57ed1",
-      "size_bytes": 4720,
+      "sha256": "4b468cbc8b0181ebfe1f6ee6c5b7cd706fdef60c09891016a86084425561601b",
+      "size_bytes": 5909,
       "type": "technical_governance_evidence"
     }
   ],
   "count": {
-    "governance_files": 27,
+    "governance_files": 28,
     "scientific_inputs": 2,
     "scientific_result_artifacts": 0
   },

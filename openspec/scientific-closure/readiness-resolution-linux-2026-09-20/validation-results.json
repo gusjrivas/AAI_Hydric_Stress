@@ -14,7 +14,7 @@
       "scope": "controlled_daily_v4 suite (the same selection the frozen image CMD runs)",
       "command": "PYTHONPATH=src python -m pytest -q tests/test_controlled_daily_v4_*.py --no-header",
       "started_utc": "2026-09-20T04:17:56Z",
-      "duration_s": 995,
+      "duration_s": 994.22,
       "exit_code": 0,
       "result": "486 passed",
       "interpretation": "The frozen stage A/B/C implementation passes its full synthetic test suite in the reconstructed environment. This is TECHNICAL evidence about software, not scientific evidence about the hypothesis."
@@ -31,16 +31,20 @@
       "scope": "read-only role sandbox enforcement tests (new)",
       "command": "PYTHONPATH=src python -m pytest -q tests/test_readonly_role_sandbox.py --no-header",
       "exit_code": 0,
-      "result": "8 passed",
+      "result": "10 passed",
       "covers": [
         "positive read",
         "negative write to repository (EROFS)",
         "negative write to real HOME",
-        "ephemeral tmp not shared",
+        "ephemeral /tmp not shared",
+        "ephemeral /dev does not escape",
         "no network",
+        "WSL Windows interop closed (/mnt empty, PE binaries unreachable)",
         "verifier PASS",
-        "explicit failure without arguments"
-      ]
+        "explicit failure without arguments",
+        "wrapper and verifier are executable"
+      ],
+      "history": "8 tests at first commit; a ninth was added when critic finding N-01 showed the header overstated /dev; a tenth when audit finding A-01 demonstrated a real escape via WSL interop."
     },
     {
       "id": "V-04",
@@ -115,6 +119,19 @@
     "breakdown": "486 controlled_daily_v4 + 48 governance/checker + 9 read-only sandbox enforcement",
     "environment": "reconstructed venv /home/gus/scientific-closure-runtime/env/venv-v4 (Python 3.11.16, constraints-pinned)",
     "self_reference_note": "This record is itself committed after 619c8ef. The only difference between 619c8ef and the published commit is this JSON block; no code, test or specification changed. Verifiable with 'git diff --name-only 619c8ef HEAD', which must list only this file.",
+    "interpretation": "Technical evidence about software in a reconstructed environment. NOT evidence about the scientific hypothesis, and NOT a measurement of real scientific runtime: every test uses synthetic fixtures.",
+    "superseded": "This run predates audit finding A-01. Closing A-01 changed the wrapper and added a tenth sandbox test, so the published snapshot has 544 tests, not 543. A re-run on the published snapshot is recorded in final_snapshot_run_after_audit."
+  },
+  "final_snapshot_run_after_audit": {
+    "command": "PYTHONPATH=src python -m pytest -q tests/test_controlled_daily_v4_*.py tests/test_scientific_closure_governance.py tests/test_scientific_closure_checker.py tests/test_readonly_role_sandbox.py --no-header",
+    "started_utc": "2026-09-20T05:23:31Z",
+    "ended_utc": "2026-09-20T05:33:39Z",
+    "duration_s": 607.02,
+    "exit_code": 0,
+    "result": "544 passed, 14 subtests passed",
+    "breakdown": "486 controlled_daily_v4 + 48 governance/checker + 10 read-only sandbox enforcement",
+    "covers": "The working tree exactly as published, including the closure of audit finding A-01 and its regression test. This run is the one that corresponds to the published snapshot; the earlier 543-test run predates the A-01 fix.",
+    "self_reference_note": "Run before the final commit that carries this record, checkpoints.json and evidence-manifest.json. Those three files are data, not code: no source, test or specification changed after the run. Verifiable because the final commit touches only those three paths plus this JSON.",
     "interpretation": "Technical evidence about software in a reconstructed environment. NOT evidence about the scientific hypothesis, and NOT a measurement of real scientific runtime: every test uses synthetic fixtures."
   }
 }

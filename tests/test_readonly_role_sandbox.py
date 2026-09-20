@@ -79,12 +79,34 @@ class ReadOnlyRoleSandboxTest(unittest.TestCase):
         result = self._run_in_sandbox("getent hosts pypi.org")
         self.assertNotEqual(result.returncode, 0, "el sandbox tuvo resolucion DNS")
 
+    def test_wsl_windows_interop_is_closed(self):
+        """Hallazgo A-01 de la auditoria independiente: un binario PE de
+        Windows invocado desde dentro del sandbox corre en el host Windows,
+        fuera de los namespaces de Linux, con red y escritura completas. El
+        auditor lo demostro obteniendo HTTP 200 con `curl.exe` y creando un
+        archivo en la raiz del repositorio. Se comprueba que la via esta
+        cerrada: /mnt vacio y binarios de Windows inalcanzables."""
+        result = self._run_in_sandbox(
+            "ls -A /mnt 2>/dev/null | wc -l; "
+            "ls /mnt/c/Windows/System32/cmd.exe >/dev/null 2>&1; "
+            'echo "cmd_exit=$?"'
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        lines = result.stdout.split()
+        self.assertEqual(lines[0], "0", "/mnt no esta vacio dentro del sandbox")
+        self.assertIn("cmd_exit=", result.stdout)
+        self.assertNotIn(
+            "cmd_exit=0", result.stdout, "binarios de Windows alcanzables: A-01 sigue abierto"
+        )
+
     def test_verifier_reports_pass_with_all_conditions_true(self):
         result = subprocess.run([str(VERIFIER)], capture_output=True, text=True, timeout=180)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         payload = json.loads(result.stdout)
         self.assertEqual(payload["verdict"], "PASS")
         self.assertTrue(payload["checks"]["dev_probe_absent_after"])
+        self.assertTrue(payload["checks"]["wsl_windows_binaries_unreachable"])
+        self.assertTrue(payload["checks"]["mnt_is_empty"])
         for name, value in payload["checks"].items():
             if isinstance(value, bool):
                 self.assertTrue(value, f"comprobacion fallida: {name}")

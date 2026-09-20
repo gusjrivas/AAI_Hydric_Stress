@@ -6,9 +6,10 @@
   "requirement_ids": [
     "SC-GOV-019"
   ],
-  "captured_at_utc": "2026-09-20T04:59:59.948289+00:00",
+  "captured_at_utc": "2026-09-20T05:34:27.116042+00:00",
   "base_commit": "dc0d3f5b4dbed235078c1bc93a3c863b6f65d3c6",
-  "head_at_capture": "023a9425f724400ba87f43aa806c2b3287f080d7",
+  "head_at_capture": "ccd3a9c5fdbc58b403edf44a0989351e0d642203",
+  "commits_in_session_at_capture": 8,
   "branch": "feat/scientific-closure",
   "upstream": "origin/feat/scientific-closure",
   "checkpoints": [
@@ -16,7 +17,7 @@
       "sha": "c23b8c3cfdbc9503dd1385dc40461d57339bbf11",
       "subject": "feat(science): enforce read-only isolation for reader roles",
       "author_date_utc": "2026-09-20T04:42:03Z",
-      "purpose": "Enforcement tecnico de solo lectura para roles lectores (GD-17). Resuelve el fondo de AUD-READ03 / LNX-03 / CRIT-SUB-01.",
+      "purpose": "Enforcement tecnico de solo lectura para roles lectores (GD-17).",
       "files": [
         "scripts/readonly_role_sandbox.sh",
         "scripts/verify_readonly_sandbox.sh",
@@ -42,7 +43,7 @@
       "sha": "95f0058589ad30cb12cf250dd971418f09f1b34f",
       "subject": "docs(science): record resolved readiness evidence and residual blockers",
       "author_date_utc": "2026-09-20T04:42:23Z",
-      "purpose": "Registro de evidencia de readiness con comandos, exit codes y hashes; decisiones GD-13..GD-18; bloqueos externos con el insumo exacto faltante.",
+      "purpose": "Registro de evidencia de readiness con comandos, exit codes y hashes; decisiones GD-13..GD-18; bloqueos externos.",
       "files": [
         "openspec/scientific-closure/decisions.md",
         "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/agent-capabilities.json",
@@ -94,7 +95,7 @@
       "sha": "023a9425f724400ba87f43aa806c2b3287f080d7",
       "subject": "fix(science): apply independent critic findings F-01..F-11 and N-01..N-06",
       "author_date_utc": "2026-09-20T04:59:39Z",
-      "purpose": "Aplicacion de los 11 hallazgos materiales y 6 observaciones del critico independiente.",
+      "purpose": "Ciclo de correccion 1: los 11 hallazgos materiales y 6 observaciones del critico independiente.",
       "files": [
         "docs/research/scientific-closure-runbook.md",
         "docs/research/scientific-closure-synthesis-2026-09-20.md",
@@ -117,10 +118,33 @@
       ],
       "diff_check_exit": 0,
       "is_acceptance": false
+    },
+    {
+      "sha": "619c8ef0be21345572f462425540566fb3edc448",
+      "subject": "docs(science): regenerate checkpoint record and add evidence manifest",
+      "author_date_utc": "2026-09-20T05:00:10Z",
+      "purpose": "Regeneracion del registro de checkpoints y manifiesto de evidencia.",
+      "files": [
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/checkpoints.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/evidence-manifest.json"
+      ],
+      "diff_check_exit": 0,
+      "is_acceptance": false
+    },
+    {
+      "sha": "ccd3a9c5fdbc58b403edf44a0989351e0d642203",
+      "subject": "test(science): record the full suite run on the final snapshot",
+      "author_date_utc": "2026-09-20T05:11:15Z",
+      "purpose": "Registro de la corrida completa de la suite sobre el snapshot.",
+      "files": [
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/validation-results.json"
+      ],
+      "diff_check_exit": 0,
+      "is_acceptance": false
     }
   ],
-  "what_these_commits_are": "Atomic, reviewed commits, each with explicit paths staged. They are NOT incremental recovery points taken while the work progressed: the session began at 04:16 UTC and the commits were created near its end, once each unit of work was complete and validated. An independent critic raised this (finding F-10) and the description is corrected here rather than left implied.",
-  "self_reference_limit": "A checkpoint record cannot contain the hash of the commit that introduces it. The final commit of this session, whose purpose is to add this regenerated record together with evidence-manifest.json, is therefore necessarily absent from the list above. Its SHA is recoverable with 'git log --oneline dc0d3f5..HEAD'. This limit is declared, not hidden: the previous version of this file omitted a commit without saying so, which the evidence checker flagged.",
+  "what_these_commits_are": "Atomic, reviewed commits, each with explicit paths staged. They are NOT incremental recovery points taken while the work progressed: the session began at 04:16 UTC and each commit was created once its unit of work was complete and validated. An independent critic raised this (F-10) and the description is corrected here rather than left implied.",
+  "self_reference_limit": "This record is written before the commit that publishes it, so that commit is necessarily absent from the list above. It is exactly ONE commit, the last of the session, whose purpose is to carry this regenerated record, evidence-manifest.json, review-audit.json and the final validation results, plus the closure of audit finding A-01. Its SHA is recoverable with 'git log --oneline dc0d3f5..HEAD'. History of this declaration: the first version omitted one commit without saying so (flagged by the evidence checker); the second claimed only the final commit was absent when two were (audit finding A-04). This third version states the count explicitly: 8 commits listed, one not listed.",
   "distinction": "A checkpoint is a recoverable commit of work. It is NOT an acceptance, NOT an audit PASS and NOT an authorization. None of these commits closes a change: sc-02 through sc-10 remain BLOCKED in changes.json, which was not modified in this session.",
   "prohibited_operations_not_used": [
     "git add -A",
