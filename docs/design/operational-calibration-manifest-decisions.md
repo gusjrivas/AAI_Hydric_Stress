@@ -1,5 +1,77 @@
 # Decisiones cerradas del manifiesto operacional +1/+2/+3
 
+## Actualizacion 2026-09-20 (2) — congelamiento tecnico
+
+Se resolvieron los cuatro pendientes tecnicos dejados abiertos por la
+actualizacion anterior y se congelo el manifiesto. No se reabrieron
+tolerancias (epsilon_ece=0.10, epsilon_bin=0.15 quedan como fueron
+aprobadas) ni ninguna otra decision ya cerrada; no se miro el tramo de
+evaluacion ni se calculo resultado alguno.
+
+1. **Identidad reproducible.** Se re-verifico `dataset.sha256` con
+   `sha256sum` sobre `data/melchor_romero_2024_consolidado.parquet` (sin
+   abrir el archivo como datos): coincide byte a byte con el valor ya
+   declarado. Se agrego `dataset.variables` (columnas y unidades reales
+   segun `data_ingestion/schema.py`: `soil_moisture` m3/m3,
+   `temperature` degC, `relative_humidity` %, `precipitation` mm/day,
+   `solar_radiation` MJ/m2/day, `wind_speed` m/s) y
+   `dataset.excluded_columns_fully_null` (`et0` y las cuatro columnas
+   opcionales, 100% nulas segun la auditoria, sin uso en el bundle). Se
+   agrego un bloque `environment` con las versiones de Python/numpy/
+   pandas/scikit-learn/pyarrow efectivamente resueltas al validar
+   `model_plan.hyperparameters` contra los defaults reales de
+   `RandomForestClassifier`, con una limitacion explicita: `pyproject.toml`
+   fija minimos sin lockfile, por lo que esta es la resolucion usada para
+   verificar este manifiesto, no una garantia de reinstalacion identica en
+   un ajuste futuro.
+2. **Algoritmo de incertidumbre.** `uncertainty.centering` precisa que el
+   limite superior es un percentil 0.95 no centrado (no pivotal, sin
+   correccion de sesgo) sobre la distribucion empirica de replicas;
+   `multiplicity.method` aplica el maximo de ese estadistico sobre la
+   familia completa antes de tomar ese percentil. `uncertainty.invalid_replicate_rule`
+   resuelve la aparente contradiccion: una replica se excluye solo por
+   perder el soporte predeclarado (regla ciega al resultado, evaluada
+   antes de calcular su estadistico), nunca por producir un valor
+   desfavorable; si mas de la mitad de las 5000 replicas de un alcance
+   quedan invalidas por soporte, ese alcance es `insufficient_evidence` en
+   vez de reportar un cuantil sobre una mayoria de replicas invalidas.
+3. **Bloques de 7 dias.** `uncertainty.block_length_rationale` deja
+   explicito que la semana es una convencion operacional de agrupamiento
+   calendario, elegida antes de ver resultados, y que el hueco maximo
+   observado (6 dias) no es evidencia de la duracion real de la
+   dependencia temporal; solo se usa para que un bloque no quede vacio por
+   un hueco ya conocido.
+4. **Coherencia con el validador.** `inspect_calibration_manifest` sobre
+   el manifiesto actualizado (contenedor `python:3.12-slim`, sin
+   intérprete Python en el host) devuelve `issues=()`; no se modifico
+   `calibration_manifest.py` ni se debilito ningun chequeo. Los campos
+   nuevos (`environment`, `dataset.variables`,
+   `dataset.excluded_columns_fully_null`, `uncertainty.centering`,
+   `uncertainty.invalid_replicate_rule`, `uncertainty.block_length_rationale`)
+   son informativos: el validador no los exige ni los usa para aprobar.
+
+**Resultado:** con `report.issues == ()` y `status` completable, se
+construyo una copia del manifiesto con `status="ready_for_fit"` y
+`frozen_at="2026-09-20T22:30:00Z"`, y se congelo con
+`freeze_calibration_manifest` en
+[`config/producer-calibration-plan.frozen.json`](../../config/producer-calibration-plan.frozen.json)
+(+ su identidad en `producer-calibration-plan.frozen.json.identity.json`,
+`content_sha256=0301207e5d750002694a73b3e9313ee2ea6bff58f1081fcd4797c2ef9279cbd1`,
+`byte_length=8905`). `verify_frozen_calibration_manifest` confirma que el
+contenido coincide con su identidad y pasa `require_ready_for_fit`.
+[`config/producer-calibration-plan.draft.json`](../../config/producer-calibration-plan.draft.json)
+se conserva sin cambios de contenido salvo `status`/`frozen_at` (permanece
+`draft`), como antecedente del proceso de decision, tal como exige el
+protocolo de no congelar planes incompletos y de no sobrescribir
+artefactos ya congelados.
+
+No se entreno, calibro ni evaluo ningun modelo; no se abrio el tramo de
+evaluacion ni holdouts; no se modificaron `controlled_daily_v3`,
+protocolos v3/v4, specs canonicas, hipotesis, alcance ni arquitectura.
+Trazabilidad: HU4/HU6, capacidad `predictive-modeling`, CRISP-DM
+modelado/evaluacion de desarrollo; cierra la tarea 1.3 de
+`openspec/changes/add-daily-multihorizon-predictors/tasks.md`.
+
 ## Actualizacion 2026-09-20 — tolerancias aprobadas
 El autor aprobo explicitamente epsilon_ece=0.10 y epsilon_bin=0.15 como
 criterios de producto para evaluacion exploratoria. Se registran en el JSON.

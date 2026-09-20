@@ -157,6 +157,34 @@ def test_approved_tolerances_do_not_automatically_enable_fitting():
         require_ready_for_fit(draft)
 
 
+def test_frozen_operational_manifest_matches_its_recorded_identity():
+    repo_root = Path(__file__).resolve().parents[1]
+    frozen_path = repo_root / "config" / "producer-calibration-plan.frozen.json"
+    draft_path = repo_root / "config" / "producer-calibration-plan.draft.json"
+
+    frozen = verify_frozen_calibration_manifest(frozen_path)
+
+    assert frozen["status"] == "ready_for_fit"
+    assert frozen["frozen_at"]
+    report = inspect_calibration_manifest(frozen)
+    assert report.ready_for_fit
+    require_ready_for_fit(frozen)
+
+    # El borrador se conserva como antecedente: mismo contenido salvo
+    # status/frozen_at, y sigue bloqueado para ajuste por diseño.
+    draft = json.loads(draft_path.read_text(encoding="utf-8"))
+    assert draft["status"] == "draft"
+    assert not inspect_calibration_manifest(draft).ready_for_fit
+    freeze_only_fields = {"status", "frozen_at"}
+    frozen_without_freeze_fields = {
+        key: value for key, value in frozen.items() if key not in freeze_only_fields
+    }
+    draft_without_freeze_fields = {
+        key: value for key, value in draft.items() if key not in freeze_only_fields
+    }
+    assert frozen_without_freeze_fields == draft_without_freeze_fields
+
+
 def test_complete_synthetic_fixture_can_exercise_the_prefit_gate():
     manifest = _synthetic_ready_manifest()
 

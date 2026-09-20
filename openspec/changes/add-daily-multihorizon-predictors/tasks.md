@@ -3,7 +3,7 @@
       congelamiento con identidad SHA-256, sin ajustar modelos.
 - [x] 1.2 Versionar un manifiesto `draft` con los campos ya determinados y las
       decisiones no aprobadas ausentes; comprobar que no habilita ajuste.
-- [ ] 1.3 Resolver y justificar las decisiones pendientes, completar el manifiesto
+- [x] 1.3 Resolver y justificar las decisiones pendientes, completar el manifiesto
       `ready_for_fit` y congelarlo ANTES de cualquier ajuste: tolerancias, soporte,
       cobertura, bloques, ventanas, multiplicidad, semilla de despliegue e identidad
       efectiva de sensor/modelo.
