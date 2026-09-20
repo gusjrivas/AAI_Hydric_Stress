@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0",
+  "record": "independent_adversarial_critique_and_correction_cycle",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "reviewed_snapshot": "a881207691812ab0a41ca0e2c447ed0274a2c2e5",
+  "reviewer": {
+    "role": "scientific_critic",
+    "independent_context": true,
+    "wrote_files": false,
+    "model_requested": "gpt-5.6-sol / high (profile not loadable in this runtime)",
+    "model_effective": "claude-opus-5",
+    "substitution_declared": true,
+    "enforced_sandbox": "scripts/readonly_role_sandbox.sh",
+    "self_verified_enforcement": "Attempted eight escape vectors (repository write, $HOME write, symlink to /tmp, /proc/self/cwd, git config and git checkout -b, mount -o remount,rw /, nested bwrap --bind, unshare -Urm plus remount). All failed. Network unreachable: curl exit 6, /dev/tcp 'Network is unreachable', only loopback."
+  },
+  "claims_the_critic_could_not_refute": [
+    "src/, docker/ and pyproject.toml are byte-identical to 214735e (git diff --quiet -> IDENTICAL).",
+    "The historic constraints_sha256 is exactly the CRLF rendering of the same file.",
+    "Both CSVs match the manifest; cmp against the logical backup exits 0.",
+    "Read-only enforcement is real (eight escape attempts failed).",
+    "A, B and C were not executed; evidence/ and ledger/ are empty; the only artefacts are synthetic fixtures explicitly marked as such.",
+    "The ruff/black commit changed ONLY import ordering, verified by AST comparison of every module between cc53346^ and cc53346.",
+    "Every protected path is unchanged, including protocol v3, protocol v4, the manifest, docs/adr/, src/, docker/, frontend/, openspec/specs/ and the two historic evidence directories.",
+    "All 13 SHA-256 values in the new records were recomputed and none was invented.",
+    "No secrets, no raw data, no push, no tags."
+  ],
+  "material_findings": [
+    {"id": "F-01", "severity": "critical", "summary": "traceability.md declared that no synthesis existed to review, in the same commit that added a 417-line synthesis.", "resolution": "CORRECTED", "how": "The SC-GOV-016 row now states that a synthesis exists and that what is missing is the INDEPENDENT phrase-by-phrase review artefact claim-evidence-review.json. The requirement stays BLOCKED."},
+    {"id": "F-02", "severity": "high", "summary": "SC-GOV-007 was raised from PENDING to PASS_WITH_LIMITATIONS although workflow-events.jsonl contained no SHA review manifests, which the requirement names explicitly.", "resolution": "CORRECTED", "how": "Reader dispatch events now carry a review_manifest with the exact reviewed commit, base and tree state; the row declares the earlier omission and the remaining limitation. The claim was weakened, not the requirement."},
+    {"id": "F-03", "severity": "high", "summary": "agent-capabilities.json described the evidence checker, critic and auditor in the past tense although none had been dispatched at capture time.", "resolution": "CORRECTED", "how": "Roles split into observed_readers (explorer, evidence_checker, critic, each with what it actually reported) and intended_but_not_yet_dispatched_at_capture_time (auditor). The revision and its cause are recorded in the file."},
+    {"id": "F-04", "severity": "high", "summary": "traceability.md redefined BLOCKED as a terminal state and removed PENDING from the vocabulary, contradicting the repository checker, for which only PASS and NOT_APPLICABLE are terminal and BLOCKED -> APPROVED is a legal edge.", "resolution": "CORRECTED", "how": "The section now states that BLOCKED is NOT terminal, that thirteen of twenty-five requirements remain unresolved, and that the table must not be read as a complete matrix."},
+    {"id": "F-05", "severity": "high", "summary": "retrieved_utc for three web pages were microseconds apart and equal to the record's serialisation time; they were datetime.now() values labelled as retrieval instants.", "resolution": "CORRECTED", "how": "Replaced by retrieved_at_utc: null with status UNKNOWN_NOT_CAPTURED and an explicit statement of what is and is not known. A note records that the reviewers could not re-verify the URLs because their sandbox has no network."},
+    {"id": "F-06", "severity": "high", "summary": "The licence decision relied on an undeclared inference from 'ESD-funded project' to 'NASA-led mission', and declared ADR-0011 condition 2 SATISFIED while the versioned manifest still records PENDING_CONFIRMATION.", "resolution": "CORRECTED", "how": "The inference is now labelled as an inference and added to preserved_limitations. Condition 2 is downgraded to RESOLVED_IN_SUBSTANCE, NOT YET REFLECTED IN THE MANIFEST, with the manifest update listed as a pending documentary action for whoever merges to main."},
+    {"id": "F-07", "severity": "medium", "summary": "Five documents claimed origin/main 'lacks section 16', which is literally false: the protocol has two sections numbered 16 and main does contain '16. Provenance'.", "resolution": "CORRECTED", "how": "Every reference now identifies the section by title, 'Condiciones de interpretacion y soporte previas a ejecucion', and records the duplicate-numbering defect as pre-existing and uncorrected because the protocol is part of the frozen identity."},
+    {"id": "F-08", "severity": "medium", "summary": "The condition 4 reasoning added 'the runner implementation is not in main', which condition 4 does not require.", "resolution": "CORRECTED", "how": "The reasoning is restricted to the protocol divergence; the runner divergence is relabelled as context for the merge and explicitly excluded from the verdict's justification. The verdict NOT_SATISFIED is unchanged."},
+    {"id": "F-09", "severity": "medium", "summary": "The synthesis attributed the C-stage --validate-inputs-only prohibition to the protocol, under a heading reading 'the protocol declares and the code verifies'; the rule exists only in cli.py.", "resolution": "CORRECTED", "how": "Moved under an explicit 'implemented in code, NOT in the protocol' heading, with the grep that returns nothing on the protocol, and with the distinction from hashing in stage A spelled out (finding N-06)."},
+    {"id": "F-10", "severity": "medium", "summary": "checkpoints.json covered four of five commits, and the commits were created within 30 seconds at the end of a session that began 26 minutes earlier, so they are atomic commits rather than incremental recovery points.", "resolution": "CORRECTED", "how": "The record is regenerated over every commit of the session and states plainly what these commits are and are not. The self-reference limit (a record cannot hash the commit that introduces it) is declared rather than hidden."},
+    {"id": "F-11", "severity": "medium", "summary": "All evidence is attributed to sc-02, which is BLOCKED and unapproved; the synthesis is in substance sc-06's deliverable, also BLOCKED, and is in no change's declared paths.", "resolution": "ACCEPTED_AND_RECORDED_AS_IRREGULARITY", "how": "authorizations.json now records the observation as correct, states what was NOT done (no state transition, no fabricated event, no approval flag, changes.json byte-unchanged), states the standing authorisation under which the work was done, and leaves the ordering irregularity for the auditor to judge. No gate was relaxed."}
+  ],
+  "non_material_observations": [
+    {"id": "N-01", "summary": "The wrapper header claimed every write outside the ephemeral /tmp fails; /dev and /dev/shm are writable tmpfs. Not an escape.", "resolution": "CORRECTED", "how": "Header corrected, verifier now probes /dev and asserts the probe does not survive, and a ninth test covers it."},
+    {"id": "N-02", "summary": "V-01 duration recorded as 994.22s, 995 and 994 s in three places.", "resolution": "CORRECTED"},
+    {"id": "N-03", "summary": "'Identical package set' is imprecise: 26 historic entries vs 23 in the venv.", "resolution": "CORRECTED", "how": "A package_set_comparison block states 23/23 after excluding pip, setuptools and wheel, and repeats the non-equivalence with the image."},
+    {"id": "N-04", "summary": "The two writer-assignment records listed different path sets.", "resolution": "CORRECTED"},
+    {"id": "N-05", "summary": "current-execution-checkpoint.md stated a HEAD that the same commit invalidated.", "resolution": "CORRECTED", "how": "It now records the session's starting HEAD and points to checkpoints.json as authoritative."},
+    {"id": "N-06", "summary": "The leakage section did not distinguish hashing the full CSVs in stage A from the C-stage prohibition.", "resolution": "CORRECTED"}
+  ],
+  "critic_limitations_recorded": [
+    "No network: could not verify the content of the three licence URLs, nor origin/main beyond the local remote ref.",
+    "No Docker: could not inspect or refute anything about the approved image.",
+    "No runtime introspection: cannot prove which model ran each subagent or that their contexts were independent; F-03 rests on absence of events, not on proof of absence.",
+    "Did not open the holdout: only line counts and hashes, no 2024-2025 value read.",
+    "Did not run the test suite; accepted V-01..V-08 as recorded and checked only their internal coherence."
+  ],
+  "correction_cycle": {"number": 1, "of_max": 3, "findings_dismissed": 0, "gates_relaxed": 0, "states_upgraded_as_a_result": 0},
+  "net_effect_on_conclusions": "None of the corrections improves any verdict. Two of them weaken previously overstated claims (F-02, F-04). The overall outcome is unchanged: G1 NOT_SATISFIED, A/B/C not executed, ledger not initialised, holdout closed."
+}

@@ -64,6 +64,17 @@ class ReadOnlyRoleSandboxTest(unittest.TestCase):
         self.assertEqual(result.stdout.strip(), "x")
         self.assertFalse(Path(marker).exists(), "el /tmp del sandbox no fue efimero")
 
+    def test_dev_writes_are_ephemeral_and_do_not_escape(self):
+        """`/dev` dentro del sandbox es tmpfs escribible; lo escrito alli no
+        sobrevive fuera. Se comprueba en vez de afirmarse: la cabecera del
+        envoltorio afirmaba antes que TODA escritura fuera de /tmp fallaba,
+        lo cual era falso para /dev y /dev/shm (hallazgo N-01 del critico)."""
+        marker = "/dev/test-readonly-probe-dev"
+        result = self._run_in_sandbox(f"echo x > {marker} && cat {marker}")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "x")
+        self.assertFalse(Path(marker).exists(), "la escritura en /dev escapo del sandbox")
+
     def test_network_is_unavailable(self):
         result = self._run_in_sandbox("getent hosts pypi.org")
         self.assertNotEqual(result.returncode, 0, "el sandbox tuvo resolucion DNS")
@@ -73,6 +84,7 @@ class ReadOnlyRoleSandboxTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         payload = json.loads(result.stdout)
         self.assertEqual(payload["verdict"], "PASS")
+        self.assertTrue(payload["checks"]["dev_probe_absent_after"])
         for name, value in payload["checks"].items():
             if isinstance(value, bool):
                 self.assertTrue(value, f"comprobacion fallida: {name}")

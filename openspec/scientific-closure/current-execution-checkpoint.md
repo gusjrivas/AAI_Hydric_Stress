@@ -12,10 +12,16 @@ dirty y la imposibilidad de commit por `.git` de solo lectura.
 **Estado real verificado (2026-09-20):**
 
 - Rama `feat/scientific-closure`, upstream `origin/feat/scientific-closure`.
-  HEAD vigente: `dc0d3f5b4dbed235078c1bc93a3c863b6f65d3c6`. El árbol estaba
-  limpio al inicio de esta sesión; los commits `fe55bef`, `e669bf8`, `5e10d6a` y
-  `dc0d3f5` incorporaron la remediación y los registros posteriores, por lo que
-  el bloqueo de commit del 2026-09-19 **ya no está vigente**.
+  HEAD **al inicio** de la sesión del 2026-09-20:
+  `dc0d3f5b4dbed235078c1bc93a3c863b6f65d3c6`, con el árbol limpio. Esa sesión
+  agregó commits propios, de modo que el HEAD publicado es posterior; el SHA
+  exacto y el alcance de cada uno están en
+  `readiness-resolution-linux-2026-09-20/checkpoints.json`, que es la fuente
+  autoritativa. Este archivo no repite un SHA de HEAD que quedaría obsoleto en
+  el mismo commit que lo escribe (hallazgo N-05 de la crítica independiente).
+  Los commits `fe55bef`, `e669bf8`, `5e10d6a` y `dc0d3f5` incorporaron la
+  remediación y los registros previos, por lo que el bloqueo de commit del
+  2026-09-19 **ya no está vigente**.
 - `origin/main` verificado tras `git fetch`:
   `9fcbfd9f4dd4860a07f7e99d5b16d849ac81c4af`. La referencia
   `f7c4ef72ebee9f745bd80deadcd8ad69d9183274` citada en documentos previos está
@@ -34,7 +40,7 @@ dirty y la imposibilidad de commit por `.git` de solo lectura.
 
 - Condición 4 de ADR-0011 `NOT_SATISFIED`: el ADR está mergeado byte a byte en
   `origin/main`, pero el protocolo detallado allí es una versión anterior (le
-  falta la sección 16 de condiciones de interpretación y soporte) y el runner en
+  falta la sección titulada «Condiciones de interpretación y soporte»; el número «16» está duplicado en el protocolo y «16. Provenance» sí está en `main`) y el runner en
   `main` diverge; `214735e42ee04f018156cd630591e798aadd8bf3` no es ancestro de
   `origin/main`. **Mientras esto no se resuelva, A, B y C no pueden ejecutarse.**
 - Imagen aprobada `sha256:55bc923e…b297af` **no inspeccionada**: Docker no es

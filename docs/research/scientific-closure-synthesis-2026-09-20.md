@@ -59,11 +59,15 @@ validación de procedencia del propio runner
   Open-Meteo y Copernicus ERA5-Land y a registrar modificaciones.
 - NASA POWER: **negativo verificado** — las páginas oficiales del propio
   proyecto publican la cita exigida pero **ninguna** licencia ni restricción de
-  uso. La política oficial aplicable de NASA ESDIS establece que, salvo
-  restricción marcada, los datos de ciencias de la Tierra de NASA son CC0 y que
-  *«there are no restrictions on the use of these data»*, con cita muy
-  encarecida. Este trabajo es investigación académica no comercial y cita
-  según la guía oficial de POWER.
+  uso. La guía oficial de NASA ESDIS establece que *«data provided from a
+  NASA-led mission are licensed as Creative Commons Zero (CC0)»* salvo
+  restricción marcada, y que *«there are no restrictions on the use of these
+  data»*. **Paso inferencial, declarado como tal:** aplicar esa cláusula a
+  POWER exige asumir que «proyecto financiado por la NASA Earth Science
+  Division» queda cubierto por «NASA-led mission». Eso es una **inferencia**,
+  no una cita: no se encontró ningún documento oficial que lo afirme con esas
+  palabras. Es el paso que sostiene la decisión. Este trabajo es investigación
+  académica no comercial y cita según la guía oficial de POWER.
 
 **Limitaciones de procedencia conservadas, no resueltas:**
 
@@ -75,6 +79,21 @@ validación de procedencia del propio runner
    fueron verificados. Solo se verificaron los términos publicados al momento
    de esta consulta, y se registran expresamente como vigentes, no históricos.
 3. `downloaded_service_version` de NASA POWER permanece `UNKNOWN`.
+4. La aplicabilidad de la cláusula CC0 de NASA ESDIS a NASA POWER es una
+   **inferencia**, no un hecho citado (ver arriba).
+5. El **manifiesto versionado no fue modificado**: sigue registrando
+   `license_status: PENDING_CONFIRMATION` para NASA POWER y
+   `acquisition_date_status: PENDING_CONFIRMATION` para ambas fuentes. Por eso
+   la condición 2 de ADR-0011 se declara **resuelta en sustancia, no
+   formalmente satisfecha contra el manifiesto**: actualizar esos campos es una
+   acción documental reservada a quien integre este trabajo en `main`, porque
+   el manifiesto forma parte de la identidad congelada verificada idéntica a
+   `214735e`.
+6. Los tres instantes exactos de recuperación de las páginas oficiales **no
+   fueron capturados**; se sabe que ocurrieron durante esta sesión, el
+   2026-09-20. Los revisores independientes no pudieron re-verificar esas URLs
+   porque su sandbox no tiene red: son evidencia de una sola fuente y un solo
+   observador.
 
 ---
 
@@ -135,9 +154,21 @@ El protocolo declara y el código verifica:
   exceda el corte de entrenamiento de esa etapa.
 - Diciembre de 2022 no aporta filas evaluables a B, ni diciembre de 2023 a C:
   solo historia cruda.
-- En C, `--validate-inputs-only` está **prohibido**, porque hashear el CSV
-  completo ya toca el holdout 2024–2025; la validación de procedencia se
-  difiere hasta después de la apertura durable del ledger.
+**Regla implementada en código, NO en el protocolo** (la distinción importa:
+este apartado se titula «el protocolo declara y el código verifica», y lo que
+sigue solo existe en el código):
+
+- En C, `--validate-inputs-only` está **prohibido**
+  (`src/experiment_runner/controlled_daily_v4/cli.py`), y la validación de
+  procedencia se difiere hasta después de la apertura durable del ledger. El
+  motivo que da el propio código es que hashear el CSV completo alcanza también
+  al tramo 2024–2025. El documento de protocolo **no** menciona esta regla:
+  `grep -n 'validate-inputs-only'` sobre él no devuelve nada.
+  Precisión necesaria: esta sesión **sí** calculó el SHA-256 de esos mismos CSV
+  completos, en etapa A, donde el código lo permite explícitamente. Calcular un
+  hash del archivo entero no es leer valores reservados, y ningún valor de
+  2024–2025 fue inspeccionado. La restricción de C es una defensa adicional
+  ligada a la apertura del holdout, no una prohibición general de hashear.
 
 **Hecho verificado.** Los tests que ejercitan estas reglas
 (`test_controlled_daily_v4_splits.py`, `..._stage_window.py`,
@@ -190,8 +221,9 @@ Convenciones predeclaradas, no negociables tras observar resultados:
   `{"value": …, "status": "defined"}` o
   `{"value": null, "status": "undefined", "undefined_reason": "…"}`.
 
-**Soporte mínimo exigido** (protocolo §16, presente en la rama y **ausente de
-`main`**): al menos 2 de 3 folds con MCC definido por familia y al menos
+**Soporte mínimo exigido** (protocolo, sección «Condiciones de interpretación y
+soporte previas a ejecución» — numerada «16», duplicando a «16. Provenance»;
+presente en la rama y **ausente de `main`**): al menos 2 de 3 folds con MCC definido por familia y al menos
 4 000 de 5 000 réplicas bootstrap válidas. Si una familia no lo satisface, A
 termina `NO_VALID_SELECTION`, sin candidato transferible.
 
@@ -225,8 +257,13 @@ ya estén mergeados en `main`»* — no está satisfecha:
   (`a8dabbc4b85367d5fb473195972870fb5c7de43ed5726a99910e3fed8c83d9cb`).
 - El **protocolo detallado** en `origin/main` es una versión **anterior**
   (`4853fb64…` frente a `e3fa7b66…` en la rama; 42 adiciones / 2 eliminaciones).
-  Le falta la sección 16, que es precisamente donde se declaran los criterios
-  normativos de soporte e interpretación bajo los que se juzgaría una corrida.
+  Le falta la sección titulada «Condiciones de interpretación y soporte previas
+  a ejecución», que es precisamente donde se declaran los criterios normativos de
+  soporte e interpretación bajo los que se juzgaría una corrida. Precisión: esa
+  sección está numerada «16» en la rama, duplicando a «16. Provenance», que sí
+  está en `main`; por eso debe identificarse por título y no por número. El
+  defecto de numeración es preexistente y no se corrigió aquí porque el
+  protocolo integra la identidad congelada verificada idéntica a `214735e`.
 - La implementación del runner de A/B/C tampoco está en `main`: el commit
   ejecutable declarado `214735e…` **no** es ancestro de `origin/main`.
 
@@ -254,7 +291,7 @@ no una decisión de suficiencia.
 
 | Id | Resultado | Valor |
 |---|---|---|
-| V-01 | Suite `controlled_daily_v4` en entorno reconstruido | 486/486 en 994 s |
+| V-01 | Suite `controlled_daily_v4` en entorno reconstruido | 486/486 en 994,22 s |
 | V-02 | Gobernanza + checker formal | 48 pasadas + 14 subtests |
 | V-03 | Enforcement de solo lectura por rol | 8/8 |
 | V-04 | Checker formal | exit 0 |
@@ -344,7 +381,7 @@ Se conservan explícitamente, sin evidencia que permita modificarlas:
    operativa prospectiva** sin evidencia adicional propia.
 5. **Adquisición histórica parcialmente desconocida** (§2).
 6. **Los fixtures no sirven para estimar tiempos científicos reales.** Los
-   994 s de la suite corresponden a datos sintéticos.
+   994,22 s de la suite corresponden a datos sintéticos.
 7. **Reanálisis, no sensores.** Pergamino es un producto de
    reanálisis/modelado. No debe describirse como evidencia de campo de
    sensores propios.

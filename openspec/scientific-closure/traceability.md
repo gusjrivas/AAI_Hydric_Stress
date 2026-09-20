@@ -44,9 +44,14 @@ La ausencia de artefacto produce PENDING/BLOCKED según el momento del gate.
 ## Estado por requisito — 2026-09-20
 
 Vocabulario cerrado, sin otros valores: `PASS`, `PASS_WITH_LIMITATIONS`,
-`BLOCKED`, `NOT_APPLICABLE`. Los cuatro son estados terminales de esta
-revisión: ningún requisito queda en un estado de tránsito. Los
-identificadores de esta tabla se
+`BLOCKED`, `NOT_APPLICABLE`.
+
+**`BLOCKED` no es un estado terminal.** El checker normativo del repositorio
+(`scripts/check_scientific_closure.py`) considera terminales únicamente `PASS`
+y `NOT_APPLICABLE`, y su grafo de transiciones admite `BLOCKED → APPROVED`. Un
+requisito `BLOCKED` está **irresuelto**, a la espera de un insumo externo. Esta
+tabla no lo convierte en resuelto: lo declara como el estado en que esta sesión
+lo deja, que es cosa distinta. Los identificadores de esta tabla se
 escriben en negrita (`**SC-GOV-0NN**`) para que la fila normativa de cada
 requisito siga siendo única en la matriz de arriba.
 
@@ -67,12 +72,12 @@ alcance documental); `sc-02` a `sc-10` `BLOCKED`.
 | Requisito | Estado 2026-09-20 | Base verificada y limitación |
 | --- | --- | --- |
 | **SC-GOV-001** | PASS_WITH_LIMITATIONS | `session-identity.json` existe y fue auditado PASS dentro de `sc-01`. Limitación: registra el commit documental `a70022d3…` y el snapshot auditado es `a0d8bf7`; el HEAD vigente es `dc0d3f5b4dbed235078c1bc93a3c863b6f65d3c6`, por lo que la identidad registrada no describe el estado actual |
-| **SC-GOV-002** | BLOCKED | `readiness-resolution-linux-2026-09-20/authorizations.json` registra `AUTH-ABC-2026-09-20` como `GRANTED_BUT_NOT_EXERCISABLE`. Condición 4 de ADR-0011 `NOT_SATISFIED`: el ADR está mergeado byte a byte en `origin/main` (`9fcbfd9f…`), pero el protocolo detallado allí es una versión anterior (sin la sección 16) y `214735e…` no es ancestro de `origin/main` |
+| **SC-GOV-002** | BLOCKED | `readiness-resolution-linux-2026-09-20/authorizations.json` registra `AUTH-ABC-2026-09-20` como `GRANTED_BUT_NOT_EXERCISABLE`. Condición 4 de ADR-0011 `NOT_SATISFIED`: el ADR está mergeado byte a byte en `origin/main` (`9fcbfd9f…`), pero el protocolo detallado allí es una versión anterior a la que le falta la sección titulada «Condiciones de interpretación y soporte previas a ejecución» (numerada «16» en la rama, duplicando a «16. Provenance», que sí está en `main`). `214735e…` tampoco es ancestro de `origin/main`, lo que es contexto del merge pendiente y no parte del texto de la condición 4 |
 | **SC-GOV-003** | PASS_WITH_LIMITATIONS | `preservation.json` existe y fue auditado PASS en `sc-01`. Limitación: el diff acreditado tiene por base `a70022d3…`; no cubre los commits posteriores hasta `dc0d3f5` |
 | **SC-GOV-004** | PASS_WITH_LIMITATIONS | `inventory.json` existe y fue auditado PASS en `sc-01`. Limitación: varias entradas quedaron superadas por la migración de entradas a Linux; la reconciliación está en `inventory.md`, sección «Actualización 2026-09-20», y no ha sido auditada de forma independiente |
 | **SC-GOV-005** | PASS_WITH_LIMITATIONS | `claims-assessment.json` existe y fue auditado PASS en `sc-01`, con alcance explícitamente documental. Limitación: `claims.md` declara que la decisión vigente R/H/N/S «permanece pendiente de crítica y auditoría independiente» |
 | **SC-GOV-006** | PASS_WITH_LIMITATIONS | `readiness-resolution-linux-2026-09-20/agent-capabilities.json` registra `PASS_WITH_LIMITATIONS`: existe enforcement reproducible (`scripts/readonly_role_sandbox.sh`, verificado con bubblewrap 0.11.1; escritura al repositorio y a `$HOME` con EROFS, sin red, `/tmp` efímero). Limitación declarada: el harness no coloca el proceso del subagente dentro del sandbox, por lo que fuera del wrapper la restricción sigue siendo conductual. Además, sustitución de modelos declarada: los perfiles `.codex/agents` no son cargables en este runtime |
-| **SC-GOV-007** | PASS_WITH_LIMITATIONS | El artefacto esperado existe: `readiness-resolution-linux-2026-09-20/workflow-events.jsonl` (12 eventos: identidad de sesión, despacho y reporte de roles, asignaciones de escritor exclusivas y disjuntas, validaciones con exit code, evaluaciones de gate y la constancia de que ningún `state_event` fue fabricado). Limitación: cubre esta campaña de readiness; no hay eventos de campañas A/B/C porque no existieron |
+| **SC-GOV-007** | PASS_WITH_LIMITATIONS | El artefacto esperado existe: `readiness-resolution-linux-2026-09-20/workflow-events.jsonl` (17 eventos: identidad de sesión, despacho y reporte de cada rol, asignaciones de escritor exclusivas y disjuntas, validaciones con exit code, evaluaciones de gate, ciclo de corrección y la constancia de que ningún `state_event` fue fabricado). Los eventos de despacho de lector incluyen un `review_manifest` con el commit exacto del snapshot revisado, su base y el estado del árbol. Limitaciones: (a) la primera versión de este registro carecía de esos manifiestos por SHA y el estado se elevó antes de tenerlos — corregido tras el hallazgo F-02 del crítico; (b) el manifiesto por SHA identifica el snapshot, y el detalle por archivo vive en `evidence-manifest.json`, no en el propio `jsonl`; (c) cubre esta campaña de readiness: no hay eventos de A/B/C porque no existieron |
 | **SC-GOV-008** | BLOCKED | `sc-06-scientific-synthesis` está `BLOCKED` y su gate exige una etapa terminal A/B/C auditada. `audit.json` no existe. El gate no es alcanzable mientras SC-GOV-002 y SC-GOV-009 sigan `BLOCKED` |
 | **SC-GOV-009** | BLOCKED | `execution-manifest.json` existe pero declara `container_image.status: NOT_AVAILABLE` y `ledger_initialised: false`. La imagen aprobada `sha256:55bc923e…b297af` no fue inspeccionada: el daemon Docker es inalcanzable. Hecho favorable verificado: `src/`, `docker/` y `pyproject.toml` en HEAD son byte-idénticos a `214735e…`. Aun así la identidad ejecutable no puede certificarse sin la imagen |
 | **SC-GOV-010** | BLOCKED | `sc-03-stage-a` `BLOCKED`; `temporal-contract-check.json` no existe; el gate depende de `sc-02` PASS, que no se alcanzó |
@@ -81,7 +86,7 @@ alcance documental); `sc-02` a `sc-10` `BLOCKED`.
 | **SC-GOV-013** | BLOCKED | `sc-04-stage-b` `BLOCKED`; `B/custody-review.json` no existe; no hay registro de custodia ni intento reservado |
 | **SC-GOV-014** | BLOCKED | `sc-05-stage-c` `BLOCKED`; `C/holdout-review.json` no existe; el ledger no está inicializado y el holdout 2024–2025 permanece cerrado |
 | **SC-GOV-015** | BLOCKED | `sc-03-stage-a` `BLOCKED`; `statistical-review.json` no existe; no hay métricas ni bootstrap de campaña |
-| **SC-GOV-016** | BLOCKED | `sc-06-scientific-synthesis` `BLOCKED`; `claim-evidence-review.json` no existe; no hay síntesis que revisar frase a frase |
+| **SC-GOV-016** | BLOCKED | Existe una síntesis: `docs/research/scientific-closure-synthesis-2026-09-20.md`, que distingue hecho, resultado, inferencia y limitación y declara que A/B/C no se ejecutaron. Lo que **no** existe es el artefacto exigido `claim-evidence-review.json`, es decir la revisión frase a frase **independiente** de esa síntesis contra `claims.md`. `sc-06-scientific-synthesis` sigue `BLOCKED`. La síntesis fue sometida a crítica adversarial independiente (hallazgos F-01, F-09 y N-06, corregidos), lo que no sustituye ese artefacto |
 | **SC-GOV-017** | PASS_WITH_LIMITATIONS | `readiness-resolution-linux-2026-09-20/provenance-and-licence-assessment.json` decide `ADMISSIBLE_WITH_EXPLICIT_LIMITATIONS` (GD-13) y la validación de procedencia del runner terminó exit 0. Limitaciones preservadas: la fecha efectiva de adquisición de ambos archivos es `DESCONOCIDO` y no se infiere de mtimes; los términos vigentes al instante de adquisición no se verificaron; `downloaded_service_version` de NASA POWER sigue `DESCONOCIDO` |
 | **SC-GOV-018** | BLOCKED | `input-migration-linux-2026-09-20/recovery-rehearsal.json` y `storage-and-backup-independence.json` acreditan copia lógica con hashes idénticos y ensayo de restauración con fixture técnico (exit 0), pero `physical_independence: NOT_ACHIEVED`: primaria, copia y ensayo comparten el dispositivo 2128 (`/dev/sdf`, ext4). Montar `/dev/sdd` requiere root y `sudo` exige autenticación interactiva. El requisito de segunda copia independiente sigue incumplido |
 | **SC-GOV-019** | PASS_WITH_LIMITATIONS | El artefacto esperado existe: `readiness-resolution-linux-2026-09-20/checkpoints.json`, con los cuatro commits de esta sesión (SHA, propósito, archivos, revisión de diff) sobre la base `dc0d3f5`. `git diff --check` exit 0; rutas explícitas en cada `git add`, nunca `git add -A`. Limitación: un checkpoint no es aceptación ni PASS de auditoría; `sc-02` a `sc-10` siguen `BLOCKED` |
@@ -95,7 +100,10 @@ alcance documental); `sc-02` a `sc-10` `BLOCKED`.
 Resumen mecánico: PASS 0; PASS_WITH_LIMITATIONS 9 (SC-GOV-001, 003, 004, 005,
 006, 007, 017, 019, 020); BLOCKED 13 (SC-GOV-002, 008, 009, 010, 011, 012, 013,
 014, 015, 016, 018, 022, 025); NOT_APPLICABLE 3 (SC-GOV-021, 023, 024). Total 25.
-Ningún requisito queda en un estado no terminal: `PENDING` ya no se usa.
+
+**Trece de veinticinco requisitos quedan irresueltos.** `BLOCKED` describe
+exactamente eso. Esta tabla no debe leerse como una matriz completa: debe
+leerse como el registro de qué se resolvió y qué no, y por qué.
 
 Sobre los tres `NOT_APPLICABLE`: se refieren al **requisito**, cuya activación
 está condicionada a que R/N/S sean `REQUIRED`, y no al **change** `sc-07`,

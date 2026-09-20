@@ -71,7 +71,7 @@
     },
     "AUD-READ07": {
       "now": "PARTIALLY_REMEDIATED",
-      "basis": "Six of the seven artefacts sc-02 lacked now exist in this directory: authorizations.json, agent-capabilities.json, execution-manifest.json, provenance-and-licence-assessment.json, recovery-rehearsal.json, structural-validation.json. sc-02 itself remains BLOCKED because its acceptance requires an independent copy and an unblocked ADR-0011, neither of which is satisfied. G1 is NOT satisfied."
+      "basis": "Seven of the artefacts sc-02 lacked now exist in this directory: authorizations.json, agent-capabilities.json, execution-manifest.json, provenance-and-licence-assessment.json, recovery-rehearsal.json, structural-validation.json, checkpoints.json, plus workflow-events.jsonl. sc-02 itself remains BLOCKED because its acceptance requires an independent copy and an unblocked ADR-0011, neither of which is satisfied. G1 is NOT satisfied. The ordering irregularity of producing this evidence while sc-02 is BLOCKED is recorded in authorizations.json.governance_attribution_note rather than defended."
     },
     "AUD-READ08": {
       "now": "REMEDIATED",
@@ -91,7 +91,7 @@
       "id": "EXT-01",
       "title": "ADR-0011 pre-execution condition 4",
       "exact_missing_input": "A merge into main of the current detailed protocol (docs/research/controlled-daily-v4-external-pergamino-protocol.md, HEAD sha256 e3fa7b6644171d0f80cfca6f3088e3e1fec44a0a6e63990deb05c26af5f8218a) and of the stage A/B/C runner implementation, so that the criteria under which a run would be judged are the ones merged in main.",
-      "evidence_of_absence": "git merge-base --is-ancestor 214735e42ee04f018156cd630591e798aadd8bf3 refs/remotes/origin/main exits 1; git diff --numstat origin/main HEAD on the protocol reports 42 additions / 2 deletions; origin/main lacks protocol section 16.",
+      "evidence_of_absence": "git merge-base --is-ancestor 214735e42ee04f018156cd630591e798aadd8bf3 refs/remotes/origin/main exits 1; git diff --numstat origin/main HEAD on the protocol reports 42 additions / 2 deletions; origin/main lacks the section titled 'Condiciones de interpretacion y soporte previas a ejecucion' (numbered 16 in the branch, duplicating '16. Provenance', which IS in main).",
       "impact": "No execution of A, B or C may begin. This is the binding blocker for the whole scientific campaign.",
       "minimal_external_action": "Open a pull request from feat/scientific-closure (or a protocol-only branch) to main and merge it, then re-verify condition 4. Explicitly outside this session's authorization.",
       "why_not_derivable": "The condition is normative and refers to the state of another branch. It cannot be satisfied by any local computation, and plan.md forbids inferring an exception."
@@ -132,9 +132,23 @@
   "overall": {
     "readiness_gate_G1": "BLOCKED",
     "scientific_execution_authorized_and_exercisable": false,
-    "campaigns_executed": {"A": "NOT_EXECUTED", "B": "NOT_EXECUTED", "C": "NOT_EXECUTED", "auxiliaries": "NOT_EXECUTED"},
+    "campaigns_executed": {
+      "A": "NOT_EXECUTED",
+      "B": "NOT_EXECUTED",
+      "C": "NOT_EXECUTED",
+      "auxiliaries": "NOT_EXECUTED"
+    },
     "ledger": "NOT_INITIALISED",
     "holdouts_opened": false,
     "holdout_values_inspected": false
+  },
+  "corrections_after_independent_critique": {
+    "critic_snapshot": "a881207691812ab0a41ca0e2c447ed0274a2c2e5",
+    "material_findings": 11,
+    "non_material_observations": 6,
+    "dismissed": 0,
+    "gates_relaxed": 0,
+    "effect_on_this_record": "Two claims in this record were weakened: the reference to a missing 'section 16' is now by title, and the condition 4 reasoning no longer leans on the runner implementation. Neither change alters any verdict. Detail in review-critic.json.",
+    "net_effect": "No verdict improved. G1 remains NOT_SATISFIED."
   }
 }

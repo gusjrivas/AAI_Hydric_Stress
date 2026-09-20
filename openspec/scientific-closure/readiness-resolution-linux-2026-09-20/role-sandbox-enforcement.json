@@ -1,23 +1,25 @@
 {
   "schema_version": "1.0",
   "record": "readonly_role_sandbox_enforcement_probe",
-  "checked_at_utc": "2026-09-20T04:32:23Z",
+  "checked_at_utc": "2026-09-20T04:55:38Z",
   "sandbox_wrapper": "scripts/readonly_role_sandbox.sh",
   "bwrap_version": "bubblewrap 0.11.1",
   "sandbox_launch_exit_code": 0,
   "checks": {
     "read_repository_succeeds": true,
     "write_repository_fails": true,
-    "write_repository_stderr": "/bin/bash: line 5: /home/gus/work/AAI_Hydric_Stress_scientific_closure/.readonly-sandbox-probe-36269-1789878743: Read-only file system",
+    "write_repository_stderr": "/bin/bash: line 5: /home/gus/work/AAI_Hydric_Stress_scientific_closure/.readonly-sandbox-probe-48742-1789880138: Read-only file system",
     "write_real_home_fails": true,
     "write_ephemeral_tmp_succeeds": true,
     "network_dns_unavailable": true,
     "repository_probe_absent_after": true,
-    "home_probe_absent_after": true
+    "home_probe_absent_after": true,
+    "ephemeral_dev_write_exit_code": 0,
+    "dev_probe_absent_after": true
   },
   "probe_paths": {
-    "repository": "/home/gus/work/AAI_Hydric_Stress_scientific_closure/.readonly-sandbox-probe-36269-1789878743",
-    "home": "/home/gus/.readonly-sandbox-probe-36269-1789878743"
+    "repository": "/home/gus/work/AAI_Hydric_Stress_scientific_closure/.readonly-sandbox-probe-48742-1789880138",
+    "home": "/home/gus/.readonly-sandbox-probe-48742-1789880138"
   },
   "verdict": "PASS",
   "limitation": "Acredita que el mecanismo impone solo lectura y ausencia de red. No acredita, por si solo, que un agente revisor concreto haya sido ejecutado a traves de el; eso exige registrar el comando exacto de esa sesion."

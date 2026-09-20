@@ -101,5 +101,16 @@
     "sha256_crlf_rendering": "d47cdb8c2e70998a95f431cdc6c0e84359aa72736f4399d113a206623b631554",
     "historic_recorded_constraints_sha256": "d47cdb8c2e70998a95f431cdc6c0e84359aa72736f4399d113a206623b631554",
     "finding": "The historic constraints_sha256 recorded in preexecution-environment.json equals the CRLF rendering of the same file, computed here. This is a verified line-ending difference from the Windows checkout, not a content divergence. Package pins are identical."
+  },
+  "package_set_comparison": {
+    "historic_pip_freeze_entries": 26,
+    "reconstructed_venv_entries": 23,
+    "difference": [
+      "pip",
+      "setuptools",
+      "wheel"
+    ],
+    "statement": "The 23 packages that carry protocol meaning are identical in name and version. The historic freeze also lists pip, setuptools and wheel, which the virtual-environment creator does not seed. Saying 'identical package set' without that qualification is imprecise; the precise statement is 23/23 after excluding those three.",
+    "explicit_non_claim": "This still does not make the environment equivalent to the historic image."
   }
 }

@@ -7,9 +7,13 @@
 #   2. que una escritura en el repositorio falla con EROFS;
 #   3. que una escritura en $HOME real falla con EROFS;
 #   4. que una escritura en el /tmp efimero funciona;
+#   4b. que /dev dentro del sandbox es tmpfs efimero: lo escrito alli NO
+#       sobrevive fuera (no es un escape, pero se comprueba en vez de
+#       afirmarse);
 #   5. que no hay resolucion DNS (sin red);
 # y, fuera del sandbox:
-#   6. que ninguna de las rutas de prueba existe despues.
+#   6. que ninguna de las rutas de prueba (repositorio, $HOME real, /dev)
+#      existe despues.
 #
 # Salida: exit 0 si TODAS las condiciones se cumplen; 1 en caso contrario.
 # Un fallo aqui significa que el enforcement NO esta acreditado; nunca debe
@@ -36,6 +40,8 @@ echo "write_home_stderr=\$err"
 
 { echo probe > /tmp/readonly-sandbox-probe; } 2>/dev/null; echo "write_tmp_exit=\$?"
 
+{ echo probe > /dev/readonly-sandbox-probe-$STAMP; } 2>/dev/null; echo "write_dev_exit=\$?"
+
 getent hosts pypi.org >/dev/null 2>&1; echo "dns_exit=\$?"
 INNER
 )
@@ -50,10 +56,12 @@ write_repo_exit=$(get write_repo_exit)
 write_repo_stderr=$(get write_repo_stderr)
 write_home_exit=$(get write_home_exit)
 write_tmp_exit=$(get write_tmp_exit)
+write_dev_exit=$(get write_dev_exit)
 dns_exit=$(get dns_exit)
 
 repo_probe_absent=true; [ -e "$REPO_PROBE" ] && repo_probe_absent=false
 home_probe_absent=true; [ -e "$HOME_PROBE" ] && home_probe_absent=false
+dev_probe_absent=true; [ -e "/dev/readonly-sandbox-probe-$STAMP" ] && dev_probe_absent=false
 
 pass=true
 [ "$read_repo_ok" = "1" ] || pass=false
@@ -63,6 +71,7 @@ pass=true
 [ "${dns_exit:-0}" != "0" ] || pass=false
 [ "$repo_probe_absent" = "true" ] || pass=false
 [ "$home_probe_absent" = "true" ] || pass=false
+[ "$dev_probe_absent" = "true" ] || pass=false
 case "$write_repo_stderr" in *"Read-only file system"*) ;; *) pass=false ;; esac
 
 verdict=FAIL; [ "$pass" = "true" ] && verdict=PASS
@@ -83,7 +92,9 @@ cat <<JSON
     "write_ephemeral_tmp_succeeds": $( [ "${write_tmp_exit:-1}" = "0" ] && echo true || echo false ),
     "network_dns_unavailable": $( [ "${dns_exit:-0}" != "0" ] && echo true || echo false ),
     "repository_probe_absent_after": $repo_probe_absent,
-    "home_probe_absent_after": $home_probe_absent
+    "home_probe_absent_after": $home_probe_absent,
+    "ephemeral_dev_write_exit_code": ${write_dev_exit:-null},
+    "dev_probe_absent_after": $dev_probe_absent
   },
   "probe_paths": {
     "repository": "$REPO_PROBE",

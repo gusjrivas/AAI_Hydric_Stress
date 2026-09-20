@@ -154,7 +154,7 @@ esté satisfecha, **ninguna etapa A, B o C puede ejecutarse**, ni puede
 inicializarse el ledger definitivo ni abrirse el holdout. Hecho verificado:
 `origin/main` es `9fcbfd9f4dd4860a07f7e99d5b16d849ac81c4af`; el ADR está
 mergeado byte a byte, pero el protocolo detallado presente en `origin/main` es
-una versión anterior (le falta la sección 16 de condiciones de interpretación y
+una versión anterior (le falta la sección titulada «Condiciones de interpretación y
 soporte) y el código del runner en `main` diverge (~780 inserciones / ~160
 eliminaciones). El commit ejecutable declarado
 `214735e42ee04f018156cd630591e798aadd8bf3` no es ancestro de `origin/main`.

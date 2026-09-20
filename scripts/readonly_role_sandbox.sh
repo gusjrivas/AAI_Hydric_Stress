@@ -9,9 +9,16 @@
 # de archivos montado de solo lectura, sin red, y con un /tmp efimero propio.
 #
 # Qué garantiza (verificable con scripts/verify_readonly_sandbox.sh):
-#   - toda escritura fuera del /tmp efimero falla con EROFS;
+#   - toda escritura a rutas persistentes del host (repositorio, $HOME real,
+#     cualquier ruta de /) falla con EROFS;
 #   - el proceso no tiene acceso de red;
 #   - nada de lo escrito dentro sobrevive ni es visible fuera.
+#
+# Precisión deliberada: ademas del /tmp efimero, /dev y /dev/shm dentro del
+# sandbox son tmpfs escribibles. No son un escape — mueren con el sandbox y no
+# son visibles desde fuera — pero decir "toda escritura fuera de /tmp falla"
+# seria falso. verify_readonly_sandbox.sh comprueba explicitamente que lo
+# escrito en /dev no sobrevive.
 #
 # Qué NO garantiza:
 #   - no sustituye la independencia de sesion/contexto del revisor;

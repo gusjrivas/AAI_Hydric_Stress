@@ -78,22 +78,25 @@
   "licence_evidence_retrieved_this_session": [
     {
       "source": "https://power.larc.nasa.gov/docs/referencing/",
-      "retrieved_utc": "2026-09-20T04:28:47.727750+00:00",
-      "observation": "Official NASA POWER referencing guidance. States the required citation wording and requests notification when POWER data is transmitted to other researchers. VERIFIED NEGATIVE: this official page states no licence, no terms-of-use document and no redistribution restriction."
+      "observation": "Official NASA POWER referencing guidance. States the required citation wording and requests notification when POWER data is transmitted to other researchers. VERIFIED NEGATIVE: this official page states no licence, no terms-of-use document and no redistribution restriction.",
+      "retrieved_at_utc": null,
+      "retrieved_at_status": "UNKNOWN_NOT_CAPTURED: the fetch instant was not recorded at fetch time. The value previously written here was the serialisation timestamp of this record, not a retrieval instant, and was removed. What is certain is that all three pages were retrieved during this session, on 2026-09-20, before this record was written."
     },
     {
       "source": "https://power.larc.nasa.gov/docs/faqs/other/",
-      "retrieved_utc": "2026-09-20T04:28:47.727755+00:00",
-      "observation": "Official POWER FAQ. Confirms daily/hourly data default to Local Solar Time (LST). VERIFIED NEGATIVE: contains no licence or terms-of-use statement."
+      "observation": "Official POWER FAQ. Confirms daily/hourly data default to Local Solar Time (LST). VERIFIED NEGATIVE: contains no licence or terms-of-use statement.",
+      "retrieved_at_utc": null,
+      "retrieved_at_status": "UNKNOWN_NOT_CAPTURED: the fetch instant was not recorded at fetch time. The value previously written here was the serialisation timestamp of this record, not a retrieval instant, and was removed. What is certain is that all three pages were retrieved during this session, on 2026-09-20, before this record was written."
     },
     {
       "source": "https://www.earthdata.nasa.gov/engage/open-data-services-software-policies/data-use-guidance",
-      "retrieved_utc": "2026-09-20T04:28:47.727757+00:00",
       "quoted": [
         "Unless the content is marked with a use restriction or license, data provided from a NASA-led mission are licensed as Creative Commons Zero (CC0).",
         "While there are no restrictions on the use of these data, data users are very strongly urged to cite the data used in their work products."
       ],
-      "observation": "Official NASA ESDIS data use guidance covering NASA Earth science data. POWER is funded by the NASA Earth Science Division (per the citation wording POWER itself mandates)."
+      "observation": "Official NASA ESDIS data use guidance covering NASA Earth science data. POWER is funded by the NASA Earth Science Division (per the citation wording POWER itself mandates).",
+      "retrieved_at_utc": null,
+      "retrieved_at_status": "UNKNOWN_NOT_CAPTURED: the fetch instant was not recorded at fetch time. The value previously written here was the serialisation timestamp of this record, not a retrieval instant, and was removed. What is certain is that all three pages were retrieved during this session, on 2026-09-20, before this record was written."
     }
   ],
   "decision": {
@@ -103,7 +106,7 @@
     "scope": "Non-commercial academic research use within this thesis, with attribution.",
     "basis": [
       "ERA5-Land via Open-Meteo: manifest records licence CC-BY-4.0 with OFFICIAL_TERMS_CHECKED_2026_09_17 and the free API reserved to non-commercial use. This campaign is non-commercial academic research and attributes Open-Meteo and Copernicus ERA5-Land.",
-      "NASA POWER: the project's own official pages publish citation/attribution requirements but no licence or use restriction (verified negative, two pages). The governing NASA ESDIS policy states that, absent a marked use restriction or licence, NASA Earth science data are CC0 and that there are no restrictions on their use.",
+      "NASA POWER: the project's own official pages publish citation/attribution requirements but no licence and no use restriction (verified negative on two pages). INFERENCE, EXPLICITLY LABELLED AS SUCH: the governing NASA ESDIS guidance states that 'data provided from a NASA-led mission are licensed as Creative Commons Zero (CC0)' unless marked with a use restriction, and that 'there are no restrictions on the use of these data'. Applying that clause to POWER requires the step 'POWER is a NASA Earth Science Division funded project, therefore it falls under the NASA-led data covered by that guidance'. That step is an INFERENCE, not a quotation: the ESDIS text says 'NASA-led mission', and no official document was found that states, in those words, that POWER is covered.",
       "Acquisition URLs for both sources are recorded in the manifest and their consistency with the embedded file metadata is marked CONSISTENT (independently re-validated here by the runner's provenance check, exit 0)."
     ],
     "obligations": [
@@ -115,8 +118,11 @@
       "The effective acquisition date of both files remains UNKNOWN and is NOT inferred from filesystem mtimes.",
       "The terms in force at the (unknown) acquisition instant were NOT verified. Only the terms published at retrieval time in this session were verified; they are recorded as current terms, explicitly not as historic terms.",
       "downloaded_service_version for NASA POWER remains UNKNOWN; the exact POWER service version that produced the historic file is not recorded in the file.",
-      "This decision resolves admissibility. It does not convert any UNKNOWN field into a known value."
+      "This decision resolves admissibility. It does not convert any UNKNOWN field into a known value.",
+      "The applicability of the NASA ESDIS CC0 clause to NASA POWER is an INFERENCE from 'ESD-funded project' to 'NASA-led mission', not a quoted statement. It is the load-bearing step of this decision and is recorded as an inference, not as a fact.",
+      "The versioned provenance manifest was NOT modified: docs/research/controlled-daily-v4-external-pergamino-manifest.yaml still records license_status: PENDING_CONFIRMATION for NASA POWER and acquisition_date_status: PENDING_CONFIRMATION for both sources. Updating those fields is a documentary action reserved for whoever integrates this work into main, because the manifest is part of the frozen identity verified byte-identical to commit 214735e."
     ],
-    "adr_0011_condition_2": "SATISFIED by explicit decision. Condition 2 admits 'Confirmacion (o descarte explicito)'; the URLs are confirmed CONSISTENT and the licence question is resolved by this explicit admissibility decision backed by official-source evidence, with the historic-terms gap preserved as a limitation."
-  }
+    "adr_0011_condition_2": "RESOLVED_IN_SUBSTANCE_BY_EXPLICIT_DECISION, NOT YET REFLECTED IN THE MANIFEST. Condition 2 admits 'Confirmacion (o descarte explicito)'. The acquisition URLs are confirmed CONSISTENT and the licence question is answered by this explicit admissibility decision. However, condition 2 is worded over fields 'hoy marcadas PENDING_CONFIRMATION en el manifiesto de provenance', and those manifest fields were deliberately NOT changed. Therefore condition 2 is NOT claimed as formally satisfied against the manifest; it is claimed as resolved in substance, with the manifest update listed as a pending documentary action."
+  },
+  "licence_evidence_retrieval_note": "Retrieved over the network by the orchestrator earlier in this session. They could NOT be re-verified by the read-only reviewers, whose sandbox has no network. They are therefore single-source, single-observer evidence."
 }

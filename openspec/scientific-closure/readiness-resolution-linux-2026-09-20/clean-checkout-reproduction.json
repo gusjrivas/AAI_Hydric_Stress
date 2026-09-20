@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "record": "clean_checkout_reproduction",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": ["SC-GOV-019", "SC-GOV-020"],
+  "captured_at_utc": "2026-09-20T04:45:30Z",
+  "method": "git clone --no-hardlinks of the working repository into a fresh directory, checked out at the audited commit, then the documentary validations re-run against that clone using the reconstructed environment.",
+  "clone_path": "/home/gus/scientific-closure-runtime/logs/clean-checkout-1789879520",
+  "clone_head": "a881207691812ab0a41ca0e2c447ed0274a2c2e5",
+  "clone_tree_status": "CLEAN",
+  "results": [
+    {"check": "scripts/check_scientific_closure.py", "exit_code": 0, "stdout": "scientific-closure checker: PASS (estructura; runtime no verificado)"},
+    {"check": "pytest tests/test_scientific_closure_governance.py tests/test_scientific_closure_checker.py tests/test_readonly_role_sandbox.py", "exit_code": 0, "stdout": "56 passed, 14 subtests passed"},
+    {"check": "ruff check (branch-owned files)", "exit_code": 0, "stdout": "All checks passed!"},
+    {"check": "black --check (branch-owned files)", "exit_code": 0, "stdout": "4 files would be left unchanged"}
+  ],
+  "limitations": [
+    "The clone reproduces the repository, not the execution environment: it uses the same reconstructed venv, not a freshly built container.",
+    "The full controlled_daily_v4 suite was not re-run inside the clone; it was run on the same commit in the working tree (see validation-results.json V-01 and the final-snapshot run).",
+    "This reproduction has no scientific value: it accredits documentary and structural reproducibility only."
+  ],
+  "verdict": "PASS_WITH_LIMITATIONS"
+}

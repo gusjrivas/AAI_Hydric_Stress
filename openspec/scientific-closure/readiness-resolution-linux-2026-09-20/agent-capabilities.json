@@ -3,7 +3,10 @@
   "record": "agent_capabilities_and_role_separation",
   "campaign_id": "readiness-resolution-linux-2026-09-20",
   "change_id": "sc-02-runtime-readiness",
-  "requirement_ids": ["SC-GOV-006", "SC-GOV-007"],
+  "requirement_ids": [
+    "SC-GOV-006",
+    "SC-GOV-007"
+  ],
   "captured_at_utc": "2026-09-20T04:34:00Z",
   "runtime": {
     "harness": "Claude Code",
@@ -48,23 +51,56 @@
         "scripts/readonly_role_sandbox.sh",
         "scripts/verify_readonly_sandbox.sh",
         "tests/test_readonly_role_sandbox.py",
+        "scripts/check_scientific_closure.py",
+        "tests/test_scientific_closure_checker.py",
+        "tests/test_scientific_closure_governance.py",
+        "openspec/scientific-closure/decisions.md",
+        "openspec/scientific-closure/risks.md",
         "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/*",
-        "openspec/scientific-closure/changes.json",
-        "openspec/scientific-closure/decisions.md"
+        "docs/research/scientific-closure-synthesis-2026-09-20.md",
+        "openspec/scientific-closure/changes.json (owner by operations.md; NOT modified in this session)"
       ],
-      "note": "Declared explicitly because the orchestrator must not approve its own work: every artefact it wrote is submitted to an independent critic and an independent auditor that read the snapshot directly."
+      "note": "Declared explicitly because the orchestrator must not approve its own work. Its artefacts WERE submitted to an independent evidence checker and an independent adversarial critic, both of which reported (see observed_readers), and are submitted to an independent auditor on the final snapshot."
     },
-    "evidence_checker_critic_auditor": {
-      "independent_context": true,
-      "wrote_files": false,
-      "enforcement": "Instructed to run every shell command through scripts/readonly_role_sandbox.sh, which imposes a read-only view of the whole filesystem and no network. See role-sandbox-enforcement.json."
+    "single_writer_per_file": "Enforced by explicit path assignment; no two writers were assigned the same path. EXCEPTION, declared: openspec/scientific-closure/traceability.md was written first by the implementer and then, after the implementer had finished and reported, by the orchestrator, to close two non-terminal states and to apply critic findings F-01 and F-04. Ownership transfer was sequential, never concurrent.",
+    "observed_readers": {
+      "scientific_explorer": {
+        "dispatched": true,
+        "reported": true,
+        "independent_context": true,
+        "wrote_files": false,
+        "enforced_sandbox_used": false,
+        "note": "Dispatched before the enforcement wrapper existed; read-only by instruction and by observed behaviour only."
+      },
+      "evidence_checker": {
+        "dispatched": true,
+        "reported": true,
+        "independent_context": true,
+        "wrote_files": false,
+        "enforced_sandbox_used": true,
+        "verified_independently": "Reported that a write probe inside the repository returned 'Read-only file system' (exit 1) and that DNS/curl failed, i.e. it confirmed the enforcement from inside, rather than taking it on trust.",
+        "outcome": "All mechanical sections COINCIDE except one documented discrepancy about checkpoints.json coverage."
+      },
+      "scientific_critic": {
+        "dispatched": true,
+        "reported": true,
+        "independent_context": true,
+        "wrote_files": false,
+        "enforced_sandbox_used": true,
+        "verified_independently": "Attempted eight sandbox escape vectors (repo write, $HOME write, symlink, /proc/self/cwd, git config/checkout, mount -o remount,rw, nested bwrap --bind, unshare -Urm); all failed. Network unreachable.",
+        "outcome": "11 material findings, all in governance-state handling; no finding of covert execution, holdout reading, weakened tests or modified historic evidence. Verified by AST comparison that the ruff/black commit changed only import ordering."
+      }
     },
-    "single_writer_per_file": "Enforced by explicit path assignment; no two writers were assigned the same path."
+    "intended_but_not_yet_dispatched_at_capture_time": {
+      "scientific_auditor": "To be dispatched on the final published snapshot, after these corrections. Not described here as having done anything."
+    }
   },
   "enforcement_status": {
     "previous_state": "AUD-READ03 / LNX-03 / CRIT-SUB-01: reader roles were read-only by BEHAVIOUR only; no technical isolation was accredited.",
     "resolution": "A reproducible enforcement mechanism now exists in the repository (scripts/readonly_role_sandbox.sh) and is verified by scripts/verify_readonly_sandbox.sh and tests/test_readonly_role_sandbox.py (8 tests). Writes to the repository and to the real HOME fail with EROFS; DNS resolution is unavailable; the sandbox /tmp is ephemeral; no probe survives outside.",
-    "residual_limitation": "The harness itself does not place a subagent process inside the sandbox. Enforcement applies to the shell commands a reader role executes through the wrapper, which is where its filesystem access happens. The subagent's own tool calls outside that wrapper remain behaviourally, not technically, constrained. This distinction is preserved and NOT presented as full per-process isolation.",
+    "residual_limitation": "The harness does not place a subagent process inside the sandbox. Enforcement applies to the shell commands a reader role executes through the wrapper, which is where its filesystem access happens. Two independent readers confirmed the enforcement from inside and one actively attempted eight escape vectors without success. A reader's own non-shell tool calls remain behaviourally, not technically, constrained. Additionally: /dev and /dev/shm inside the sandbox are writable tmpfs; they are ephemeral and invisible outside, so they are not an escape, but the wrapper's header formerly overstated that ALL writes outside the ephemeral /tmp fail. Corrected.",
     "status": "PASS_WITH_LIMITATIONS"
-  }
+  },
+  "revised_at_utc": "2026-09-20T04:55:04.981765+00:00",
+  "revision_note": "Revised after an adversarial critic found (F-03) that the first version of this record described the evidence checker, critic and auditor in the past tense although none had been dispatched at capture time. That was forward-looking intent recorded as observed conduct. The roles below are now split into OBSERVED and INTENDED, and only roles that actually reported are recorded as observed."
 }
