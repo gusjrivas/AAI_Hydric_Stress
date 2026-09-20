@@ -1,0 +1,100 @@
+{
+  "schema_version": "1.0",
+  "record": "checkpoints",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": [
+    "SC-GOV-019"
+  ],
+  "captured_at_utc": "2026-09-20T04:42:51.191834+00:00",
+  "base_commit": "dc0d3f5b4dbed235078c1bc93a3c863b6f65d3c6",
+  "head_at_capture": "010a45e0e2c74ae5319f329d8f54c86f6965941a",
+  "branch": "feat/scientific-closure",
+  "upstream": "origin/feat/scientific-closure",
+  "tree_clean_at_capture": true,
+  "checkpoints": [
+    {
+      "sha": "c23b8c3cfdbc9503dd1385dc40461d57339bbf11",
+      "subject": "feat(science): enforce read-only isolation for reader roles",
+      "author_date_utc": "2026-09-20T04:42:03Z",
+      "purpose": "Enforcement tecnico de solo lectura para roles lectores (GD-17). Cierra el fondo de AUD-READ03 / LNX-03 / CRIT-SUB-01.",
+      "files": [
+        "scripts/readonly_role_sandbox.sh",
+        "scripts/verify_readonly_sandbox.sh",
+        "tests/test_readonly_role_sandbox.py"
+      ],
+      "diff_check_exit": 0,
+      "review": "diff reviewed before commit; explicit paths staged (never git add -A); no secrets, no raw datasets, no UI or main changes",
+      "is_acceptance": false
+    },
+    {
+      "sha": "cc5334656608ffe3cd27c49e4a0fd3bb78424344",
+      "subject": "style(science): apply ruff and black in the pinned environment",
+      "author_date_utc": "2026-09-20T04:42:12Z",
+      "purpose": "Lint y formato en el entorno fijado (AUD-READ08). Solo formato e imports; sin cambio de comportamiento.",
+      "files": [
+        "scripts/check_scientific_closure.py",
+        "tests/test_scientific_closure_checker.py",
+        "tests/test_scientific_closure_governance.py"
+      ],
+      "diff_check_exit": 0,
+      "review": "diff reviewed before commit; explicit paths staged (never git add -A); no secrets, no raw datasets, no UI or main changes",
+      "is_acceptance": false
+    },
+    {
+      "sha": "95f0058589ad30cb12cf250dd971418f09f1b34f",
+      "subject": "docs(science): record resolved readiness evidence and residual blockers",
+      "author_date_utc": "2026-09-20T04:42:23Z",
+      "purpose": "Registro de evidencia de readiness con comandos, exit codes y hashes; decisiones GD-13..GD-18; bloqueos externos con el insumo exacto faltante.",
+      "files": [
+        "openspec/scientific-closure/decisions.md",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/agent-capabilities.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/authorizations.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/blocker-reassessment.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/code-identity-and-adr0011.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/container-runtime-and-image.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/execution-manifest.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/provenance-and-licence-assessment.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/recovery-rehearsal.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/role-sandbox-enforcement.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/runtime-environment.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/storage-and-backup-independence.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/structural-validation.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/validation-results.json",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/workflow-events.jsonl"
+      ],
+      "diff_check_exit": 0,
+      "review": "diff reviewed before commit; explicit paths staged (never git add -A); no secrets, no raw datasets, no UI or main changes",
+      "is_acceptance": false
+    },
+    {
+      "sha": "010a45e0e2c74ae5319f329d8f54c86f6965941a",
+      "subject": "docs(science): reconcile state documents and add scientific synthesis",
+      "author_date_utc": "2026-09-20T04:42:33Z",
+      "purpose": "Reconciliacion de documentos de estado y sintesis cientifica (SC-GOV-016 / SC-GOV-025).",
+      "files": [
+        "docs/research/scientific-closure-runbook.md",
+        "docs/research/scientific-closure-synthesis-2026-09-20.md",
+        "openspec/scientific-closure/current-execution-checkpoint.md",
+        "openspec/scientific-closure/inventory.md",
+        "openspec/scientific-closure/traceability.md"
+      ],
+      "diff_check_exit": 0,
+      "review": "diff reviewed before commit; explicit paths staged (never git add -A); no secrets, no raw datasets, no UI or main changes",
+      "is_acceptance": false
+    }
+  ],
+  "distinction": "A checkpoint is a recoverable commit of work. It is NOT an acceptance, NOT an audit PASS and NOT an authorization. None of these commits closes a change: sc-02 through sc-10 remain BLOCKED in changes.json.",
+  "prohibited_operations_not_used": [
+    "git add -A",
+    "git push --force",
+    "git reset --hard",
+    "git clean -fd",
+    "rebase onto main",
+    "merge to main",
+    "tag",
+    "release",
+    "pull request"
+  ],
+  "push_policy": "Push only to origin/feat/scientific-closure."
+}
