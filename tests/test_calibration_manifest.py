@@ -122,7 +122,7 @@ def test_incomplete_draft_is_distinct_from_a_ready_plan_and_cannot_enable_fit():
         require_ready_for_fit(draft)
 
 
-def test_operational_draft_keeps_unapproved_decisions_absent_and_blocks_fit():
+def test_operational_draft_closes_ratified_decisions_but_keeps_tolerances_pending():
     path = Path(__file__).resolve().parents[1] / "config" / "producer-calibration-plan.draft.json"
     draft = json.loads(path.read_text(encoding="utf-8"))
 
@@ -130,44 +130,32 @@ def test_operational_draft_keeps_unapproved_decisions_absent_and_blocks_fit():
 
     assert report.declared_status == "draft"
     assert not report.ready_for_fit
-    assert "sensor_id" not in draft["dataset"]
-    assert "hyperparameters" not in draft["model_plan"]
-    for pending_section in (
-        "deployment_seed",
+
+    # Decisiones ya ratificadas (docs/design/operational-calibration-manifest-decisions.md):
+    # deben estar presentes y no generar incumplimientos propios.
+    assert draft["dataset"]["sensor_id"]
+    assert draft["model_plan"]["hyperparameters"]
+    assert draft["deployment_seed"] in draft["training_seeds"]
+    for ratified_section in (
         "support",
         "coverage",
-        "tolerances",
         "stability_windows",
         "uncertainty",
         "multiplicity",
         "log_loss",
     ):
-        assert pending_section not in draft
+        assert ratified_section in draft
 
-    pending_issues = "\n".join(report.issues)
-    for required_decision in (
-        "dataset.sensor_id",
-        "model_plan.hyperparameters",
-        "deployment_seed",
-        "support.justification",
-        "support.minimum_bin_count",
-        "support.minimum_class_count",
-        "support.minimum_temporal_blocks",
-        "coverage.minimum",
-        "tolerances.justification",
-        "tolerances.epsilon_ece",
-        "tolerances.epsilon_bin",
-        "stability_windows",
-        "uncertainty.method",
-        "uncertainty.gap_treatment",
-        "uncertainty.block_length_days",
-        "uncertainty.replicates",
-        "uncertainty.resampling_seed",
-        "multiplicity.method",
-        "multiplicity.family_dimensions",
-        "log_loss.clipping_epsilon",
-    ):
-        assert required_decision in pending_issues
+    # Única decisión sustantiva pendiente: tolerancias de producto para ECE/bin.
+    assert "tolerances" in draft
+    assert "epsilon_ece" not in draft["tolerances"]
+    assert "epsilon_bin" not in draft["tolerances"]
+    assert draft["tolerances"]["justification"]
+
+    assert report.issues == (
+        "tolerances.epsilon_ece debe ser numérico",
+        "tolerances.epsilon_bin debe ser numérico",
+    )
 
     with pytest.raises(CalibrationManifestError, match="status no es ready_for_fit"):
         require_ready_for_fit(draft)

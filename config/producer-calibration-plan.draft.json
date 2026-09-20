@@ -10,6 +10,7 @@
   ],
   "dataset": {
     "dataset_id": "melchor_romero_2024_consolidado",
+    "sensor_id": "melchor_romero_2024_consolidado",
     "sha256": "121697dd5af202633f24adf4244a793477d34bf5e4cf4a1f10d7b2ca1b33ba8e",
     "source_kind": "real",
     "site": "Melchor Romero",
@@ -48,7 +49,16 @@
     }
   },
   "model_plan": {
-    "family": "random_forest"
+    "family": "random_forest",
+    "hyperparameters": {
+      "n_estimators": 100,
+      "criterion": "gini",
+      "max_depth": null,
+      "min_samples_split": 2,
+      "min_samples_leaf": 1,
+      "max_features": "sqrt",
+      "bootstrap": true
+    }
   },
   "training_seeds": [
     0,
@@ -57,6 +67,7 @@
     3,
     4
   ],
+  "deployment_seed": 0,
   "calibration": {
     "method": "sigmoid"
   },
@@ -64,5 +75,49 @@
     "strategy": "equal_width",
     "count": 10,
     "include_one_in_last": true
-  }
+  },
+  "support": {
+    "minimum_bin_count": 10,
+    "minimum_class_count": 10,
+    "minimum_temporal_blocks": 4,
+    "justification": "Piso operativo, no garantia estadistica: 10 casos por bin evita tratar rangos casi unitarios como respaldados, 10 casos por clase en cada alcance exigido es un umbral minimo de detectabilidad (no de precision), y 4 bloques temporales distintos exige repeticion minima para que un unico episodio no sostenga la afirmacion. Se aplica al periodo completo y a cada ventana de estabilidad, sin combinar semillas ni horizontes para inflar el conteo. Con ventanas de hasta 37 dias es esperable que algunos alcances no alcancen este piso y resulten insufficient_evidence; eso es un desenlace valido, no un fallo del piso."
+  },
+  "coverage": {
+    "minimum": 0.8
+  },
+  "tolerances": {
+    "justification": "epsilon_ece y epsilon_bin quedan sin valor numerico: representan el error de calibracion (en puntos de probabilidad, sobre limites superiores simultaneos, nunca sobre estimaciones puntuales) que todavia seria honesto mostrarle al productor, y esa es una decision de producto sobre el costo de sobreconfianza/subconfianza, no una constante estadistica derivable del dataset o de las specs. Los valores de referencia 0.10 (ECE) y 0.15 (por bin) discutidos en docs/design/operational-calibration-manifest-proposal.md no se adoptan aqui porque no tienen respaldo evidencial para este uso; congelarlos por conveniencia violaria la regla de no aprobar porcentajes sin fundamento. Hasta que producto ratifique un valor (o los rechace), display_probability permanece null y el manifiesto permanece en status=draft."
+  },
+  "log_loss": {
+    "clipping_epsilon": 1e-15
+  },
+  "uncertainty": {
+    "method": "Bootstrap de bloques moviles contiguos de 7 dias sobre pares (probabilidad, resultado), sincronizado por target_date entre horizontes y semillas para preservar su dependencia compartida",
+    "block_length_days": 7,
+    "replicates": 5000,
+    "nominal_level": 0.95,
+    "resampling_seed": 20260919,
+    "gap_treatment": "Se conserva la grilla diaria completa; nunca se imputa el target. Cada estadistico se recalcula solo con pares observados dentro del bloque, y una replica o alcance que no conserve el soporte predeclarado (support.minimum_bin_count/minimum_class_count/minimum_temporal_blocks) se declara invalida y se excluye, sin sustituirla por otra generada post hoc."
+  },
+  "multiplicity": {
+    "method": "Limite superior simultaneo family-wise por el cuantil 0.95 del maximo estadistico (ECE y error absoluto por bin respaldado) observado en cada replica de bootstrap de bloques, sobre la familia predeclarada completa (todos los horizontes, semillas, el periodo completo y cada ventana de estabilidad). No se separan familias por horizonte ni se descartan combinaciones o replicas desfavorables; los bins sin soporte se muestran pero quedan fuera de cualquier afirmacion publicable.",
+    "family_dimensions": [
+      "horizon",
+      "seed",
+      "stability_window",
+      "supported_probability_bin"
+    ]
+  },
+  "stability_windows": [
+    {
+      "start": "2024-10-19",
+      "end": "2024-11-24",
+      "criteria_reference": "global"
+    },
+    {
+      "start": "2024-11-25",
+      "end": "2024-12-31",
+      "criteria_reference": "global"
+    }
+  ]
 }
