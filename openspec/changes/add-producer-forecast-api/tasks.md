@@ -15,7 +15,11 @@
       catálogo e históricos.
 - [x] 1.7b-i Probar esos escenarios para el repositorio operacional v2
       (emisión sembrada por fixtures y feedback): identidad, inmutabilidad,
-      idempotencia, concurrencia real entre procesos y reinicio.
+      idempotencia y reinicio; concurrencia probada en dos niveles
+      distintos: control optimista de revisión con hilos concurrentes en
+      un mismo proceso, y exclusión real entre procesos de sistema
+      operativo independientes (`subprocess`, cada uno con su propio
+      `OperationalRepository` sobre el mismo almacenamiento).
 - [ ] 1.7b-ii Probar esos escenarios para recalibración y assessments
       (pendiente; ambos fuera de alcance de esta entrega).
 - [x] 1.8a Ejecutar regresión de endpoints legacy y demo PR #202–#205 para esta entrega.

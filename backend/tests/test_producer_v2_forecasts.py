@@ -9,8 +9,13 @@ aisladas (sin endpoint público de carga), conforme a AGENTS.md.
 
 from __future__ import annotations
 
+import json
+import subprocess
+import sys
 import threading
+import time
 from datetime import date, datetime, timezone
+from pathlib import Path
 
 import pytest
 from app.config import get_dataset_data_dir, is_producer_v2_enabled
@@ -26,6 +31,7 @@ from human_feedback.operational_repository import (
 )
 
 CONTRACT_VERSION = "producer_daily_h123_v1"
+REPO_SRC_DIR = Path(__file__).resolve().parents[2] / "src"
 
 
 def _model_reference(**overrides):
@@ -466,7 +472,14 @@ def test_concurrent_edits_second_uses_stale_revision_and_is_rejected(tmp_path):
     assert forecast["review"]["status"] == "confirmed"  # primera revisión no se pierde
 
 
-def test_real_cross_process_concurrency_on_a_review_keeps_exactly_one_winner(tmp_path):
+def test_concurrent_threads_in_one_process_on_a_review_keep_exactly_one_winner(tmp_path):
+    """Concurrencia intra-proceso (hilos): útil para el control optimista
+    de revisión, pero NO demuestra exclusión entre procesos, porque todos
+    los hilos comparten el mismo intérprete y el mismo GIL. La exclusión
+    entre procesos reales se prueba por separado abajo
+    (`test_real_cross_process_concurrency_...`), lanzando procesos de SO
+    independientes.
+    """
     batch = _seed_batch(
         OperationalRepository(tmp_path, "sensor-a"),
         as_of_date=date(2026, 9, 18),
@@ -504,6 +517,152 @@ def test_real_cross_process_concurrency_on_a_review_keeps_exactly_one_winner(tmp
 
     forecast = OperationalRepository(tmp_path, "sensor-a").get_forecast(forecast_id, now=now)
     assert forecast["review"]["revision"] == 1
+
+
+_REVIEW_WORKER_SCRIPT = """
+import json
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[1])
+from human_feedback.operational_repository import (  # noqa: E402
+    OperationalRepository,
+    OperationalRepositoryError,
+)
+
+data_dir = Path(sys.argv[2])
+sensor_id = sys.argv[3]
+forecast_id = sys.argv[4]
+request_id = sys.argv[5]
+action = sys.argv[6]
+now = datetime.fromisoformat(sys.argv[7])
+barrier_path = Path(sys.argv[8])
+result_path = Path(sys.argv[9])
+ready_path = Path(sys.argv[10])
+
+ready_path.write_text("ready", encoding="utf-8")
+
+deadline = time.monotonic() + 15.0
+while not barrier_path.exists():
+    if time.monotonic() > deadline:
+        result_path.write_text(json.dumps({"outcome": "timeout"}), encoding="utf-8")
+        raise SystemExit(1)
+    time.sleep(0.005)
+
+repository = OperationalRepository(data_dir, sensor_id)
+try:
+    status_code, review = repository.submit_review(
+        forecast_id=forecast_id,
+        request_id=request_id,
+        expected_revision=0,
+        action=action,
+        comment=None,
+        now=now,
+    )
+    result = {"outcome": "ok", "status_code": status_code, "revision": review["revision"]}
+except OperationalRepositoryError as error:
+    result = {"outcome": "error", "code": error.code}
+result_path.write_text(json.dumps(result), encoding="utf-8")
+"""
+
+
+def test_real_cross_process_concurrency_on_a_review_keeps_exactly_one_winner(tmp_path):
+    """Concurrencia real entre procesos de sistema operativo independientes
+    (no hilos): cada intento corre en su propio proceso Python, con su
+    propia instancia de `OperationalRepository` sobre el mismo directorio
+    de datos. Todos esperan una barrera de arranque compartida (un archivo
+    que aparece recién cuando el test confirma que los cinco procesos ya
+    llegaron a su punto de espera) para maximizar la ventana de carrera
+    real sobre el lock entre procesos (`interprocess_lock`).
+    """
+    batch = _seed_batch(
+        OperationalRepository(tmp_path, "sensor-a"),
+        as_of_date=date(2026, 9, 18),
+        slots=_slots_with({1}),
+        idempotency_key="k1",
+    )
+    forecast_id = batch["slots"][0]["forecast_id"]
+    now = datetime(2026, 9, 19, 8, 0, tzinfo=UTC)
+
+    worker_script = tmp_path / "_review_worker.py"
+    worker_script.write_text(_REVIEW_WORKER_SCRIPT, encoding="utf-8")
+    barrier_path = tmp_path / "start.barrier"
+
+    attempts = [(f"proc-req-{i}", "confirm") for i in range(5)]
+    processes: list[subprocess.Popen] = []
+    ready_paths: list[Path] = []
+    result_paths: list[Path] = []
+    try:
+        for index, (request_id, action) in enumerate(attempts):
+            ready_path = tmp_path / f"ready-{index}.flag"
+            result_path = tmp_path / f"result-{index}.json"
+            ready_paths.append(ready_path)
+            result_paths.append(result_path)
+            processes.append(
+                subprocess.Popen(
+                    [
+                        sys.executable,
+                        str(worker_script),
+                        str(REPO_SRC_DIR),
+                        str(tmp_path),
+                        "sensor-a",
+                        forecast_id,
+                        request_id,
+                        action,
+                        now.isoformat(),
+                        str(barrier_path),
+                        str(result_path),
+                        str(ready_path),
+                    ],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
+            )
+
+        # Esperar a que los cinco procesos confirmen que ya están en su
+        # punto de espera antes de soltar la barrera, para que compitan
+        # realmente entre sí y no en secuencia.
+        ready_deadline = time.monotonic() + 15.0
+        while not all(path.exists() for path in ready_paths):
+            if time.monotonic() > ready_deadline:
+                pytest.fail("Los procesos no llegaron a tiempo a la barrera de arranque.")
+            time.sleep(0.01)
+        barrier_path.write_text("go", encoding="utf-8")
+
+        outcomes = []
+        for process, result_path in zip(processes, result_paths):
+            try:
+                stdout, stderr = process.communicate(timeout=20.0)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.communicate()
+                pytest.fail("Un proceso de revisión no terminó dentro del timeout.")
+            assert (
+                result_path.exists()
+            ), f"El proceso no escribió resultado. stdout={stdout!r} stderr={stderr!r}"
+            outcomes.append(json.loads(result_path.read_text(encoding="utf-8")))
+    finally:
+        for process in processes:
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=5.0)
+
+    assert all(process.returncode == 0 for process in processes), [
+        (process.returncode) for process in processes
+    ]
+    winners = [outcome for outcome in outcomes if outcome["outcome"] == "ok"]
+    losers = [outcome for outcome in outcomes if outcome["outcome"] == "error"]
+    assert len(winners) == 1
+    assert winners[0]["status_code"] == 201
+    assert winners[0]["revision"] == 1
+    assert len(losers) == 4
+    assert all(loser["code"] == "revision_conflict" for loser in losers)
+
+    forecast = OperationalRepository(tmp_path, "sensor-a").get_forecast(forecast_id, now=now)
+    assert forecast["review"]["revision"] == 1
+    assert forecast["review"]["status"] == "confirmed"
 
 
 def test_confirmation_same_day_is_captured_but_not_training_eligible(tmp_path):
