@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0",
+  "record": "checkpoints",
+  "campaign_id": "closure-verification-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": [
+    "SC-GOV-019"
+  ],
+  "branch": "feat/scientific-closure",
+  "upstream": "origin/feat/scientific-closure",
+  "base_at_session_start": "b9fefbf36037ca259f4b17b68642d330bc489d39",
+  "tree_at_session_start": "clean",
+  "self_reference_limit": "A checkpoint record cannot contain the commit that introduces it. This record therefore states the RULE rather than a count of unlisted commits: every commit of this session from the base is listed EXCEPT the one that publishes this file, and any commit created after it. The previous session's checkpoints.json stated a count ('exactly ONE commit'), which a later commit falsified; that was independent findings C-04 and D-1, and this formulation is the correction. The authoritative, always-current list is: git log --oneline b9fefbf..HEAD",
+  "git_add_policy": "Explicit paths on every git add. 'git add -A' was never used. Verified by the commands recorded below.",
+  "git_diff_check": "exit 0 before each commit",
+  "commits": [
+    {
+      "sha": "495555c597467cb5fc5280c8d065ccdbb0b6c3e2",
+      "subject": "fix(science): apply independent critique C-01..C-20 on the published snapshot",
+      "purpose": "Apply every material and minor finding of the independent evidence checker and critic over the published snapshot b9fefbf; add this session's evidence package.",
+      "files": 14,
+      "paths_added": [
+        "openspec/scientific-closure/closure-verification-2026-09-20/{session-identity,independent-verification,claim-evidence-review,findings-resolution}.json",
+        "openspec/scientific-closure/closure-verification-2026-09-20/{review-critic,review-evidence-checker}.md"
+      ],
+      "paths_modified": [
+        "openspec/scientific-closure/{traceability,decisions,risks,claims,inventory,current-execution-checkpoint}.md",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/evidence-manifest.json",
+        "docs/research/scientific-closure-synthesis-2026-09-20.md"
+      ],
+      "diff_reviewed": true,
+      "validations_before_commit": "checker exit 0; governance+checker tests 48 passed with 14 subtests; every JSON parsed; OpenSpec --strict 11/11 with the Linux node on PATH; git diff --check exit 0; secret scan clean",
+      "state_changes": "SC-GOV-006, 019, 021, 023 and 024 degraded to BLOCKED; SC-GOV-016 raised to PASS_WITH_LIMITATIONS. No change to changes.json: every change keeps the status it had, so no state_event was added - the checker's transition graph does not admit BLOCKED to BLOCKED and fabricating one would have been an invented event."
+    }
+  ],
+  "push_policy": {
+    "this_session": "The operator's instruction of 2026-09-20 explicitly authorises push to origin/feat/scientific-closure and only to that ref. Push is performed once, at the end, on the snapshot the final audit covers.",
+    "prior_breach_recorded": "Two pushes occurred during the preparation of 2026-09-20 under an authorisation that forbade push (finding C-02, decision GD-19, risk RK-14). They are recorded, not cured. SC-GOV-019 is BLOCKED because of them.",
+    "forbidden_and_not_used": [
+      "push --force",
+      "reset --hard",
+      "clean -fd",
+      "rebase onto main",
+      "merge to main",
+      "tag",
+      "release",
+      "pull request"
+    ]
+  },
+  "limitation": "A checkpoint is a recoverable commit of work. It is not acceptance, not an audit PASS, and not authorisation for any scientific stage."
+}
