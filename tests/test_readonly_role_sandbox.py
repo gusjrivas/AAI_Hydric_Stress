@@ -1,0 +1,87 @@
+"""Pruebas del enforcement de solo lectura para los roles lectores.
+
+Cubren el caso positivo (lectura permitida), los casos negativos (escritura
+en el repositorio y en ``$HOME`` rechazada, sin red) y la ausencia de efectos
+laterales fuera del sandbox. Si ``bwrap`` no esta disponible, las pruebas se
+saltan explicitamente: un entorno sin la herramienta NO debe interpretarse
+como enforcement acreditado (AUD-READ03 / LNX-03 / CRIT-SUB-01).
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import shutil
+import subprocess
+import unittest
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SANDBOX = REPO_ROOT / "scripts" / "readonly_role_sandbox.sh"
+VERIFIER = REPO_ROOT / "scripts" / "verify_readonly_sandbox.sh"
+
+_BWRAP = shutil.which("bwrap")
+
+
+@unittest.skipIf(_BWRAP is None, "bwrap ausente: enforcement no acreditable en este entorno")
+class ReadOnlyRoleSandboxTest(unittest.TestCase):
+    def _run_in_sandbox(self, script: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [str(SANDBOX), "/bin/bash", "-c", script],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+
+    def test_wrapper_and_verifier_are_executable(self):
+        self.assertTrue(SANDBOX.is_file(), f"falta {SANDBOX}")
+        self.assertTrue(VERIFIER.is_file(), f"falta {VERIFIER}")
+        self.assertTrue(os.access(SANDBOX, os.X_OK), "readonly_role_sandbox.sh no es ejecutable")
+        self.assertTrue(os.access(VERIFIER, os.X_OK), "verify_readonly_sandbox.sh no es ejecutable")
+
+    def test_read_of_repository_is_allowed(self):
+        result = self._run_in_sandbox('head -c 12 "$REPO/AGENTS.md"')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("# AGENTS.md", result.stdout)
+
+    def test_write_into_repository_is_refused_with_erofs(self):
+        probe = REPO_ROOT / ".test-readonly-probe-repo"
+        result = self._run_in_sandbox(f'echo x > "{probe}"')
+        self.assertNotEqual(result.returncode, 0, "la escritura en el repositorio no fue rechazada")
+        self.assertIn("Read-only file system", result.stderr)
+        self.assertFalse(probe.exists(), "la sonda sobrevivio fuera del sandbox")
+
+    def test_write_into_real_home_is_refused(self):
+        probe = Path.home() / ".test-readonly-probe-home"
+        result = self._run_in_sandbox(f'echo x > "{probe}"')
+        self.assertNotEqual(result.returncode, 0, "la escritura en $HOME no fue rechazada")
+        self.assertFalse(probe.exists(), "la sonda sobrevivio fuera del sandbox")
+
+    def test_ephemeral_tmp_is_writable_and_not_shared(self):
+        marker = "/tmp/test-readonly-probe-tmp"
+        result = self._run_in_sandbox(f"echo x > {marker} && cat {marker}")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "x")
+        self.assertFalse(Path(marker).exists(), "el /tmp del sandbox no fue efimero")
+
+    def test_network_is_unavailable(self):
+        result = self._run_in_sandbox("getent hosts pypi.org")
+        self.assertNotEqual(result.returncode, 0, "el sandbox tuvo resolucion DNS")
+
+    def test_verifier_reports_pass_with_all_conditions_true(self):
+        result = subprocess.run([str(VERIFIER)], capture_output=True, text=True, timeout=180)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["verdict"], "PASS")
+        for name, value in payload["checks"].items():
+            if isinstance(value, bool):
+                self.assertTrue(value, f"comprobacion fallida: {name}")
+
+    def test_wrapper_without_arguments_fails_explicitly(self):
+        result = subprocess.run([str(SANDBOX)], capture_output=True, text=True, timeout=60)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("uso:", result.stderr)
+
+
+if __name__ == "__main__":
+    unittest.main()
