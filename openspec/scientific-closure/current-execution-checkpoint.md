@@ -59,6 +59,25 @@ push en preparación» del criterio de aceptación de SC-GOV-019 y contra
 se conservan sin alterar y la corrección se registra aparte. SC-GOV-019 quedó
 degradado a `BLOCKED`.
 
+**Auditoría final independiente.** Se realizó sobre el snapshot publicado, en
+contexto separado y después de una crítica satisfactoria, como exige
+`operations.md`. **Veredicto: `BLOCKED`, suspensivo**, acotado a la preparación
+y su registro; no es veredicto sobre ninguna campaña, porque no existe.
+Confirmó de forma independiente los tres bloqueos externos, la custodia limpia,
+la identidad ejecutable byte a byte, 25/25 hashes, la preservación sin editar de
+todos los informes de lectores anteriores, y que 22 de los 24 hallazgos previos
+quedaron cerrados. Levantó dos hallazgos materiales **contra el trabajo de esta
+misma sesión** —AUD-F-01, una fila que acreditaba un artefacto inexistente y
+prejuzgaba al auditor; AUD-F-02, una atribución falsa a un lector— y ambos
+fueron corregidos y sometidos a reauditoría. Sobre **suficiencia científica** su
+veredicto es negativo y no depende de aquellos dos: seis de diez afirmaciones
+aprobadas carecen de evidencia y de limitación aceptada que las sustituya.
+Rechazó expresamente `PASS_WITH_LIMITATIONS` como veredicto de sesión. Informe
+exacto en
+[`closure-verification-2026-09-20/review-audit.md`](closure-verification-2026-09-20/review-audit.md);
+artefacto de SC-GOV-025 en
+[`scientific-closure-audit.json`](closure-verification-2026-09-20/scientific-closure-audit.json).
+
 **Estado por requisito:** `PASS` 0; `PASS_WITH_LIMITATIONS` 8; `BLOCKED` 17;
 `NOT_APPLICABLE` 0. Cinco filas empeoraron tras la crítica independiente y una
 mejoró con artefacto nuevo. Ver [matriz de trazabilidad](traceability.md).

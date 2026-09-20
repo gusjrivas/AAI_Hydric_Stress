@@ -2,17 +2,19 @@
   "schema_version": "1.0",
   "record": "evidence_manifest",
   "campaign_id": "closure-verification-2026-09-20",
-  "generated_at_utc": "2026-09-20T18:15:00Z",
-  "commit_at_generation": "495555c597467cb5fc5280c8d065ccdbb0b6c3e2",
+  "generated_at_utc": "2026-09-20T18:40:00Z",
+  "commit_at_generation": "5b40a55ef62f19cfa9125aa29146e53976661692",
   "branch": "feat/scientific-closure",
-  "tree_clean_at_generation": true,
+  "tree_clean_at_generation": false,
+  "tree_clean_note": "False by construction: this manifest is generated over a working tree that already contains the corrections it hashes, immediately before the commit that publishes them. Every hash listed is the state that commit publishes. The previous version of this manifest declared true, which was accurate for its own generation moment and is not restated here.",
+  "regenerated_because": "Audit finding AUD-F-03: the first version omitted checkpoints.json, published in the same commit and the declared SC-GOV-019 artefact, while claiming every hash listed matched the published state. It now covers the complete file set of this campaign.",
   "scientific_evidence": {
     "exists": false,
     "reason": "No campaign was executed. There are no metrics, predictions, frozen configs or ledger entries.",
     "evidence_root_declared": "/home/gus/scientific-closure-runtime/evidence",
     "ledger_path_declared": "/home/gus/scientific-closure-runtime/ledger/holdout.sqlite",
     "ledger_initialised": false,
-    "verified_how": "Both directories were listed and found empty by an independent evidence checker and again by the orchestrator."
+    "verified_how": "Both directories listed and found empty by an independent evidence checker, again by the orchestrator, and again by the independent auditor."
   },
   "scientific_inputs": [
     {
@@ -30,15 +32,33 @@
   ],
   "governance_evidence": [
     {
-      "path": "openspec/scientific-closure/closure-verification-2026-09-20/session-identity.json",
-      "sha256": "93c09f25c8829558c5b7c4812d4813895d2ab259c29e24e0ffb03ad983c2b426",
-      "bytes": 5922,
+      "path": "openspec/scientific-closure/closure-verification-2026-09-20/checkpoints.json",
+      "sha256": "777165c36004b34e1096021f42efbde24504edb60b2774da14e207db97ce065e",
+      "bytes": 5259,
+      "type": "technical_or_governance"
+    },
+    {
+      "path": "openspec/scientific-closure/closure-verification-2026-09-20/claim-evidence-review.json",
+      "sha256": "72bbf9861ae03edb60481c4f4240db79e86f00cfe3f50be56bae1bf980b8153d",
+      "bytes": 12424,
+      "type": "technical_or_governance"
+    },
+    {
+      "path": "openspec/scientific-closure/closure-verification-2026-09-20/findings-resolution.json",
+      "sha256": "9ce80e68c3476fa97cde4cb73690678489b2f2e56a3b150f48b5107a8c1a7992",
+      "bytes": 22906,
       "type": "technical_or_governance"
     },
     {
       "path": "openspec/scientific-closure/closure-verification-2026-09-20/independent-verification.json",
       "sha256": "15f81865c9079ded9549d9577755aa066da6362cb475357b9937547ea11d5495",
       "bytes": 12998,
+      "type": "technical_or_governance"
+    },
+    {
+      "path": "openspec/scientific-closure/closure-verification-2026-09-20/review-audit.md",
+      "sha256": "f94543d0103e0f7277f4921c60b92f19e58f5b0ea0fd6c3a8b523ba760ab220d",
+      "bytes": 23067,
       "type": "technical_or_governance"
     },
     {
@@ -54,21 +74,21 @@
       "type": "technical_or_governance"
     },
     {
-      "path": "openspec/scientific-closure/closure-verification-2026-09-20/claim-evidence-review.json",
-      "sha256": "04d821504ca7cc40306cbe6550b80d93424b62ef3c3d0383b04fc49a3e23ceba",
-      "bytes": 8580,
+      "path": "openspec/scientific-closure/closure-verification-2026-09-20/scientific-closure-audit.json",
+      "sha256": "fe65e471bf31821adf226b7eb30de614c475cf39525936b6635338a574d394ed",
+      "bytes": 9858,
       "type": "technical_or_governance"
     },
     {
-      "path": "openspec/scientific-closure/closure-verification-2026-09-20/findings-resolution.json",
-      "sha256": "84e468a1b7eb9b5a73e348fb10c54b65700dd271184e37d81842a2126cf633ac",
-      "bytes": 16683,
+      "path": "openspec/scientific-closure/closure-verification-2026-09-20/session-identity.json",
+      "sha256": "fff2e7779d3e54e4a5341a23577b0d3fde9084ee2c5cffdd8c952ed72606af9a",
+      "bytes": 6859,
       "type": "technical_or_governance"
     },
     {
       "path": "openspec/scientific-closure/traceability.md",
-      "sha256": "ba66d34e436b726bba5bca8c93caaa439e2b241546c734fa2f457f3802445d13",
-      "bytes": 27441,
+      "sha256": "9ede6136a9cdc24c44a469f30fd87135a0930c9f495843e4cd9839f1ffd747d9",
+      "bytes": 29178,
       "type": "technical_or_governance"
     },
     {
@@ -97,8 +117,14 @@
     },
     {
       "path": "openspec/scientific-closure/current-execution-checkpoint.md",
-      "sha256": "20d6fbfbefbcb5566a59f0a88dce72d870d4377dadb3ad3c946acd81600e6cee",
-      "bytes": 17087,
+      "sha256": "bb50174dfd9807e2a16de25b7ff89642873afac754cd2e10b0bd873c36662226",
+      "bytes": 18430,
+      "type": "technical_or_governance"
+    },
+    {
+      "path": "openspec/scientific-closure/next-session.txt",
+      "sha256": "3c591c933b32c673b21a66b9f6b045f6829497b4040726efced043300f35f4b5",
+      "bytes": 4703,
       "type": "technical_or_governance"
     },
     {
@@ -169,12 +195,12 @@
     }
   ],
   "count": {
-    "governance_files": 23,
+    "governance_files": 27,
     "scientific_inputs": 2,
     "scientific_result_artifacts": 0
   },
   "note": "Every entry here is technical or governance evidence. None of it is evidence about the scientific hypothesis.",
-  "self_reference_limit": "This manifest is generated after every other file of the session is final, so every hash listed matches the state that is published. It cannot list or hash itself, and it cannot name the commit that publishes it, because that commit does not exist yet. 'commit_at_generation' is the HEAD at generation time; the publishing commit is its immediate child, recoverable with: git log --oneline <commit_at_generation>..HEAD",
-  "relationship_to_the_previous_manifest": "readiness-resolution-linux-2026-09-20/evidence-manifest.json remains the record of the PREVIOUS campaign at commit 8e31f78 and was not rewritten. Three of its entries (traceability.md, decisions.md, risks.md) no longer match disk because this session edited those files to close independent-critique findings; that is declared in an annotation on it and here, so the divergence is not mistaken for tampering.",
-  "uncorroborated_hash_declared": "implementation-snapshot.json declares supersedes.initial_snapshot_sha256 = 39f3d55e... which matches no object in the git store after re-hashing every blob (finding D-2). It is self-attested. It is named here rather than counted among verified hashes."
+  "self_reference_limit": "This manifest cannot list or hash itself, and cannot name the commit that publishes it, because that commit does not exist yet. 'commit_at_generation' is the HEAD at generation time; the publishing commit is its immediate child, recoverable with: git log --oneline <commit_at_generation>..HEAD",
+  "relationship_to_the_previous_manifest": "readiness-resolution-linux-2026-09-20/evidence-manifest.json remains the record of the PREVIOUS campaign at commit 8e31f78 and was not rewritten. Three of its entries no longer match disk because this session edited those files; that is declared in an annotation on it. The auditor verified the annotation altered no hash and removed no entry: 31 entries before and after.",
+  "uncorroborated_hash_declared": "implementation-snapshot.json declares supersedes.initial_snapshot_sha256 = 39f3d55e... which matches no object in the git store after re-hashing every blob (finding D-2). It is self-attested and is named here rather than counted among verified hashes."
 }

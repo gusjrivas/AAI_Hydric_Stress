@@ -1,1 +1,80 @@
-Trabajá exclusivamente en C:\Repo\AAI_Hydric_Stress_scientific_closure, rama feat/scientific-closure, upstream origin/feat/scientific-closure. Reanudá la preparación OpenSpec desde openspec/scientific-closure/README.md y preparation-validation.md. Confirmá worktree, rama, HEAD y árbol limpio antes de escribir; si no coinciden, BLOCKED sin cambios. Usá los cinco agentes personalizados con los modelos/esfuerzos configurados y verificá permisos efectivos; documentá cualquier sustitución. Completá validaciones y revisión independiente pendientes, luego seleccioná solamente changes aprobados con dependencias satisfechas. Está autorizado resolver preparación documental y pruebas estructurales/sintéticas, NO ejecutar científicamente A/B/C ni auxiliares, NO inicializar ledger definitivo ni abrir/analizar holdouts. No modificar main, UI, v3, evidencia histórica ni protocolos congelados. No push, merge, rebase, tag, release o PR. Respetá gates y decisiones de suficiencia por afirmación: R/H/N/S no son obligatorios automáticamente. Registrá bloqueos con evidencia; no eludas ADR-0011 ni inventes procedencia. Un cambio solo se cierra con PASS de auditor independiente. Entregá commits pequeños, validaciones y estado final; detenete antes de cualquier ejecución científica no autorizada.
+PROMPT SIGUIENTE — vigente desde 2026-09-20 (sesión de verificación de cierre).
+
+Esta versión REEMPLAZA la del 2026-09-19, que quedó superada y describía un
+worktree Windows (C:\Repo\...) y una prohibición de push que ya no rige
+(hallazgo AUD-F-05 de la auditoría independiente).
+
+WORKTREE: /home/gus/work/AAI_Hydric_Stress_scientific_closure
+RAMA: feat/scientific-closure   UPSTREAM: origin/feat/scientific-closure
+
+ANTES DE ESCRIBIR: confirmar worktree, rama, HEAD, árbol limpio y, además,
+el estado REMOTO con `git reflog show refs/remotes/origin/feat/scientific-closure`
+y `git ls-remote`. Tres revisores sin red no detectaron un incumplimiento de
+push que el reflog local mostraba (RK-15). No inferir el estado remoto de los
+documentos.
+
+ESTADO REAL AL CIERRE DE ESTA SESIÓN
+- Preparación resuelta hasta el límite de lo alcanzable localmente.
+- Requisitos: PASS 0, PASS_WITH_LIMITATIONS 8, BLOCKED 17, NOT_APPLICABLE 0.
+- changes.json: sc-01 PASS; sc-02 a sc-10 BLOCKED.
+- A, B y C NO ejecutadas. Ledger NO inicializado. Holdout 2024-2025 CERRADO.
+  Ningún valor reservado leído. Verificado mecánicamente, no asumido.
+- Auditoría final independiente sobre el snapshot: BLOCKED, suspensivo.
+- BLOCKED no es terminal: el checker admite BLOCKED -> APPROVED.
+
+LO QUE ESTA SESIÓN SÍ AUTORIZA HACER A LA SIGUIENTE
+- Leer, corregir documentación y evidencia, ejecutar pruebas, lint, formato,
+  checker y validación OpenSpec.
+- Commits atómicos con rutas explícitas y push SOLO a
+  origin/feat/scientific-closure, si la instrucción vigente lo mantiene.
+
+LO QUE NO ESTÁ AUTORIZADO Y NO DEPENDE DE ESFUERZO ADICIONAL
+- NO ejecutar científicamente A/B/C, NO inicializar el ledger definitivo y NO
+  abrir ni analizar el holdout mientras los tres insumos externos de abajo no
+  existan. Esta prohibición es la invariante que verifica
+  tests/test_scientific_closure_governance.py y no debe reformularse para
+  esquivar esa prueba: si alguna vez deja de regir, tiene que dejar de regir
+  por evidencia y autorización, no por redacción.
+- Modificar, mergear o reescribir main; rebase destructivo; push --force; tags;
+  releases; abrir o mergear un PR; tocar la UI de otras ramas.
+
+TRES INSUMOS EXTERNOS QUE FALTAN (ninguno se resuelve con trabajo documental)
+1. EXT-01. Integrar en main el protocolo detallado VIGENTE. Hoy main tiene una
+   versión anterior: le falta la sección "Condiciones de interpretación y
+   soporte previas a ejecución" y su sección 4 afirma un contrato de features
+   FALSO frente a features.py. Además scientific-closure-decisions.md y
+   scientific-closure-runbook.md NO EXISTEN en main. Mientras esto siga así,
+   la condición 4 de ADR-0011 está incumplida y A/B/C no pueden empezar.
+2. EXT-02. Un runtime de contenedores alcanzable. El runbook invoca cada
+   comando A/B/C y la inicialización del ledger a través de docker. Desde esta
+   distro WSL no hay acceso: los sockets de Docker Desktop deniegan connect()
+   a uid 1000, sudo exige autenticación interactiva y no existen newuidmap /
+   newgidmap, de modo que tampoco hay opción rootless.
+3. EXT-03. Almacenamiento que NO esté respaldado por el mismo volumen del host.
+   El filesystem raíz está respaldado por un ext4.vhdx dentro de C:, así que
+   montar otro dispositivo WSL no está demostrado que logre independencia.
+
+ADEMÁS, PARA CERRAR REQUISITOS SIN EJECUTAR NADA
+- Auditoría independiente de la decisión de suficiencia GD-12. Sin ella,
+  SC-GOV-021, 023 y 024 no pueden volver a NOT_APPLICABLE.
+- Acreditar carga efectiva y permisos de los cinco perfiles (CRIT-SUB-01 /
+  AUD-SUB-02), sin lo cual SC-GOV-006 sigue BLOCKED.
+- Ratificación por el responsable de los dos push de preparación ya ocurridos
+  (RK-14, GD-19), sin lo cual SC-GOV-019 sigue BLOCKED. No se subsanan
+  reescribiendo historia publicada: eso está prohibido.
+
+REGLAS QUE NO CAMBIAN
+- No modificar v3, evidencia histórica, protocolos congelados ni src/ (hoy
+  byte-idéntico al commit ejecutable declarado 214735e).
+- No completar evidencia faltante por inferencia. No relajar criterios para
+  obtener un resultado favorable. No afirmar que un gate está satisfecho con
+  evidencia parcial.
+- Conservar los informes de lectores SIN ALTERAR; las correcciones van aparte.
+- Un change se cierra sólo con PASS de auditor independiente sobre el snapshot
+  efectivamente revisado.
+- Ausencia de mejora, resultado negativo válido, SIN_GANADOR_ESTABLE o
+  NO_VALID_SELECTION por soporte son resultados admisibles, no errores.
+
+PUNTO DE ENTRADA: openspec/scientific-closure/README.md, luego
+current-execution-checkpoint.md (sección "Estado vigente"), traceability.md y
+closure-verification-2026-09-20/.

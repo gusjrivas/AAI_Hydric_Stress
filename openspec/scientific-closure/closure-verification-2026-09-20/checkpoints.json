@@ -31,6 +31,25 @@
       "diff_reviewed": true,
       "validations_before_commit": "checker exit 0; governance+checker tests 48 passed with 14 subtests; every JSON parsed; OpenSpec --strict 11/11 with the Linux node on PATH; git diff --check exit 0; secret scan clean",
       "state_changes": "SC-GOV-006, 019, 021, 023 and 024 degraded to BLOCKED; SC-GOV-016 raised to PASS_WITH_LIMITATIONS. No change to changes.json: every change keeps the status it had, so no state_event was added - the checker's transition graph does not admit BLOCKED to BLOCKED and fabricating one would have been an invented event."
+    },
+    {
+      "sha": "5b40a55ef62f19cfa9125aa29146e53976661692",
+      "subject": "docs(science): add the closure-verification checkpoint record and evidence manifest",
+      "purpose": "Record commit identity by rule rather than by a count, and hash the published governance set.",
+      "files": 2,
+      "paths_added": [
+        "openspec/scientific-closure/closure-verification-2026-09-20/{checkpoints,evidence-manifest}.json"
+      ],
+      "diff_reviewed": true,
+      "validations_before_commit": "JSON parsed; git diff --check exit 0",
+      "audited": "This is the snapshot the first independent final audit covered. Verdict BLOCKED (suspensive), with two material findings against this session's own work: AUD-F-01 and AUD-F-02."
+    },
+    {
+      "sha": "pending at the time this record was written; it is the commit that publishes this file",
+      "subject": "fix(science): close audit findings AUD-F-01..AUD-F-06",
+      "purpose": "Correct the two material defects the independent auditor found in this session's own output, add the SC-GOV-025 artefact, preserve the auditor's exact report, and refresh the manifest and the next-session prompt.",
+      "diff_reviewed": true,
+      "self_reference": "By the rule stated above, this record cannot carry its own publishing SHA. The authoritative list is: git log --oneline b9fefbf..HEAD"
     }
   ],
   "push_policy": {
@@ -47,5 +66,17 @@
       "pull request"
     ]
   },
-  "limitation": "A checkpoint is a recoverable commit of work. It is not acceptance, not an audit PASS, and not authorisation for any scientific stage."
+  "limitation": "A checkpoint is a recoverable commit of work. It is not acceptance, not an audit PASS, and not authorisation for any scientific stage.",
+  "audit_cycles": [
+    {
+      "cycle": 1,
+      "snapshot": "5b40a55ef62f19cfa9125aa29146e53976661692",
+      "verdict": "BLOCKED (suspensive)",
+      "material": [
+        "AUD-F-01",
+        "AUD-F-02"
+      ],
+      "action": "returned to implementer, corrected, re-tested, re-submitted for re-audit"
+    }
+  ]
 }
