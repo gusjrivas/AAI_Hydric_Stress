@@ -12,11 +12,23 @@ from fastapi import APIRouter, Depends, Query, status
 
 from data_ingestion.catalog import CatalogError, CatalogRepository
 from data_ingestion.history import query_readings
+from human_feedback.operational_repository import (
+    OperationalRepository,
+    OperationalRepositoryError,
+)
 
-from ..dependencies import get_catalog_repository, require_producer_v2_enabled
+from ..dependencies import (
+    get_catalog_repository,
+    get_operational_repository,
+    require_producer_v2_enabled,
+)
 from ..schemas_v2 import (
     ErrorResponse,
+    ForecastListResponse,
+    ForecastResponse,
+    ForecastReview,
     ReadingsResponse,
+    ReviewCreate,
     SectorCreate,
     SectorListResponse,
     SectorPatch,
@@ -256,3 +268,100 @@ def get_readings(
         end=end,
     )
     return ReadingsResponse(**result)
+
+
+@router.get(
+    "/sensors/{sensor_id}/forecasts",
+    response_model=ForecastListResponse,
+    responses=ERROR_RESPONSES,
+)
+def list_forecasts(
+    sensor_id: str,
+    target_from: date | None = Query(default=None),
+    target_to: date | None = Query(default=None),
+    horizon_days: int | None = Query(default=None, ge=1, le=3),
+    review_status: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    cursor: str | None = Query(default=None),
+    operational_repository: OperationalRepository = Depends(get_operational_repository),
+) -> ForecastListResponse:
+    if review_status is not None and review_status not in {"pending", "confirmed", "rejected"}:
+        raise OperationalRepositoryError(
+            "invalid_review_status", "review_status debe ser pending, confirmed o rejected.", 422
+        )
+    filters: dict[str, Any] = {
+        "target_from": target_from.isoformat() if target_from else None,
+        "target_to": target_to.isoformat() if target_to else None,
+        "horizon_days": horizon_days,
+        "review_status": review_status,
+    }
+    if cursor is None:
+        cutoff = datetime.now(timezone.utc)
+        after: list[str] | None = None
+    else:
+        cutoff, decoded_after = _decode_cursor(cursor, "forecasts", filters)
+        if len(decoded_after) != 3:
+            raise _invalid_cursor()
+        after = decoded_after
+
+    now = datetime.now(timezone.utc)
+    result = operational_repository.list_forecasts(
+        target_from=target_from,
+        target_to=target_to,
+        horizon_days=horizon_days,
+        review_status=review_status,
+        cutoff=cutoff,
+        after=tuple(after) if after is not None else None,
+        limit=limit,
+        now=now,
+    )
+    next_cursor = None
+    if result["next_after"] is not None:
+        next_cursor = _encode_cursor("forecasts", filters, cutoff, list(result["next_after"]))
+    return ForecastListResponse(
+        items=result["items"],
+        next_cursor=next_cursor,
+        pending_total=result["pending_total"],
+        reviewable_pending_total=result["reviewable_pending_total"],
+    )
+
+
+@router.get(
+    "/sensors/{sensor_id}/forecasts/{forecast_id}",
+    response_model=ForecastResponse,
+    responses=ERROR_RESPONSES,
+)
+def get_forecast(
+    sensor_id: str,
+    forecast_id: str,
+    operational_repository: OperationalRepository = Depends(get_operational_repository),
+) -> ForecastResponse:
+    forecast = operational_repository.get_forecast(forecast_id, now=datetime.now(timezone.utc))
+    if forecast is None:
+        raise OperationalRepositoryError(
+            "forecast_not_found", "La emision no existe para este sensor.", 404
+        )
+    return ForecastResponse(**forecast)
+
+
+@router.post(
+    "/sensors/{sensor_id}/forecasts/{forecast_id}/reviews",
+    response_model=ForecastReview,
+    status_code=status.HTTP_201_CREATED,
+    responses=ERROR_RESPONSES,
+)
+def create_review(
+    sensor_id: str,
+    forecast_id: str,
+    payload: ReviewCreate,
+    operational_repository: OperationalRepository = Depends(get_operational_repository),
+) -> ForecastReview:
+    _status_code, review = operational_repository.submit_review(
+        forecast_id=forecast_id,
+        request_id=payload.request_id,
+        expected_revision=payload.expected_revision,
+        action=payload.action,
+        comment=payload.comment,
+        now=datetime.now(timezone.utc),
+    )
+    return ForecastReview(**review)

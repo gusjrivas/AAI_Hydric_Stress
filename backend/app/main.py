@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 
 from data_ingestion.catalog import CatalogError
 from data_ingestion.history import HistoryError
+from human_feedback.operational_repository import OperationalRepositoryError
 
 from .routers import (
     feedback,
@@ -82,6 +83,19 @@ async def catalog_error_handler(request: Request, error: CatalogError) -> JSONRe
 
 @app.exception_handler(HistoryError)
 async def history_error_handler(request: Request, error: HistoryError) -> JSONResponse:
+    return _v2_error_response(
+        request,
+        status_code=error.status_code,
+        code=error.code,
+        message=error.message,
+        details=error.details,
+    )
+
+
+@app.exception_handler(OperationalRepositoryError)
+async def operational_repository_error_handler(
+    request: Request, error: OperationalRepositoryError
+) -> JSONResponse:
     return _v2_error_response(
         request,
         status_code=error.status_code,

@@ -11,6 +11,7 @@ from fastapi import Depends, HTTPException
 
 from data_ingestion.catalog import CatalogRepository
 from data_ingestion.sensor_naming import validate_sensor_id
+from human_feedback.operational_repository import OperationalRepository
 
 from .config import get_dataset_data_dir, is_producer_v2_enabled
 
@@ -27,6 +28,16 @@ def get_catalog_repository(
 ) -> CatalogRepository:
     """Repositorio operacional aislable mediante dependency_overrides."""
     return CatalogRepository(data_dir)
+
+
+def get_operational_repository(
+    sensor_id: str,
+    data_dir: Path = Depends(get_dataset_data_dir),
+) -> OperationalRepository:
+    """Repositorio v2 de emisiones/revisiones del sensor de la ruta,
+    aislable mediante dependency_overrides igual que el resto de v2.
+    """
+    return OperationalRepository(data_dir, sensor_id)
 
 
 def require_producer_v2_enabled(

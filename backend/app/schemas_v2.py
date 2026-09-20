@@ -145,6 +145,93 @@ class ReadingsResponse(StrictModel):
     provenance: Literal["real", "synthetic", "mixed", "unknown"]
 
 
+class EventThreshold(StrictModel):
+    variable: str
+    value: float
+    unit: str
+    comparison: Literal["lt"]
+
+
+class ModelReference(StrictModel):
+    model_version: str | None
+    horizon_days: Literal[1, 2, 3]
+    contract_version: str
+    trained_through: date | None
+    calibration_version: str | None
+    assessment_reference: str | None
+
+
+class LatestReview(StrictModel):
+    review_id: str
+    request_id: str
+    revision: int
+    forecast_id: str
+    action: Literal["confirm", "reject"]
+    observed_label: bool
+    comment: str | None
+    reviewed_at: datetime
+
+
+TrainingEligibility = Literal[
+    "no_review",
+    "waiting_target_maturity",
+    "requires_mature_revalidation",
+    "compatible_correction",
+    "confirmation_only",
+    "incompatible_source_model",
+    "incompatible_contract",
+    "insufficient_data",
+    "applied",
+]
+
+
+class ForecastReview(StrictModel):
+    status: Literal["pending", "confirmed", "rejected"]
+    revision: int
+    review_open_at: datetime
+    reviewable: bool
+    blocked_reason: Literal["review_not_open"] | None
+    latest_review: LatestReview | None
+    training_eligibility: TrainingEligibility
+    applied_review_references: list[str]
+
+
+class ForecastResponse(StrictModel):
+    forecast_id: str
+    sensor_id: str
+    batch_id: str
+    as_of_date: date
+    horizon_days: Literal[1, 2, 3]
+    target_date: date
+    contract_version: str
+    issued_at: datetime
+    snapshot_id: str
+    alert: bool
+    score: float
+    score_kind: Literal["raw_model_score", "calibrated_probability"]
+    display_probability: float | None
+    probability_status: Literal["development_assessed", "not_qualified"]
+    probability_reason_code: str | None
+    decision_threshold: float
+    event_threshold: EventThreshold
+    model_reference: ModelReference
+    review: ForecastReview
+
+
+class ForecastListResponse(StrictModel):
+    items: list[ForecastResponse]
+    next_cursor: str | None
+    pending_total: int
+    reviewable_pending_total: int
+
+
+class ReviewCreate(StrictModel):
+    request_id: Annotated[str, StringConstraints(min_length=1, max_length=128)]
+    expected_revision: int = Field(ge=0)
+    action: Literal["confirm", "reject"]
+    comment: Annotated[str, StringConstraints(max_length=2000)] | None = None
+
+
 class ErrorBody(StrictModel):
     code: str
     message: str
