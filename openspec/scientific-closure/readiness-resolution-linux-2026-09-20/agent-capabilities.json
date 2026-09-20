@@ -89,11 +89,35 @@
         "enforced_sandbox_used": true,
         "verified_independently": "Attempted eight sandbox escape vectors (repo write, $HOME write, symlink, /proc/self/cwd, git config/checkout, mount -o remount,rw, nested bwrap --bind, unshare -Urm); all failed. Network unreachable.",
         "outcome": "11 material findings, all in governance-state handling; no finding of covert execution, holdout reading, weakened tests or modified historic evidence. Verified by AST comparison that the ruff/black commit changed only import ordering."
+      },
+      "scientific_auditor": {
+        "dispatched": true,
+        "reported": true,
+        "independent_context": true,
+        "wrote_files": false,
+        "enforced_sandbox_used": true,
+        "reviewed_snapshot": "ccd3a9c5fdbc58b403edf44a0989351e0d642203",
+        "verified_independently": "Defeated the first version of the enforcement mechanism via WSL interop (finding A-01), recomputed all 27 manifest hashes, proved the formal checker is not trivially satisfiable by mutating a copy in ephemeral /tmp, and read the full synthesis line by line.",
+        "outcome": "PASS_WITH_LIMITATIONS on the audited readiness work; BLOCKED on global scientific closure.",
+        "self_disclosed_contamination": "Created and removed AUDIT_ESCAPE.txt while probing; declared it."
+      },
+      "scientific_auditor_second_pass": {
+        "dispatched": true,
+        "reported": true,
+        "independent_context": true,
+        "wrote_files": false,
+        "enforced_sandbox_used": true,
+        "reviewed_snapshot": "8e31f7800b351b76f2ec65b8673499c66234b91b",
+        "scope": "Bounded re-audit of the published snapshot: verification that A-01..A-07 were genuinely applied, plus non-regression.",
+        "outcome": "All seven corrections independently verified as applied; none declared-but-not-applied. PASS_WITH_LIMITATIONS / BLOCKED, snapshot declared publishable. Five new record-accuracy findings NF-01..NF-05.",
+        "contamination": "None; repository verified unchanged."
       }
     },
-    "intended_but_not_yet_dispatched_at_capture_time": {
-      "scientific_auditor": "To be dispatched on the final published snapshot, after these corrections. Not described here as having done anything."
-    }
+    "revision_history": [
+      "v1 (04:34): described readers in the past tense before dispatch. Critic finding F-03.",
+      "v2: split into observed and intended. Re-audit finding NF-02 showed the split was itself stale, because this file was edited again after the audit while still saying the auditor had done nothing.",
+      "v3 (this version): every reader that actually reported is recorded as observed, including both auditor passes."
+    ]
   },
   "enforcement_status": {
     "previous_state": "AUD-READ03 / LNX-03 / CRIT-SUB-01: reader roles were read-only by BEHAVIOUR only; no technical isolation was accredited.",

@@ -99,6 +99,20 @@ class ReadOnlyRoleSandboxTest(unittest.TestCase):
             "cmd_exit=0", result.stdout, "binarios de Windows alcanzables: A-01 sigue abierto"
         )
 
+    def test_wsl_interop_sockets_are_unreachable(self):
+        """Hallazgo NF-01 de la re-auditoria: cerrar la ejecucion de binarios
+        PE no cerraba los endpoints de interoperabilidad. Los sockets
+        `/run/WSL/*_interop` viven en el bind de solo lectura de `/` y los
+        AF_UNIX por ruta atraviesan los namespaces de red, de modo que
+        `--unshare-net` no los alcanza. Se comprueba que `/run` esta vacio."""
+        result = self._run_in_sandbox(
+            "ls -A /run 2>/dev/null | wc -l; ls -A /run/WSL 2>/dev/null | wc -l"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        counts = result.stdout.split()
+        self.assertEqual(counts[0], "0", "/run no esta vacio: NF-01 sigue abierto")
+        self.assertEqual(counts[1], "0", "sockets de interop visibles: NF-01 sigue abierto")
+
     def test_verifier_reports_pass_with_all_conditions_true(self):
         result = subprocess.run([str(VERIFIER)], capture_output=True, text=True, timeout=180)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -107,6 +121,7 @@ class ReadOnlyRoleSandboxTest(unittest.TestCase):
         self.assertTrue(payload["checks"]["dev_probe_absent_after"])
         self.assertTrue(payload["checks"]["wsl_windows_binaries_unreachable"])
         self.assertTrue(payload["checks"]["mnt_is_empty"])
+        self.assertTrue(payload["checks"]["wsl_interop_sockets_unreachable"])
         for name, value in payload["checks"].items():
             if isinstance(value, bool):
                 self.assertTrue(value, f"comprobacion fallida: {name}")

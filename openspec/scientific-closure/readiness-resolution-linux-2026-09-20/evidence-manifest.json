@@ -2,8 +2,8 @@
   "schema_version": "1.0",
   "record": "evidence_manifest",
   "campaign_id": "readiness-resolution-linux-2026-09-20",
-  "generated_at_utc": "2026-09-20T05:34:27.147531+00:00",
-  "commit": "ccd3a9c5fdbc58b403edf44a0989351e0d642203",
+  "generated_at_utc": "2026-09-20T05:54:08.490769+00:00",
+  "commit": "8e31f7800b351b76f2ec65b8673499c66234b91b",
   "branch": "feat/scientific-closure",
   "tree_clean": false,
   "scientific_evidence": {
@@ -36,8 +36,8 @@
     },
     {
       "path": "docs/research/scientific-closure-synthesis-2026-09-20.md",
-      "sha256": "cd1b7308454d4356841cf166c85821f8e1aabfe99695b6715ee25a0f2c0b01f1",
-      "size_bytes": 23962,
+      "sha256": "f12f6ec87b38eb4eb700f95f0f74af742030435a67e61a5c201bb134d254b87a",
+      "size_bytes": 24362,
       "type": "technical_governance_evidence"
     },
     {
@@ -60,8 +60,8 @@
     },
     {
       "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/agent-capabilities.json",
-      "sha256": "8ceaff1c172282978b07101676e181d6307571bf8759853e0460ad7eccb5e17b",
-      "size_bytes": 8098,
+      "sha256": "7f22d863a08ee54c45065422bf8f310bcf6c2fa90ffd104a5291aff213f2ba05",
+      "size_bytes": 9832,
       "type": "technical_governance_evidence"
     },
     {
@@ -119,6 +119,12 @@
       "type": "technical_governance_evidence"
     },
     {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/review-audit-2.json",
+      "sha256": "e203dd615d89353518f7a68f68a7c8aa52c3ae56837f6e90ba7a33f1f6852528",
+      "size_bytes": 7419,
+      "type": "technical_governance_evidence"
+    },
+    {
       "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/review-audit.json",
       "sha256": "64cdb71801c65f90410c0f40d31faf1cd5ba30529964607c89a0fa680f038485",
       "size_bytes": 9678,
@@ -132,8 +138,8 @@
     },
     {
       "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/role-sandbox-enforcement.json",
-      "sha256": "465b309285e8e5a24836bb4ee2f9aab7c17f6ebf556d7835eb00a090e16d06c3",
-      "size_bytes": 1676,
+      "sha256": "82072ebc4426f267dddc77b055b5b84999b39d3496bdeea3476c76e4c399bf4b",
+      "size_bytes": 3544,
       "type": "technical_governance_evidence"
     },
     {
@@ -156,14 +162,14 @@
     },
     {
       "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/validation-results.json",
-      "sha256": "5a0c28d14563afd185c0e585b6c75fd117c5acad13acd7f5ab40412e7fa76996",
-      "size_bytes": 8618,
+      "sha256": "152fd1ec203af8d3b044cd12efcdc5c413b08ef87e01dd74b12fd05bf274d72f",
+      "size_bytes": 10423,
       "type": "technical_governance_evidence"
     },
     {
       "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/workflow-events.jsonl",
-      "sha256": "3f11aa5412d290651c2dbd429a340e3657a3f2dd6001a426d38b24a38d6ad511",
-      "size_bytes": 10714,
+      "sha256": "34dfabd87e98a9e7b969a70ead5dcdc61a00b2136acc349dc3b96eae3652fdb3",
+      "size_bytes": 13709,
       "type": "technical_governance_evidence"
     },
     {
@@ -180,27 +186,29 @@
     },
     {
       "path": "scripts/readonly_role_sandbox.sh",
-      "sha256": "0aa508068b34fe330706fad847ef0f6337ba0a4fc0f5584127ab205c62adb41d",
-      "size_bytes": 3882,
+      "sha256": "16c8228b8745589bf6db034f3e3916d39b7ffd152ac0c814ad004134443ef406",
+      "size_bytes": 4488,
       "type": "technical_governance_evidence"
     },
     {
       "path": "scripts/verify_readonly_sandbox.sh",
-      "sha256": "b7e9e7edcab9340bb580bbc2e8d7bfefc064801b0e811c78abfc39473358e9d7",
-      "size_bytes": 5752,
+      "sha256": "70e5129c6e46e1b9c3658f1d5ec35d72a512810fe26de7233953a91ccd6cb0c8",
+      "size_bytes": 6291,
       "type": "technical_governance_evidence"
     },
     {
       "path": "tests/test_readonly_role_sandbox.py",
-      "sha256": "4b468cbc8b0181ebfe1f6ee6c5b7cd706fdef60c09891016a86084425561601b",
-      "size_bytes": 5909,
+      "sha256": "250b7f0331cd7ee5c058a2c3336f8541fe725d03238f8ec05854ffd211b1dd5c",
+      "size_bytes": 6825,
       "type": "technical_governance_evidence"
     }
   ],
   "count": {
-    "governance_files": 28,
+    "governance_files": 29,
     "scientific_inputs": 2,
     "scientific_result_artifacts": 0
   },
-  "note": "Every entry here is technical or governance evidence. None of it is evidence about the scientific hypothesis."
+  "note": "Every entry here is technical or governance evidence. None of it is evidence about the scientific hypothesis.",
+  "self_reference_limit": "This manifest is generated as the last content step of the session, after every other file is final, so every hash listed matches the published state. It cannot list or hash itself. The 'commit' field below is the HEAD at generation time, which is the commit BEFORE the one that publishes this manifest: a manifest cannot name a commit that does not yet exist. The re-audit flagged an earlier version whose header named the previously audited commit without saying so (finding NF-03); this field says so.",
+  "published_in_commit": "the commit immediately following 'commit' below; recoverable with git log --oneline dc0d3f5..HEAD"
 }

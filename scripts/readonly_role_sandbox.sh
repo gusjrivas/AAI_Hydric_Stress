@@ -31,9 +31,17 @@
 # unidades de Windows, `--ro-bind /dev/null /init` neutraliza el ayudante de interop registrado en binfmt_misc, y se
 # limpian `WSL_INTEROP`, `WSL_DISTRO_NAME`, `WSLENV` y `WSL2_GUI_APPS_ENABLED`,
 # ademas de fijar un PATH sin rutas de Windows.
-# Limite honesto: esto elimina la via conocida, no demuestra que no exista
-# otra. La afirmacion correcta es "impone solo lectura y ausencia de red a
-# procesos Linux, y cierra la via de interop WSL conocida", nunca un
+# SEGUNDA VIA, hallazgo NF-01 de la re-auditoria: cerrar la ejecucion de
+# binarios PE no cerraba los ENDPOINTS de interoperabilidad. Los sockets
+# `/run/WSL/*_interop` viven en el bind de solo lectura de `/` y los sockets
+# AF_UNIX por ruta atraviesan los namespaces de red, de modo que
+# `--unshare-net` no los alcanza: la re-auditoria obtuvo `connect()` exitoso
+# a `/run/WSL/2_interop`, al bus de sesion y al bus de sistema, sin enviar
+# ningun mensaje. Mitigacion agregada: `--tmpfs /run`, verificado con
+# `interop_sockets_visible: 0` y sin romper git, lectura ni EROFS.
+# Limite honesto: esto elimina las dos vias conocidas, no demuestra que no
+# exista otra. La afirmacion correcta es "impone solo lectura y ausencia de
+# red a procesos Linux, y cierra las vias de interop WSL conocidas", nunca un
 # aislamiento absoluto.
 #
 # Qué NO garantiza:
@@ -72,6 +80,7 @@ exec bwrap \
     --proc /proc \
     --tmpfs /tmp \
     --tmpfs /mnt \
+    --tmpfs /run \
     --ro-bind /dev/null /init \
     --unshare-all \
     --die-with-parent \

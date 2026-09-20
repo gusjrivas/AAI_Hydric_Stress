@@ -293,7 +293,7 @@ no una decisión de suficiencia.
 |---|---|---|
 | V-01 | Suite `controlled_daily_v4` en entorno reconstruido | 486/486 en 994,22 s |
 | V-02 | Gobernanza + checker formal | 48 pasadas + 14 subtests |
-| V-03 | Enforcement de solo lectura por rol | 10/10 |
+| V-03 | Enforcement de solo lectura por rol | 11/11 |
 | V-04 | Checker formal | exit 0 |
 | V-05/06 | ruff 0.16.6 y black 26.5.1 sobre archivos propios de la rama | exit 0 |
 | V-07 | OpenSpec 1.13.1 `--strict`, alcance scientific-closure | 11/11 |
@@ -399,7 +399,13 @@ Se conservan explícitamente, sin evidencia que permita modificarlas:
     fuera de los namespaces de Linux, con red y escritura completas. Esa vía
     fue reproducida, cerrada y cubierta por una prueba de regresión, pero la
     afirmación correcta es «solo lectura y sin red **para procesos Linux**, con
-    la vía de interop WSL conocida cerrada», nunca aislamiento absoluto.
+    las dos vías de interop WSL conocidas cerradas», nunca aislamiento
+    absoluto. Una re-auditoría encontró después una **segunda** vía en la misma
+    familia (hallazgo NF-01: los sockets `/run/WSL/*_interop` aceptaban
+    `connect()` porque los AF_UNIX por ruta atraviesan los namespaces de red);
+    también fue cerrada y cubierta por una prueba. Dos revisores independientes
+    encontraron una vía cada uno, en capas distintas: no se excluye una
+    tercera.
 
 ---
 

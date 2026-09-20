@@ -53,6 +53,9 @@ getent hosts pypi.org >/dev/null 2>&1; echo "dns_exit=\$?"
 # alcanzables, en vez de suponerlo.
 ls /mnt/c/Windows/System32/cmd.exe >/dev/null 2>&1; echo "wsl_windows_binaries_reachable_exit=\$?"
 echo "mnt_entries=\$(ls -A /mnt 2>/dev/null | wc -l)"
+# Hallazgo NF-01: endpoints de interop, no solo binarios.
+echo "run_entries=\$(ls -A /run 2>/dev/null | wc -l)"
+echo "interop_sockets=\$(ls -A /run/WSL 2>/dev/null | wc -l)"
 INNER
 )
 
@@ -70,6 +73,8 @@ write_dev_exit=$(get write_dev_exit)
 dns_exit=$(get dns_exit)
 win_exit=$(get wsl_windows_binaries_reachable_exit)
 mnt_entries=$(get mnt_entries)
+run_entries=$(get run_entries)
+interop_sockets=$(get interop_sockets)
 
 repo_probe_absent=true; [ -e "$REPO_PROBE" ] && repo_probe_absent=false
 home_probe_absent=true; [ -e "$HOME_PROBE" ] && home_probe_absent=false
@@ -86,6 +91,7 @@ pass=true
 [ "$dev_probe_absent" = "true" ] || pass=false
 [ "${win_exit:-0}" != "0" ] || pass=false
 [ "${mnt_entries:-1}" = "0" ] || pass=false
+[ "${interop_sockets:-1}" = "0" ] || pass=false
 case "$write_repo_stderr" in *"Read-only file system"*) ;; *) pass=false ;; esac
 
 verdict=FAIL; [ "$pass" = "true" ] && verdict=PASS
@@ -110,14 +116,16 @@ cat <<JSON
     "ephemeral_dev_write_exit_code": ${write_dev_exit:-null},
     "dev_probe_absent_after": $dev_probe_absent,
     "wsl_windows_binaries_unreachable": $( [ "${win_exit:-0}" != "0" ] && echo true || echo false ),
-    "mnt_is_empty": $( [ "${mnt_entries:-1}" = "0" ] && echo true || echo false )
+    "mnt_is_empty": $( [ "${mnt_entries:-1}" = "0" ] && echo true || echo false ),
+    "wsl_interop_sockets_unreachable": $( [ "${interop_sockets:-1}" = "0" ] && echo true || echo false ),
+    "run_entries": ${run_entries:-null}
   },
   "probe_paths": {
     "repository": "$REPO_PROBE",
     "home": "$HOME_PROBE"
   },
   "verdict": "$verdict",
-  "limitation": "Acredita que el mecanismo impone solo lectura y ausencia de red A PROCESOS LINUX, y que la via conocida de escape por interoperabilidad WSL (binarios PE via /mnt) esta cerrada. NO demuestra que no exista otra via. NO acredita, por si solo, que un agente revisor concreto haya sido ejecutado a traves de el; eso exige registrar el comando exacto de esa sesion. La primera version de este registro afirmaba solo lectura y ausencia de red sin calificar, lo que el auditor refuto ejecutando curl.exe de Windows desde dentro del sandbox y obteniendo HTTP 200 (hallazgo A-01)."
+  "limitation": "Acredita que el mecanismo impone solo lectura y ausencia de red A PROCESOS LINUX, y que la via conocida de escape por interoperabilidad WSL (ejecucion de binarios PE via /mnt, hallazgo A-01) y la de los endpoints de interop (/run/WSL/*_interop, hallazgo NF-01) estan cerradas. NO demuestra que no exista otra via. NO acredita, por si solo, que un agente revisor concreto haya sido ejecutado a traves de el; eso exige registrar el comando exacto de esa sesion. La primera version de este registro afirmaba solo lectura y ausencia de red sin calificar, lo que el auditor refuto ejecutando curl.exe de Windows desde dentro del sandbox y obteniendo HTTP 200 (hallazgo A-01)."
 }
 JSON
 

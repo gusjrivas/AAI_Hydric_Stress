@@ -31,7 +31,7 @@
       "scope": "read-only role sandbox enforcement tests (new)",
       "command": "PYTHONPATH=src python -m pytest -q tests/test_readonly_role_sandbox.py --no-header",
       "exit_code": 0,
-      "result": "10 passed",
+      "result": "11 passed",
       "covers": [
         "positive read",
         "negative write to repository (EROFS)",
@@ -42,9 +42,10 @@
         "WSL Windows interop closed (/mnt empty, PE binaries unreachable)",
         "verifier PASS",
         "explicit failure without arguments",
-        "wrapper and verifier are executable"
+        "wrapper and verifier are executable",
+        "WSL interop IPC endpoints unreachable (/run emptied)"
       ],
-      "history": "8 tests at first commit; a ninth was added when critic finding N-01 showed the header overstated /dev; a tenth when audit finding A-01 demonstrated a real escape via WSL interop."
+      "history": "8 tests at first commit; a ninth after critic finding N-01 (the header overstated /dev); a tenth after audit finding A-01 (demonstrated WSL PE-binary escape); an eleventh after re-audit finding NF-01 (interop sockets reachable). Each increment is tied to the finding that caused it."
     },
     {
       "id": "V-04",
@@ -131,7 +132,21 @@
     "result": "544 passed, 14 subtests passed",
     "breakdown": "486 controlled_daily_v4 + 48 governance/checker + 10 read-only sandbox enforcement",
     "covers": "The working tree exactly as published, including the closure of audit finding A-01 and its regression test. This run is the one that corresponds to the published snapshot; the earlier 543-test run predates the A-01 fix.",
-    "self_reference_note": "Run before the final commit that carries this record, checkpoints.json and evidence-manifest.json. Those three files are data, not code: no source, test or specification changed after the run. Verifiable because the final commit touches only those three paths plus this JSON.",
+    "self_reference_note": "Run at 05:23:31-05:33:39 UTC, before the commit that carries this record. The earlier wording of this note claimed the final commit touches 'only those three paths plus this JSON', which the re-audit showed to be false: that commit touches twelve paths, including scripts/ and tests/ (re-audit finding NF-04). The substantive claim stands and is what matters: no source, test or specification changed AFTER the run. It is verifiable by timestamp, not by file count - the run already counted 10 sandbox tests, i.e. it already included the A-01 fix, and the artefacts written afterwards are the JSON records stamped 05:34 or later.",
+    "interpretation": "Technical evidence about software in a reconstructed environment. NOT evidence about the scientific hypothesis, and NOT a measurement of real scientific runtime: every test uses synthetic fixtures.",
+    "superseded_by": "Correction cycle 3 closed re-audit finding NF-01 by adding --tmpfs /run and an eleventh sandbox test, so the published snapshot has 545 tests. See final_snapshot_run_cycle3."
+  },
+  "final_snapshot_run_cycle3": {
+    "command": "PYTHONPATH=src python -m pytest -q tests/test_controlled_daily_v4_*.py tests/test_scientific_closure_governance.py tests/test_scientific_closure_checker.py tests/test_readonly_role_sandbox.py --no-header",
+    "started_utc": "2026-09-20T05:42:49Z",
+    "ended_utc": "2026-09-20T05:53:03Z",
+    "duration_s": 613.82,
+    "exit_code": 0,
+    "result": "545 passed, 14 subtests passed",
+    "breakdown": "486 controlled_daily_v4 + 48 governance/checker + 11 read-only sandbox enforcement",
+    "covers": "The working tree as published, including the closure of re-audit finding NF-01.",
+    "is_the_published_run": true,
+    "self_reference_note": "Run before the commit that carries this record. Only JSON evidence records were written afterwards; no source, test or specification changed after 05:53:03 UTC.",
     "interpretation": "Technical evidence about software in a reconstructed environment. NOT evidence about the scientific hypothesis, and NOT a measurement of real scientific runtime: every test uses synthetic fixtures."
   }
 }
