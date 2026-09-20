@@ -1,5 +1,38 @@
 # Seguimiento de tareas — plan de proyecto vs. estado real del repo
 
+## 2026-09-20 — Prerrequisitos de ejecución de controlled_daily_v4 (HU7/HU8)
+
+Change `integrate-controlled-daily-v4-execution-prerequisites`, capacidad
+`experiment-runner`, CRISP-DM preparación. Integra en `main` la versión vigente del
+protocolo `controlled_daily_v4_external_pergamino`, las decisiones preejecución, la
+guía de ejecución y el runner correspondiente, para satisfacer la **condición 4 de
+ADR-0011** (el ADR y el protocolo detallado deben estar mergeados antes de cualquier
+ejecución).
+
+Corrección metodológica central: el protocolo en `main` afirmaba que el contrato de
+features era el de `controlled_daily_v3` «sin modificación». Es falso contra la
+implementación — v4 usa ocho features con valores actuales y derivaciones temporales
+solo sobre humedad de suelo; v3 usa quince variables temporales sobre tres magnitudes
+con `include_current=false`. Queda registrado que una diferencia v3→v4 no identifica
+por sí sola un efecto de sitio, período o modelo.
+
+Se incorporan además los pisos de soporte predeclarados (≥ 2 folds con MCC definido de
+3; ≥ 80 % de réplicas bootstrap válidas), el tratamiento explícito de métricas
+indefinidas y evaluaciones monoclase, las métricas de inicio de episodio y la custodia
+del primer intento científico de la Etapa B. Ninguno de esos mínimos se relajó: todos
+los cambios de criterio son estrictamente más exigentes (fallan cerrado).
+
+Validación: suite completa `pytest` en verde, `ruff check src tests`,
+`black --check src tests` y `git diff --check` sin hallazgos. Toda la verificación es
+**exclusivamente sintética**.
+
+**No constituye cierre científico.** A, B y C no se ejecutaron; el holdout 2024–2025
+permanece cerrado; el ledger definitivo no se inicializó; no se incorporan resultados
+experimentales. `controlled_daily_v3` y su evidencia congelada no se modifican. Los
+runners complementarios (regresión, HITL, anomalías, robustez) siguen diseñados y no
+implementados. Aporte a la memoria técnica: capítulo 2 (contrato de features real y
+criterios de soporte predeclarados) y capítulo 3 (custodia y preflight de ejecución).
+
 ## 2026-09-17 — UI en lenguaje cotidiano (HU6/HU5)
 
 Change `simplify-producer-ui`, capacidad `alerting-ui`, CRISP-DM despliegue e
