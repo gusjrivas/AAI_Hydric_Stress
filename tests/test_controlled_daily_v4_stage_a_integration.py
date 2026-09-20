@@ -40,8 +40,10 @@ FAST_CONFIG = ProtocolConfig(
 )
 
 
-def _synthetic_daily_series(tmp_path, n_days=350, seed=11):
-    era5, nasa = write_synthetic_pergamino_csv_pair(tmp_path, n_days=n_days, seed=seed)
+def _synthetic_daily_series(tmp_path, n_days=900, seed=23):
+    era5, nasa = write_synthetic_pergamino_csv_pair(
+        tmp_path, n_days=n_days, seed=seed, supported=True
+    )
     _era5_meta, era5_df = load_era5_hourly_raw(era5)
     era5_daily = aggregate_era5_daily(era5_df)
     _nasa_meta, nasa_df = load_nasa_power_daily_raw(nasa)

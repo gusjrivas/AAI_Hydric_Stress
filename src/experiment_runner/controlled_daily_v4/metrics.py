@@ -25,6 +25,8 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
+from experiment_runner.controlled_daily_v4.config import HORIZON_DAYS
+
 LABELS = [0, 1]
 
 
@@ -36,7 +38,7 @@ def mcc_strict(y_true, y_pred) -> float:
     """`NaN` explícito si `y_true` es monoclase, o si scikit-learn emite el
     warning de denominador indefinido (nunca el `0.0` silencioso por defecto)."""
     y_true = np.asarray(y_true)
-    if is_monoclass(y_true):
+    if is_monoclass(y_true) or is_monoclass(y_pred):
         return float("nan")
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
@@ -72,6 +74,8 @@ def confusion_matrix_2x2(y_true, y_pred) -> np.ndarray:
 
 
 def balanced_accuracy(y_true, y_pred) -> float:
+    if is_monoclass(y_true):
+        return float("nan")
     return float(balanced_accuracy_score(y_true, y_pred))
 
 
@@ -241,7 +245,9 @@ def calibration_curve_10_bins(y_true, y_score) -> list[dict[str, Any]]:
     return bins
 
 
-def metrics_payload(y_true, y_pred, y_score) -> dict[str, Any]:
+def metrics_payload(
+    y_true, y_pred, y_score, *, feature_timestamps=None, segment_ids=None
+) -> dict[str, Any]:
     """Todas las métricas del protocolo sobre un conjunto evaluado, con estado
     explícito por métrica y la razón de cada indefinición."""
     y_true = np.asarray(y_true)
@@ -264,14 +270,19 @@ def metrics_payload(y_true, y_pred, y_score) -> dict[str, Any]:
         "n_observations": int(len(y_true)),
         "n_positive_labels": int((y_true == 1).sum()),
         "n_predicted_positive": int((y_pred == 1).sum()),
-        "mcc": metric_envelope(value("mcc"), monoclass_reason),
+        "mcc": metric_envelope(
+            value("mcc"),
+            monoclass_reason if empty or is_monoclass(y_true) else "constant_prediction",
+        ),
         "average_precision": metric_envelope(
             value("average_precision"), REASON_EMPTY if empty else REASON_NO_POSITIVES
         ),
         "balanced_accuracy": metric_envelope(value("balanced_accuracy"), monoclass_reason),
         "f1": metric_envelope(value("f1"), zero_division_reason),
-        "precision": metric_envelope(value("precision"), zero_division_reason),
-        "recall": metric_envelope(value("recall"), zero_division_reason),
+        "precision": metric_envelope(
+            value("precision"), REASON_EMPTY if empty else "no_predicted_positives"
+        ),
+        "recall": metric_envelope(value("recall"), REASON_EMPTY if empty else REASON_NO_POSITIVES),
         "roc_auc": metric_envelope(value("roc_auc"), monoclass_reason),
         "brier_score": metric_envelope(value("brier_score"), REASON_EMPTY),
         "log_loss": metric_envelope(value("log_loss"), REASON_EMPTY),
@@ -295,6 +306,7 @@ def metrics_payload(y_true, y_pred, y_score) -> dict[str, Any]:
                 operational_value("alert_precision"), zero_division_reason
             ),
         },
+        "onset": onset_metrics(y_true, y_pred, feature_timestamps, segment_ids),
         "calibration": calibration_curve_10_bins(y_true, y_score),
     }
 
@@ -333,3 +345,71 @@ def summarize_fold_mcc(fold_mcc: list[float]) -> dict[str, Any]:
 REASON_NO_OWN_GRID = "soft_voting_has_no_own_grid"
 """El Soft Voting no tiene grilla propia (protocolo, sección 7.5): su mediana
 de MCC inner es indefinida por construcción, no por un fold degenerado."""
+
+
+def onset_metrics(y_true, y_pred, feature_timestamps, segment_ids=None):
+    """Descriptive onset metrics; censored starts never enter the denominator."""
+    import pandas as pd
+
+    y, alerts = np.asarray(y_true), np.asarray(y_pred)
+    if feature_timestamps is None:
+        return {"status": "undefined", "undefined_reason": "missing_timestamps"}
+    dates = pd.DatetimeIndex(feature_timestamps)
+    segments = np.zeros(len(y), dtype=int) if segment_ids is None else np.asarray(segment_ids)
+    if not (len(y) == len(alerts) == len(dates) == len(segments)):
+        raise ValueError("Onset arrays must have identical lengths")
+    if dates.hasnans or dates.has_duplicates or not dates.is_monotonic_increasing:
+        raise ValueError("Onset timestamps must be unique and ordered")
+    if not dates.equals(dates.normalize()):
+        raise ValueError("Onset timestamps must be daily midnight")
+    if not np.isin(y, [0, 1]).all() or not np.isin(alerts, [0, 1]).all():
+        raise ValueError("Onset labels must be binary")
+    targets = dates + pd.Timedelta(days=HORIZON_DAYS)
+    breaks = np.ones(len(y), dtype=bool)
+    if len(y) > 1:
+        breaks[1:] = (np.diff(dates.values) != np.timedelta64(1, "D")) | (
+            segments[1:] != segments[:-1]
+        )
+    counts = dict(total=0, evaluable=0, censored=0, anticipated=0, same_day=0, late=0, missed=0)
+    records, leads = [], []
+    i = 0
+    while i < len(y):
+        if y[i] != 1:
+            i += 1
+            continue
+        start = i
+        i += 1
+        while i < len(y) and y[i] == 1 and not breaks[i]:
+            i += 1
+        counts["total"] += 1
+        if breaks[start]:
+            counts["censored"] += 1
+            continue
+        counts["evaluable"] += 1
+        hits = np.flatnonzero(alerts[start:i]) + start
+        lead = None
+        outcome = "missed"
+        if len(hits):
+            lead = int((targets[start] - dates[hits[0]]).days)
+            leads.append(lead)
+            outcome = "anticipated" if lead > 0 else "same_day" if lead == 0 else "late"
+        counts[outcome] += 1
+        records.append({"onset": str(targets[start]), "outcome": outcome, "lead_days": lead})
+    false = (alerts == 1) & (y == 0)
+    false_runs = sum(bool(false[j]) and (breaks[j] or not false[j - 1]) for j in range(len(y)))
+    return {
+        "definition_version": "episode_onset.v1",
+        "n_days": len(y),
+        "n_positive_days": int(y.sum()),
+        "episodes": counts,
+        "records": records,
+        "false_notice_days": int(false.sum()),
+        "false_notice_runs": int(false_runs),
+        "anticipation_rate": metric_envelope(
+            counts["anticipated"] / counts["evaluable"] if counts["evaluable"] else None,
+            "no_evaluable_episode_onsets",
+        ),
+        "median_signed_lead_days": metric_envelope(
+            np.median(leads) if leads else None, "no_detected_evaluable_episodes"
+        ),
+    }
