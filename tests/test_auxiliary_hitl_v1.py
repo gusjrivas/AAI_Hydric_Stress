@@ -702,28 +702,73 @@ def test_package_hides_the_information_that_would_induce_a_response(package: dic
         assert leak not in scenarios_serialized
 
 
-def test_package_does_not_claim_a_blinding_it_does_not_have(package: dict) -> None:
-    """Hallazgo C-01/C-02 de la crítica independiente.
+DERIVABLE_CONCEPTS = (
+    "limpia",
+    "corrompid",
+    "proporción",
+    "proporcion",
+    "revisor simulado",
+    "oráculo",
+    "oraculo",
+)
+"""Conceptos que el paquete NO puede declarar ocultos, porque son derivables de
+los campos que sí muestra. Hallazgos C-01, C-02 y D-01 de las críticas
+independientes."""
 
-    La etiqueta correcta ES determinable desde los campos visibles. Una prueba
-    léxica de ausencia de fuga daba un falso positivo: pasaba justamente en el
-    caso en que la fuga era total. Esta prueba fija la propiedad REAL y exige
-    que el paquete no afirme lo contrario.
-    """
-    determinable = [
-        s["scenario_id"]
-        for s in package["scenarios"]
-        if (1 if s["observed_soil_moisture_at_target"] < s["p20_threshold_frozen"] else 0)
-        is not None
-    ]
-    assert len(determinable) == len(package["scenarios"])
 
+def _false_hiding_claims(package: dict) -> list[str]:
     hidden = " ".join(package["hidden_from_participant"]).lower()
-    for false_claim in ("limpia", "corrompid", "proporción", "proporcion"):
-        assert (
-            false_claim not in hidden
-        ), f"el paquete afirma ocultar {false_claim!r}, que en realidad es derivable"
-    assert "explicitly_not_claimed_hidden" not in package or True
+    return [concept for concept in DERIVABLE_CONCEPTS if concept in hidden]
+
+
+def test_package_does_not_claim_a_blinding_it_does_not_have(package: dict) -> None:
+    """Hallazgos C-01, C-02 y D-01.
+
+    La etiqueta correcta ES determinable desde los campos visibles, y con ella
+    los registros incorrectos, su proporción y lo que haría el revisor simulado.
+    Una prueba léxica de ausencia de fuga daba un falso positivo: pasaba
+    justamente cuando la fuga era total. Esta fija la propiedad REAL y exige que
+    el paquete no afirme lo contrario.
+    """
+    assert _false_hiding_claims(package) == []
+
+    # Contingente: si el paquete dejara de declarar la determinabilidad, falla.
+    assert package["explicitly_not_claimed_hidden"], "falta la declaración de lo no oculto"
+    declared = " ".join(package["explicitly_not_claimed_hidden"]).lower()
+    assert "determinable" in declared
+    assert "revisor simulado" in declared
+    assert package["blinding"]["level"] == "PARCIAL"
+
+    # La determinabilidad debe ser un hecho del paquete, no una frase: la regla
+    # reproduce exactamente `build_target`, y debe haber a la vez escenarios
+    # consistentes y escenarios incorrectos, o el paquete no admitiría las tres
+    # decisiones del contrato.
+    derived = [
+        (
+            s["scenario_id"],
+            int(s["observed_soil_moisture_at_target"] < s["p20_threshold_frozen"]),
+            int(s["recorded_label"]),
+        )
+        for s in package["scenarios"]
+    ]
+    mismatches = [sid for sid, clean, recorded in derived if clean != recorded]
+    assert 0 < len(mismatches) < len(derived), (
+        "el paquete debe contener a la vez registros consistentes e incorrectos: "
+        f"{len(mismatches)} de {len(derived)}"
+    )
+
+
+def test_a_package_that_claimed_a_false_blinding_would_be_detected(package: dict) -> None:
+    """Caso negativo de la prueba anterior: si fuese vacua, esto pasaría igual."""
+    tampered = copy.deepcopy(package)
+    tampered["hidden_from_participant"].append("cuál sería la etiqueta limpia")
+    assert _false_hiding_claims(tampered) == ["limpia"]
+
+    tampered_2 = copy.deepcopy(package)
+    tampered_2["hidden_from_participant"].append(
+        "qué decisión tomó el revisor simulado en el mismo escenario"
+    )
+    assert _false_hiding_claims(tampered_2) == ["revisor simulado"]
 
 
 def test_the_blinding_level_is_declared_as_partial_in_the_contract() -> None:
@@ -738,11 +783,19 @@ def test_the_blinding_level_is_declared_as_partial_in_the_contract() -> None:
     )
     blinding = contract["human_intervention_package"]["blinding"]
     assert blinding["level"] == "PARCIAL"
+    assert blinding["what_is_blinded"]
     assert blinding["what_is_NOT_blinded"]
-    assert "PROHIBIDA" in blinding["consequence_declared"]
-    assert any(
-        "Cegamiento de la intervencion humana" in item for item in contract["prohibited_assertions"]
-    )
+    consequence = blinding["consequence_declared"]
+    assert "PROHIBID" in consequence, "la consecuencia debe enunciarse como prohibición"
+    for denied in ("NO demuestra juicio", "NO demuestra pericia", "NO demuestra cegamiento"):
+        assert denied in consequence, denied
+    prohibited = " ".join(contract["prohibited_assertions"])
+    for item in (
+        "Cegamiento de la intervencion humana",
+        "Juicio humano bajo incertidumbre",
+        "Criterio propio del revisor",
+    ):
+        assert item in prohibited, item
 
 
 def test_package_contains_no_date_beyond_the_acquisition_window(package: dict) -> None:
@@ -966,13 +1019,27 @@ def test_invariants_are_measured_not_declared(frames: h.HitlFrames, package: dic
 
     for name, body in inv.items():
         assert isinstance(body, dict), name
-        if body["measured"]:
-            assert "satisfied" in body, name
+        assert body["kind"] in {
+            "contingent_measurement",
+            "structural_guard",
+            "not_measured_in_run",
+        }, name
+        if body["kind"] == "structural_guard":
+            assert body["guaranteed_by"], name
+            assert body["would_break_if"], name
+            assert body["holds"] is True, name
+        elif body["kind"] == "contingent_measurement":
+            assert "holds" in body, name
         else:
-            assert body["status"] == "NOT_MEASURED_IN_RUN", name
             assert body["measured_where"], name
-    # Exactamente tres invariantes no son medibles dentro de una corrida única.
-    assert sum(1 for b in inv.values() if not b["measured"]) == 3
+            assert "holds" not in body, name
+    # Un solo invariante es contingente, seis son guardas estructurales y tres
+    # no son medibles dentro de una corrida única. Publicar una tautología como
+    # medición satisfecha está prohibido por el contrato (hallazgo D-04).
+    kinds = [b["kind"] for b in inv.values()]
+    assert kinds.count("contingent_measurement") == 1
+    assert kinds.count("structural_guard") == 6
+    assert kinds.count("not_measured_in_run") == 3
 
     # INV-02 mide el proceso, no el runner: en la suite completa otros módulos
     # importan el ledger y la medición debe reflejarlo con fidelidad en vez de
@@ -980,18 +1047,9 @@ def test_invariants_are_measured_not_declared(frames: h.HitlFrames, package: dic
     # medición, no que el proceso de pruebas esté limpio.
     ambient = sorted(n for n in sys.modules if n.endswith("holdout_ledger"))
     inv_02 = inv["INV-02_holdout_ledger_untouched"]
+    assert inv_02["kind"] == "contingent_measurement"
     assert sorted(inv_02["observed"]) == ambient
-    assert inv_02["satisfied"] == (ambient == [])
-
-    for name in (
-        "INV-01_no_data_after_2022_12_31",
-        "INV-04_p20_frozen_once",
-        "INV-05_same_evaluation_rows_all_arms",
-        "INV-06_no_reviewed_row_in_evaluation",
-        "INV-08_origin_recorded_no_mixing",
-        "INV-09_no_self_reference",
-    ):
-        assert inv[name]["satisfied"] is True, name
+    assert inv_02["holds"] == (ambient == [])
 
     mech = outcome["mechanism"]
     assert mech["holdout_ledger_modules_loaded"] == len(ambient)
@@ -1032,6 +1090,50 @@ def test_reserved_abc_and_holdout_paths_are_rejected() -> None:
         }
     )
     assert len(offending) == 2
+
+
+def test_the_contract_declares_the_invariant_classification_policy() -> None:
+    """Hallazgo D-04: el contrato debe prohibir publicar tautologías como medición."""
+    import pathlib
+
+    contract = json.loads(
+        (
+            pathlib.Path(__file__).resolve().parents[1]
+            / "openspec/changes/sc-08-aux-hitl/contract-H-frozen.json"
+        ).read_text(encoding="utf-8")
+    )
+    policy = contract["technical_metrics"]["invariants_measurement_policy"]
+    for token in ("contingent_measurement", "structural_guard", "not_measured_in_run", "PROHIBIDO"):
+        assert token in policy, token
+    decisive = contract["technical_metrics"]["mechanism_metrics_decisive"]
+    assert not any(
+        "abc_paths_opened" in m for m in decisive
+    ), "una métrica declarada decisiva debe existir en el runner"
+    guards = contract["technical_metrics"]["mechanism_metrics_structural_guards"]["metrics"]
+    assert any("abc_paths_referenced_in_configuration" in m for m in guards)
+
+
+def test_unknown_decision_is_a_closed_rejection_not_a_typeerror(
+    frames: h.HitlFrames, prepared: dict
+) -> None:
+    """Hallazgo D-07: vocabulario desconocido con motivo, no un TypeError."""
+    events = _events(prepared, frames)
+    events[0]["decision"] = "DECISION_INVENTADA"
+    events[0]["corrected_label"] = None
+    with pytest.raises(h.HitlValidationError) as error:
+        h.apply_feedback(
+            feedback=frames.feedback, recorded_labels=prepared["recorded"], events=events
+        )
+    assert "R06-decision-vocabulary" in _rules(error.value)
+
+
+def test_reserved_paths_are_detected_through_a_symlink(tmp_path) -> None:
+    """Hallazgo D-13: comparar la cadena cruda dejaría pasar un enlace inocuo."""
+    target = tmp_path / "evidence" / "A"
+    target.mkdir(parents=True)
+    link = tmp_path / "entrada-inocua"
+    link.symlink_to(target)
+    assert h.assert_no_reserved_paths({"output_dir": link})
 
 
 def test_model_identifiers_are_deterministic() -> None:

@@ -10,7 +10,7 @@
   ],
   "campaign_id": "hitl-complement-2026-09-21",
   "frozen_before_observing_results": true,
-  "frozen_at_utc": "2026-09-21T12:40:00Z",
+  "frozen_at_utc": "2026-09-21T13:05:00Z",
   "objective": {
     "primary": "Demostrar que el mecanismo Human-in-the-Loop del sistema es tecnicamente viable, auditable y reproducible, y ejecutar el disenio congelado auxiliary_hitl_v1 de correcciones supervisadas simuladas que exige SC-GOV-022.",
     "explicitly_not": [
@@ -220,8 +220,7 @@
       "El efecto esperado de cada decision sobre cualquier metrica",
       "Cualquier dato, prediccion o metrica de 2023, 2024 o 2025",
       "Cualquier metrica o dato del holdout 2024-2025",
-      "Los resultados de las Etapas A, B y C",
-      "Que decision fue tomada por el revisor simulado en el mismo escenario"
+      "Los resultados de las Etapas A, B y C"
     ],
     "non_inducement_rules": [
       "No se sugiere ninguna respuesta.",
@@ -234,21 +233,24 @@
     "blinding": {
       "level": "PARCIAL",
       "what_is_blinded": [
-        "El operador no sabe cuales escenarios fueron corrompidos por la simulacion, en el sentido de que el paquete no se lo dice.",
-        "El operador no ve ninguna metrica, ningun resultado de 2022 y ningun dato de 2023-2025.",
-        "El operador no sabe que efecto tendra su decision sobre ninguna metrica."
+        "Ninguna metrica de ningun brazo llega al paquete.",
+        "Ningun resultado de 2022 y ningun dato de 2023-2025 llegan al paquete.",
+        "El efecto de cada decision sobre cualquier metrica no se informa."
       ],
       "what_is_NOT_blinded": [
-        "La etiqueta correcta de cada escenario ES DETERMINABLE por el operador: la regla de etiquetado es stress = 1 si y solo si la humedad observada en la fecha objetivo es menor que el P20 congelado, y el paquete muestra ambos valores. Quien aplique esa comparacion identifica exactamente que registros son incorrectos.",
-        "El operador conoce el codigo del generador de corrupcion y la semilla figura en el paquete: con ambos podria regenerar las posiciones corrompidas. El cegamiento frente a este operador es, a lo sumo, nominal."
+        "La etiqueta correcta de cada escenario es DETERMINABLE: la regla de etiquetado es stress = 1 si y solo si la humedad observada en la fecha objetivo es menor que el P20 congelado, el paquete muestra ambos valores y las instrucciones enuncian la regla.",
+        "En consecuencia son derivables: que registros son incorrectos, cuantos son, y que haria el revisor simulado en cada escenario.",
+        "El operador conoce el codigo del generador de corrupcion y la semilla figura en el paquete: podria regenerar las posiciones corrompidas. El cegamiento frente a este operador es, a lo sumo, nominal."
       ],
-      "consequence_declared": "La pista HUMANA demuestra que el mecanismo HITL opera correctamente cuando una persona autorizada realiza una revision de CALIDAD DE DATO con respuesta determinable. NO demuestra juicio humano bajo incertidumbre, NO demuestra pericia y NO demuestra cegamiento. Cualquier afirmacion de cegamiento sobre la pista HUMANA esta PROHIBIDA.",
+      "consequence_declared": "La pista HUMANA demuestra que el mecanismo HITL opera correctamente cuando una persona autorizada realiza una revision de CALIDAD DE DATO con respuesta determinable, siguiendo un procedimiento que el propio paquete le enuncia. NO demuestra juicio humano bajo incertidumbre, NO demuestra pericia, NO demuestra cegamiento y NO demuestra criterio propio del revisor. Afirmar cualquiera de esas cuatro cosas sobre la pista HUMANA esta PROHIBIDO.",
       "why_not_fully_blinded": "El revisor simulado del disenio congelado es un oraculo que restituye la etiqueta limpia. Para que la pista humana sea el analogo del mismo mecanismo, el operador necesita la observacion ya madurada, que es ademas lo que el disenio exige al cerrar la recalibracion tras la maduracion de los targets de 2021. Ocultarla convertiria la tarea en una re-prediccion desde ocho numeros, que no es lo que hace un revisor HITL."
     },
     "explicitly_not_claimed_hidden": [
-      "NO se afirma que la etiqueta limpia este oculta: es determinable (ver blinding).",
+      "NO se afirma que la etiqueta limpia este oculta: es determinable.",
       "NO se afirma que la identidad de los escenarios corrompidos este oculta: es derivable.",
-      "NO se afirma que la proporcion de corrupcion este oculta: es derivable."
+      "NO se afirma que la proporcion de corrupcion este oculta: es derivable.",
+      "NO se afirma que la decision del revisor simulado este oculta: el disenio publicado dice que restituye la etiqueta limpia y confirma el resto, de modo que tambien es derivable.",
+      "NO se afirma que el operador carezca de un procedimiento: las instrucciones le enuncian la regla de etiquetado."
     ]
   },
   "response_validation": {
@@ -256,7 +258,7 @@
     "must_cover_all_scenarios": "Todo escenario del paquete debe tener exactamente una respuesta.",
     "missing_scenario": "RECHAZO de la respuesta completa; H no se ejecuta.",
     "duplicate_scenario": "RECHAZO de la respuesta completa; H no se ejecuta.",
-    "altered_scenario": "Un escenario cuyo contenido no coincide con el paquete congelado produce RECHAZO de la respuesta completa.",
+    "altered_scenario": "La respuesta transporta unicamente scenario_id, decision, corrected_label y reason: no hay contenido de escenario que comparar campo por campo. La integridad del escenario se garantiza por el package_sha256 que la respuesta declara y que debe coincidir con el del paquete congelado y con el del ancla versionada en git. Un scenario_id ajeno al paquete produce RECHAZO de la respuesta completa.",
     "incomplete_or_contradictory_policy": "El runner NO completa, NO infiere y NO corrige una respuesta humana. Rechaza de forma cerrada y detiene la ejecucion de la pista HUMAN, registrando el motivo. La pista SIM no se ve afectada.",
     "content_immutability": "La respuesta humana se incorpora literalmente. Prohibido normalizar, reescribir, traducir o reinterpretar decisiones o motivos."
   },
@@ -283,23 +285,28 @@
       "combines_temporal_update": "refit_no_corrections menos frozen"
     },
     "mechanism_metrics_decisive": [
-      "n_events_received",
-      "n_events_valid",
-      "n_events_rejected_by_rule (desglosado por regla)",
       "n_accept / n_reject / n_correct / n_no_change",
       "n_recalibrations",
-      "lineage_chain_complete (bool)",
-      "predecessor_preserved (bool)",
-      "max_target_timestamp_read (debe ser <= 2022-12-31)",
-      "holdout_ledger_modules_loaded (debe ser 0)",
-      "abc_paths_opened (debe ser 0)"
+      "holdout_ledger_modules_loaded (debe ser 0)"
     ],
     "undefined_metric_policy": "Una metrica no definible (por ejemplo MCC con un solo valor de clase predicha) se registra como null con una razon explicita, nunca como 0.",
     "mechanism_metrics_measured_outside_the_run": {
-      "bitwise_reproducible": "Se mide con una segunda ejecucion independiente desde las mismas entradas congeladas y una comparacion byte a byte de los artefactos, excluyendo unicamente el campo integrity_manifest.result_reference, que contiene la ruta de salida. Se registra en reproduction-record.json.",
-      "closed_failure_on_invalid_inputs": "Se mide con la suite focalizada tests/test_auxiliary_hitl_v1.py, que ejercita cada regla de validacion con una entrada invalida y exige HitlValidationError. Se registra en validation-record.json."
+      "bitwise_reproducible": "Segunda ejecucion independiente desde las mismas entradas congeladas y comparacion byte a byte de los artefactos, excluyendo unicamente integrity_manifest.result_reference, que contiene la ruta de salida. Se registra en reproduction-record.json.",
+      "closed_failure_on_invalid_inputs": "Suite focalizada tests/test_auxiliary_hitl_v1.py, que ejercita cada regla de validacion con una entrada invalida y exige HitlValidationError. Se registra en validation-record.json.",
+      "abc_artifacts_untouched": "sha256sum -c sobre evidence-snapshots/final/SHA256SUMS de la campana A/B/C, antes y despues de la corrida de H. Se registra en validation-record.json."
     },
-    "invariants_measurement_policy": "Cada invariante que el runner publica en invariants.json DEBE derivarse de una comprobacion ejecutada sobre los datos o el proceso de esa corrida. Esta PROHIBIDO publicar un invariante como constante literal True. Un invariante que no pueda medirse en la corrida se declara NOT_MEASURED_IN_RUN con el lugar donde si se mide, nunca como satisfecho."
+    "invariants_measurement_policy": "Cada invariante que el runner publica lleva un campo 'kind' con uno de tres valores, y ninguno se disfraza de otro: 'contingent_measurement' cuando la comprobacion puede dar falso con este mismo codigo; 'structural_guard' cuando el codigo lo garantiza por construccion, en cuyo caso se computa igual como guarda de regresion y se declara 'guaranteed_by' y 'would_break_if'; y 'not_measured_in_run' cuando no es medible dentro de una corrida unica, en cuyo caso se declara 'measured_where'. Esta PROHIBIDO publicar una tautologia bajo el rotulo de medicion satisfecha.",
+    "mechanism_metrics_structural_guards": {
+      "note": "Se computan y se publican, pero no pueden tomar otro valor en un artefacto publicado: el runner aborta antes. Son guardas de regresion del codigo, NO evidencia contingente de esta corrida, y se rotulan asi en la evidencia.",
+      "metrics": [
+        "n_events_received / n_events_valid",
+        "n_events_rejected_by_rule (vacio en toda corrida valida)",
+        "lineage_chain_complete",
+        "predecessor_preserved",
+        "max_target_timestamp_read",
+        "abc_paths_referenced_in_configuration"
+      ]
+    }
   },
   "invariants": [
     "INV-01 Ningun dato con timestamp posterior a 2022-12-31 es leido por el runner de H.",
@@ -329,17 +336,19 @@
     "Arbol de trabajo sucio o identidad de codigo no capturable en el momento de ejecutar."
   ],
   "prohibited_assertions": [
-    "Participacion de un agronomo",
-    "Validacion agronomica",
-    "Incorporacion de conocimiento agronomico experto",
-    "Eficacia agronomica",
-    "Mejora productiva de campo",
-    "Generalizacion de las decisiones humanas",
-    "Superioridad predictiva causada por conocimiento experto",
-    "Equivalencia entre feedback controlado y validacion especializada",
     "Beneficio de una persona real sobre el desempenio del modelo",
     "Cegamiento de la intervencion humana respecto de la etiqueta correcta",
-    "Juicio humano bajo incertidumbre demostrado por la pista HUMANA"
+    "Criterio propio del revisor demostrado por la pista HUMANA",
+    "Eficacia agronomica",
+    "Equivalencia entre feedback controlado y validacion especializada",
+    "Generalizacion de las decisiones humanas",
+    "Incorporacion de conocimiento agronomico experto",
+    "Invariantes estructurales presentados como evidencia contingente de la corrida",
+    "Juicio humano bajo incertidumbre demostrado por la pista HUMANA",
+    "Mejora productiva de campo",
+    "Participacion de un agronomo",
+    "Superioridad predictiva causada por conocimiento experto",
+    "Validacion agronomica"
   ],
   "declared_limitations_predeclared": [
     "No hay intervencion de un agronomo ni validacion agronomica de campo. Se registra como limitacion y trabajo futuro.",
@@ -351,7 +360,10 @@
     "Las cinco semillas [0,1,2,3,4] no son cinco poblaciones independientes.",
     "Los datos son reanalisis para un unico sitio; no son mediciones de campo.",
     "La implementacion funcional de HU5 no prueba por si sola ningun beneficio.",
-    "Los deltas de H son puntuales, sin intervalo de incertidumbre: el disenio congelado no predeclara bootstrap para H. No sostienen ninguna afirmacion inferencial."
+    "Los deltas de H son puntuales, sin intervalo de incertidumbre: el disenio congelado no predeclara bootstrap para H. No sostienen ninguna afirmacion inferencial.",
+    "Las propias instrucciones del paquete enuncian la regla de etiquetado, de modo que quien la aplique obtiene una respuesta determinada para los 20 escenarios. La pista HUMANA prueba el cumplimiento de un procedimiento dictado, no un criterio propio del revisor.",
+    "De los diez invariantes, seis son guardas estructurales garantizadas por construccion del codigo, uno es una medicion contingente y tres no son medibles dentro de una corrida unica. Solo el contingente aporta informacion nueva sobre ESTA corrida.",
+    "El paquete congelado vive en un montaje escribible; su inmutabilidad real descansa en el hash anclado en un commit de esta rama."
   ],
   "references": {
     "feature_contract": "pergamino_features.v1",
@@ -364,12 +376,21 @@
     "abc_executable_commit": "214735e42ee04f018156cd630591e798aadd8bf3",
     "h_executable_identity_note": "La imagen historica de A/B/C no contiene el runner de H, que no existia cuando se construyo. H declara su propia identidad ejecutable (commit e imagen propios) y NO se atribuye la identidad de A/B/C. El entorno numerico se mantiene identico mediante el mismo Dockerfile y las mismas constraints fijadas."
   },
-  "contract_version": 2,
+  "contract_version": 3,
   "supersedes": {
-    "contract_version": 1,
-    "sha256": "a124db1a05ded4e142eead9f3bf8176dcced2e58ea3a75a2b642ae5ebde4c76b",
-    "commit": "5f308801f620644e4688da702c9f057f95f74a62",
-    "note": "La version 1 se conserva integra en el historial de git. NO se borra ni se reescribe. Esta version 2 corrige defectos que una revision critica independiente encontro ANTES de mostrar nada al operador y ANTES de observar cualquier resultado de H."
+    "versions": [
+      {
+        "contract_version": 1,
+        "sha256": "a124db1a05ded4e142eead9f3bf8176dcced2e58ea3a75a2b642ae5ebde4c76b",
+        "commit": "5f308801f620644e4688da702c9f057f95f74a62"
+      },
+      {
+        "contract_version": 2,
+        "sha256": "e74bc31235f9aa38808fb026aa3f7a0ec9e2de5bf9ca2f432e3f2ccd23dc917a",
+        "commit": "547c1a98c888852eafb067e1135ce033fc80472a"
+      }
+    ],
+    "note": "Las versiones anteriores se conservan integras en el historial de git. NO se borran ni se reescriben. Cada version corrige defectos que una critica independiente encontro ANTES de mostrar nada al operador y ANTES de observar cualquier resultado de H."
   },
   "corrections_after_independent_review": {
     "review_date_utc": "2026-09-21T12:35:00Z",
@@ -462,6 +483,110 @@
         "finding": "La habilitacion de la pista humana es una interpretacion del disenio congelado, no una lectura literal.",
         "resolution": "ACEPTADO. Se registra como interpretacion explicita en GD-28 y aqui, y se somete a auditoria independiente."
       }
+    ]
+  },
+  "corrections_after_independent_review_round_2": {
+    "review_date_utc": "2026-09-21T13:00:00Z",
+    "reviewer": "scientific_critic independiente, segunda sesion separada, solo lectura",
+    "verdict_on_contract_v2_package": "NO_APTO",
+    "applied_before_showing_anything_to_the_operator": true,
+    "applied_before_observing_any_H_result": true,
+    "findings_and_resolution": [
+      {
+        "id": "D-01",
+        "severity": "MATERIAL",
+        "finding": "hidden_from_participant conservaba un sexto item falso: la decision del revisor simulado tambien es derivable con los campos visibles.",
+        "resolution": "ACEPTADO. Item retirado del contrato, del paquete y del runner; la derivabilidad se declara en explicitly_not_claimed_hidden."
+      },
+      {
+        "id": "D-02",
+        "severity": "MATERIAL",
+        "finding": "La prueba escrita para cerrar C-04 contenia dos aserciones vacuas: un filtro siempre verdadero y un `assert X or True` con la condicion invertida.",
+        "resolution": "ACEPTADO. Se reescriben por aserciones contingentes y se agrega un caso negativo que falsifica un paquete que declare ocultar algo derivable."
+      },
+      {
+        "id": "D-03",
+        "severity": "MATERIAL",
+        "finding": "El contrato v2 declaraba decisiva una metrica 'abc_paths_opened' inexistente en el codigo, y su sucedanea es 0 por construccion.",
+        "resolution": "ACEPTADO. Se elimina del bloque de metricas decisivas y se reclasifica como guarda estructural con su nombre real."
+      },
+      {
+        "id": "D-04",
+        "severity": "MATERIAL",
+        "finding": "Seis de diez invariantes y dos metricas decisivas son tautologias: se computan pero no pueden fallar.",
+        "resolution": "ACEPTADO. Se introduce el campo 'kind' con tres valores y se reclasifica cada invariante; las guardas estructurales declaran que las garantiza y que las romperia. Solo INV-02 queda como medicion contingente."
+      },
+      {
+        "id": "D-05",
+        "severity": "MENOR",
+        "finding": "Tres identidades ejecutables distintas entre preflight, ancla y GD-27.",
+        "resolution": "ACEPTADO. Preflight y GD-27 se actualizan al commit e imagen finales."
+      },
+      {
+        "id": "D-06",
+        "severity": "MENOR",
+        "finding": "Lenguaje residual de 'paquete ciego' en el codigo que lo construye.",
+        "resolution": "ACEPTADO. Eliminado de encabezados, docstrings, ayuda de CLI y pruebas."
+      },
+      {
+        "id": "D-07",
+        "severity": "MENOR",
+        "finding": "apply_feedback corria antes de la validacion y una decision desconocida producia TypeError en vez de rechazo cerrado con motivo.",
+        "resolution": "ACEPTADO. La validacion precede a la aplicacion y apply_feedback levanta HitlValidationError con la regla y el motivo."
+      },
+      {
+        "id": "D-08",
+        "severity": "MENOR",
+        "finding": "Las instrucciones entregan el algoritmo que determina las 20 respuestas y eso no estaba declarado.",
+        "resolution": "ACEPTADO. Se declara en blinding.consequence_declared, en explicitly_not_claimed_hidden y en las limitaciones."
+      },
+      {
+        "id": "D-09",
+        "severity": "MENOR",
+        "finding": "En modo run no se contrastaba el contrato del paquete ni el ancla de git.",
+        "resolution": "ACEPTADO. Se rechaza si el contrato recibido no es el que congelo el paquete, y --package-anchor contrasta contra el ancla versionada."
+      },
+      {
+        "id": "D-10",
+        "severity": "MENOR",
+        "finding": "--seeds no se validaba contra el conjunto congelado.",
+        "resolution": "ACEPTADO. Se rechaza cualquier semilla fuera de [0,1,2,3,4]."
+      },
+      {
+        "id": "D-11",
+        "severity": "OBSERVACION",
+        "finding": "blinding.what_is_blinded reinstalaba la afirmacion condenada.",
+        "resolution": "ACEPTADO. Reescrito: solo enumera metricas, 2022 y 2023-2025."
+      },
+      {
+        "id": "D-12",
+        "severity": "OBSERVACION",
+        "finding": "La regla altered_scenario era inaplicable tal como estaba escrita.",
+        "resolution": "ACEPTADO. Reescrita segun lo que efectivamente se verifica."
+      },
+      {
+        "id": "D-13",
+        "severity": "OBSERVACION",
+        "finding": "assert_no_reserved_paths comparaba subcadenas sin resolver enlaces.",
+        "resolution": "ACEPTADO. Ahora resuelve la ruta antes de comparar."
+      },
+      {
+        "id": "D-14",
+        "severity": "OBSERVACION",
+        "finding": "Codigo muerto y metricas redundantes sin explicar.",
+        "resolution": "ACEPTADO. Codigo muerto eliminado; los alias se documentan como tales."
+      },
+      {
+        "id": "D-15",
+        "severity": "OBSERVACION",
+        "finding": "El paquete vive solo en un montaje escribible.",
+        "resolution": "ACEPTADO como limitacion declarada; la inmutabilidad descansa en el hash anclado en git."
+      }
+    ],
+    "reviewer_confirmations_preserved": [
+      "No hubo NINGUNA relajacion del criterio de PASS: verdict_criteria y stop_conditions sin cambios; prohibited_assertions y declared_limitations_predeclared solo crecieron.",
+      "No se altero retrospectivamente ninguna condicion congelada del disenio: verificado parametro por parametro contra scientific-closure-decisions.md, que no difiere de origin/main.",
+      "A/B/C intactos: 91 hashes OK, 0 FAILED. Holdout en CONFIRMADA con el mismo attempt_id."
     ]
   }
 }

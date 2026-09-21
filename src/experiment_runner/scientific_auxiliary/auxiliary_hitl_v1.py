@@ -253,7 +253,12 @@ def assert_no_reserved_paths(paths: dict[str, Any]) -> list[str]:
     for name, value in paths.items():
         if value is None:
             continue
-        text = str(value)
+        # `resolve()` sigue enlaces simbólicos y normaliza `..`: comparar la
+        # cadena cruda dejaría pasar un enlace con nombre inocuo (hallazgo D-13).
+        try:
+            text = str(Path(str(value)).resolve())
+        except OSError:
+            text = str(value)
         for marker in RESERVED_PATH_MARKERS:
             if marker in text:
                 offending.append(f"{name}={text} contiene {marker!r}")
@@ -942,12 +947,28 @@ def apply_feedback(
             excluded.append(position)
             excluded_dates.append(fecha.isoformat())
             n_effective += 1
-        else:
+        elif event["decision"] == DECISION_CORRECT:
             n_correct += 1
+            if event.get("corrected_label") not in (0, 1):
+                raise HitlValidationError(
+                    [
+                        f"[R07-decision-payload] {event.get('scenario_id')}: corrected_label "
+                        f"inválido {event.get('corrected_label')!r}"
+                    ]
+                )
             if int(labels.loc[position]) != int(event["corrected_label"]):
                 n_effective += 1
             labels.loc[position] = int(event["corrected_label"])
             corrected_dates.append(fecha.isoformat())
+        else:
+            # Vocabulario desconocido: rechazo cerrado con motivo, nunca un
+            # TypeError sin tipar (hallazgo D-07).
+            raise HitlValidationError(
+                [
+                    f"[R06-decision-vocabulary] {event.get('scenario_id')}: decisión "
+                    f"desconocida {event.get('decision')!r}"
+                ]
+            )
 
     return AppliedFeedback(
         labels=labels,
@@ -1009,7 +1030,7 @@ def build_lineage(
 
 
 # --------------------------------------------------------------------------
-# Paquete ciego de intervención humana
+# Paquete de intervención humana (cegamiento PARCIAL, declarado como tal)
 # --------------------------------------------------------------------------
 
 PACKAGE_INSTRUCTIONS = (
@@ -1033,7 +1054,6 @@ PACKAGE_HIDDEN_FIELDS = (
     "cualquier dato, predicción o métrica de 2023, 2024 o 2025",
     "cualquier métrica o dato del holdout 2024-2025",
     "los resultados de las Etapas A, B y C",
-    "qué decisión tomó el revisor simulado en el mismo escenario",
 )
 """Lo que el paquete efectivamente oculta. Deliberadamente NO incluye la
 etiqueta correcta ni la identidad de los registros incorrectos: ambas son
@@ -1046,16 +1066,26 @@ PACKAGE_NOT_CLAIMED_HIDDEN = (
     "observada en la fecha objetivo es menor que el umbral P20 congelado, y el paquete "
     "muestra ambos valores.",
     "En consecuencia, también es derivable qué registros son incorrectos y cuántos son.",
+    "También es derivable qué haría el revisor simulado en cada escenario, porque el diseño "
+    "publicado dice que restituye la etiqueta limpia y confirma el resto.",
+    "Las propias instrucciones enuncian la regla de etiquetado, de modo que quien la aplique "
+    "obtiene una respuesta determinada para los 20 escenarios.",
     "La semilla figura en el paquete y el generador de corrupción está en el repositorio.",
 )
 
 PACKAGE_BLINDING = {
     "level": "PARCIAL",
+    "what_is_blinded": (
+        "Ninguna métrica, ningún resultado de 2022 y ningún dato de 2023-2025 llegan al "
+        "paquete; tampoco el efecto de cada decisión sobre ninguna métrica.",
+    ),
     "consequence_declared": (
         "Esta intervención demuestra que el mecanismo HITL opera correctamente cuando una "
         "persona autorizada realiza una revisión de CALIDAD DE DATO con respuesta "
-        "determinable. NO demuestra juicio bajo incertidumbre, NO demuestra pericia y NO "
-        "demuestra cegamiento. Afirmar cegamiento sobre esta pista está PROHIBIDO."
+        "determinable, siguiendo un procedimiento que el propio paquete le enuncia. NO "
+        "demuestra juicio bajo incertidumbre, NO demuestra pericia, NO demuestra cegamiento y "
+        "NO demuestra criterio propio del revisor. Afirmar cualquiera de esas cuatro cosas "
+        "sobre esta pista está PROHIBIDO."
     ),
 }
 
@@ -1074,14 +1104,15 @@ def build_human_package(
     contract_sha256: str,
     seed: int,
 ) -> dict[str, Any]:
-    """Construye el paquete ciego que se presenta al operador.
+    """Construye el paquete que se presenta al operador.
 
-    Deliberadamente **no** incluye la etiqueta limpia, la posición de la
-    corrupción, ninguna métrica ni ningún dato posterior a 2021: mostrarlos
-    induciría la respuesta o filtraría resultados. Sí incluye la observación
-    ya madurada de la fecha objetivo, porque el diseño congelado cierra la
-    recalibración precisamente tras la maduración de los targets de 2021 y un
-    revisor real dispondría de ese dato al revisar.
+    El cegamiento es **PARCIAL** y el paquete lo declara: no incluye ninguna
+    métrica ni ningún dato posterior a 2021, pero **sí** incluye la observación
+    madurada de la fecha objetivo y el P20 congelado, con los que la etiqueta
+    correcta es determinable. No se oculta esa determinabilidad: el diseño
+    congelado exige la maduración de los targets de 2021 antes de cerrar la
+    recalibración, y un revisor real dispondría de ese dato. Afirmar que el
+    paquete es ciego está prohibido por el contrato.
     """
     scenarios = []
     for position, (_, row) in enumerate(events.iterrows(), start=1):
@@ -1351,6 +1382,29 @@ def run_track_for_seed(
         validated_at=validated_at,
     )
 
+    # La validación precede a cualquier aplicación: aplicar primero y validar
+    # después dejaría que una decisión inválida modificara etiquetas antes de
+    # ser rechazada (hallazgo D-07). El identificador del sucesor todavía no se
+    # conoce, así que se usa uno provisional derivado de los propios eventos:
+    # basta para detectar autorreferencia, y el definitivo se comprueba aparte.
+    provisional_successor_id = deterministic_model_id(
+        arm=ARM_REFIT_WITH_CORRECTIONS,
+        seed=seed,
+        track=track,
+        training_fingerprint=train_fingerprint,
+        label_fingerprint=content_sha256([e["event_id"] for e in events]),
+    )
+    validate_feedback_events(
+        events,
+        admissible_emissions={pd.Timestamp(d) for d in feedback["feature_timestamp"]},
+        expected_package_sha256=package_sha256,
+        expected_model_version=frozen_model_id,
+        successor_model_id=provisional_successor_id,
+        expected_feature_contract=feature_contract(),
+        execution_instant=execution_instant,
+        allow_fixture=allow_fixture,
+    )
+
     applied = apply_feedback(feedback=feedback, recorded_labels=recorded_labels, events=events)
 
     corrected_feedback = feedback.drop(index=applied.excluded_positions)
@@ -1369,16 +1423,10 @@ def run_track_for_seed(
         ),
     )
 
-    validate_feedback_events(
-        events,
-        admissible_emissions={pd.Timestamp(d) for d in feedback["feature_timestamp"]},
-        expected_package_sha256=package_sha256,
-        expected_model_version=frozen_model_id,
-        successor_model_id=with_corr_model_id,
-        expected_feature_contract=feature_contract(),
-        execution_instant=execution_instant,
-        allow_fixture=allow_fixture,
-    )
+    if with_corr_model_id == frozen_model_id:
+        raise HitlValidationError(
+            ["Autorreferencia: el sucesor coincidiría con el predictor de origen."]
+        )
 
     if applied.n_effective_changes == 0:
         recalibration_status = NO_RECALIBRATION
@@ -1850,6 +1898,10 @@ def run_complement_h(
             "n_correct": human_result.applied.get("n_correct"),
             "n_effective_changes": human_result.applied.get("n_effective_changes"),
             "n_no_change": human_result.applied.get("n_accept"),
+            "n_no_change_note": (
+                "Alias explícito de n_accept: una confirmación es, por definición, una "
+                "ausencia de cambio."
+            ),
         },
         "n_recalibrations": sum(
             1 for r in all_results if r.recalibration_status == RECALIBRATION_APPLIED
@@ -1858,8 +1910,16 @@ def run_complement_h(
             (r.lineage is not None) == (r.recalibration_status == RECALIBRATION_APPLIED)
             for r in all_results
         ),
+        "lineage_chain_complete_kind": "structural_guard",
         "predecessor_preserved": all(r.predecessor_preserved for r in all_results),
+        "predecessor_preserved_kind": "structural_guard",
+        "predecessor_preserved_meaning": (
+            "Los identificadores de los tres brazos difieren por construcción. Mide que el "
+            "sucesor no sobreescribe al predecesor en el registro, NO que los artefactos del "
+            "predecesor sigan en disco: eso lo cubre el manifiesto de integridad."
+        ),
         "holdout_ledger_modules_loaded": len(holdout_modules),
+        "holdout_ledger_modules_loaded_kind": "contingent_measurement",
         "holdout_ledger_modules": holdout_modules,
         "max_target_timestamp_read": pd.to_datetime(frames.eligible["target_timestamp"])
         .max()
@@ -1870,30 +1930,46 @@ def run_complement_h(
         "n_evaluation_rows": n_evaluation_rows,
     }
 
+    # Clasificación honesta de cada invariante (hallazgo D-04 de la crítica
+    # independiente). Publicar como «medido y satisfecho» algo que no puede
+    # tomar otro valor sería presentar una tautología como evidencia de la
+    # corrida. Tres categorías, y ninguna se disfraza de otra:
+    #
+    # - `contingent_measurement`: puede dar falso con este mismo código.
+    # - `structural_guard`: garantizado por construcción del código; se computa
+    #   igual, como guarda de regresión, y se declara qué cambio lo rompería.
+    # - `not_measured_in_run`: no es medible dentro de una corrida única; se
+    #   nombra dónde sí se mide.
     invariants = {
         "INV-01_no_data_after_2022_12_31": {
-            "measured": True,
-            "satisfied": mechanism["max_target_timestamp_read"] <= HITL_MAX_TARGET_DATE.isoformat(),
+            "kind": "structural_guard",
+            "holds": mechanism["max_target_timestamp_read"] <= HITL_MAX_TARGET_DATE.isoformat(),
             "observed": mechanism["max_target_timestamp_read"],
+            "guaranteed_by": (
+                "`load_daily_series` recorta la serie antes de agregar y `_assert_no_future_data` "
+                "aborta en `build_hitl_frames`: si esto fuera falso, la corrida ya habría "
+                "terminado con error y no existiría este artefacto."
+            ),
+            "would_break_if": (
+                "se ampliara HITL_WINDOW_BOUNDS o se removiera _assert_no_future_data"
+            ),
         },
         "INV-02_holdout_ledger_untouched": {
-            "measured": True,
-            "satisfied": len(holdout_modules) == 0,
+            "kind": "contingent_measurement",
+            "holds": len(holdout_modules) == 0,
             "observed": holdout_modules,
             "measurement_scope": (
-                "Módulos cargados en ESTE proceso. La CLI de H corre en un proceso dedicado, "
-                "de modo que el alcance coincide con el runner; embebido en un proceso que ya "
+                "Módulos cargados en ESTE proceso. La CLI de H corre en un proceso dedicado, de "
+                "modo que el alcance coincide con el runner; embebido en un proceso que ya "
                 "hubiera importado el ledger por otra razón, la medición sería pesimista."
             ),
             "limitation": (
-                "Detecta la carga del módulo del ledger. No detectaría un sqlite3.connect "
-                "directo a su ruta; eso se cubre por assert_no_reserved_paths sobre la "
-                "configuración y por INV-03, comparación de hashes externa."
+                "Detecta la carga del módulo. No detectaría un sqlite3.connect directo a su "
+                "ruta; eso lo cubren `assert_no_reserved_paths` sobre la configuración e INV-03."
             ),
         },
         "INV-03_abc_artifacts_untouched": {
-            "measured": False,
-            "status": "NOT_MEASURED_IN_RUN",
+            "kind": "not_measured_in_run",
             "measured_where": (
                 "Verificación externa de hashes del respaldo de la campaña A/B/C "
                 "(sha256sum -c sobre evidence-snapshots/final/SHA256SUMS), registrada en "
@@ -1901,51 +1977,68 @@ def run_complement_h(
             ),
         },
         "INV-04_p20_frozen_once": {
-            "measured": True,
-            "satisfied": bool(p20_consistent),
+            "kind": "structural_guard",
+            "holds": bool(p20_consistent),
             "observed": {"p20_frozen": frames.p20_frozen},
+            "guaranteed_by": (
+                "`build_hitl_frames` calcula el P20 una sola vez sobre el train inicial y "
+                "etiqueta las tres ventanas con ese mismo valor."
+            ),
+            "would_break_if": "alguna ventana recalculara su propio P20 antes de etiquetar",
         },
         "INV-05_same_evaluation_rows_all_arms": {
-            "measured": True,
-            "satisfied": set(arm_observation_counts.values()) == {n_evaluation_rows},
+            "kind": "structural_guard",
+            "holds": set(arm_observation_counts.values()) == {n_evaluation_rows},
             "observed": {
                 "n_evaluation_rows": n_evaluation_rows,
                 "distinct_arm_counts": sorted(set(arm_observation_counts.values())),
             },
+            "guaranteed_by": (
+                "los tres brazos reciben el mismo `frames.evaluation` en `evaluate_arm`"
+            ),
+            "would_break_if": "algún brazo filtrara o remuestreara su conjunto de evaluación",
         },
         "INV-06_no_reviewed_row_in_evaluation": {
-            "measured": True,
-            "satisfied": len(reviewed_dates & evaluation_dates) == 0,
+            "kind": "structural_guard",
+            "holds": len(reviewed_dates & evaluation_dates) == 0,
             "observed": {"n_intersection": len(reviewed_dates & evaluation_dates)},
+            "guaranteed_by": "las ventanas de feedback (2021) y evaluación (2022) son disjuntas",
+            "would_break_if": "las ventanas se solaparan o la revisión saliera de 2021",
         },
         "INV-07_bitwise_reproducible": {
-            "measured": False,
-            "status": "NOT_MEASURED_IN_RUN",
+            "kind": "not_measured_in_run",
             "measured_where": (
                 "Segunda ejecución independiente desde las mismas entradas congeladas y "
                 "comparación byte a byte, registrada en reproduction-record.json."
             ),
         },
         "INV-08_origin_recorded_no_mixing": {
-            "measured": True,
-            "satisfied": all(len(v) == 1 for v in origins_by_artifact.values())
+            "kind": "structural_guard",
+            "holds": all(len(v) == 1 for v in origins_by_artifact.values())
             and all(
                 event.get("feedback_origin") and event.get("track")
                 for r in all_results
                 for event in r.events
             ),
             "observed": {k: sorted(v) for k, v in origins_by_artifact.items()},
+            "guaranteed_by": "`build_feedback_events` recibe un único `origin` por llamada",
+            "would_break_if": "se construyera un artefacto uniendo eventos de pistas distintas",
         },
         "INV-09_no_self_reference": {
-            "measured": True,
-            "satisfied": all(
+            "kind": "structural_guard",
+            "holds": all(
                 r.lineage is None or r.lineage["source_model_id"] != r.lineage["successor_model_id"]
                 for r in all_results
             ),
+            "guaranteed_by": (
+                "`deterministic_model_id` incluye el nombre del brazo entre sus entradas, de modo "
+                "que predecesor y sucesor no pueden colisionar; además `RecalibrationLineage` lo "
+                "rechaza en su propia validación."
+            ),
+            "would_break_if": "el identificador dejara de depender del brazo",
         },
         "INV-10_closed_failure_on_invalid_inputs": {
-            "measured": False,
-            "status": "NOT_MEASURED_IN_RUN",
+            "kind": "not_measured_in_run",
             "measured_where": (
                 "Suite focalizada tests/test_auxiliary_hitl_v1.py, que ejercita cada regla con "
                 "una entrada inválida y exige HitlValidationError."
@@ -1974,7 +2067,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--mode",
         choices=("prepare-package", "run"),
         required=True,
-        help="prepare-package congela el paquete ciego; run ejecuta H con la respuesta humana",
+        help=(
+            "prepare-package congela el paquete de intervención (cegamiento parcial "
+            "declarado); run ejecuta H con la respuesta humana"
+        ),
     )
     parser.add_argument("--era5-csv", type=Path, required=True)
     parser.add_argument("--nasa-power-csv", type=Path, required=True)
@@ -1982,6 +2078,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--input-mode", choices=INPUT_MODES, default=INPUT_MODE_SCIENTIFIC)
     parser.add_argument("--package", type=Path, default=None)
     parser.add_argument("--human-response", type=Path, default=None)
+    parser.add_argument(
+        "--package-anchor",
+        type=Path,
+        default=None,
+        help="human-package-freeze.json versionado en git: ancla externa del paquete",
+    )
     parser.add_argument("--contract", type=Path, default=None)
     parser.add_argument("--campaign-id", default="hitl-complement-2026-09-21")
     parser.add_argument("--package-id", default=f"{AUXILIARY_ID}/H/human-package/2026-09-21")
@@ -2089,6 +2191,21 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 7
+    if contract_sha256 and package.get("contract_sha256") != contract_sha256:
+        print(
+            "ERROR: el contrato recibido no es el que congeló este paquete "
+            f"(paquete: {package.get('contract_sha256')}, recibido: {contract_sha256})",
+            file=sys.stderr,
+        )
+        return 7
+    if args.package_anchor is not None:
+        anchor = json.loads(args.package_anchor.read_text(encoding="utf-8"))
+        if anchor.get("package_sha256") != package.get("package_sha256"):
+            print(
+                "ERROR: el paquete no coincide con el ancla externa versionada en git",
+                file=sys.stderr,
+            )
+            return 7
 
     execution_instant = _utc_now()
     simulated_validated_at = (
@@ -2106,6 +2223,13 @@ def main(argv: list[str] | None = None) -> int:
         return 9
     human_validated_at = datetime.fromisoformat(str(responded_at).replace("Z", "+00:00"))
     seeds = tuple(int(s) for s in args.seeds.split(","))
+    if not set(seeds) <= set(DEFAULT_SEEDS):
+        print(
+            f"ERROR: semillas {sorted(set(seeds) - set(DEFAULT_SEEDS))} fuera del conjunto "
+            f"congelado {list(DEFAULT_SEEDS)}; el diseño prohíbe seleccionar semillas",
+            file=sys.stderr,
+        )
+        return 12
 
     try:
         outcome = run_complement_h(
@@ -2197,6 +2321,12 @@ def main(argv: list[str] | None = None) -> int:
         "mechanism_metrics": {
             **outcome["mechanism"],
             "abc_paths_referenced_in_configuration": len(reserved),
+            "abc_paths_referenced_in_configuration_kind": "structural_guard",
+            "abc_paths_referenced_in_configuration_note": (
+                "Es 0 en todo artefacto publicado por construcción: si `assert_no_reserved_paths` "
+                "devolviera algo, la corrida aborta con código 11 y no se escribe nada. Se publica "
+                "como guarda de configuración, no como medición contingente."
+            ),
             "configured_paths": {
                 k: (str(v) if v is not None else None) for k, v in configured_paths.items()
             },
