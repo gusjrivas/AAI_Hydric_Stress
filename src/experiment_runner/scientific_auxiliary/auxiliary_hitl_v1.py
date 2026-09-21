@@ -1880,9 +1880,15 @@ def run_complement_h(
             "measured": True,
             "satisfied": len(holdout_modules) == 0,
             "observed": holdout_modules,
+            "measurement_scope": (
+                "Módulos cargados en ESTE proceso. La CLI de H corre en un proceso dedicado, "
+                "de modo que el alcance coincide con el runner; embebido en un proceso que ya "
+                "hubiera importado el ledger por otra razón, la medición sería pesimista."
+            ),
             "limitation": (
                 "Detecta la carga del módulo del ledger. No detectaría un sqlite3.connect "
-                "directo a su ruta; eso se cubre en INV-03 por comparación de hashes externa."
+                "directo a su ruta; eso se cubre por assert_no_reserved_paths sobre la "
+                "configuración y por INV-03, comparación de hashes externa."
             ),
         },
         "INV-03_abc_artifacts_untouched": {

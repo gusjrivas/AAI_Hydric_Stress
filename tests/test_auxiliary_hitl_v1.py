@@ -848,11 +848,18 @@ def test_scenario_outside_the_package_is_rejected(package: dict) -> None:
 
 
 def test_the_runner_never_imports_the_holdout_ledger() -> None:
-    """INV-02. Se inspecciona el AST, no el texto: el docstring del módulo
-    nombra `holdout_ledger` justamente para decir que no lo usa, y una
-    comprobación textual daría un falso positivo."""
+    """INV-02. Dos comprobaciones complementarias, ninguna textual.
+
+    El docstring del módulo nombra `holdout_ledger` justamente para decir que no
+    lo usa, así que buscar la cadena daría un falso positivo. Y mirar
+    `sys.modules` del proceso de pruebas daría un falso NEGATIVO al revés: otros
+    módulos de la suite importan el ledger, de modo que en una corrida completa
+    aparecería cargado por razones ajenas a este runner. Se inspecciona el AST y
+    se importa el runner en un intérprete limpio.
+    """
     import ast
     import pathlib
+    import subprocess
     import sys
 
     tree = ast.parse(pathlib.Path(h.__file__).read_text(encoding="utf-8"))
@@ -864,7 +871,23 @@ def test_the_runner_never_imports_the_holdout_ledger() -> None:
             imported.append(node.module or "")
             imported.extend(f"{node.module}.{a.name}" for a in node.names)
     assert not any("holdout_ledger" in name for name in imported), imported
-    assert not any(name.endswith("holdout_ledger") for name in sys.modules)
+
+    repo_root = pathlib.Path(h.__file__).resolve().parents[3]
+    probe = (
+        "import sys;"
+        "import experiment_runner.scientific_auxiliary.auxiliary_hitl_v1;"
+        "print([n for n in sys.modules if n.endswith('holdout_ledger')])"
+    )
+    completed = subprocess.run(
+        [sys.executable, "-c", probe],
+        cwd=str(repo_root),
+        env={"PYTHONPATH": str(repo_root / "src"), "PATH": "/usr/bin:/bin"},
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.strip() == "[]", completed.stdout
 
 
 def test_the_runner_never_references_abc_stage_runners() -> None:
@@ -939,18 +962,39 @@ def test_invariants_are_measured_not_declared(frames: h.HitlFrames, package: dic
         "INV-09_no_self_reference",
         "INV-10_closed_failure_on_invalid_inputs",
     }
+    import sys
+
     for name, body in inv.items():
         assert isinstance(body, dict), name
         if body["measured"]:
-            assert body["satisfied"] is True, name
+            assert "satisfied" in body, name
         else:
             assert body["status"] == "NOT_MEASURED_IN_RUN", name
             assert body["measured_where"], name
     # Exactamente tres invariantes no son medibles dentro de una corrida única.
     assert sum(1 for b in inv.values() if not b["measured"]) == 3
 
+    # INV-02 mide el proceso, no el runner: en la suite completa otros módulos
+    # importan el ledger y la medición debe reflejarlo con fidelidad en vez de
+    # devolver un True complaciente. Lo que se verifica es la FIDELIDAD de la
+    # medición, no que el proceso de pruebas esté limpio.
+    ambient = sorted(n for n in sys.modules if n.endswith("holdout_ledger"))
+    inv_02 = inv["INV-02_holdout_ledger_untouched"]
+    assert sorted(inv_02["observed"]) == ambient
+    assert inv_02["satisfied"] == (ambient == [])
+
+    for name in (
+        "INV-01_no_data_after_2022_12_31",
+        "INV-04_p20_frozen_once",
+        "INV-05_same_evaluation_rows_all_arms",
+        "INV-06_no_reviewed_row_in_evaluation",
+        "INV-08_origin_recorded_no_mixing",
+        "INV-09_no_self_reference",
+    ):
+        assert inv[name]["satisfied"] is True, name
+
     mech = outcome["mechanism"]
-    assert mech["holdout_ledger_modules_loaded"] == 0
+    assert mech["holdout_ledger_modules_loaded"] == len(ambient)
     assert mech["n_reviewed_dates_inside_evaluation"] == 0
     assert mech["n_evaluation_rows"] > 0
 
