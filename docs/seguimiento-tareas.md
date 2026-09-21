@@ -1,5 +1,31 @@
 # Seguimiento de tareas — plan de proyecto vs. estado real del repo
 
+## 2026-09-21 — Docker local aislado para probar Mi cultivo (HU6)
+
+HU2/HU4/HU5/HU6, capacidades data-ingestion, predictive-modeling, human-feedback,
+architecture-integration y alerting-ui; CRISP-DM integración. Se agrega
+compose.producer-preview.yml y docker/producer-preview/: preparación explícita
+con fixtures sintéticos, dos sectores, tres sensores (uno vacío), bundles por
+sensor, tandas históricas revisables y tandas futuras. Nginx sirve la UI compilada
+y el proxy de API del mismo origen. No se ejecuta entrenamiento desde HTTP.
+
+Proyecto aai-producer-preview, puertos loopback 5180/8180 y volumen independiente.
+No se montan datos del repositorio ni se conectan los servicios MLflow/MinIO/Postgres
+existentes. El marcador de preparación evita reentrenar o sobrescribir opiniones
+al reiniciar; un volumen parcial no se sobrescribe silenciosamente.
+
+Verificado: build de ambas imágenes, preparación exitosa, API y frontend saludables,
+redirección a Mi cultivo, 30 días/3 horizontes/3 pendientes revisables por sensor,
+estado vacío, documentación API y mismo conjunto de 6 emisiones tras reiniciar y
+reejecutar prepare. Validación por HTTP real a través del proxy; no se declara
+inspección visual de navegador. Sin porcentajes habilitados. Comandos y límites en
+[docker/producer-preview/README.md](../docker/producer-preview/README.md).
+
+No modifica configuración experimental, manifiestos congelados, hipótesis,
+arquitectura ni resultados históricos. No es la corrida operacional real ni
+registro científico MLflow. HU7/HU8 sin nueva evidencia. Aporte al capítulo 3:
+entorno ejecutable de prueba funcional; PR #207 continúa en borrador.
+
 ## 2026-09-21 — Emisión v2 conectada a Mi cultivo (HU2/HU4/HU5/HU6)
 
 Capacidades data-ingestion, predictive-modeling, human-feedback,

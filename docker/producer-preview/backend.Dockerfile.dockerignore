@@ -1,0 +1,14 @@
+**
+!pyproject.toml
+!src/
+!src/**
+!backend/
+!backend/**
+!tests/
+!tests/__init__.py
+!tests/test_operational_run.py
+!docker/
+!docker/producer-preview/
+!docker/producer-preview/prepare.py
+**/__pycache__/
+**/*.pyc

@@ -45,3 +45,5 @@
 - [ ] 1.3b-ii Completar despliegue/registro de bundles y evidencia operacional real,
       incluyendo gate de porcentajes por dominio/rango y revisión de navegador.
       El adaptador actual carga un directorio local administrado; no registra en MLflow.
+
+- [x] 1.3b-iii Entorno Docker local aislado con bundles y datos sintéticos, proxy UI/API, salud y persistencia verificadas; no sustituye 1.3b-ii ni la revisión visual.
