@@ -37,6 +37,7 @@ from experiment_runner.controlled_daily_v4.features import compute_p20_threshold
 from experiment_runner.controlled_daily_v4.metrics import mcc_strict
 from experiment_runner.controlled_daily_v4.stage_b_runner import (
     REASON_BOOTSTRAP_NO_VALID_REPLICAS,
+    REASON_BOOTSTRAP_NOT_EXECUTED,
     REASON_DELTA_LOWER_BOUND_BELOW_THRESHOLD,
     REASON_EVALUATION_LABELS_MONOCLASS,
     REASON_MCC_NOT_POSITIVE,
@@ -517,7 +518,7 @@ def _daily_series_with_constant_2023_moisture(value=0.9):
     return mutated
 
 
-def test_run_stage_b_with_genuinely_monoclass_evaluation_data_has_no_predictions():
+def test_run_stage_b_with_genuinely_monoclass_evaluation_data_retains_predictions():
     daily_series = _daily_series_with_constant_2023_moisture(0.9)
     contract = _contract()
 
@@ -528,6 +529,12 @@ def test_run_stage_b_with_genuinely_monoclass_evaluation_data_has_no_predictions
     assert result.predictions_available is True
     assert result.metrics_candidate["brier_score"]["status"] == "defined"
     assert result.metrics_candidate["log_loss"]["status"] == "defined"
+    # El bootstrap NO se intentó (evaluación monoclase): el artefacto no debe
+    # afirmar el resultado de un procedimiento que nunca se ejecutó, pero la
+    # ausencia de intervalo pareado debe seguir bloqueando la validación.
+    assert result.bootstrap_executed is False
+    assert REASON_BOOTSTRAP_NO_VALID_REPLICAS not in result.verdict_reasons
+    assert REASON_BOOTSTRAP_NOT_EXECUTED in result.verdict_reasons
     assert result.metrics_candidate["roc_auc"]["status"] == "undefined"
     assert result.bootstrap_executed is False
     assert result.bootstrap_result is None

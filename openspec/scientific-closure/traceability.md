@@ -160,3 +160,39 @@ registrada** en `findings-resolution.json` bajo `KL-01`. Ninguna instancia de
 esta clase tocó jamás custodia, fuga, identidad ejecutable, el estado de un
 requisito ni una afirmación científica; los cuatro lectores lo afirmaron por
 separado. Ante cualquier número de este registro que importe: recomputarlo.
+## Actualización por integración de `origin/main` — 2026-09-21
+
+Esta sección **no** cambia el estado de ningún requisito. Registra qué hechos
+citados en las filas anteriores dejaron de ser ciertos tras integrar
+`origin/main` (`a65701477b19ecad172fa613aea8b8dbf94bab9c`, PR #206) en
+`feat/scientific-closure`.
+
+- **SC-GOV-002** sigue `BLOCKED`. Cambia el hecho, no el estado: el protocolo
+  detallado vigente, `docs/research/scientific-closure-decisions.md` y
+  `docs/research/scientific-closure-runbook.md` **ya existen** en `origin/main`,
+  y `docs/adr/0011-...md` registra la condición 4 de ADR-0011 como cumplida al
+  mergear ese cambio. Esa condición es un prerrequisito de integración, no una
+  autorización: no habilita ejecutar A, B ni C. Sigue vigente que
+  `214735e…` **no** es ancestro de `origin/main` ni del merge, y las condiciones
+  1 (parcial), 2 (parcial) y 3 de ADR-0011 no cambian.
+- **SC-GOV-003** sigue `PASS_WITH_LIMITATIONS`, con dos hechos de la fila
+  revisados. (a) Deja de ser cierto que `src/` permanezca byte-idéntico a
+  `214735e…`: el merge incorpora las correcciones auditadas del PR #206 en
+  `src/experiment_runner/controlled_daily_v4/`. (b) La frase «ningún commit de
+  sesión tocó `frontend/`» sigue siendo cierta **de los commits de esta rama**
+  —`git diff b82d445e HEAD -- frontend/` está vacío— pero ya no describe el
+  árbol: el merge trae 17 archivos de `frontend/` **desde `main`**, y tras el
+  merge `git diff origin/main -- frontend/` está vacío, es decir el árbol
+  reproduce la UI de `main` sin modificarla. Ninguna línea de UI fue escrita ni
+  alterada por esta rama. Siguen ciertos sin cambio los demás hechos de la fila
+  (`scientific-baseline-v3`, `technical-baseline-v1` y `technical-baseline-v2`
+  no se movieron).
+- **SC-GOV-009** sigue `BLOCKED`, y con una razón adicional: además de que la
+  imagen aprobada no es inspeccionable desde esta distro, el árbol `src/` ya no
+  coincide con el commit ejecutable declarado, de modo que la identidad
+  ejecutable debe redeclararse y volver a verificarse antes de ejecutar.
+- La numeración duplicada «16» del protocolo, registrada como precisión C-17,
+  quedó corregida por el merge: la sección es la 19 y no hay duplicado.
+
+No se ejecutó A, B ni C, no se abrió el holdout 2024–2025 y no se inicializó el
+ledger definitivo. Ninguna compuerta se relaja por esta actualización.

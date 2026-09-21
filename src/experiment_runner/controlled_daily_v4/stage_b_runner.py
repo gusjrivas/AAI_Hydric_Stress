@@ -85,6 +85,11 @@ REASON_DELTA_LOWER_BOUND_BELOW_THRESHOLD = "delta_mcc_lower_bound_below_minus_0_
 REASON_TRAINING_LABELS_MONOCLASS = "training_labels_monoclass_refit_skipped"
 REASON_EVALUATION_LABELS_MONOCLASS = "evaluation_labels_2023_monoclass"
 REASON_BOOTSTRAP_NO_VALID_REPLICAS = "bootstrap_no_valid_replicas"
+REASON_BOOTSTRAP_NOT_EXECUTED = "bootstrap_not_executed"
+"""El bootstrap no se intentó (evaluación monoclase). Distinto de
+`REASON_BOOTSTRAP_NO_VALID_REPLICAS`, que afirma que SÍ se ejecutó y no
+alcanzó el soporte mínimo. Ambos bloquean la validación por igual: sin
+intervalo pareado no hay `CANDIDATE_VALIDATED` posible."""
 
 
 class StageBTechnicalError(RuntimeError):
@@ -240,7 +245,10 @@ def _evaluation_labels_are_monoclass(evaluation_frame: pd.DataFrame, p20_train: 
 
 
 def decide_stage_b_verdict(
-    mcc_candidate: float, bootstrap_result: PairedBootstrapResult | None
+    mcc_candidate: float,
+    bootstrap_result: PairedBootstrapResult | None,
+    *,
+    bootstrap_executed: bool = True,
 ) -> tuple[str, list[str]]:
     """Veredicto exacto de la compuerta de la Etapa B (protocolo, sección 10):
     `CANDIDATE_VALIDATED` sii `MCC_candidato_2023 > 0` (estrictamente) Y el
@@ -251,7 +259,14 @@ def decide_stage_b_verdict(
     bootstrap válido -- produce `CANDIDATE_NOT_VALIDATED` con los motivos
     explícitos acumulados (nunca solo el primero). Función pura, sin efectos
     secundarios, para poder ejercitar las igualdades límite de la regla de
-    forma aislada."""
+    forma aislada.
+
+    `bootstrap_executed=False` declara que el bootstrap **no se intentó** (caso
+    de evaluación monoclase). En ese caso se acumula
+    `REASON_BOOTSTRAP_NOT_EXECUTED` en lugar de
+    `REASON_BOOTSTRAP_NO_VALID_REPLICAS`, que afirmaría el resultado de un
+    procedimiento nunca ejecutado. La compuerta NO se relaja: la ausencia de
+    intervalo pareado sigue impidiendo `CANDIDATE_VALIDATED` en ambos casos."""
     reasons: list[str] = []
     if not math.isfinite(mcc_candidate):
         reasons.append(REASON_MCC_UNDEFINED)
@@ -259,7 +274,13 @@ def decide_stage_b_verdict(
         reasons.append(REASON_MCC_NOT_POSITIVE)
 
     if bootstrap_result is None:
-        reasons.append(REASON_BOOTSTRAP_NO_VALID_REPLICAS)
+        # Sin intervalo pareado NUNCA se valida; solo cambia el motivo, que debe
+        # decir la verdad sobre si el bootstrap llegó a ejecutarse.
+        reasons.append(
+            REASON_BOOTSTRAP_NO_VALID_REPLICAS
+            if bootstrap_executed
+            else REASON_BOOTSTRAP_NOT_EXECUTED
+        )
     else:
         lower_bound = bootstrap_result.interval[0]
         if not (math.isfinite(lower_bound) and lower_bound >= -0.05):
@@ -486,7 +507,9 @@ def run_stage_b(
             bootstrap_result = None
             bootstrap_diagnostics = exc.diagnostics
 
-    verdict, verdict_reasons = decide_stage_b_verdict(mcc_candidate, bootstrap_result)
+    verdict, verdict_reasons = decide_stage_b_verdict(
+        mcc_candidate, bootstrap_result, bootstrap_executed=not evaluation_monoclass
+    )
 
     if evaluation_monoclass:
         verdict_reasons.append(REASON_EVALUATION_LABELS_MONOCLASS)

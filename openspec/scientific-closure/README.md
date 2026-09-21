@@ -74,6 +74,10 @@ no son requisitos de esta campaña. R/H/N/S son condicionales, no un paquete obl
 La evidencia científica futura reside fuera del checkout en
 C:\Repo\AAI_Hydric_Stress_scientific_runtime\evidence. Ledger y backups son sus
 directorios hermanos. No crear ni inicializar nada allí durante esta preparación.
+Precisión 2026-09-21: esa ruta es la del host Windows. El runbook la reemplazó por
+marcadores de posición portables (<RUNTIME_ROOT>) y registra aparte la raíz Linux
+verificada /home/gus/scientific-closure-runtime/. Se cita aquí la ruta concreta solo
+como referencia histórica del host original; la raíz efectiva la fija quien ejecute.
 Los artefactos de gobernanza de una campaña futura residen en
 evidence/governance/<campaign-id>/<change-id>/; nunca son resultados del runner ni deben
 escribirse dentro de A/B/C. Los nombres relativos de requirements.json son

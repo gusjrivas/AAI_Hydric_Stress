@@ -319,8 +319,69 @@ La interfaz DEBE conservar el acceso al recorrido de arquitectura, evidencia con
 
 Implementado en `frontend/src/App.tsx` (destinos `#evidencia` y `#linaje`, ya establecidos desde la Entrega 2) y verificado nuevamente tras el rediseño visual de la Entrega 4: los valores de `EvidencePanel.tsx` (evidencia congelada `controlled_daily_v3`) y `ArchitectureFlow.tsx` (recorrido de defensa) no cambiaron; un fallo de integridad de linaje (409 simulado) se muestra explícito en Modelo y trazabilidad, sin ocultarse ni presentarse como cadena vacía. Testeado en `frontend/src/features/evidence/EvidencePanel.test.tsx`; verificado también en navegador con un `fetch` interceptado simulando un evento de linaje corrupto. Origen: Entrega 2 (tarea 2.4) y Entrega 4 (tarea 4.7) de `openspec/changes/improve-alerting-ui-decision-workflow/`.
 
+### Requirement: Control explícito de demostración opcional
+
+La UI DEBE mostrar controles cotidianos de inicio, pausa y continuación cuando el controlador local esté configurado, manteniendo el uso normal si no lo está.
+
+#### Scenario: Abrir la demostración
+
+- **GIVEN** una sesión preparada accesible
+- **WHEN** se abre la vista de demostración
+- **THEN** se muestra sensor, día simulado, progreso y estado bajo el rótulo permanente «Demostración con datos simulados»
+- **AND** navegar solo consulta; iniciar requiere una acción explícita.
+
+#### Scenario: Controlador ausente o inaccesible
+
+- **GIVEN** controlador no configurado o consulta fallida
+- **WHEN** se usa la aplicación
+- **THEN** las vistas operativas siguen disponibles y no se crea una sesión automáticamente
+- **AND** si hay pérdida de conexión se advierte que la demo podría seguir activa, sin afirmar que está pausada.
+
+Implementado en `frontend/src/features/demo/{DemoPage.tsx,useDemoSession.ts,api.ts}` y `frontend/src/api/demoControlUrl.ts` (HU6, `openspec/changes/add-accelerated-sensor-demo/`, entrega 3). La vista es un enlace propio (`#demo`) fuera del ruteo principal de destinos, visible solo si `VITE_DEMO_CONTROL_BASE_URL` está configurada; ninguna acción prepara ni crea sesiones, solo `GET/POST /demo/session*` del contrato de `scripts/demo_simulation/service.py` (entrega 2). Testeado en `frontend/src/features/demo/DemoPage.test.tsx` y `frontend/src/App.demo.test.tsx` (27 tests). Verificado además en navegador real (Chrome, extensión de automatización) contra el backend y el controlador reales vía Docker Compose (entrega 4, 2026-09-18): sin `VITE_DEMO_CONTROL_BASE_URL` no aparece el enlace ni se emite ningún request al controlador; con la variable configurada pero el servicio caído, se muestra "No se pudo consultar el estado; la demostración podría seguir en marcha" sin afirmar pausa, y el estado se recupera de inmediato al restablecerse la conexión o al volver a la pestaña.
+
+### Requirement: Refresco por progreso confirmado
+
+La UI DEBE consultar el estado sin solicitudes superpuestas y actualizar historial y calidad cuando avance una revisión confirmada, sin ejecutar POST por refrescar.
+
+#### Scenario: Ver un nuevo día
+
+- **GIVEN** una demostración en ejecución
+- **WHEN** el controlador confirma una nueva ingesta y su pronóstico
+- **THEN** la UI actualiza datos e historial del sensor correcto, conserva filtros y presenta la cantidad real de resultados guardados
+- **AND** no agrega registros optimistas ni confunde el día simulado con hoy.
+
+#### Scenario: Cambiar de sensor o volver a la pestaña
+
+- **GIVEN** una sesión que continúa en el controlador
+- **WHEN** el usuario consulta otro sensor o vuelve a la pestaña
+- **THEN** las respuestas obsoletas no contaminan el contexto; volver a la demo consulta su estado real sin iniciar otro worker.
+
+Implementado en `frontend/src/features/demo/useDemoSession.ts` (polling GET cada 2 segundos con una referencia en vuelo que evita solicitudes superpuestas; el polling corre mientras la vista está montada, sin condicionarlo al estado de visibilidad del documento — ver limitación más abajo) y `App.tsx` (dispara `workspace.reloadHistory()` y un `refreshToken` de calidad solo cuando cambia la fecha de ingesta o pronóstico confirmada del sensor de demo activo). Verificado con el contrato real en tres sesiones de demostración completas (entrega 4, 2026-09-18: `demo-be97e84561`, `demo-d8a94926ce`, cinco días cada una): fechas consecutivas (`GET /feedback/{sensor}` devolvió exactamente cinco registros por sesión, sin duplicados), progreso confirmado reflejado en la UI paso a paso, y aislamiento entre el sensor de demo y `sensor-a` al cambiar de sensor sin detener ni mezclar el worker.
+
+**Hallazgo de esta entrega, corregido:** la primera implementación pausaba el polling mientras `document.visibilityState` era `"hidden"`. Al verificar en un navegador real la pestaña reportó `"hidden"` de forma persistente pese a estar activa en pantalla (artefacto del entorno de automatización), exponiendo un riesgo real: si el montaje inicial coincidía con ese estado, la vista quedaba cargando indefinidamente sin nunca hacer el primer GET. Se corrigió en la entrega 3 (PR #204): el polling corre siempre que la vista está montada; `visibilitychange` solo dispara un refresco inmediato adicional al volver a la pestaña.
+
+### Requirement: Revisión humana posterior a la reproducción
+
+La UI DEBE impedir mutaciones manuales del sensor demo hasta completar la sesión. Luego DEBE conservar la validación temporal del backend y distinguir objetivos sin datos.
+
+#### Scenario: Intentar escribir durante la reproducción
+
+- **GIVEN** sesión preparada, en ejecución, pausándose, pausada o bloqueada
+- **WHEN** se consulta el sensor demo
+- **THEN** generar pronóstico, confirmar/corregir y aplicar observaciones manualmente están deshabilitados con explicación; los controles de demo y las consultas siguen disponibles.
+
+#### Scenario: Revisar un resultado al terminar
+
+- **GIVEN** sesión completada y una fecha objetivo ya terminada en UTC y presente en los datos ingeridos
+- **WHEN** la persona registra su observación
+- **THEN** se usa el endpoint existente y se respetan sus rechazos de procedencia/maduración
+- **AND** filas sin objetivo observable no se ofrecen como revisables; no se crean observaciones humanas automáticas ni se reanuda una sesión completada después de ajustar el predictor.
+
+Implementado en `frontend/src/features/demo/lock.ts` (`computeDemoWriteGate`/`demoGateForSensor`), aplicado en `ResumenView` (Generar pronóstico), `ForecastPage` (Confirmar/Corregir resultado) y `RecalibrationPanel` (Aplicar observaciones), solo cuando el sensor activo coincide con el de la sesión. `isRowReviewable` exige fecha objetivo dentro del período ingerido por la demo (`last_ingested_date`) y ya terminada en UTC real; la autoridad de aceptar/rechazar sigue siendo `confirmAlert`/`rejectAlert` sin cambios. Verificado en navegador real contra el contrato real (entrega 4, 2026-09-18): con la sesión `demo-be97e84561` en curso, "Generar pronóstico" quedó deshabilitado con la explicación "Esta sesión de demostración está en curso..."; al completarse, de sus cinco filas solo las dos con fecha objetivo dentro del período ingerido ofrecieron Confirmar/Corregir, y se registró manualmente una observación real sobre la fila `2026-01-01` (`estado_validacion` pasó a `confirmada` vía `POST /feedback/{sensor_id}/{fecha}/confirm`, verificado por `GET` directo al backend).
+
 ## Limitaciones conocidas
 
+- **Verificación pendiente (HU6, demostración acelerada, entrega 4, 2026-09-18):** el viewport móvil real y la navegación exclusivamente por teclado sobre la vista de demostración no pudieron confirmarse con la misma herramienta de automatización que verificó el resto de esta entrega — `resize_window` no tuvo efecto sobre la resolución real del navegador (fija en 1280×800 en este entorno), la misma limitación ya documentada más abajo para `improve-alerting-ui-decision-workflow`. Se hizo una aproximación (contenedor angosto de 390px inyectado por CSS, sin disparar los `@media` reales) que no mostró desbordes ni recortes, y se confirmó por inspección del DOM que el orden de tabulación llega a los controles Iniciar/Pausar/Continuar (botones nativos sin `tabIndex` ni manejadores de teclado propios) y que `Enter` los activa igual que un clic. La verificación en un dispositivo o navegador real con redimensionado genuino queda pendiente.
 - ~~Un único modelo fijo (Random Forest, configuración base) genera el veredicto; el motor de selección/ensamble entre varios modelos queda para una iteración futura (`openspec/changes/add-alerting-ui/proposal.md`, "Fuera de alcance").~~ **Actualización (2026-08-22):** por un tiempo resuelto mediante selección automática entre candidatos (`openspec/specs/predictive-modeling/spec.md`, requirement "Selección automática del mejor modelo candidato"). **Actualización posterior (ver "Modelo operativo vs. selección automática experimental" más abajo):** el backend operativo volvió a usar un contrato Random Forest explícito, por una decisión deliberada distinta del motivo original de esta limitación — no es un regreso a la limitación original, sino una decisión operativa para evitar que la UI falle ante folds de validación degenerados.
 - ~~No hay ingesta de datos de sensores en vivo; el dataset es el mismo consolidado histórico de HU2, configurable por nombre pero no por fuente en tiempo real.~~ **Actualización:** resuelto mediante ingesta de sensores mock/en vivo (`POST /sensors/{sensor_id}/readings`, ADR-0007) y ruteo/aislamiento multi-sensor (ADR-0008) — ver la sección "Multi-sensor" más abajo. El dataset consumido por esta capacidad para un `sensor_id` dado puede ser el generado por ese flujo de ingesta mock, separado por construcción del dataset histórico formal de HU7/HU8 (`melchor_romero_2024_consolidado`, sin prefijo `sensor__`). La ingesta de sensores sigue siendo una fuente de datos y contexto experimental, no la contribución central del proyecto (que permanece siendo la arquitectura de IA).
 - ~~El disparo de recalibración supervisada (HU5) no está conectado a la UI todavía.~~ **Actualización (2026-08-19):** resuelto — ver el requirement "Disparo manual de recalibración desde la interfaz" más arriba.

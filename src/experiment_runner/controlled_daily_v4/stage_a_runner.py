@@ -50,6 +50,7 @@ from experiment_runner.controlled_daily_v4.models import (
     iter_random_forest_configs,
 )
 from experiment_runner.controlled_daily_v4.selection import (
+    OUTCOME_NO_VALID_SELECTION,
     CandidateOOF,
     SelectionResult,
     select_family,
@@ -434,7 +435,7 @@ def run_stage_a(daily_series, depth_column, protocol_config=None):
                 ),
             )
         result.selection = SelectionResult(
-            outcome="NO_VALID_SELECTION",
+            outcome=OUTCOME_NO_VALID_SELECTION,
             global_mcc_by_family={},
             pairwise_intervals={},
             equivalence_set=[],

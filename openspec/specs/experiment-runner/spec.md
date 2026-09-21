@@ -204,6 +204,73 @@ Implementado en `src/experiment_runner/scenarios.py` (`inject_gaussian_noise`), 
 
 **Nota de vigencia:** las cifras de este requirement corresponden a `pipeline_version="purged_cv_v2"`, con ruido aplicado únicamente a train+test (`both`). El protocolo formal `controlled_daily_v3` distingue explícitamente `noise_mode="both"` de `noise_mode="test_only"` (ver "Protocolo formal vigente" al inicio de este documento) y los ejecuta como `noise_both_0.3`/`noise_test_only_0.3` en el experimento formal, cuyos resultados vigentes están en `docs/research/reference-v3-formal-table.md`. En ambos casos, el ground truth observado nunca se perturba: solo las variables predictoras de entrada reciben ruido.
 
+## Cierre científico v4: prerrequisitos de ejecución (HU7/HU8, 2026-09-20)
+
+A/B/C están implementadas y verificadas **exclusivamente con pruebas sintéticas**; la ejecución científica sigue pendiente. La referencia vigente de diseño es `docs/research/scientific-closure-decisions.md`; las cifras y estados de secciones anteriores de esta spec conservan su carácter histórico. La existencia de estos mecanismos y de sus fixtures NO demuestra eficacia real de ningún candidato.
+
+CRISP-DM: preparación, modelado y evaluación. No se modifica `controlled_daily_v3`, ni la arquitectura, hipótesis, frontend o contratos públicos. Los cuatro complementos (regresión, HITL, anomalías, robustez) tienen diseño predeclarado; implementar sus runners sigue pendiente y no bloquea técnicamente la Etapa A.
+
+### Requirement: Contrato de features ejecutable y serializado
+
+El runner DEBE exponer el contrato de features efectivo como dato serializable (`pergamino_features.v1`) y escribirlo en `resolved_config.json` de las Etapas A, B y C, y en el contrato congelado de transferencia de la Etapa A. El contrato v4 NO DEBE describirse como heredado de `controlled_daily_v3` sin modificación: son contratos distintos, y una diferencia de desempeño v3→v4 no identifica por sí sola un efecto de sitio, período o modelo.
+
+#### Scenario: La Etapa B científica rechaza un contrato congelado divergente
+
+- **GIVEN** una ejecución científica de la Etapa B y un contrato congelado cuyo `feature_contract` difiere del contrato ejecutable vigente
+- **WHEN** se invoca la guarda de custodia de la Etapa B
+- **THEN** la ejecución se rechaza antes de leer valores de entrada, entrenar o predecir, y el primer intento científico no se consume
+
+### Requirement: Pisos de soporte predeclarados para selección y bootstrap
+
+La selección DEBE exigir al menos **dos** folds con MCC definido de los tres previstos, y al menos el **80 %** de réplicas bootstrap válidas. Estos pisos son predeclarados y NO DEBEN relajarse para obtener un resultado favorable. Sin soporte de folds, la Etapa A DEBE terminar en `NO_VALID_SELECTION`, sin candidato transferible y conservando los diagnósticos de los folds ya evaluados. La compuerta de la Etapa C DEBE aplicar el mismo piso de réplicas válidas que el propio bootstrap.
+
+#### Scenario: Soporte de réplicas insuficiente
+
+- **GIVEN** un bootstrap pareado que produce menos del 80 % de réplicas válidas
+- **WHEN** se evalúa la compuerta de la Etapa C sobre ese resultado
+- **THEN** no se reporta intervalo, se conservan los diagnósticos con `replicas_valid`, `discarded_fraction` y `support_sufficient`, y la Etapa C no se admite
+
+### Requirement: Métricas indefinidas y evaluaciones monoclase
+
+El MCC DEBE ser indefinido cuando la verdad **o** la predicción es constante, y la exactitud balanceada DEBE ser indefinida con verdad monoclase. Toda métrica indefinida DEBE serializarse como `null` acompañada de estado, razón y soporte — nunca como `NaN` ni como un cero sustituto. Las evaluaciones monoclase de las Etapas B y C DEBEN conservar sus predicciones y las métricas que sí son definibles, y NO DEBEN registrar el resultado de un procedimiento que no se ejecutó. Una Etapa B monoclase NO DEBE abrir la Etapa C.
+
+#### Scenario: Evaluación monoclase en la Etapa B
+
+- **GIVEN** un período evaluable de la Etapa B con etiquetas monoclase y entrenamiento biclase
+- **WHEN** se ejecuta la Etapa B
+- **THEN** se persisten las predicciones y las métricas definibles, el bootstrap no se ejecuta ni se reporta como fallido, se registra la razón de la evaluación monoclase, y el veredicto no habilita la Etapa C
+
+### Requirement: Métricas de inicio de episodio
+
+El runner DEBE calcular métricas descriptivas de inicio de episodio sobre la fecha objetivo `t+3`, distinguiendo anticipación, detección en el día de inicio, detección tardía y omisión, y reportando días de anticipación, falsos avisos (días y rachas) y soporte. Los episodios cuyo inicio coincide con el comienzo de un segmento o con un hueco de calendario DEBEN censurarse por izquierda y NO DEBEN entrar en el denominador. Estas métricas NO DEBEN interpretarse como evidencia de eficacia operativa.
+
+#### Scenario: Episodio censurado por izquierda
+
+- **GIVEN** un episodio que comienza en la primera fila de un segmento o inmediatamente después de un hueco de calendario
+- **WHEN** se calculan las métricas de inicio
+- **THEN** el episodio se cuenta como censurado y se excluye del denominador de anticipación
+
+### Requirement: Custodia del primer intento científico de la Etapa B
+
+Una ejecución científica de la Etapa B DEBE reservar el intento en un registro persistente compartido **antes** de parsear, agregar o analizar los valores de entrada (el hash de los archivos sí se calcula antes, porque forma parte de la metadata de la reserva), dejando registrados candidato, commit, imagen inmutable, configuración, hashes de entradas y productor, y entorno, y DEBE finalizar la reserva autenticando los artefactos producidos por hash. Un segundo intento científico DEBE rechazarse. La recuperación DEBE ser de solo lectura, exigir una razón técnica explícita y verificar los hashes registrados, sin reentrenar, predecir ni cambiar el candidato. Un registro ausente o incompleto DEBE fallar cerrado.
+
+#### Scenario: Segundo intento científico de la Etapa B
+
+- **GIVEN** un intento ya reservado para la clave de la Etapa B
+- **WHEN** se intenta una nueva ejecución científica de la Etapa B
+- **THEN** el nuevo intento se rechaza y solo se admite recuperación explícita de solo lectura
+
+### Requirement: Preflight de metadatos previo a la ejecución
+
+El preflight DEBE validar que checkout, datos crudos, evidencia, ledger y backups son directorios disjuntos y preexistentes, que la identidad de código es limpia y conocida, y que la imagen se identifica por digest inmutable. El preflight NO DEBE leer valores de las entradas, calcular features, inicializar ningún ledger ni abrir ningún período reservado. Su resultado `PREPARED_NOT_AUTHORIZED` NO constituye autorización de ejecución.
+
+#### Scenario: Preflight sobre rutas solapadas
+
+- **GIVEN** una disposición en la que evidencia o ledger quedan dentro del checkout, o dos rutas se solapan
+- **WHEN** se ejecuta el preflight
+- **THEN** falla explícitamente y no escribe ningún artefacto
+
+
 ## Limitaciones conocidas
 
 - ~~La detección de anomalías no afecta actualmente el desempeño del modelo...~~ **Actualización (2026-08-21):** resuelto en `openspec/changes/fix-anomaly-feature-integration/`. `is_anomaly` ahora es una variable predictora real (detector ajustado solo sobre `train`, aplicado sin reajustar sobre `test`); ver la tabla de resultados actualizada arriba.
@@ -216,22 +283,28 @@ Implementado en `src/experiment_runner/scenarios.py` (`inject_gaussian_noise`), 
 - El período de evaluación 2024 usado por `controlled_daily_v3` es una referencia de desarrollo experimental, no una validación externa independiente sobre otro sitio o período.
 
 
-## Cierre científico v4: vigencia 2026-09-17 (HU7/HU8)
+## Cierre científico v4: nota de vigencia 2026-09-17 (SUPERSEDIDA)
 
-A/B/C están implementadas; ejecución científica pendiente. La referencia actual
-es `docs/research/scientific-closure-decisions.md`; las cifras y estados de
-versiones anteriores de esta spec conservan su carácter histórico.
+Esta spec incorporó el 2026-09-17 un resumen en prosa de los mecanismos de
+cierre científico v4. Al integrar `origin/main` el 2026-09-21, ese resumen quedó
+**supersedido** por la sección normativa «Cierre científico v4: prerrequisitos
+de ejecución (HU7/HU8, 2026-09-20)» de arriba, que expresa las mismas reglas
+como `### Requirement:` con sus escenarios. Se retira el texto duplicado para
+que la spec no enuncie dos veces la misma norma con precisión distinta.
 
-El runner DEBE preservar predicciones de evaluaciones monoclase con train
-biclase; serializar métricas definibles, indefinidas, razones y soporte; impedir
-selección con menos de dos folds válidos o bootstrap con menos de 80 % válidos;
-y registrar un primer intento B persistente antes de acceder a sus valores.
-La recuperación DEBE validar hashes sin entrenar ni cambiar candidato.
+Diferencia sustantiva que motiva el retiro, y no una simple reformulación: el
+resumen de 2026-09-17 decía que las métricas de inicio debían «censurar
+fronteras/gaps». La versión auditada corrige esa regla a censura **por
+izquierda** —quedan fuera del denominador los episodios que comienzan al inicio
+de un segmento o tras un hueco de calendario, mientras que un episodio truncado
+por el final del segmento **sigue siendo evaluable**—; ver «Requirement:
+Métricas de inicio de episodio» arriba y
+`docs/research/controlled-daily-v4-external-pergamino-protocol.md`, sección 19.
+La redacción anterior habría descartado episodios que la regla vigente conserva.
 
-Las métricas de inicio DEBEN usar fecha objetivo t+3, censurar fronteras/gaps y
-separar anticipación, mismo día, tardía, omitida, falsos avisos y soporte.
-La existencia de estos mecanismos y sus fixtures NO demuestra eficacia real.
-
-CRISP-DM: preparación/modelado/evaluación. No se modifica v3 ni arquitectura,
-hipótesis, frontend o contratos públicos. Los cuatro complementos tienen diseño
-predeclarado; implementar sus runners sigue pendiente y no bloquea técnicamente A.
+Sigue vigente, y no depende de esta nota: A/B/C están implementadas y su
+ejecución científica está **pendiente**; la existencia de estos mecanismos y de
+sus fixtures **no** demuestra eficacia real; no se modifica `controlled_daily_v3`
+ni la arquitectura, hipótesis, frontend o contratos públicos; los cuatro
+complementos (regresión, HITL, anomalías, robustez) tienen diseño predeclarado y
+sus runners siguen sin implementar, lo que no bloquea técnicamente la Etapa A.

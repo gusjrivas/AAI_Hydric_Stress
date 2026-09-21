@@ -55,6 +55,10 @@ de main de ADR-0011 sin inferir excepción ni hacer merge en esta tarea.
 Preparación: CLI OpenSpec 1.13.1 estricta para scientific-closure y diez sc-*;
 unittest documental (TOML, IDs, escenarios, DAG, tareas, referencias);
 git diff --check y revisión completa de cambios/staged; verificar main/UI intactos.
+Precisión 2026-09-21: tras integrar `origin/main`, «UI intacta» se verifica como
+`git diff origin/main -- frontend/` vacío (el árbol reproduce la UI de `main`),
+no como ausencia de archivos de `frontend/` en el diff contra el commit previo
+de la rama; `main` no se modifica en ningún caso.
 No ejecutar runner ni cargar módulos científicos para validar documentos.
 
 Readiness futuro: tests de entorno, identidad, fronteras, soporte, custodia y

@@ -12,7 +12,7 @@ Esa forma no es ejecutable: el paquete no define `__main__.py` y `pyproject.toml
 no declara console scripts. El error exacto observado es
 `No module named experiment_runner.controlled_daily_v4.__main__; 'experiment_runner.controlled_daily_v4' is a package and cannot be directly executed`.
 El módulo realmente invocable es `experiment_runner.controlled_daily_v4.cli`,
-comprobado con `--help` (parser completo) en el entorno reconstruido Linux.
+comprobado con `--help` (parser completo).
 Se corrigieron las cuatro invocaciones sin alterar ningún otro argumento,
 ruta, semilla ni bandera. El preflight ya usaba la forma correcta
 `python -m experiment_runner.controlled_daily_v4.preflight`, también verificada
@@ -21,11 +21,25 @@ inicialización del ledger ni la apertura del holdout.
 
 ## Rutas y preparación
 
-Checkout: C:\Repo\AAI_Hydric_Stress_scientific_closure.
-Datos originales: C:\Repo\AAI_Hydric_Stress_external_data\raw, solo lectura.
-Runtime externo: C:\Repo\AAI_Hydric_Stress_scientific_runtime.
-Subdirectorios disjuntos: evidence (A/B/C), ledger (SQLite B/C),
-backups (snapshots) y validation (logs sintéticos; no evidencia científica).
+Los bloques de comandos de este documento están escritos en PowerShell y usan
+**marcadores de posición**, no rutas reales: quien ejecute debe sustituirlos por
+las rutas efectivas de su host, y la forma equivalente en otro intérprete es
+válida mientras se conserven las opciones de aislamiento del contenedor. La
+elección de host no forma parte del protocolo.
+
+Tres raíces, **disjuntas entre sí** (el preflight las rechaza si se solapan o si
+alguna no existe todavía):
+
+| Rol | Marcador | Contenido |
+| --- | --- | --- |
+| Checkout | `<CHECKOUT>` | el repositorio, limpio y congelado en el SHA ejecutable |
+| Datos originales | `<RAW_ROOT>` | CSV de Pergamino, montados **solo lectura** |
+| Runtime externo | `<RUNTIME_ROOT>` | evidencia, ledger y backups, **fuera del checkout** |
+
+`<RUNTIME_ROOT>` contiene subdirectorios disjuntos, que deben **crearse antes**
+de invocar el preflight: `evidence` (A/B/C), `ledger` (SQLite B/C), `backups`
+(snapshots) y `validation` (logs sintéticos; no evidencia científica).
+
 No colocar resultados dentro del checkout. Todos los procesos deben compartir
 los mismos registros persistentes. Suplantar, borrar o restaurar registros
 antiguos queda prohibido: SQLite no protege contra un administrador del host.
@@ -38,10 +52,12 @@ resolver nuevamente un tag mutable entre etapas.
 git branch --show-current
 git status --porcelain --untracked-files=all
 git rev-parse HEAD
-.\docker\experiment-v4\build.ps1 -ImageTag experiment-v4-scientific-closure
+python docker/experiment-v4/build.py -t experiment-v4-scientific-closure
 $ImageId = docker image inspect --format '{{.Id}}' experiment-v4-scientific-closure
-$RuntimeRoot = 'C:\Repo\AAI_Hydric_Stress_scientific_runtime'
-$RawRoot = 'C:\Repo\AAI_Hydric_Stress_external_data\raw'
+$RuntimeRoot = '<RUNTIME_ROOT>'   # sustituir por la ruta real del host
+$RawRoot = '<RAW_ROOT>'           # sustituir por la ruta real del host
+New-Item -ItemType Directory -Force -Path "$RuntimeRoot\evidence",
+  "$RuntimeRoot\ledger", "$RuntimeRoot\backups", "$RuntimeRoot\validation" | Out-Null
 $DockerCommon = @('run','--rm','--network','none','--read-only','--tmpfs','/tmp',
   '-e','PYTHONDONTWRITEBYTECODE=1','-e','OMP_NUM_THREADS=1',
   '-e','OPENBLAS_NUM_THREADS=1','-e','MKL_NUM_THREADS=1',
@@ -102,8 +118,15 @@ if ($LASTEXITCODE -ne 0) { throw 'C falló: no liberar ni reinicializar ledger' 
 El placeholder no constituye autorización. No ejecutar automáticamente A→B→C.
 La carga física/verificación de CSV no equivale a analizar sus valores:
 agregados/features se restringen al período autorizado según contrato existente.
-En esta preparación no se montan CSV reales ni se ejecuta validate-inputs-only
-sobre ellos.
+Al momento de redactar esta guía no se montaron CSV reales ni se ejecutó
+validate-inputs-only sobre ellos con esta variante Windows/Docker. Con
+posterioridad, y **fuera** de esta variante, la sección «Variante Linux
+(2026-09-20)» sí registra una ejecución de `--validate-inputs-only` sobre las
+entradas reales: esa comprobación verifica identidad y procedencia y **no**
+analiza valores, no calcula features ni abre ningún período reservado. Cuando
+exista autorización, los bloques de arriba sí montan `<RAW_ROOT>` en modo solo
+lectura: el preflight consulta únicamente rutas, tamaños y referencias
+versionadas de esos archivos, sin leer sus valores.
 
 ## Backup y recuperación
 
@@ -149,17 +172,33 @@ conserva como procedimiento de referencia. Describe únicamente las rutas y el
 entorno verificados en Linux (WSL2) el 2026-09-20. Nada de lo registrado aquí
 constituye ejecución científica.
 
-**Advertencia de bloqueo (vigente).** Mientras la condición 4 de ADR-0011 no
-esté satisfecha, **ninguna etapa A, B o C puede ejecutarse**, ni puede
-inicializarse el ledger definitivo ni abrirse el holdout. Hecho verificado:
-`origin/main` es `9fcbfd9f4dd4860a07f7e99d5b16d849ac81c4af`; el ADR está
-mergeado byte a byte, pero el protocolo detallado presente en `origin/main` es
-una versión anterior (le falta la sección titulada «Condiciones de interpretación y
-soporte) y el código del runner en `main` diverge (~780 inserciones / ~160
-eliminaciones). El commit ejecutable declarado
-`214735e42ee04f018156cd630591e798aadd8bf3` no es ancestro de `origin/main`.
-Resolver esa divergencia exige una decisión de integración que esta preparación
-no puede inferir ni ejecutar.
+**Advertencia de bloqueo — estado al 2026-09-20 (histórico).** Mientras la
+condición 4 de ADR-0011 no estuviera satisfecha, **ninguna etapa A, B o C podía
+ejecutarse**, ni podía inicializarse el ledger definitivo ni abrirse el holdout.
+Hecho verificado ese día: `origin/main` era
+`9fcbfd9f4dd4860a07f7e99d5b16d849ac81c4af`; el ADR estaba mergeado byte a byte,
+pero el protocolo detallado presente en `origin/main` era una versión anterior
+(le faltaba la sección titulada «Condiciones de interpretación y soporte») y el
+código del runner en `main` divergía (~780 inserciones / ~160 eliminaciones). El
+commit ejecutable declarado `214735e42ee04f018156cd630591e798aadd8bf3` no era
+ancestro de `origin/main`. Resolver esa divergencia exigía una decisión de
+integración que esa preparación no podía inferir ni ejecutar.
+
+**Actualización (2026-09-21).** Esa decisión de integración se tomó fuera de
+esta preparación: el PR #206 se mergeó en `main`
+(`a65701477b19ecad172fa613aea8b8dbf94bab9c`), que ya contiene el protocolo
+vigente con la sección «Condiciones de interpretación y soporte», las decisiones
+preejecución, esta guía y el runner correspondiente. ADR-0011 registra en
+consecuencia la condición 4 como cumplida. Hechos que **siguen** verificados y
+sin resolver: `214735e42ee04f018156cd630591e798aadd8bf3` **tampoco** es ancestro
+de `a657014`, de modo que el commit ejecutable declarado en la documentación
+preexistente **debe volver a declararse** sobre el SHA efectivamente integrado
+antes de cualquier ejecución; la imagen aprobada no fue reconstruida ni
+verificada en este host; y las condiciones 1 (parcial), 2 (parcial) y 3 de
+ADR-0011 no cambian por este merge. La condición 4 es un prerrequisito de
+integración, **no** una autorización: **no habilita ejecutar A, B ni C**, no
+inicializa el ledger definitivo y no abre el holdout 2024-2025, que permanecen
+bajo sus propias compuertas y requieren autorización explícita.
 
 **Rutas verificadas (hechos).**
 
@@ -167,7 +206,7 @@ no puede inferir ni ejecutar.
 | --- | --- | --- |
 | Entradas primarias | `/home/gus/scientific-closure-inputs/migration-20260920/AAI_Hydric_Stress_external_data/raw/` | Presentes; hashes recalculados |
 | Copia lógica | `/home/gus/scientific-closure-backup/migration-20260920/AAI_Hydric_Stress_external_data/raw/` | Presentes; hashes idénticos a la primaria |
-| Raíz runtime | `/home/gus/scientific-closure-runtime/` | Creada con `env/`, `evidence/`, `ledger/`, `backups/`, `logs/`; **vacíos de evidencia científica** |
+| Raíz runtime | `/home/gus/scientific-closure-runtime/` | Creada con `env/`, `evidence/`, `ledger/`, `backups/`, `logs/`; **vacíos de evidencia científica**. Discrepancia registrada el 2026-09-21: la sección «Rutas y preparación» exige `evidence`, `ledger`, `backups` y `validation`; esta raíz tiene `logs/` y **no** tiene `validation/`. `logs/` **no** es su equivalente. `validation/` debe crearse antes de invocar el preflight |
 | Entorno reconstruido | `/home/gus/scientific-closure-runtime/env/venv-v4` | Python 3.11.16; 23 paquetes idénticos al pip-freeze histórico |
 
 SHA-256 verificados de las entradas:
@@ -206,4 +245,7 @@ de la imagen aprobada. El nombre de módulo correcto es, en cualquier caso,
 `experiment_runner.controlled_daily_v4.cli` para etapas y ledger, y
 `experiment_runner.controlled_daily_v4.preflight` para el preflight.
 Ejecutar `python -m experiment_runner.controlled_daily_v4` sin sufijo falla.
+La comprobación de `--help` (parser completo) citada en la nota «Corrección de
+invocación — 2026-09-20» del encabezado se realizó en este entorno reconstruido
+Linux.
 Esta nota documenta la forma del comando; **no** autoriza ejecutarlo.

@@ -679,8 +679,9 @@ def _stage_b_predictions_frame(result: Any) -> pd.DataFrame:
     """`predictions_2023.csv` (protocolo, sección 10/13).
 
     Revisión externa (2026-09-14), hallazgo sobre persistencia del resultado
-    monoclase: cuando `result.predictions_available` es `False` (entrenamiento
-    o evaluación monoclase; ver `stage_b_runner.run_stage_b`), los vectores de
+    monoclase: cuando `result.predictions_available` es `False` (hoy, solo
+    entrenamiento monoclase -- una evaluación monoclase con entrenamiento
+    biclase CONSERVA sus predicciones; ver `stage_b_runner.run_stage_b`), los vectores de
     predicción del candidato y de los tres baselines están genuinamente
     AUSENTES -- de longitud distinta a `y_true`/`feature_timestamps`, nunca
     reconciliable en un único DataFrame de columnas iguales. En ese caso se

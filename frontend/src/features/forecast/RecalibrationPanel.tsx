@@ -3,6 +3,7 @@ import "./ForecastPage.css";
 import "./RecalibrationPanel.css";
 import { getActivePredictor } from "./api";
 import type { ForecastWorkspace } from "./useForecastWorkspace";
+import type { DemoWriteGate } from "../demo/lock";
 
 type AppliedStatus = "loading" | "unknown" | "ready";
 
@@ -11,6 +12,7 @@ interface RecalibrationPanelProps {
   workspace: ForecastWorkspace;
   refreshToken: number;
   onRecalibrated: () => void;
+  demoGate?: DemoWriteGate;
 }
 
 /**
@@ -25,6 +27,7 @@ export function RecalibrationPanel({
   workspace,
   refreshToken,
   onRecalibrated,
+  demoGate,
 }: RecalibrationPanelProps) {
   const requestKey = `${sensorId}:${refreshToken}`;
   const [loadedFor, setLoadedFor] = useState(requestKey);
@@ -104,11 +107,14 @@ export function RecalibrationPanel({
       )}
 
       {correctionRows.length > 0 && (
-        <button className="fp-recalibrate-btn" onClick={handleRecalibrate} disabled={busy}>
+        <button className="fp-recalibrate-btn" onClick={handleRecalibrate} disabled={busy || demoGate?.locked}>
           {workspace.activeMutation === "recalibrate"
             ? "Aplicando observaciones..."
             : `Aplicar observaciones (${correctionRows.length})`}
         </button>
+      )}
+      {demoGate?.locked && correctionRows.length > 0 && (
+        <p className="rp-disclaimer">{demoGate.lockedReason}</p>
       )}
 
       {workspace.actionMessage && (

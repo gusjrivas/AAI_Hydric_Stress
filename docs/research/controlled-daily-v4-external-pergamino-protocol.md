@@ -227,10 +227,11 @@ Solo si B produce `CANDIDATE_VALIDATED`:
 
 | Métrica | Convención |
 |---|---|
-| MCC global | Calculado directamente sobre toda la concatenación OOF, siempre que tenga ambas clases |
+| MCC global | Calculado directamente sobre toda la concatenación OOF, siempre que tenga ambas clases. **Actualización (2026-09-20):** también es indefinido si la *predicción* es constante (denominador nulo) — ver sección 19 |
 | MCC por fold (diagnóstico) | Un fold monoclase se registra como `NaN` solo en el reporte por fold — nunca se "excluye" del MCC global, porque el MCC global se recalcula desde cero sobre las observaciones concatenadas |
 | Average Precision | `NaN` explícito por convención si no hay positivos reales en el conjunto evaluado |
 | ROC-AUC | `NaN` explícito por convención si `y_true` es monoclase |
+| Exactitud balanceada | **Actualización (2026-09-20):** `NaN` explícito si `y_true` es monoclase, en lugar del valor degenerado que devuelve la implementación de referencia |
 | Brier Score | Se calcula siempre, normalmente, con targets binarios 0/1 |
 | Log loss | Se calcula siempre pasando explícitamente `labels=[0,1]`, para forma de salida consistente aunque `y_true` sea monoclase en ese conjunto |
 | Matriz de confusión | Se calcula siempre con `labels=[0,1]`, garantizando una matriz 2×2 aunque una fila/columna quede en cero |
@@ -303,8 +304,7 @@ En ningún punto se alcanza portabilidad geográfica (un único sitio externo) n
 
 Ver `docs/seguimiento-tareas.md`, sección "Protocolo controlled_daily_v4_external_pergamino documentado", para el estado de esta iteración frente al plan de tesis.
 
-
-## 16. Condiciones de interpretación y soporte previas a ejecución
+## 19. Condiciones de interpretación y soporte previas a ejecución
 
 El contrato efectivo se serializa en `feature_contract` de configuración y
 artefactos A/B/C. Se emite retrospectivamente después de disponer de ambos
@@ -322,8 +322,11 @@ sustituto. B/C monoclase conservan predicciones y métricas definibles; B no abr
 
 `episode_recall` mide cobertura de episodios, no anticipación al inicio.
 Las métricas `onset` distinguen anticipación, detección en inicio, detección
-tardía y omisión, con censura de fronteras, días de anticipación, falsos avisos
-y soporte. La definición completa está congelada en las decisiones enlazadas.
+tardía y omisión, con censura **por izquierda** de los episodios que comienzan
+al inicio de un segmento o tras un hueco de calendario (no entran en el
+denominador), días de anticipación, falsos avisos y soporte. Un episodio
+truncado por el final del segmento sí permanece evaluable. La definición
+completa está congelada en las decisiones enlazadas.
 
 Las evaluaciones auxiliares de regresión (MAE/RMSE), HITL, anomalías reservadas
 y robustez están diseñadas por separado en esas decisiones. Sus runners

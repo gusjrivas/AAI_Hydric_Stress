@@ -305,3 +305,114 @@ def test_b_parallel_attempts_share_one_reservation(tmp_path):
     with ThreadPoolExecutor(max_workers=2) as executor:
         attempts = list(executor.map(attempt, [1, 2]))
     assert sum(value is not None for value in attempts) == 1
+
+
+def _stage_b_guard_args(tmp_path, frozen_feature_contract):
+    """Argumentos mínimos de una Etapa B científica, con el `feature_contract`
+    congelado que se quiera contrastar contra el contrato ejecutable."""
+    from experiment_runner.controlled_daily_v4 import stage_b_custody as b
+
+    producer = tmp_path / "A"
+    producer.mkdir()
+    (producer / "frozen_config.json").write_text("{}")
+    (producer / "resolved_config.json").write_text(json.dumps({"image_id": "sha256:" + "a" * 64}))
+    raw1, raw2 = tmp_path / "era5", tmp_path / "nasa"
+    raw1.write_text("fixture")
+    raw2.write_text("fixture")
+    args = SimpleNamespace(
+        input_mode="scientific",
+        stage_b_registry_path=tmp_path / "b.sqlite",
+        output_dir=tmp_path / "B",
+        producer_dir=producer,
+        recover_stage_b=False,
+        overwrite=False,
+        image_id="sha256:" + "a" * 64,
+        seed=20250109,
+        bootstrap_replicas=5000,
+        era5_csv=raw1,
+        nasa_power_csv=raw2,
+    )
+    contract = SimpleNamespace(
+        scientific_run=True,
+        candidate_produced=True,
+        depth_role="primary_selection",
+        producer_code_identity={"commit": "a" * 40},
+        raw={"feature_contract": frozen_feature_contract},
+    )
+    return b, args, contract
+
+
+def test_b_rejects_divergent_frozen_feature_contract_without_consuming_attempt(
+    tmp_path, monkeypatch
+):
+    """Un contrato congelado divergente detiene B ANTES de reservar el intento:
+    el registro no se crea y el primer intento científico sigue disponible."""
+    from experiment_runner.controlled_daily_v4.features import feature_contract
+
+    divergent = feature_contract()
+    divergent["model_features"] = divergent["model_features"][:-1]
+    b, args, contract = _stage_b_guard_args(tmp_path, divergent)
+    monkeypatch.setattr(
+        "experiment_runner.controlled_daily_v4.transfer_contract.load_frozen_config_contract",
+        lambda *a: contract,
+    )
+    monkeypatch.setattr(
+        "experiment_runner.controlled_daily_v4.provenance.validate_pergamino_provenance",
+        lambda *a, **kw: pytest.fail("no se debe leer procedencia con contrato divergente"),
+    )
+
+    with pytest.raises(ValueError, match="Frozen feature contract differs"):
+        b.guarded_stage_b(
+            args,
+            lambda *a, **kw: pytest.fail("no se debe entrenar con contrato divergente"),
+            code_identity=SimpleNamespace(available=True, dirty=False, commit="a" * 40),
+            environment_info={},
+        )
+
+    assert not args.stage_b_registry_path.exists(), "el intento no debe consumirse"
+
+
+def test_b_accepts_matching_frozen_feature_contract(tmp_path, monkeypatch):
+    """Contraparte del caso divergente: con el contrato vigente, la guarda
+    avanza hasta la validación de procedencia y reserva el intento."""
+    from experiment_runner.controlled_daily_v4.features import feature_contract
+
+    b, args, contract = _stage_b_guard_args(tmp_path, feature_contract())
+    monkeypatch.setattr(
+        "experiment_runner.controlled_daily_v4.transfer_contract.load_frozen_config_contract",
+        lambda *a: contract,
+    )
+    monkeypatch.setattr(
+        "experiment_runner.controlled_daily_v4.provenance.validate_pergamino_provenance",
+        lambda *a, **kw: SimpleNamespace(ok=False),
+    )
+
+    with pytest.raises(ValueError, match="Provenance failed"):
+        b.guarded_stage_b(
+            args,
+            lambda *a, **kw: pytest.fail("fit must not run"),
+            code_identity=SimpleNamespace(available=True, dirty=False, commit="a" * 40),
+            environment_info={},
+        )
+
+    assert args.stage_b_registry_path.exists(), "el contrato coincidente debe reservar el intento"
+
+
+def test_feature_contract_matches_executable_feature_columns():
+    """El contrato serializado describe exactamente las features que el runner
+    consume, y se diferencia explícitamente de `controlled_daily_v3`."""
+    from experiment_runner.controlled_daily_v4.config import (
+        HORIZON_DAYS,
+        LAGS,
+        ROLLING_WINDOWS,
+    )
+    from experiment_runner.controlled_daily_v4.features import FEATURE_COLUMNS, feature_contract
+
+    contract = feature_contract()
+    assert contract["model_features"] == list(FEATURE_COLUMNS)
+    assert len(contract["model_features"]) == 8
+    assert contract["include_current"] is True
+    assert contract["temporal_variables"] == ["soil_moisture"]
+    assert contract["lags"] == list(LAGS)
+    assert contract["rolling_windows"] == list(ROLLING_WINDOWS)
+    assert contract["horizon_days"] == HORIZON_DAYS

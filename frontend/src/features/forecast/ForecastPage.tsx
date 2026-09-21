@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import "./ForecastPage.css";
 import { CorrectionForm } from "./CorrectionForm";
 import type { ForecastWorkspace } from "./useForecastWorkspace";
+import type { DemoWriteGate } from "../demo/lock";
 
 type AlertaFilter = "todas" | "alerta" | "sin_alerta";
 type EstadoFilter = "todas" | "pendiente" | "confirmada" | "rechazada";
@@ -16,9 +17,10 @@ const DEFAULT_FILTERS = {
 interface ForecastPageProps {
   sensorId: string;
   workspace: ForecastWorkspace;
+  demoGate?: DemoWriteGate;
 }
 
-export function ForecastPage({ workspace }: ForecastPageProps) {
+export function ForecastPage({ workspace, demoGate }: ForecastPageProps) {
   const [alertaFilter, setAlertaFilter] = useState<AlertaFilter>(DEFAULT_FILTERS.alerta);
   const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>(DEFAULT_FILTERS.estado);
   const [fechaDesde, setFechaDesde] = useState(DEFAULT_FILTERS.desde);
@@ -170,6 +172,7 @@ export function ForecastPage({ workspace }: ForecastPageProps) {
                   workspace.activeMutation === `confirm:${row.fecha}` ||
                   workspace.activeMutation === `reject:${row.fecha}`;
                 const correctionOpen = openCorrectionFecha === row.fecha;
+                const rowBlockedByDemo = demoGate ? !demoGate.isRowReviewable(row) : false;
                 return (
                   <li key={row.fecha} className={`fp-row fp-row--${severity}`}>
                     <span className="fp-signal" aria-hidden="true" />
@@ -201,7 +204,7 @@ export function ForecastPage({ workspace }: ForecastPageProps) {
                       {({ pendiente: "Por revisar", confirmada: "Coincide con lo observado", rechazada: "Corregido por una persona" } as Record<string, string>)[row.estado_validacion] ?? "Estado no disponible"}
                     </span>
                     <div className="fp-actions">
-                      <button onClick={() => workspace.confirm(row.fecha)} disabled={busy}>
+                      <button onClick={() => workspace.confirm(row.fecha)} disabled={busy || rowBlockedByDemo}>
                         {rowBusy && workspace.activeMutation === `confirm:${row.fecha}`
                           ? "Guardando..."
                           : "Confirmar"}
@@ -211,11 +214,14 @@ export function ForecastPage({ workspace }: ForecastPageProps) {
                           correctionButtonRefs.current[row.fecha] = el;
                         }}
                         onClick={() => setOpenCorrectionFecha(row.fecha)}
-                        disabled={busy}
+                        disabled={busy || rowBlockedByDemo}
                       >
                         Corregir resultado
                       </button>
                     </div>
+                    {rowBlockedByDemo && (
+                      <p className="fp-disclaimer">{demoGate!.rowUnavailableReason(row)}</p>
+                    )}
                     {correctionOpen && (
                       <CorrectionForm
                         row={row}

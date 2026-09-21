@@ -1,9 +1,54 @@
 # Checkpoint de ejecución actual
 
+## Estado vigente — 2026-09-21, integración de `origin/main`
+
+Esta sección **reemplaza toda lectura de las secciones posteriores**, incluida
+la de 2026-09-20 inmediatamente siguiente, que se conserva íntegra como
+registro histórico.
+
+**Qué hizo esta sesión.** Integró `origin/main`
+(`a65701477b19ecad172fa613aea8b8dbf94bab9c`, PR #206) en
+`feat/scientific-closure` mediante un merge sin reescritura de historia,
+resolviendo cada conflicto por comparación semántica (decisión GD-24). No
+ejecutó ninguna campaña, no abrió el holdout 2024-2025 y no inicializó el
+ledger definitivo. Verificado el 2026-09-21: `evidence/` y `ledger/` de la raíz
+de runtime siguen vacíos.
+
+**Cambio de estado de los tres bloqueos externos.**
+
+- **EXT-01 — condición 4 de ADR-0011: ya no es un bloqueo.** El PR #206 se
+  mergeó en `main`, que ya contiene el protocolo detallado vigente con la
+  sección «Condiciones de interpretación y soporte previas a ejecución», el
+  contrato de features verdadero, `scientific-closure-decisions.md` y
+  `scientific-closure-runbook.md`. `docs/adr/0011-…md` registra la condición 4
+  como cumplida. **Precisión imprescindible:** la condición 4 es un
+  prerrequisito de integración, **no** una autorización. **No** habilita
+  ejecutar A, B ni C, que siguen exigiendo autorización explícita del
+  responsable y el cumplimiento de sus propias compuertas. Las condiciones 1
+  (parcial), 2 (parcial) y 3 de ADR-0011 no cambian.
+- **EXT-02 — sin cambio: sigue bloqueando A, B y C.** El runtime de
+  contenedores sigue inalcanzable desde esta distro WSL y el runbook invoca
+  cada etapa a través de `docker`.
+- **EXT-03 — sin cambio: sigue sin respaldo físicamente independiente.**
+
+**Bloqueo nuevo introducido por la integración.** La identidad ejecutable debe
+redeclararse: `src/` **deja** de ser byte-idéntico al commit ejecutable
+declarado `214735e42ee04f018156cd630591e798aadd8bf3` (siete archivos de
+`controlled_daily_v4`, que son las correcciones auditadas del PR #206; `src/`
+pasa a ser byte-idéntico a `origin/main`). `docker/` y `pyproject.toml` siguen
+idénticos. Ninguna afirmación de identidad ejecutable puede apoyarse ya en
+`214735e…`; ver decisión GD-25 y riesgo RK-09 actualizado.
+
+**Estados de requisitos: sin cambios.** Esta sesión no movió ningún requisito
+de `traceability.md` a un estado más favorable. `SC-GOV-002` sigue `BLOCKED`,
+`SC-GOV-009` sigue `BLOCKED` y `SC-GOV-019` sigue `BLOCKED`.
+
 ## Estado vigente — 2026-09-20, sesión de verificación de cierre
 
-Esta sección **reemplaza toda lectura de las secciones posteriores**, que son
-registro histórico y se conservan íntegras como historia de recuperación.
+Esta sección fue la vigente hasta el 2026-09-21 y **queda supersedida por la
+anterior** en todo lo que aquella corrige; el resto sigue siendo la lectura que
+reemplaza a las secciones posteriores, que son registro histórico y se
+conservan íntegras como historia de recuperación.
 
 **Qué hizo esta sesión.** Reverificó, sin confiar en los registros previos, el
 estado técnico del snapshot publicado; sometió ese snapshot a un verificador de

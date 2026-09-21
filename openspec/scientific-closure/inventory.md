@@ -89,3 +89,19 @@ detallado en `origin/main` es una versión anterior y `214735e` no es ancestro d
 `readiness-resolution-linux-2026-09-20`. Se mantiene la regla histórica: la
 ausencia no demuestra inexistencia, y ningún campo `DESCONOCIDO` se completa por
 inferencia.
+## Actualización por integración de `origin/main` — 2026-09-21
+
+Esta sección **no** modifica ninguna fila anterior: registra los hechos que la
+integración de `origin/main` (`a65701477b19ecad172fa613aea8b8dbf94bab9c`, PR #206)
+cambia, sin alterar el estado de ningún requisito ni levantar ninguna compuerta.
+
+| ID | Hecho registrado el 2026-09-21 |
+| --- | --- |
+| EV-04 | **Parcialmente superada.** Tras el merge, `docker/` y `pyproject.toml` en HEAD siguen siendo byte-idénticos a `214735e42ee04f018156cd630591e798aadd8bf3`, pero `src/` **ya no lo es**: `git diff 214735e -- src` reporta 7 archivos de `src/experiment_runner/controlled_daily_v4/` modificados (`admissibility`, `artifacts`, `bootstrap`, `metrics`, `stage_a_runner`, `stage_b_custody`, `stage_b_runner`). Son las correcciones auditadas del PR #206, no cambios de esta sesión: tras el merge, `src/` y los tests de `controlled_daily_v4` son byte-idénticos a `origin/main`. Consecuencia: el SHA ejecutable declarado **debe volver a declararse** sobre el commit de merge antes de cualquier ejecución. La eficacia científica sigue `PENDING` |
+| EV-06 | Sin cambio: la imagen aprobada sigue sin inspeccionarse en este host, y ahora además no corresponde al árbol `src/` resultante |
+| EV-08 | Sin cambio: el ledger definitivo **no** está inicializado y el holdout 2024–2025 permanece cerrado. Verificado el 2026-09-21: `/home/gus/scientific-closure-runtime/ledger/` y `evidence/` siguen vacíos |
+| EV-11 | Sin cambio: no existe manifiesto de campaña ejecutada |
+
+Limitación de esta actualización: sólo se registra el cambio de hechos derivado
+del merge. No se ejecutó A, B ni C, no se abrió el holdout, no se inicializó el
+ledger y no se produjo ningún resultado científico.

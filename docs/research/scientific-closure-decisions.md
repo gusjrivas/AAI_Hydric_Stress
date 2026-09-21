@@ -9,6 +9,15 @@ modelado y evaluación. Hipótesis, alcance y arquitectura se conservan.
 Impacto experimental: controles y métricas v4; nuevas evaluaciones separadas.
 controlled_daily_v3 y sus resultados permanecen inmutables.
 
+**Nota de integración (2026-09-20).** El encabezado anterior se conserva sin
+modificación: describe el alcance de la autorización vigente el 2026-09-17, cuando
+el diseño se congeló antes de implementar. La integración de este documento y del
+protocolo vigente en `main` está autorizada por separado, como prerrequisito de la
+condición 4 de ADR-0011, y los runners de A/B/C ya están implementados y verificados
+con fixtures sintéticas. Esa integración **no** altera ninguna decisión congelada de
+este documento y **no** autoriza ejecutar A, B ni C, abrir el holdout 2024–2025 ni
+inicializar el ledger definitivo: esas restricciones siguen íntegramente vigentes.
+
 ## Contrato v3 / v4 (H02)
 v3 utiliza 15 variables temporales (lags 1,2,3 y rolling 3,7 de humedad,
 radiación y humedad relativa), include_current=false. Las medias móviles sí

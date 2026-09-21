@@ -652,8 +652,8 @@ def check_stage_c_admissibility(
                 if replicas_valid <= 0 or 5 * replicas_valid < 4 * replicas_requested:
                     reasons.append(
                         f"'{stage_b_dir / 'bootstrap.json'}'.diagnostics.replicas_valid="
-                        f"{replicas_valid!r} no cumple soporte de replicas validas "
-                        "(>= 80%) para el "
+                        f"{replicas_valid!r} no cumple el soporte de réplicas válidas "
+                        "(>= 80 %) para el "
                         "intervalo bootstrap"
                     )
                 if replicas_valid + replicas_discarded != replicas_requested:

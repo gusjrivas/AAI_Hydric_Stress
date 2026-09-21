@@ -10,6 +10,7 @@ import hashlib
 import json
 import re
 import sqlite3
+import sys
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -144,6 +145,9 @@ def guarded_stage_b(args, run, **context):
             args.era5_csv, args.nasa_power_csv, mode=args.input_mode
         )
         if not context["report"].ok:
+            print("Provenance FAILED:", file=sys.stderr)
+            for issue in context["report"].issues:
+                print(f"  - {issue}", file=sys.stderr)
             return 3
         return run(args, **context)
     if args.stage_b_registry_path is None:

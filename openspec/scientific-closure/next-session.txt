@@ -1,4 +1,8 @@
-PROMPT SIGUIENTE — vigente desde 2026-09-20 (sesión de verificación de cierre).
+PROMPT SIGUIENTE — vigente desde 2026-09-21 (integración de origin/main).
+Base: la versión del 2026-09-20 (sesión de verificación de cierre), conservada
+en su totalidad. Las correcciones del 2026-09-21 están marcadas en línea con la
+palabra CORRECCIÓN o con su fecha, y son las únicas que la superan; todo texto
+sin esa marca sigue siendo el del 2026-09-20.
 
 Esta versión REEMPLAZA la del 2026-09-19, que quedó superada y describía un
 worktree Windows (C:\Repo\...) y una prohibición de push que ya no rige
@@ -13,7 +17,10 @@ y `git ls-remote`. Tres revisores sin red no detectaron un incumplimiento de
 push que el reflog local mostraba (RK-15). No inferir el estado remoto de los
 documentos.
 
-ESTADO REAL AL CIERRE DE ESTA SESIÓN
+ESTADO REAL AL CIERRE DE LA SESIÓN DEL 2026-09-20
+(no recalculado el 2026-09-21: el merge de integración no movió ningún estado
+de requisito ni de change; ver current-execution-checkpoint.md, sección
+vigente 2026-09-21)
 - Preparación resuelta hasta el límite de lo alcanzable localmente.
 - Requisitos: PASS 0, PASS_WITH_LIMITATIONS 8, BLOCKED 17, NOT_APPLICABLE 0.
 - changes.json: sc-01 PASS; sc-02 a sc-10 BLOCKED.
@@ -30,21 +37,36 @@ LO QUE ESTA SESIÓN SÍ AUTORIZA HACER A LA SIGUIENTE
 
 LO QUE NO ESTÁ AUTORIZADO Y NO DEPENDE DE ESFUERZO ADICIONAL
 - NO ejecutar científicamente A/B/C, NO inicializar el ledger definitivo y NO
-  abrir ni analizar el holdout mientras los tres insumos externos de abajo no
-  existan. Esta prohibición es la invariante que verifica
+  abrir ni analizar el holdout. La prohibición es INCONDICIONAL en ausencia de
+  una autorización explícita del responsable, y además sigue rigiendo mientras
+  falte CUALQUIERA de los insumos externos de abajo. Redacción corregida el
+  2026-09-21: decía «mientras los tres insumos externos de abajo no existan», y
+  al resolverse EXT-01 esa condición dejó de cumplirse literalmente, de modo
+  que la prohibición se habría desactivado por aritmética y no por evidencia ni
+  autorización. Que EXT-01 esté resuelto NO habilita nada: la condición 4 de
+  ADR-0011 es prerrequisito de integración, no autorización, y EXT-02 y EXT-03
+  siguen abiertos. Esta prohibición es la invariante que verifica
   tests/test_scientific_closure_governance.py y no debe reformularse para
   esquivar esa prueba: si alguna vez deja de regir, tiene que dejar de regir
   por evidencia y autorización, no por redacción.
 - Modificar, mergear o reescribir main; rebase destructivo; push --force; tags;
   releases; abrir o mergear un PR; tocar la UI de otras ramas.
 
-TRES INSUMOS EXTERNOS QUE FALTAN (ninguno se resuelve con trabajo documental)
-1. EXT-01. Integrar en main el protocolo detallado VIGENTE. Hoy main tiene una
-   versión anterior: le falta la sección "Condiciones de interpretación y
-   soporte previas a ejecución" y su sección 4 afirma un contrato de features
-   FALSO frente a features.py. Además scientific-closure-decisions.md y
-   scientific-closure-runbook.md NO EXISTEN en main. Mientras esto siga así,
-   la condición 4 de ADR-0011 está incumplida y A/B/C no pueden empezar.
+INSUMOS EXTERNOS: FALTAN DOS DE TRES (estado al 2026-09-21)
+Se numeran EXT-01 a EXT-03 por continuidad del registro. EXT-01 quedó resuelto
+el 2026-09-21 por un merge de integración; los dos restantes (EXT-02, EXT-03)
+NO se resuelven con trabajo documental.
+1. EXT-01. RESUELTO EL 2026-09-21, NO POR ESTA RAMA. El PR #206 se mergeó en
+   main (a65701477b19ecad172fa613aea8b8dbf94bab9c) y main ya contiene el
+   protocolo detallado vigente con la sección "Condiciones de interpretación y
+   soporte previas a ejecución", el contrato de features verdadero,
+   scientific-closure-decisions.md y scientific-closure-runbook.md. ADR-0011
+   registra la condición 4 como cumplida al mergear ese cambio. ATENCIÓN: la
+   condición 4 es un prerrequisito de INTEGRACIÓN, no una autorización; NO
+   habilita empezar A/B/C, que siguen exigiendo autorización explícita, EXT-02,
+   EXT-03 y sus propias compuertas. Las condiciones 1 (parcial), 2 (parcial) y
+   3 de ADR-0011 no cambian. Texto original de EXT-01 conservado en el registro
+   histórico (inventory.md, traceability.md, secciones fechadas 2026-09-21).
 2. EXT-02. Un runtime de contenedores alcanzable. El runbook invoca cada
    comando A/B/C y la inicialización del ledger a través de docker. Desde esta
    distro WSL no hay acceso: los sockets de Docker Desktop deniegan connect()
@@ -64,8 +86,22 @@ ADEMÁS, PARA CERRAR REQUISITOS SIN EJECUTAR NADA
   reescribiendo historia publicada: eso está prohibido.
 
 REGLAS QUE NO CAMBIAN
-- No modificar v3, evidencia histórica, protocolos congelados ni src/ (hoy
-  byte-idéntico al commit ejecutable declarado 214735e).
+- No modificar v3, evidencia histórica, protocolos congelados NI src/. La regla
+  sobre src/ SIGUE RIGIENDO y ahora tiene una razón distinta y más fuerte: tras
+  el merge del 2026-09-21, src/ es byte-idéntico a origin/main, y esa propiedad
+  es de la que dependen GD-25, RK-09, RK-19, inventory EV-04 y la sección
+  vigente de current-execution-checkpoint.md. Tocar src/ la destruye. Cualquier
+  corrección de src/ —incluido el docstring falso de
+  src/experiment_runner/controlled_daily_v4/__init__.py, registrado como RK-19—
+  va en un change propio con su propia revisión, nunca de paso.
+  CORRECCIÓN 2026-09-21 de la premisa anterior: lo que YA NO vale es la razón
+  que esta regla citaba. src/ YA NO es byte-idéntico al commit ejecutable
+  declarado 214735e — el merge de main incorporó las correcciones auditadas del PR #206
+  en siete archivos de src/experiment_runner/controlled_daily_v4/, y src/ pasó
+  a ser byte-idéntico a origin/main. No partir de la premisa contraria: antes
+  de cualquier ejecución hay que REDECLARAR el SHA ejecutable sobre el commit
+  de merge y verificar la imagen correspondiente (decisión GD-25). docker/ y
+  pyproject.toml sí siguen byte-idénticos a 214735e.
 - No completar evidencia faltante por inferencia. No relajar criterios para
   obtener un resultado favorable. No afirmar que un gate está satisfecho con
   evidencia parcial.
@@ -76,5 +112,8 @@ REGLAS QUE NO CAMBIAN
   NO_VALID_SELECTION por soporte son resultados admisibles, no errores.
 
 PUNTO DE ENTRADA: openspec/scientific-closure/README.md, luego
-current-execution-checkpoint.md (sección "Estado vigente"), traceability.md y
+current-execution-checkpoint.md — su PRIMERA sección, «Estado vigente —
+2026-09-21, integración de origin/main», que supersede a la de 2026-09-20 (esa
+segunda sección conserva el texto de EXT-01 previo al merge y NO debe leerse
+como vigente) —, traceability.md (incluida su sección 2026-09-21) y
 closure-verification-2026-09-20/.

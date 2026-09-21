@@ -15,14 +15,24 @@ const VARIABLE_LABELS: Record<string, string> = {
   et0: "Demanda de agua del ambiente (ET₀)",
 };
 
-export function QualityPanel({ sensorId }: { sensorId: string }) {
-  const [loadedFor, setLoadedFor] = useState(sensorId);
+export function QualityPanel({
+  sensorId,
+  refreshToken = 0,
+}: {
+  sensorId: string;
+  /** Fuerza un nuevo GET sin cambiar de sensor: usado para refrescar la
+   * calidad del sensor de demo cuando avanza una fecha confirmada
+   * (requerimiento "Refresco por progreso confirmado"). */
+  refreshToken?: number;
+}) {
+  const requestKey = `${sensorId}:${refreshToken}`;
+  const [loadedFor, setLoadedFor] = useState(requestKey);
   const [status, setStatus] = useState<Status>("loading");
   const [report, setReport] = useState<QualityReport | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  if (sensorId !== loadedFor) {
-    setLoadedFor(sensorId);
+  if (requestKey !== loadedFor) {
+    setLoadedFor(requestKey);
     setStatus("loading");
     setReport(null);
     setError(null);
@@ -48,7 +58,7 @@ export function QualityPanel({ sensorId }: { sensorId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [sensorId]);
+  }, [sensorId, refreshToken]);
 
   if (status === "loading") {
     return (

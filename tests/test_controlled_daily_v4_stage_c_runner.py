@@ -263,7 +263,7 @@ def test_monoclass_training_labels_produce_explicit_reason_without_predictions()
     assert len(result.y_pred_candidate) == 0
 
 
-def test_monoclass_evaluation_labels_produce_explicit_reason_without_predictions():
+def test_monoclass_evaluation_labels_produce_explicit_reason_and_retain_predictions():
     daily_series = _daily_series()
     mask_eval = daily_series.index >= pd.Timestamp("2024-01-01")
     mutated = daily_series.copy()
