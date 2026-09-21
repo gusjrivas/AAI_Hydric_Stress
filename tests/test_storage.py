@@ -1,16 +1,34 @@
 import re
 import time
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
 from data_ingestion.storage import (
+    atomic_write_bytes,
     get_dataset_fingerprint,
+    interprocess_lock,
     load_dataset,
     load_dataset_snapshot,
     save_dataset,
 )
+
+
+def _append_in_process(data_dir: str, timestamp: str, temperature: float) -> int:
+    from data_ingestion.storage import append_reading
+
+    updated = append_reading(
+        "concurrente",
+        {
+            "timestamp": pd.Timestamp(timestamp),
+            "temperature": temperature,
+            "origen": "real",
+        },
+        data_dir=Path(data_dir),
+    )
+    return len(updated)
 
 
 def test_save_and_load_roundtrip(tmp_path):
@@ -200,3 +218,52 @@ def test_load_dataset_snapshot_aborts_when_file_changes_during_read(tmp_path, mo
 
     with pytest.raises(RuntimeError):
         load_dataset_snapshot("mutable", data_dir=tmp_path)
+
+
+def test_atomic_write_preserves_destination_if_replace_fails(tmp_path, monkeypatch):
+    target = tmp_path / "resource.bin"
+    target.write_bytes(b"original")
+
+    def fail_replace(source, destination):
+        raise OSError("fallo simulado")
+
+    monkeypatch.setattr("data_ingestion.storage.os.replace", fail_replace)
+
+    with pytest.raises(OSError, match="fallo simulado"):
+        atomic_write_bytes(target, b"replacement")
+
+    assert target.read_bytes() == b"original"
+    assert list(tmp_path.glob(".resource.bin.*.tmp")) == []
+
+
+def test_interprocess_lock_is_released_after_exception(tmp_path):
+    lock_path = tmp_path / ".locks" / "resource.lock"
+
+    with pytest.raises(RuntimeError, match="fallo dentro del lock"):
+        with interprocess_lock(lock_path):
+            raise RuntimeError("fallo dentro del lock")
+
+    with interprocess_lock(lock_path, timeout=0.1):
+        pass
+
+
+def test_append_reading_keeps_both_concurrent_process_writes(tmp_path):
+    with ProcessPoolExecutor(max_workers=2) as executor:
+        futures = [
+            executor.submit(
+                _append_in_process,
+                str(tmp_path),
+                timestamp,
+                temperature,
+            )
+            for timestamp, temperature in [
+                ("2026-01-01", 25.0),
+                ("2026-01-02", 26.0),
+            ]
+        ]
+        for future in futures:
+            future.result(timeout=20)
+
+    stored = load_dataset("concurrente", data_dir=tmp_path)
+    assert list(stored["timestamp"]) == list(pd.to_datetime(["2026-01-01", "2026-01-02"]))
+    assert list(stored["temperature"]) == [25.0, 26.0]

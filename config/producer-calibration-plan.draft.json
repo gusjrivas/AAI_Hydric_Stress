@@ -1,0 +1,164 @@
+{
+  "schema_version": "producer_calibration_plan_v1",
+  "contract_version": "producer_daily_h123_v1",
+  "status": "draft",
+  "calendar_timezone": "UTC",
+  "horizons": [
+    1,
+    2,
+    3
+  ],
+  "environment": {
+    "resolved_at": "2026-09-20T00:00:00Z",
+    "resolution_method": "Instalacion limpia de las dependencias declaradas en pyproject.toml (limites minimos, sin lockfile) dentro de un contenedor python:3.12-slim, para verificar que model_plan.hyperparameters coincide con los defaults efectivos de scikit-learn antes de congelar.",
+    "python": "3.12.14",
+    "dependencies": {
+      "numpy": "2.5.3",
+      "pandas": "3.0.6",
+      "scikit-learn": "1.9.1",
+      "pyarrow": "25.0.1"
+    },
+    "limitation": "pyproject.toml fija minimos (\"scikit-learn>=1.4\", etc.) sin version exacta ni lockfile; estas son las versiones efectivamente resueltas y usadas para verificar los hiperparametros de este manifiesto, no una garantia de que un ajuste futuro reinstale exactamente las mismas. Antes de un ajuste real debe registrarse la version efectivamente instalada en ese momento."
+  },
+  "dataset": {
+    "dataset_id": "melchor_romero_2024_consolidado",
+    "sensor_id": "melchor_romero_2024_consolidado",
+    "sha256": "121697dd5af202633f24adf4244a793477d34bf5e4cf4a1f10d7b2ca1b33ba8e",
+    "sha256_reverified_at": "2026-09-20T00:00:00Z",
+    "source_kind": "real",
+    "site": "Melchor Romero",
+    "population": "Observaciones diarias del sitio durante 2024 con target de humedad observado",
+    "provenance": "Variables climáticas de NASA POWER y humedad de suelo de ESA CCI; conservar sitio, unidades y procedencia",
+    "prior_exposure": "Dataset ya explorado en controlled_daily_v3 y auditorías; uso exclusivo de desarrollo, sin holdout independiente",
+    "allowed_dates": {
+      "start": "2024-01-01",
+      "end": "2024-12-31"
+    },
+    "variables": [
+      {"name": "soil_moisture", "unit": "m3/m3", "role": "event_variable"},
+      {"name": "temperature", "unit": "degC", "role": "feature"},
+      {"name": "relative_humidity", "unit": "%", "role": "feature"},
+      {"name": "precipitation", "unit": "mm/day", "role": "feature"},
+      {"name": "solar_radiation", "unit": "MJ/m2/day", "role": "feature"},
+      {"name": "wind_speed", "unit": "m/s", "role": "feature"}
+    ],
+    "excluded_columns_fully_null": [
+      "et0",
+      "canopy_temperature",
+      "ndvi",
+      "stomatal_conductance",
+      "leaf_water_potential"
+    ]
+  },
+  "intended_use": "Evaluar si un bundle exacto permite mostrar probabilidades agrupadas de desarrollo para +1/+2/+3 en una UI de apoyo; no acredita diagnóstico fisiológico, validación externa ni recomendación automática de riego",
+  "event": {
+    "variable": "soil_moisture",
+    "unit": "m3/m3",
+    "comparison": "lt",
+    "percentile": 20,
+    "threshold_source": "training_observations_only",
+    "threshold_reference": {
+      "start": "2024-01-01",
+      "end": "2024-08-06"
+    }
+  },
+  "partitions": {
+    "train": {
+      "start": "2024-01-01",
+      "end": "2024-08-06"
+    },
+    "calibration": {
+      "start": "2024-08-07",
+      "end": "2024-10-18"
+    },
+    "evaluation": {
+      "start": "2024-10-19",
+      "end": "2024-12-31"
+    }
+  },
+  "model_plan": {
+    "family": "random_forest",
+    "hyperparameters": {
+      "n_estimators": 100,
+      "criterion": "gini",
+      "max_depth": null,
+      "min_samples_split": 2,
+      "min_samples_leaf": 1,
+      "max_features": "sqrt",
+      "bootstrap": true
+    }
+  },
+  "training_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "deployment_seed": 0,
+  "calibration": {
+    "method": "sigmoid"
+  },
+  "probability_bins": {
+    "strategy": "equal_width",
+    "count": 10,
+    "include_one_in_last": true
+  },
+  "support": {
+    "minimum_bin_count": 10,
+    "minimum_class_count": 10,
+    "minimum_temporal_blocks": 4,
+    "justification": "Piso operativo, no garantia estadistica: 10 casos por bin evita tratar rangos casi unitarios como respaldados, 10 casos por clase en cada alcance exigido es un umbral minimo de detectabilidad (no de precision), y 4 bloques temporales distintos exige repeticion minima para que un unico episodio no sostenga la afirmacion. Se aplica al periodo completo y a cada ventana de estabilidad, sin combinar semillas ni horizontes para inflar el conteo. Con ventanas de hasta 37 dias es esperable que algunos alcances no alcancen este piso y resulten insufficient_evidence; eso es un desenlace valido, no un fallo del piso."
+  },
+  "coverage": {
+    "minimum": 0.8
+  },
+  "tolerances": {
+    "epsilon_ece": 0.1,
+    "epsilon_bin": 0.15,
+    "justification": "Aprobacion explicita del autor el 2026-09-20: tolerancias operacionales de 10 puntos porcentuales para el limite superior de ECE y 15 para el limite superior del error por intervalo respaldado. Solo evaluacion exploratoria del prototipo; no son garantias estadisticas ni validacion agronomica. No equivalen a accuracy ni autorizan publicar porcentajes sin superar todos los criterios del assessment.",
+    "approval": {
+      "date": "2026-09-20",
+      "scope": "exploratory_operational_product_tolerances",
+      "approved_by": "project_author"
+    }
+  },
+  "log_loss": {
+    "clipping_epsilon": 1e-15
+  },
+  "uncertainty": {
+    "method": "Bootstrap de bloques moviles de 7 dias sobre la grilla diaria por target_date, sincronizado entre horizontes y semillas: cada replica remuestrea con reemplazo el mismo conjunto de bloques de fechas para todos los horizontes/semillas evaluados, preservando la dependencia temporal compartida entre resultados que caen en las mismas fechas. Sobre los pares (probabilidad, resultado) reconstruidos en cada replica se recalculan, por alcance predeclarado (horizonte, semilla, periodo completo o ventana): (a) el ECE, suma n_bin/N * |frecuencia observada del bin - probabilidad media del bin| sobre TODOS los bins no vacios de ese alcance (ver uncertainty.ece_bin_inclusion; no se excluyen bins de poco soporte de esta suma); y (b) el error absoluto de cada bin de uncertainty.backed_bin_family que en esa replica conserve minimum_bin_count observaciones remuestreadas.",
+    "ece_bin_inclusion": "El ECE de un alcance suma sobre TODOS los bins con al menos 1 observacion (bins no vacios), conforme al diseno: 'no omitir intervalos de poco soporte del calculo para mejorar la cifra'. Este conjunto de bins (la familia de ECE) se fija UNA sola vez por alcance, a partir del conjunto observado COMPLETO sin remuestrear, y se mantiene identico para las 5000 replicas de ese alcance: nunca se agregan ni quitan bins segun lo que ocurra en una replica particular. Si un bin de esa familia queda con conteo remuestreado 0 en una replica dada, su termino aporta 0 al ECE de esa replica (el factor n_bin/N=0 anula el termino, sin necesitar una frecuencia definida); el bin sigue perteneciendo a la familia. support.minimum_bin_count NO filtra esta suma: filtra unicamente uncertainty.backed_bin_family.",
+    "backed_bin_family": "Subconjunto de la familia de ECE con conteo >= support.minimum_bin_count en el conjunto observado COMPLETO sin remuestrear de ese alcance. Tambien se fija una unica vez por alcance y se mantiene identico para todas sus replicas. Se usa para: (i) coverage.minimum (proporcion de observaciones en bins respaldados); (ii) el rango de probabilidades habilitado para display_probability por bin individual; (iii) el error absoluto por bin sujeto a tolerances.epsilon_bin dentro de la dimension 'supported_probability_bin' de multiplicity.family_dimensions. Si en una replica particular un bin de esta familia cae por debajo de minimum_bin_count al remuestrear, ese componente del maximo conjunto (multiplicity.method) no es estimable en esa replica: ver uncertainty.invalid_replicate_rule. No se calcula un maximo parcial omitiendolo; la replica completa queda no evaluable para TODA la familia conjunta, no solo para ese bin.",
+    "centering": "El limite superior no se centra en el estadistico puntual observado (no es un bootstrap basico/pivotal ni un percentil corregido por sesgo): es el percentil 0.95, sin correccion, de la distribucion empirica del MAXIMO CONJUNTO por replica que define multiplicity.method (un unico maximo por replica sobre TODA la familia predeclarada: cada ECE de uncertainty.ece_bin_inclusion y cada error absoluto de uncertainty.backed_bin_family, juntos). No se calculan percentiles separados por tipo de estadistico (ECE vs error por bin) ni por alcance: el maximo se toma sobre la union completa de componentes antes de tomar el unico percentil 0.95, produciendo un unico limite U family-wise que luego se compara por separado contra tolerances.epsilon_ece y tolerances.epsilon_bin (ambos deben satisfacer el mismo U; no hay un percentil independiente por tolerancia).",
+    "coverage_guarantee_caveat": "Esta construccion es una aproximacion de percentil bootstrap sobre bloques temporalmente dependientes y no ofrece una garantia demostrada de cobertura simultanea exacta en muestra finita para el maximo de una familia con componentes correlacionados (mismos dias, mismo modelo, mismas semillas). Se reporta como un limite superior aproximado y conservador en la practica esperada, no como una garantia estadistica formal de 95% de cobertura conjunta.",
+    "invalid_replicate_rule": "Una replica queda NO EVALUABLE para la familia conjunta completa (multiplicity.method) si CUALQUIER componente predeclarado de esa familia deja de ser estimable al remuestrear: alguna clase (0/1) con menos de minimum_class_count observaciones, menos de minimum_temporal_blocks bloques temporales distintos representados para algun alcance de ECE, o algun bin de uncertainty.backed_bin_family con menos de minimum_bin_count observaciones remuestreadas. Estas condiciones se evalúan antes de calcular cualquier estadistico y son ciegas al resultado. Cuando ocurre, NO se calcula un maximo parcial omitiendo el componente faltante: la replica entera se excluye de la distribucion del maximo conjunto para TODA la familia, no solo para el componente afectado. No se adopta aqui ningun tratamiento conservador alternativo (por ejemplo, sustituir el componente faltante por un valor conservador predeclarado): esa seria una decision metodologica distinta que requeriria una propuesta explicita, no aplicada silenciosamente. 'Excluir replicas no evaluables' (regla estructural/de soporte, previa al estadistico) y 'no descartar replicas o intervalos desfavorables' (prohibicion de cherry-picking) no son contradictorias: actuan en momentos y sobre criterios distintos. Entre las replicas evaluables, ninguna se descarta luego por producir un maximo alto o desfavorable. Si mas de la mitad de las 5000 replicas predeclaradas de un alcance/familia resultan no evaluables por esta regla, el resultado es insufficient_evidence en lugar de reportar un percentil calculado sobre una minoria de replicas evaluables.",
+    "block_length_rationale": "El bloque de 7 dias es una convencion operacional de agrupamiento calendario (una semana), elegida antes de ver resultados y no reestimada luego; no es una medicion ni una estimacion de la duracion real de la dependencia temporal de soil_moisture. Que el hueco maximo observado en la serie sea de 6 dias no demuestra ni acota esa dependencia: un hueco de datos faltantes no es evidencia de autocorrelacion. Comparar 7 dias con ese hueco maximo solo evita que un bloque quede sistematicamente vacio de observaciones por un hueco ya conocido; no justifica la longitud del bloque como escala verdadera de dependencia temporal.",
+    "block_length_days": 7,
+    "replicates": 5000,
+    "nominal_level": 0.95,
+    "resampling_seed": 20260919,
+    "gap_treatment": "Se conserva la grilla diaria completa; nunca se imputa el target. Cada estadistico de cada replica se recalcula solo con los pares observados dentro de sus bloques remuestreados (ver uncertainty.invalid_replicate_rule para las condiciones estructurales que invalidan una replica)."
+  },
+  "multiplicity": {
+    "method": "Limite superior simultaneo family-wise UNICO y CONJUNTO, no separado por tipo de estadistico. Para cada replica evaluable del bootstrap de bloques (uncertainty.invalid_replicate_rule: toda la familia debe ser estimable en esa replica, sin maximos parciales) se calcula UN SOLO maximo por replica sobre la union completa de: el ECE de cada alcance (horizonte, semilla, periodo completo, ventana) segun uncertainty.ece_bin_inclusion, Y el error absoluto de cada bin de uncertainty.backed_bin_family en esos mismos alcances. El limite reportado (U) es el percentil 0.95, sin centrar ni corregir sesgo, de esa unica distribucion de maximos conjuntos (uncertainty.centering; ver uncertainty.coverage_guarantee_caveat sobre los limites de esta aproximacion). U se compara por separado contra tolerances.epsilon_ece (para las afirmaciones de ECE) y tolerances.epsilon_bin (para las afirmaciones por bin respaldado): ambas usan el mismo U, no percentiles independientes por tolerancia. Ninguna replica evaluable se descarta despues por producir un maximo alto. Los bins fuera de uncertainty.backed_bin_family no aportan al error por bin ni a ninguna afirmacion publicable, pero si integran el ECE cuando tienen al menos una observacion, conforme a uncertainty.ece_bin_inclusion.",
+    "family_dimensions": [
+      "horizon",
+      "seed",
+      "stability_window",
+      "supported_probability_bin"
+    ]
+  },
+  "stability_windows": [
+    {
+      "start": "2024-10-19",
+      "end": "2024-11-24",
+      "criteria_reference": "global"
+    },
+    {
+      "start": "2024-11-25",
+      "end": "2024-12-31",
+      "criteria_reference": "global"
+    }
+  ]
+}

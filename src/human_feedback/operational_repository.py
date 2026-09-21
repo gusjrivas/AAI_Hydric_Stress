@@ -1,0 +1,698 @@
+"""Repositorio operacional v2 de emisiones y revisiones humanas, separado
+por sensor (HU4/HU5/HU6; capacidades predictive-modeling, human-feedback y
+architecture-integration). Ver
+`docs/design/backend-producer-ui-emission-dependencies.md` y
+`openspec/changes/extend-dated-alert-feedback/`.
+
+Alcance de esta entrega: identidad determinista de tandas y emisiones,
+inmutabilidad de éxitos, revisiones append-only, idempotencia persistente,
+control optimista de revisiones y exclusión entre procesos. La emisión
+real desde modelos permanece fuera de alcance (HU4 pendiente); por eso
+`record_batch` no se expone por HTTP en esta entrega y solo existe para
+sembrar fixtures en pruebas aisladas (ver AGENTS.md, sección "Datos y
+emisiones").
+
+Limitación documentada: esta PoC no persiste los bytes del snapshot de
+lecturas (eso pertenece a la futura emisión real); `snapshot_id` es un
+hash opaco provisto por quien registra la tanda. La detección de cambio
+de snapshot para una misma clave (`issued_snapshot_conflict`) sí está
+implementada porque no depende de esos bytes.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
+from dataclasses import dataclass
+from datetime import date, datetime, time, timezone
+from pathlib import Path
+from typing import Any
+from uuid import uuid4
+
+from data_ingestion.sensor_naming import validate_sensor_id
+from data_ingestion.storage import atomic_write_bytes, interprocess_lock
+from predictive_modeling.operational_contract import OPERATIONAL_CONTRACT_VERSION
+from predictive_modeling.operational_preparation import SUPPORTED_HORIZONS
+
+FORMAT_VERSION = 1
+METADATA_DIRECTORY = "ui_metadata"
+
+# Base observada: `DEMO_SENSOR_PREFIX` en scripts/demo_simulation/config.py.
+# Se repite aquí como literal (no como import) porque `scripts/` no forma
+# parte del paquete instalable; el valor es la decisión normativa del
+# documento de dependencias, no un detalle de implementación del simulador.
+DEMO_SENSOR_PREFIX = "demo-"
+
+REVIEW_ACTIONS = {"confirm", "reject"}
+TRAINING_ELIGIBILITY_STATES = {
+    "no_review",
+    "waiting_target_maturity",
+    "requires_mature_revalidation",
+    "compatible_correction",
+    "confirmation_only",
+    "incompatible_source_model",
+    "incompatible_contract",
+    "insufficient_data",
+    "applied",
+}
+
+
+class OperationalRepositoryError(Exception):
+    def __init__(self, code: str, message: str, status_code: int, details: dict | None = None):
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.status_code = status_code
+        self.details = details or {}
+
+
+def is_demo_reserved(sensor_id: str) -> bool:
+    """Todo sensor_id que empiece exactamente por `demo-` queda reservado
+    al flujo legacy en cualquier estado, incluso sin manifiesto local.
+    """
+    return sensor_id.startswith(DEMO_SENSOR_PREFIX)
+
+
+def _demo_write_locked() -> OperationalRepositoryError:
+    return OperationalRepositoryError(
+        "demo_write_locked",
+        "El espacio demo- esta reservado al flujo legacy.",
+        409,
+        {"reason": "legacy_demo_sensor_reserved"},
+    )
+
+
+def _canonical_json(payload: Any) -> bytes:
+    return json.dumps(payload, ensure_ascii=True, separators=(",", ":")).encode("utf-8")
+
+
+def compute_batch_id(sensor_id: str, as_of_date: date, contract_version: str) -> str:
+    payload = ["producer-batch-id-v1", sensor_id, as_of_date.isoformat(), contract_version]
+    return "batch_" + hashlib.sha256(_canonical_json(payload)).hexdigest()
+
+
+def compute_forecast_id(
+    sensor_id: str, as_of_date: date, horizon_days: int, contract_version: str
+) -> str:
+    payload = [
+        "producer-forecast-id-v1",
+        sensor_id,
+        as_of_date.isoformat(),
+        horizon_days,
+        contract_version,
+    ]
+    return "fc_" + hashlib.sha256(_canonical_json(payload)).hexdigest()
+
+
+def _isoformat_z(value: datetime) -> str:
+    if value.tzinfo is None:
+        raise ValueError("Los instantes persistidos deben ser aware en UTC.")
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _parse_iso_z(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
+
+
+@dataclass(frozen=True)
+class SlotSeed:
+    """Entrada de siembra para un horizonte de una tanda (uso exclusivo de
+    fixtures de prueba aisladas; no proviene de un endpoint público).
+    """
+
+    horizon_days: int
+    status: str  # "available" | "unavailable"
+    reason_code: str | None = None
+    alert: bool | None = None
+    score: float | None = None
+    score_kind: str | None = None
+    display_probability: float | None = None
+    probability_status: str | None = None
+    probability_reason_code: str | None = None
+    decision_threshold: float | None = None
+    event_threshold: dict[str, Any] | None = None
+    model_reference: dict[str, Any] | None = None
+
+    def __post_init__(self) -> None:
+        if self.horizon_days not in SUPPORTED_HORIZONS:
+            raise ValueError("horizon_days debe ser 1, 2 o 3.")
+        if self.status not in {"available", "unavailable"}:
+            raise ValueError("status debe ser available o unavailable.")
+        if self.status == "unavailable" and not self.reason_code:
+            raise ValueError("Un slot unavailable requiere reason_code.")
+        if self.status == "available" and (
+            self.alert is None
+            or self.score is None
+            or self.score_kind is None
+            or self.decision_threshold is None
+            or self.event_threshold is None
+            or self.model_reference is None
+        ):
+            raise ValueError("Un slot available requiere sus campos obligatorios.")
+
+
+def _request_hash(payload: Any) -> str:
+    return hashlib.sha256(_canonical_json(payload)).hexdigest()
+
+
+class OperationalRepository:
+    """Documento JSON versionado por sensor: tandas, emisiones, eventos de
+    revisión y resultados idempotentes en un único archivo, con lock
+    entre procesos y reemplazo atómico (mismas primitivas que
+    `data_ingestion.catalog.CatalogRepository`).
+    """
+
+    def __init__(self, data_dir: Path, sensor_id: str):
+        try:
+            self.sensor_id = validate_sensor_id(sensor_id)
+        except ValueError as error:
+            raise OperationalRepositoryError(
+                "invalid_sensor_id", str(error), 422, {"field": "sensor_id"}
+            ) from error
+        self.data_dir = Path(data_dir)
+        self.metadata_dir = self.data_dir / METADATA_DIRECTORY
+        self.path = self.metadata_dir / f"operational_v2__{self.sensor_id}.json"
+        self.lock_path = self.metadata_dir / f".operational_v2__{self.sensor_id}.lock"
+
+    @staticmethod
+    def _empty(sensor_id: str) -> dict[str, Any]:
+        return {
+            "format_version": FORMAT_VERSION,
+            "sensor_id": sensor_id,
+            "batches": {},
+            "forecasts": {},
+            "reviews": {},
+            "idempotency": {"emission": {}, "review": {}},
+        }
+
+    def _read(self) -> dict[str, Any]:
+        if not self.path.exists():
+            return self._empty(self.sensor_id)
+        try:
+            document = json.loads(self.path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as error:
+            raise OperationalRepositoryError(
+                "operational_storage_unavailable",
+                "No se pudo leer el repositorio operacional.",
+                503,
+            ) from error
+        if document.get("format_version") != FORMAT_VERSION:
+            raise OperationalRepositoryError(
+                "unsupported_operational_version",
+                "La version persistida del repositorio no es compatible.",
+                503,
+                {"format_version": document.get("format_version")},
+            )
+        return document
+
+    def _write(self, document: dict[str, Any]) -> None:
+        content = (
+            json.dumps(document, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+        ).encode()
+        try:
+            atomic_write_bytes(self.path, content)
+        except OSError as error:
+            raise OperationalRepositoryError(
+                "operational_storage_unavailable",
+                "No se pudo persistir el repositorio operacional.",
+                503,
+            ) from error
+
+    @contextmanager
+    def _locked_document(self) -> Iterator[dict[str, Any]]:
+        try:
+            with interprocess_lock(self.lock_path):
+                yield self._read()
+        except OperationalRepositoryError:
+            raise
+        except OSError as error:
+            raise OperationalRepositoryError(
+                "operational_storage_unavailable",
+                "No se pudo bloquear el repositorio operacional.",
+                503,
+            ) from error
+
+    # -- Emisión (solo fixtures de prueba; sin endpoint público) --------
+
+    def record_batch(
+        self,
+        *,
+        as_of_date: date,
+        issued_at: datetime,
+        snapshot_id: str,
+        data_age_days: int | None,
+        provenance: str,
+        slots: Sequence[SlotSeed],
+        idempotency_key: str,
+        contract_version: str = OPERATIONAL_CONTRACT_VERSION,
+        now: datetime,
+    ) -> dict[str, Any]:
+        if not idempotency_key:
+            raise OperationalRepositoryError(
+                "invalid_idempotency_key", "Idempotency-Key es obligatorio.", 422
+            )
+        horizons = sorted(seed.horizon_days for seed in slots)
+        if horizons != list(SUPPORTED_HORIZONS):
+            raise OperationalRepositoryError(
+                "invalid_batch_slots",
+                "Una tanda requiere exactamente los horizontes 1, 2 y 3.",
+                422,
+            )
+        # Orden de precedencia (dependencias resueltas 2026-09-20): validar
+        # entrada, luego reserva demo-, luego idempotencia y reglas
+        # temporales/concurrencia.
+        if is_demo_reserved(self.sensor_id):
+            raise _demo_write_locked()
+
+        request_payload = {
+            "as_of_date": as_of_date.isoformat(),
+            "snapshot_id": snapshot_id,
+            "data_age_days": data_age_days,
+            "provenance": provenance,
+            "slots": [
+                {
+                    "horizon_days": seed.horizon_days,
+                    "status": seed.status,
+                    "reason_code": seed.reason_code,
+                    "alert": seed.alert,
+                    "score": seed.score,
+                    "score_kind": seed.score_kind,
+                    "display_probability": seed.display_probability,
+                    "probability_status": seed.probability_status,
+                    "probability_reason_code": seed.probability_reason_code,
+                    "decision_threshold": seed.decision_threshold,
+                    "event_threshold": seed.event_threshold,
+                    "model_reference": seed.model_reference,
+                }
+                for seed in sorted(slots, key=lambda seed: seed.horizon_days)
+            ],
+            "contract_version": contract_version,
+        }
+        request_hash = _request_hash(request_payload)
+
+        with self._locked_document() as document:
+            idem_store = document["idempotency"]["emission"]
+            existing_idem = idem_store.get(idempotency_key)
+            if existing_idem is not None:
+                if existing_idem["request_hash"] != request_hash:
+                    raise OperationalRepositoryError(
+                        "idempotency_conflict",
+                        "La clave de idempotencia ya se uso con otro contenido.",
+                        409,
+                    )
+                return self._render_batch(document, existing_idem["batch_id"], now)
+
+            batch_id = compute_batch_id(self.sensor_id, as_of_date, contract_version)
+            existing_batch = document["batches"].get(batch_id)
+            if existing_batch is not None:
+                if existing_batch["snapshot_id"] != snapshot_id:
+                    raise OperationalRepositoryError(
+                        "issued_snapshot_conflict",
+                        "El snapshot cambio para una clave ya emitida.",
+                        409,
+                    )
+                if existing_batch["as_of_date"] != as_of_date.isoformat():
+                    raise OperationalRepositoryError(
+                        "batch_identity_mismatch",
+                        "Las claves originales no coinciden con la tanda persistida.",
+                        503,
+                    )
+
+            resolved_slots: dict[str, dict[str, Any]] = {}
+            for seed in sorted(slots, key=lambda seed: seed.horizon_days):
+                key = str(seed.horizon_days)
+                previous = (existing_batch or {}).get("slots", {}).get(key)
+                if previous is not None and previous["status"] == "available":
+                    # Éxitos inmutables: un reintento con otra clave de
+                    # idempotencia no recalcula slots ya exitosos.
+                    resolved_slots[key] = previous
+                    continue
+                if seed.status == "available":
+                    forecast_id = compute_forecast_id(
+                        self.sensor_id, as_of_date, seed.horizon_days, contract_version
+                    )
+                    target_date = date.fromordinal(as_of_date.toordinal() + seed.horizon_days)
+                    forecast_record = {
+                        "forecast_id": forecast_id,
+                        "sensor_id": self.sensor_id,
+                        "batch_id": batch_id,
+                        "as_of_date": as_of_date.isoformat(),
+                        "horizon_days": seed.horizon_days,
+                        "target_date": target_date.isoformat(),
+                        "contract_version": contract_version,
+                        "issued_at": _isoformat_z(issued_at),
+                        "snapshot_id": snapshot_id,
+                        "alert": seed.alert,
+                        "score": seed.score,
+                        "score_kind": seed.score_kind,
+                        "display_probability": seed.display_probability,
+                        "probability_status": seed.probability_status,
+                        "probability_reason_code": seed.probability_reason_code,
+                        "decision_threshold": seed.decision_threshold,
+                        "event_threshold": seed.event_threshold,
+                        "model_reference": seed.model_reference,
+                        "review": {"status": "pending", "revision": 0, "latest_review": None},
+                    }
+                    document["forecasts"][forecast_id] = forecast_record
+                    resolved_slots[key] = {
+                        "status": "available",
+                        "forecast_id": forecast_id,
+                        "reason_code": None,
+                    }
+                else:
+                    resolved_slots[key] = {
+                        "status": "unavailable",
+                        "forecast_id": None,
+                        "reason_code": seed.reason_code,
+                    }
+
+            revision = (existing_batch["revision"] + 1) if existing_batch is not None else 1
+            batch_record = {
+                "batch_id": batch_id,
+                "sensor_id": self.sensor_id,
+                "as_of_date": as_of_date.isoformat(),
+                "contract_version": contract_version,
+                "revision": revision,
+                "issued_at": _isoformat_z(issued_at),
+                "snapshot_id": snapshot_id,
+                "data_age_days": data_age_days,
+                "provenance": provenance,
+                "slots": resolved_slots,
+            }
+            document["batches"][batch_id] = batch_record
+            idem_store[idempotency_key] = {"request_hash": request_hash, "batch_id": batch_id}
+            self._write(document)
+            return self._render_batch(document, batch_id, now)
+
+    def _render_batch(
+        self, document: dict[str, Any], batch_id: str, now: datetime
+    ) -> dict[str, Any]:
+        batch = document["batches"][batch_id]
+        slots = []
+        for horizon in SUPPORTED_HORIZONS:
+            slot = batch["slots"][str(horizon)]
+            if slot["status"] == "unavailable":
+                slots.append(
+                    {
+                        "horizon_days": horizon,
+                        "target_date": None,
+                        "status": "unavailable",
+                        "reason_code": slot["reason_code"],
+                        "forecast_id": None,
+                        "review": None,
+                    }
+                )
+            else:
+                forecast = document["forecasts"][slot["forecast_id"]]
+                slots.append(
+                    {
+                        **self._render_forecast(forecast, now),
+                        "status": "available",
+                        "reason_code": None,
+                    }
+                )
+        return {
+            "batch_id": batch["batch_id"],
+            "sensor_id": batch["sensor_id"],
+            "revision": batch["revision"],
+            "as_of_date": batch["as_of_date"],
+            "issued_at": batch["issued_at"],
+            "snapshot_id": batch["snapshot_id"],
+            "data_age_days": batch["data_age_days"],
+            "provenance": batch["provenance"],
+            "contract_version": batch["contract_version"],
+            "slots": slots,
+        }
+
+    # -- Lectura ----------------------------------------------------------
+
+    def get_forecast(self, forecast_id: str, *, now: datetime) -> dict[str, Any] | None:
+        document = self._read()
+        forecast = document["forecasts"].get(forecast_id)
+        if forecast is None:
+            return None
+        return self._render_forecast(forecast, now)
+
+    def list_forecasts(
+        self,
+        *,
+        target_from: date | None,
+        target_to: date | None,
+        horizon_days: int | None,
+        review_status: str | None,
+        cutoff: datetime,
+        after: tuple[str, str, str] | None,
+        limit: int,
+        now: datetime,
+    ) -> dict[str, Any]:
+        document = self._read()
+        cutoff_key = _isoformat_z(cutoff)
+        all_forecasts = list(document["forecasts"].values())
+
+        pending_total = sum(
+            1 for forecast in all_forecasts if forecast["review"]["status"] == "pending"
+        )
+        reviewable_pending_total = sum(
+            1
+            for forecast in all_forecasts
+            if forecast["review"]["status"] == "pending" and now >= _review_open_at(forecast)
+        )
+
+        filtered = [
+            forecast
+            for forecast in all_forecasts
+            if forecast["issued_at"] <= cutoff_key
+            and (target_from is None or forecast["target_date"] >= target_from.isoformat())
+            and (target_to is None or forecast["target_date"] <= target_to.isoformat())
+            and (horizon_days is None or forecast["horizon_days"] == horizon_days)
+            and (review_status is None or forecast["review"]["status"] == review_status)
+        ]
+        # Orden estable multi-clave: cada sort() es estable, así que
+        # aplicar las claves de menor a mayor precedencia (ID ascendente,
+        # luego issued_at descendente, luego target_date descendente)
+        # produce exactamente target_date DESC, issued_at DESC, ID ASC.
+        filtered.sort(key=lambda forecast: forecast["forecast_id"])
+        filtered.sort(key=lambda forecast: forecast["issued_at"], reverse=True)
+        filtered.sort(key=lambda forecast: forecast["target_date"], reverse=True)
+
+        if after is not None:
+            after_key = tuple(after)
+            cut_index = next(
+                (
+                    index + 1
+                    for index, forecast in enumerate(filtered)
+                    if (
+                        forecast["target_date"],
+                        forecast["issued_at"],
+                        forecast["forecast_id"],
+                    )
+                    == after_key
+                ),
+                0,
+            )
+            filtered = filtered[cut_index:]
+
+        page = filtered[: limit + 1]
+        has_more = len(page) > limit
+        page = page[:limit]
+        items = [self._render_forecast(forecast, now) for forecast in page]
+        next_after = None
+        if has_more and page:
+            last = page[-1]
+            next_after = (last["target_date"], last["issued_at"], last["forecast_id"])
+        return {
+            "items": items,
+            "next_after": next_after,
+            "pending_total": pending_total,
+            "reviewable_pending_total": reviewable_pending_total,
+        }
+
+    def _render_forecast(self, forecast: dict[str, Any], now: datetime) -> dict[str, Any]:
+        review_open_at = _review_open_at(forecast)
+        reviewable = now >= review_open_at
+        blocked_reason = None if reviewable else "review_not_open"
+        review_state = forecast["review"]
+        training_eligibility, applied_refs = _training_eligibility(forecast, review_state, now)
+        return {
+            "forecast_id": forecast["forecast_id"],
+            "sensor_id": forecast["sensor_id"],
+            "batch_id": forecast["batch_id"],
+            "as_of_date": forecast["as_of_date"],
+            "horizon_days": forecast["horizon_days"],
+            "target_date": forecast["target_date"],
+            "contract_version": forecast["contract_version"],
+            "issued_at": forecast["issued_at"],
+            "snapshot_id": forecast["snapshot_id"],
+            "alert": forecast["alert"],
+            "score": forecast["score"],
+            "score_kind": forecast["score_kind"],
+            "display_probability": forecast["display_probability"],
+            "probability_status": forecast["probability_status"],
+            "probability_reason_code": forecast["probability_reason_code"],
+            "decision_threshold": forecast["decision_threshold"],
+            "event_threshold": forecast["event_threshold"],
+            "model_reference": forecast["model_reference"],
+            "review": {
+                "status": review_state["status"],
+                "revision": review_state["revision"],
+                "review_open_at": _isoformat_z(review_open_at),
+                "reviewable": reviewable,
+                "blocked_reason": blocked_reason,
+                "latest_review": review_state["latest_review"],
+                "training_eligibility": training_eligibility,
+                "applied_review_references": applied_refs,
+            },
+        }
+
+    # -- Revisión humana ----------------------------------------------------
+
+    def submit_review(
+        self,
+        *,
+        forecast_id: str,
+        request_id: str,
+        expected_revision: int,
+        action: str,
+        comment: str | None,
+        now: datetime,
+    ) -> tuple[int, dict[str, Any]]:
+        if action not in REVIEW_ACTIONS:
+            raise OperationalRepositoryError(
+                "invalid_action", "action debe ser confirm o reject.", 422
+            )
+        if not request_id:
+            raise OperationalRepositoryError(
+                "invalid_request_id", "request_id es obligatorio.", 422
+            )
+
+        with self._locked_document() as document:
+            forecast = document["forecasts"].get(forecast_id)
+            if forecast is None or forecast["sensor_id"] != self.sensor_id:
+                raise OperationalRepositoryError(
+                    "forecast_not_found", "La emision no existe para este sensor.", 404
+                )
+            if is_demo_reserved(self.sensor_id):
+                raise _demo_write_locked()
+
+            request_payload = {
+                "expected_revision": expected_revision,
+                "action": action,
+                "comment": comment,
+            }
+            request_hash = _request_hash(request_payload)
+            idem_key = f"{forecast_id}:{request_id}"
+            idem_store = document["idempotency"]["review"]
+            existing_idem = idem_store.get(idem_key)
+            if existing_idem is not None:
+                if existing_idem["request_hash"] != request_hash:
+                    raise OperationalRepositoryError(
+                        "idempotency_conflict",
+                        "El request_id ya se uso con otro contenido.",
+                        409,
+                    )
+                snapshot = existing_idem["review_snapshot"]
+                rendered = self._render_forecast(forecast, now)
+                rendered["review"]["status"] = snapshot["status"]
+                rendered["review"]["revision"] = snapshot["revision"]
+                rendered["review"]["latest_review"] = snapshot["latest_review"]
+                training_eligibility, applied_refs = _training_eligibility(forecast, snapshot, now)
+                rendered["review"]["training_eligibility"] = training_eligibility
+                rendered["review"]["applied_review_references"] = applied_refs
+                return existing_idem["status_code"], rendered["review"]
+
+            review_open_at = _review_open_at(forecast)
+            if now < review_open_at:
+                raise OperationalRepositoryError(
+                    "review_not_open",
+                    "La revision todavia no esta abierta.",
+                    409,
+                    {"review_open_at": _isoformat_z(review_open_at)},
+                )
+
+            current_revision = forecast["review"]["revision"]
+            if expected_revision != current_revision:
+                raise OperationalRepositoryError(
+                    "revision_conflict",
+                    "La revision esperada no coincide con la revision actual.",
+                    409,
+                    {
+                        "expected_revision": expected_revision,
+                        "actual_revision": current_revision,
+                    },
+                )
+
+            observed_label = forecast["alert"] if action == "confirm" else not forecast["alert"]
+            new_revision = current_revision + 1
+            review_event = {
+                "review_id": "rev_" + uuid4().hex,
+                "request_id": request_id,
+                "revision": new_revision,
+                "forecast_id": forecast_id,
+                "action": action,
+                "observed_label": observed_label,
+                "comment": comment,
+                "reviewed_at": _isoformat_z(now),
+            }
+            document["reviews"].setdefault(forecast_id, []).append(review_event)
+            new_status = "confirmed" if action == "confirm" else "rejected"
+            forecast["review"]["revision"] = new_revision
+            forecast["review"]["status"] = new_status
+            forecast["review"]["latest_review"] = review_event
+
+            idem_store[idem_key] = {
+                "request_hash": request_hash,
+                "status_code": 201,
+                "review_snapshot": {
+                    "status": new_status,
+                    "revision": new_revision,
+                    "latest_review": review_event,
+                },
+            }
+            self._write(document)
+            rendered = self._render_forecast(forecast, now)
+            return 201, rendered["review"]
+
+
+def _review_open_at(forecast: dict[str, Any]) -> datetime:
+    target_date = date.fromisoformat(forecast["target_date"])
+    return datetime.combine(target_date, time.min, tzinfo=timezone.utc)
+
+
+def _training_eligibility(
+    forecast: dict[str, Any], review_state: dict[str, Any], now: datetime
+) -> tuple[str, list[str]]:
+    """Orden de evaluación: madurez, compatibilidad y acción. La
+    recalibración real permanece fuera de alcance en esta entrega, por lo
+    que `applied` nunca se alcanza aquí: solo la recalibración futura
+    puede escribir `applied_review_references`.
+    """
+    latest_review = review_state.get("latest_review")
+    if latest_review is None:
+        return "no_review", []
+
+    target_date = date.fromisoformat(forecast["target_date"])
+    server_today = now.astimezone(timezone.utc).date()
+    if server_today <= target_date:
+        return "waiting_target_maturity", []
+
+    reviewed_at_date = _parse_iso_z(latest_review["reviewed_at"]).date()
+    if reviewed_at_date <= target_date:
+        return "requires_mature_revalidation", []
+
+    if latest_review["action"] == "confirm":
+        return "confirmation_only", []
+
+    # Corrección madura: compatibilidad evaluada únicamente con lo que la
+    # propia emisión registró (contrato/horizonte/identidad del modelo
+    # fuente). No existe en esta entrega un registro de "modelo activo"
+    # para comparar linaje de recalibración; ese cruce queda documentado
+    # como brecha pendiente, no inferido.
+    if forecast["contract_version"] != OPERATIONAL_CONTRACT_VERSION:
+        return "incompatible_contract", []
+    model_reference = forecast["model_reference"]
+    required_fields = ("model_version", "calibration_version")
+    if any(model_reference.get(field) is None for field in required_fields):
+        return "incompatible_source_model", []
+    return "compatible_correction", []

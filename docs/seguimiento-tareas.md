@@ -33,6 +33,50 @@ runners complementarios (regresión, HITL, anomalías, robustez) siguen diseñad
 implementados. Aporte a la memoria técnica: capítulo 2 (contrato de features real y
 criterios de soporte predeclarados) y capítulo 3 (custodia y preflight de ejecución).
 
+## 2026-09-19 — Primera entrega de catálogo e históricos para productor
+
+HU2/HU6; `data-ingestion`, `architecture-integration` y `alerting-ui`;
+CRISP-DM comprensión/preparación de datos y despliegue/integración. Implementados
+catálogo persistente de sectores y sensores, adopción sin reescritura, selección
+primaria, histórico UTC por snapshot SHA-256 y fachada aditiva `/api/v2` con
+paginación, errores propios, OpenAPI y feature flag
+`PRODUCER_V2_ENABLED`. Ver
+[documentación de la entrega](design/backend-producer-ui-first-delivery.md).
+
+Persistencia con reemplazo atómico y lock entre procesos; concurrencia,
+revisiones optimistas, preservación byte a byte y compatibilidad legacy
+verificadas en directorios temporales. Validación: 33 tests dirigidos de dominio,
+18 de HTTP/sensores legacy, 21 de compatibilidad con escritores existentes,
+suite backend completa 61, demo 56 passed/1 skipped. Ruff, Black, ambos changes
+con `openspec validate --strict` y `git diff --check` pasan. OpenSpec mantiene
+el aviso preexistente de estructura canónica registrado en la tarea 1.12.
+
+ADR-0013 continúa propuesto y los cambios no se archivan. No se implementaron
+modelado, calibración, porcentajes, feedback v2, UI ni autenticación. Sin cambios
+en protocolos, datasets, resultados HU7/HU8, configuraciones experimentales,
+hipótesis, alcance o arquitectura. Aporte a capítulo 3; capítulo 2 preserva
+procedencia, faltantes y límites científicos.
+
+## 2026-09-18 — Corrección de evidencia de calibración (solo specs)
+HU4/HU6; predictive-modeling y architecture-integration; CRISP-DM modelado,
+evaluación de desarrollo e integración. Se corrige el criterio de publicación:
+Brier/log-loss no bastan; se exigen diagnósticos directos, incertidumbre temporal,
+soporte, cobertura y tolerancias previas. API distingue motivos de no calificación.
+No se ejecutaron experimentos ni se modificaron código, protocolos v3/v4,
+configuraciones formales o resultados históricos HU7/HU8. Hipótesis, alcance
+y arquitectura intactos. Documentación propuesta para capítulos 2 y 3.
+
+## 2026-09-18 — Especificaciones de backend para UI de productor (propuesta)
+
+Se proponen cuatro changes para HU2, HU4, HU5 y HU6, con ADR-0013 pendiente
+de aprobación: catálogo/historial, pronósticos +1/+2/+3, feedback por emisión
+y contrato API v2. Ver [plan y dependencias](design/backend-producer-ui-plan.md).
+CRISP-DM: datos, modelado, evaluación de desarrollo e integración. Solo specs;
+no se implementaron capacidades ni se completaron tareas de código.
+Configuraciones base / +sintéticos / +anomalías / completa, protocolos formales,
+resultados HU7/HU8, hipótesis y capas de arquitectura permanecen intactos.
+Aporte futuro a capítulos 2 y 3: causalidad, límites de probabilidades y trazabilidad.
+
 ## 2026-09-17 — UI en lenguaje cotidiano (HU6/HU5)
 
 Change `simplify-producer-ui`, capacidad `alerting-ui`, CRISP-DM despliegue e
