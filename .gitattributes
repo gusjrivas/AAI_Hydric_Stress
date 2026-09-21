@@ -1,0 +1,3 @@
+# Frozen calibration manifests are byte-addressed artifacts (ADR-0013).
+# Preserve repository bytes on Windows: autocrlf must not invalidate their identity.
+/config/producer-calibration-plan.frozen*.json -text

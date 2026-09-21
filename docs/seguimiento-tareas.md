@@ -21,6 +21,17 @@ resultados históricos, hipótesis, configuración experimental o arquitectura.
 HU7/HU8 no se dan por cerrados. Memoria: capítulo 3, evidencia de integración.
 Detalle y condiciones de cierre: [producer-ui-main-integration.md](design/producer-ui-main-integration.md).
 
+### Actualización de esta integración: orquestador e identidades congeladas
+
+Se incorporó b573088 cuando la sesión concurrente terminó y publicó. Se ejecutaron
+73 pruebas específicas del orquestador, CLI, motor y manifiestos sobre la rama
+combinada. La primera ejecución falló en 6 verificaciones de identidad porque
+el checkout Windows convirtió LF a CRLF; se corrigió con `.gitattributes` (`-text`
+para manifiestos congelados y sidecars) y se restauraron exactamente los bytes
+versionados, comprobando los hashes/longitudes existentes. Los JSON no cambiaron
+respecto de Git. La segunda ejecución pasó 73/73. No hubo corrida real ni cambios
+metodológicos. Sigue pendiente la conexión a emisión real, evidencia y UI completa.
+
 ## 2026-09-20 — Prerrequisitos de ejecución de controlled_daily_v4 (HU7/HU8)
 
 Change `integrate-controlled-daily-v4-execution-prerequisites`, capacidad

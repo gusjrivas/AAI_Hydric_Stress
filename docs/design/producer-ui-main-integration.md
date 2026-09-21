@@ -8,7 +8,7 @@ Rama `feat/hu6-productor-integracion-final`, worktree aislado
 `C:/Repo/AAI_Hydric_Stress_integration`.
 
 - Base: `origin/main` en `a657014` (PR #206, prerrequisitos científicos).
-- Backend incorporado: `2e22c6f`, `feat/hu6-backend-soporte-ui`.
+- Backend incorporado: `b573088`, `feat/hu6-backend-soporte-ui` (incluye el orquestador publicado durante esta integración).
 - UI incorporada: `a250a9e`, `feat/hu6-ui-productor-integracion`.
 - Conflicto de seguimiento resuelto conservando ambas entradas.
 - Los cambios locales de las ramas originales no se incluyeron ni modificaron.
@@ -60,6 +60,24 @@ solo queda una sugerencia informativa por longitud de un requisito.
 No se declara CI verde, suite completa de dominio ejecutada ni revisión visual
 actual por estas pruebas. CI debe aportar su resultado independiente en el PR.
 
+## Incorporación del orquestador y protección de identidades
+
+Durante la integración se publicó `b573088`; se incorporó sin conflictos.
+Pruebas específicas ejecutadas aquí: `test_operational_run.py`,
+`test_run_operational_manifest_v3_cli.py`, `test_calibration_assessment.py` y
+`test_calibration_manifest.py`: **73 passed** en 22 segundos, con fixtures sintéticos,
+mismo montaje de solo lectura y cwd temporal. No se ejecutó la corrida real.
+La suite completa 894 passed / 3 skipped está reportada por el autor de b573088;
+no se repitió aquí ni se presenta como evidencia propia de este checkout.
+
+La primera ejecución específica detectó 6 fallos de identidad: `core.autocrlf=true`
+había convertido LF a CRLF al crear el worktree Windows. `.gitattributes` ahora
+marca los manifiestos congelados y sus sidecars con `-text`. Se restauraron los
+bytes LF después de comprobar cada hash y longitud contra su identidad existente.
+No se recalculó ningún hash y ninguno de esos JSON difiere del blob versionado.
+Los tres hashes aprobados (v1/v2/v3) siguen intactos. Esta corrección evita que
+un checkout nuevo invalide artefactos congelados; no cambia la metodología.
+
 ## Activación local
 
 En el checkout de integración, establecer `PRODUCER_V2_ENABLED=true` en `.env`
@@ -71,8 +89,8 @@ persistidos no se borran. Registrar sensores no crea mediciones ni pronósticos.
 
 ## Condiciones pendientes para cerrar y mergear
 
-1. Incorporar el orquestador y sus fixtures cuando la sesión que los implementa
-   termine y publique. Sus archivos locales no forman parte de esta integración.
+1. **Resuelto:** incorporado el orquestador publicado en `b573088`; verificadas
+   sus pruebas y las del motor/manifiestos (73 passed) en el checkout combinado.
 2. Completar el recorrido modelo → snapshot → emisión persistida +1/+2/+3 → API → UI,
    con identidades y decisiones de publicación verificadas. Actualmente la UI puede
    consultar/revisar registros, pero no generar esas emisiones reales.
