@@ -178,9 +178,36 @@ def test_frozen_v1_manifest_is_preserved_untouched_but_superseded():
     assert "solo bins con soporte en esa replica" in frozen_v1["uncertainty"]["method"].lower()
 
 
-def test_frozen_v2_manifest_matches_the_corrected_draft_and_fixes_the_ece_bug():
+def test_frozen_v2_manifest_is_preserved_untouched_but_superseded():
+    """v2 (2026-09-21) fixed the ECE-inclusion bug but still (a) dropped a
+    single bin's term from the family-wise maximum when it lost support
+    during resampling instead of declaring the whole replicate not
+    evaluable, and (b) computed two separate maxima/percentiles (ECE vs
+    bin error) instead of one joint family-wise bound, contradicting
+    design.md's single simultaneous bound over the full family. Kept as
+    historical evidence, byte-for-byte; must never be treated as active."""
     repo_root = Path(__file__).resolve().parents[1]
     frozen_path = repo_root / "config" / "producer-calibration-plan.frozen.v2.json"
+
+    frozen_v2 = verify_frozen_calibration_manifest(frozen_path)
+
+    assert (
+        json.loads(
+            (
+                repo_root / "config" / "producer-calibration-plan.frozen.v2.json.identity.json"
+            ).read_text(encoding="utf-8")
+        )["content_sha256"]
+        == "0c3bbe8a9364ac26c40da3f603fc2e14cf6c97af20e48cd533d9361ea9dca918"
+    )
+    assert (
+        "calculado por separado para ece y para error absoluto por bin"
+        in frozen_v2["multiplicity"]["method"].lower()
+    )
+
+
+def test_frozen_v3_manifest_matches_the_corrected_draft_and_uses_joint_multiplicity():
+    repo_root = Path(__file__).resolve().parents[1]
+    frozen_path = repo_root / "config" / "producer-calibration-plan.frozen.v3.json"
     draft_path = repo_root / "config" / "producer-calibration-plan.draft.json"
 
     frozen = verify_frozen_calibration_manifest(frozen_path)
@@ -205,7 +232,7 @@ def test_frozen_v2_manifest_matches_the_corrected_draft_and_fixes_the_ece_bug():
     }
     assert frozen_without_freeze_fields == draft_without_freeze_fields
 
-    # No tocamos tolerancias ni particiones al corregir el ECE.
+    # No tocamos tolerancias ni particiones al corregir la multiplicidad.
     assert frozen["tolerances"]["epsilon_ece"] == 0.10
     assert frozen["tolerances"]["epsilon_bin"] == 0.15
     assert frozen["partitions"] == {
@@ -214,13 +241,26 @@ def test_frozen_v2_manifest_matches_the_corrected_draft_and_fixes_the_ece_bug():
         "evaluation": {"start": "2024-10-19", "end": "2024-12-31"},
     }
 
+    multiplicity_method = frozen["multiplicity"]["method"].lower()
+    assert (
+        "calculado por separado para ece y para error absoluto por bin" not in multiplicity_method
+    )
+    assert "un solo maximo por replica" in multiplicity_method
+    assert (
+        "no se calcula un maximo parcial" in frozen["uncertainty"]["invalid_replicate_rule"].lower()
+    )
 
-def test_draft_separates_ece_inclusion_backed_bins_and_replicate_invalidity():
-    """design.md: ECE sums over every non-empty bin; support.minimum_bin_count
-    only gates coverage/individually publishable bins, never the ECE sum."""
+
+def test_manifest_text_separates_ece_inclusion_backed_bins_and_no_partial_maxima():
+    """Comprobacion de texto (no de calculo): design.md exige que el ECE sume
+    todos los bins no vacios (support.minimum_bin_count solo gobierna coverage
+    y afirmaciones individuales por bin) y que el limite simultaneo sea una
+    unica familia conjunta, sin maximos parciales que omitan componentes no
+    estimables."""
     path = Path(__file__).resolve().parents[1] / "config" / "producer-calibration-plan.draft.json"
     draft = json.loads(path.read_text(encoding="utf-8"))
     uncertainty = draft["uncertainty"]
+    multiplicity = draft["multiplicity"]
 
     method = uncertainty["method"].lower()
     assert "solo bins con soporte" not in method
@@ -230,14 +270,85 @@ def test_draft_separates_ece_inclusion_backed_bins_and_replicate_invalidity():
     assert "no omitir intervalos de poco soporte" in ece_inclusion
     assert "minimum_bin_count no filtra esta suma" in ece_inclusion
 
-    backed_bin_family = uncertainty["backed_bin_family"]
+    backed_bin_family = uncertainty["backed_bin_family"].lower()
     assert "minimum_bin_count" in backed_bin_family
-    assert "epsilon_bin" in backed_bin_family or "supported_probability_bin" in backed_bin_family
+    assert "no se calcula un maximo parcial" in backed_bin_family
 
     invalid_rule = uncertainty["invalid_replicate_rule"].lower()
     assert "minimum_class_count" in invalid_rule
     assert "minimum_temporal_blocks" in invalid_rule
-    assert "no invalida la replica" in invalid_rule or "no invalida por si solo" in invalid_rule
+    assert "minimum_bin_count" in invalid_rule
+    assert "no se calcula un maximo parcial" in invalid_rule
+    assert "no evaluable" in invalid_rule
+
+    multiplicity_method = multiplicity["method"].lower()
+    assert (
+        "calculado por separado para ece y para error absoluto por bin" not in multiplicity_method
+    )
+    assert "un solo maximo por replica" in multiplicity_method
+    assert "mismo u" in multiplicity_method or "el mismo u" in multiplicity_method
+
+    coverage_caveat = uncertainty["coverage_guarantee_caveat"].lower()
+    assert "no ofrece una garantia" in coverage_caveat or "no garantiza" in coverage_caveat
+
+
+def test_synthetic_missing_component_makes_the_whole_replicate_not_evaluable():
+    """Prueba de calculo (no de texto): simula, con datos sinteticos, la
+    regla de invalidez de replica descripta en uncertainty.invalid_replicate_rule.
+    Si un componente predeclarado de la familia conjunta (un alcance de ECE o
+    un bin respaldado) no es estimable en una replica, esa replica entera debe
+    excluirse del computo del maximo, sin calcular un maximo parcial que la
+    incluya omitiendo el componente faltante."""
+
+    def joint_max_or_none(components: dict[str, float | None]) -> float | None:
+        if any(value is None for value in components.values()):
+            return None
+        return max(components.values())
+
+    fully_estimable_replicate = {"ece_h1": 0.05, "ece_h2": 0.08, "bin_error_b3": 0.12}
+    replicate_missing_a_bin_component = {"ece_h1": 0.05, "ece_h2": 0.08, "bin_error_b3": None}
+
+    assert joint_max_or_none(fully_estimable_replicate) == pytest.approx(0.12)
+    assert joint_max_or_none(replicate_missing_a_bin_component) is None
+
+    replicates = [fully_estimable_replicate, replicate_missing_a_bin_component] * 3
+    joint_maxima = [joint_max_or_none(replicate) for replicate in replicates]
+    evaluable_maxima = [value for value in joint_maxima if value is not None]
+
+    # La regla exige excluir la replica completa, no reemplazar el componente
+    # faltante por un valor parcial (por ejemplo, el maximo de los presentes).
+    assert len(evaluable_maxima) == 3
+    assert all(value == pytest.approx(0.12) for value in evaluable_maxima)
+    # Un implementador incorrecto podria ignorar el componente faltante y
+    # devolver el maximo de los terminos presentes (0.08, el valor de
+    # "ece_h2") como si fuera el resultado de la replica. La regla correcta
+    # exige en cambio "no evaluable" (None) para toda la replica: ya lo
+    # confirma el `is None` de arriba, no un valor numerico parcial.
+    partial_max_a_buggy_implementation_might_return = max(
+        value for value in replicate_missing_a_bin_component.values() if value is not None
+    )
+    assert partial_max_a_buggy_implementation_might_return == pytest.approx(0.08)
+
+
+def test_synthetic_joint_maximum_combines_ece_and_bin_error_terms_together():
+    """Prueba de calculo (no de texto): design.md exige un unico limite
+    simultaneo family-wise para ECE y errores por bin juntos, no dos maximos
+    independientes por tipo de estadistico."""
+
+    ece_terms = {"ece_h1_seed0_full": 0.06, "ece_h2_seed0_full": 0.09}
+    bin_error_terms = {"bin_error_h1_seed0_full_b4": 0.14, "bin_error_h1_seed0_full_b7": 0.03}
+
+    joint_max = max({**ece_terms, **bin_error_terms}.values())
+    ece_only_max = max(ece_terms.values())
+    bin_error_only_max = max(bin_error_terms.values())
+
+    # El maximo conjunto no puede ser menor que ninguno de los dos maximos
+    # separados: separarlos (como hacia la revision anterior) relaja el
+    # control simultaneo especificado en el diseno.
+    assert joint_max >= ece_only_max
+    assert joint_max >= bin_error_only_max
+    assert joint_max == pytest.approx(bin_error_only_max)
+    assert joint_max != pytest.approx(ece_only_max)
 
 
 def test_synthetic_ece_over_all_nonempty_bins_differs_from_support_filtered_ece():

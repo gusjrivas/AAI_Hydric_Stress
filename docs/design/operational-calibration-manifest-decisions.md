@@ -1,5 +1,94 @@
 # Decisiones cerradas del manifiesto operacional +1/+2/+3
 
+## Actualizacion 2026-09-21 (2) — multiplicidad conjunta y congelamiento v3
+
+**El congelamiento v2 (2026-09-21, `config/producer-calibration-plan.frozen.v2.json`,
+`content_sha256=0c3bbe8a9364ac26c40da3f603fc2e14cf6c97af20e48cd533d9361ea9dca918`)
+queda SUSTITUIDO. No usar como manifiesto activo.** (v1 ya estaba sustituido
+desde la actualizacion anterior y sigue intacto, sin cambios.)
+
+Dos inconsistencias encontradas en v2, ambas en la construccion del limite
+simultaneo family-wise (`multiplicity`/`uncertainty`), sin tocar el ECE, las
+tolerancias ni las particiones (esas correcciones de la actualizacion
+anterior se mantienen):
+
+1. **Maximo parcial al perder soporte un bin.** v2 decia: "unicamente el
+   termino de ESE bin en ESA replica queda invalido y se excluye del
+   computo... no invalida por si solo la replica completa." Eso es calcular
+   un maximo parcial omitiendo un componente no estimable de la familia
+   conjunta, lo cual entendio implicitamente el maximo como mas chico de lo
+   que la familia realmente exige. Corregido: `uncertainty.invalid_replicate_rule`
+   ahora dice que CUALQUIER componente no estimable (clase, bloques
+   temporales, o un bin de `backed_bin_family` sin soporte al remuestrear)
+   vuelve la REPLICA ENTERA no evaluable para toda la familia; no se
+   calcula un maximo parcial. No se adopto un tratamiento conservador
+   alternativo (por ejemplo, sustituir el componente faltante por un valor
+   predeclarado): eso seria una decision metodologica nueva que requeriria
+   una propuesta explicita, no aplicada silenciosamente aqui. El umbral ya
+   existente ("mas de la mitad de las replicas no evaluables -> insufficient_evidence")
+   se mantiene sin cambios.
+2. **Multiplicidad separada por tipo de estadistico.** v2 calculaba "por
+   separado" un maximo/percentil para ECE y otro para error absoluto por
+   bin. `design.md` exige un unico limite simultaneo family-wise para
+   "ECE y errores absolutos de intervalos respaldados, en la familia
+   completa" (una sola construccion conjunta, no dos independientes).
+   Corregido: `multiplicity.method` ahora especifica un UNICO maximo por
+   replica sobre la union de todos los terminos de ECE
+   (`uncertainty.ece_bin_inclusion`) y todos los terminos de error por bin
+   (`uncertainty.backed_bin_family`); el percentil 0.95 de esa unica
+   distribucion produce un solo limite `U`, que se compara por separado
+   contra `epsilon_ece` y `epsilon_bin` (ambas tolerancias usan el mismo
+   `U`, no percentiles independientes). Separar las familias, como hacia
+   v2, relaja el control conjunto exigido por el diseno.
+
+Se agrego ademas `uncertainty.coverage_guarantee_caveat`, exigido
+explicitamente: el percentil bootstrap sobre bloques dependientes no
+garantiza cobertura simultanea exacta en muestra finita; se reporta como
+limite superior aproximado, no como garantia estadistica formal.
+
+Pruebas en `tests/test_calibration_manifest.py`, diferenciando texto de
+calculo:
+- `test_manifest_text_separates_ece_inclusion_backed_bins_and_no_partial_maxima`
+  (comprobacion de texto: confirma las frases clave del borrador corregido
+  y la ausencia de las frases de v1/v2 con el error).
+- `test_synthetic_missing_component_makes_the_whole_replicate_not_evaluable`
+  (calculo sintetico: implementa la regla "todo o nada" y muestra que un
+  implementador incorrecto devolveria un maximo parcial en vez de "no
+  evaluable").
+- `test_synthetic_joint_maximum_combines_ece_and_bin_error_terms_together`
+  (calculo sintetico: muestra que el maximo conjunto sobre ECE + error por
+  bin es mayor o igual a cualquiera de los dos maximos separados, y en el
+  ejemplo estrictamente mayor que el maximo de ECE solo).
+- `test_frozen_v1_manifest_is_preserved_untouched_but_superseded` y
+  `test_frozen_v2_manifest_is_preserved_untouched_but_superseded` (guardan
+  los hashes de v1 y v2 y confirman que retienen el texto con el error
+  correspondiente, como evidencia historica).
+- `test_frozen_v3_manifest_matches_the_corrected_draft_and_uses_joint_multiplicity`
+  (verifica v3 contra el borrador corregido, y que tolerancias/particiones
+  no cambiaron).
+
+`inspect_calibration_manifest` sobre el borrador corregido (contenedor
+`python:3.12-slim`, sin interprete Python en el host) devuelve `issues=()`.
+Se congelo:
+[`config/producer-calibration-plan.frozen.v3.json`](../../config/producer-calibration-plan.frozen.v3.json)
+(+ `producer-calibration-plan.frozen.v3.json.identity.json`,
+`content_sha256=de65e3c021fb04c568fec1dfc02633688ef42144cccba67ec476667323429f2e`,
+`byte_length=12746`, `frozen_at=2026-09-21T14:00:00Z`).
+`verify_frozen_calibration_manifest` confirma su identidad y
+`require_ready_for_fit` pasa. v1 y v2 se verificaron byte a byte sin
+cambios antes y despues de este congelamiento.
+
+**Referencia activa:** desde esta actualizacion, el manifiesto congelado
+vigente es `producer-calibration-plan.frozen.v3.json`. `frozen.json` (v1) y
+`frozen.v2.json` quedan sustituidos y se conservan solo como evidencia
+historica.
+
+No se entreno, calibro ni evaluo ningun modelo; no se abrio el tramo de
+evaluacion ni holdouts; no se modificaron `controlled_daily_v3`,
+protocolos v3/v4, specs canonicas, hipotesis, alcance ni arquitectura.
+Trazabilidad: HU4/HU6, capacidad `predictive-modeling`, CRISP-DM
+modelado/evaluacion de desarrollo.
+
 ## Actualizacion 2026-09-21 — correccion del ECE y congelamiento v2
 
 **El congelamiento v1 (2026-09-20, `config/producer-calibration-plan.frozen.json`,
