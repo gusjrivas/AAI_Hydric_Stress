@@ -1,0 +1,67 @@
+{
+  "schema_version": "auxiliary_hitl_v1_package_freeze.v1",
+  "purpose": "Ancla externa e inmutable del paquete de intervención humana. Responde al hallazgo C-13 de la crítica independiente: el hash del paquete se autoancla y su única ancla previa vivía en el mismo montaje escribible. Este registro se compromete a git ANTES de que el operador responda, de modo que el paquete queda fijado en un objeto que no puede reescribirse sin reescribir la historia publicada.",
+  "campaign_id": "hitl-complement-2026-09-21",
+  "change": "sc-08-aux-hitl",
+  "requirement": "SC-GOV-022",
+  "package_id": "auxiliary_hitl_v1/H/human-package/2026-09-21",
+  "package_version": 1,
+  "package_sha256": "29afedc9d951b332f61ed48bd8aada2bb30467b0c082db24489b5f9bcd9cdea8",
+  "package_canonicalization": "json.dumps(payload sin el campo package_sha256, sort_keys=True, separators=(',',':'), ensure_ascii=False, allow_nan=False), UTF-8, SHA-256",
+  "n_scenarios": 20,
+  "presentation_order": [
+    "H-SC-001",
+    "H-SC-002",
+    "H-SC-003",
+    "H-SC-004",
+    "H-SC-005",
+    "H-SC-006",
+    "H-SC-007",
+    "H-SC-008",
+    "H-SC-009",
+    "H-SC-010",
+    "H-SC-011",
+    "H-SC-012",
+    "H-SC-013",
+    "H-SC-014",
+    "H-SC-015",
+    "H-SC-016",
+    "H-SC-017",
+    "H-SC-018",
+    "H-SC-019",
+    "H-SC-020"
+  ],
+  "seed": 0,
+  "blinding_level": "PARCIAL",
+  "evidence_class": "controlled_human_feedback",
+  "evidence_class_is_not": "expert_agronomic_feedback",
+  "expected_operator": {
+    "operator_id": "Gustavo Julián Rivas",
+    "operator_role": "authorized_experimental_operator",
+    "role_is_not": [
+      "agronomist",
+      "domain_expert",
+      "field_validator"
+    ]
+  },
+  "contract_sha256": "e74bc31235f9aa38808fb026aa3f7a0ec9e2de5bf9ca2f432e3f2ccd23dc917a",
+  "contract_version": 2,
+  "executable_identity": {
+    "commit": "547c1a98c888852eafb067e1135ce033fc80472a",
+    "image_id": "sha256:7a9575db0632063a172d47df187ea720028136c0f4b8d826fef38825e9171bc6",
+    "image_tag": "experiment-v4-hitl-complement",
+    "note": "Identidad ejecutable PROPIA de H (GD-27). NO es la de A/B/C: la imagen histórica sha256:55bc923e… es anterior al runner de H y no lo contiene. Mismo Dockerfile y mismas constraints; pip freeze verificado idéntico al histórico."
+  },
+  "input_hashes": {
+    "era5_sha256": "318edffb89c64d5f500e35b5530e6064cb02f68b89bd28a71262c2ebb01f485f",
+    "nasa_power_sha256": "415b4f71abb78e419b765110f4a42c3f32587b204d12897812df9573c5c2202b"
+  },
+  "external_backup": "/mnt/scientific-backup/AAI_Hydric_Stress/hitl-complement-2026-09-21",
+  "reproduction_before_freezing": {
+    "performed": true,
+    "result": "El paquete se regeneró desde las mismas entradas congeladas y resultó idéntico byte a byte (cmp)."
+  },
+  "frozen_at_utc": "2026-09-21T12:37:24.878299Z",
+  "state": "FROZEN_AWAITING_HUMAN_RESPONSE",
+  "declaration": "Al momento de este registro no se le mostró nada al operador y no se observó ningún resultado de H. El cegamiento del paquete es PARCIAL y está declarado como tal."
+}
