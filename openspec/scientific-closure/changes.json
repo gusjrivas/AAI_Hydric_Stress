@@ -553,14 +553,19 @@
       "tasks": [
         "T22"
       ],
-      "status": "BLOCKED",
-      "approved_for_implementation": false,
-      "scientific_execution_authorized": false,
+      "status": "IN_PROGRESS",
+      "approved_for_implementation": true,
+      "scientific_execution_authorized": true,
       "extra_gate": "H REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization H; NOT_REQUIRED/UNRESOLVED blocks execution",
       "orchestrator_paths": [
         "openspec/scientific-closure/changes.json"
       ],
-      "approval": null,
+      "approval": {
+        "actor": "Gustavo Julián Rivas, responsable técnico y científico del Trabajo Final",
+        "timestamp_utc": "2026-09-21T11:46:00Z",
+        "scope": "Implementar, validar y ejecutar UNA vez el complemento H (auxiliary_hitl_v1) sobre Pergamino 2015-2022, en la rama feat/scientific-closure-hitl-complement. NO autoriza reejecutar A, B ni C, NO autoriza reabrir el holdout 2024-2025, NO autoriza tocar main ni la evidencia histórica, y NO autoriza afirmar validación agronómica.",
+        "source": "AUTH-HITL-2026-09-21, transcripción de la instrucción de sesión del responsable; no es una firma verificable externamente"
+      },
       "audit": null,
       "state_events": [
         {
@@ -570,6 +575,22 @@
           "timestamp_utc": "2026-09-19T08:38:20.773053Z",
           "reason": "Dependencias sc-01-evidence-scope, sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas.",
           "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "orquestador del complemento H (Claude Opus 5, sesión autónoma del responsable)",
+          "timestamp_utc": "2026-09-21T11:46:00Z",
+          "reason": "Resuelta la causa del bloqueo: sc-01-evidence-scope y sc-02-runtime-readiness están en PASS desde la campaña del 2026-09-21, H sigue REQUIRED en claims.md (CL-06, CL-10) y el responsable emitió autorización expresa de implementación y ejecución. La reapertura no renueva derechos sobre A, B, C ni sobre el holdout.",
+          "evidence": "openspec/scientific-closure/changes.json (approval AUTH-HITL-2026-09-21); openspec/scientific-closure/current-execution-checkpoint.md"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "scientific_implementer del complemento H",
+          "timestamp_utc": "2026-09-21T12:14:00Z",
+          "reason": "Contrato predeclarado congelado antes de observar resultados, runner auxiliary_hitl_v1 implementado y 60 pruebas focalizadas en verde. Commit 5f30880.",
+          "evidence": "openspec/changes/sc-08-aux-hitl/contract-H-frozen.json; src/experiment_runner/scientific_auxiliary/auxiliary_hitl_v1.py; tests/test_auxiliary_hitl_v1.py"
         }
       ]
     },
