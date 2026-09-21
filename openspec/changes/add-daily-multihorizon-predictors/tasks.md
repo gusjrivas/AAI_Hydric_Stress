@@ -11,14 +11,19 @@
       `target_date`, aislados de legacy.
 - [x] 2.2 Implementar contratos por horizonte, identidades de artefacto y validación
       de compatibilidad de la familia h=1,2,3, sin entrenar ni cargar bundles.
-- [ ] 3. Entrenar/cargar bundles independientes y congelar su estado efectivo.
+- [x] 3. Entrenar bundles independientes por horizonte/semilla y congelar su
+      estado efectivo (`predictive_modeling.operational_run.fit_seed` +
+      `HorizonContract(artifact_state="trained_bundle")`). Cargar un bundle
+      ya persistido para reusarlo sin reentrenar queda fuera de esta
+      entrega (no pedido por el alcance acordado).
 - [x] 4.1 Probar que modificar un valor futuro no altera entradas de inferencia
       anteriores y solo cambia el target que corresponde.
 - [ ] 4.2 Probar que modificar valores futuros no altera la inferencia previa de los
       bundles entrenados.
 - [x] 5.1 Probar gaps, targets faltantes, unidades e incompatibilidades entre
       contratos por horizonte.
-- [ ] 5.2 Probar clases insuficientes y fallo parcial de ejecución por horizonte.
+- [x] 5.2 Probar clases insuficientes y fallo parcial de ejecución por horizonte
+      (`tests/test_operational_run.py::test_operational_run_isolates_a_single_horizon_training_failure`).
 - [ ] 6. Ejecutar evaluación de desarrollo permitida y gate predeclarado de porcentajes.
 - [ ] 7. Publicar métricas completas y limitaciones, aun si no se aprueba calibración.
 - [x] 8.1 Verificar la regresión legacy directamente afectada por la preparación y
@@ -27,5 +32,9 @@
       calibración y gate de porcentajes.
 - [ ] 9. Registrar evidencia y actualizar canon solo al completar implementación.
 - [x] 10. Implementar diagnósticos directos por intervalo e incertidumbre temporal con límites simultáneos; comprobarlos con fixtures de calibración conocida y mala calibración.
-- [ ] 11. Probar mejora de Brier sin aprobación directa, banda amplia, plan incompleto, soporte insuficiente, ventanas inestables y rango sin respaldo.
+- [x] 11. Probar mejora de Brier sin aprobación directa, banda amplia, plan incompleto,
+      soporte insuficiente, ventanas inestables y rango sin respaldo (banda amplia,
+      rango sin respaldo y ventanas inestables agregados en
+      `tests/test_calibration_assessment.py`; los demás ya estaban cubiertos por
+      `test_final_decision_*` y por `tests/test_calibration_manifest.py`).
 - [ ] 12. Publicar informe reproducible por horizonte con fechas, predicciones, conteos, intervalos, comparación de referencias y límites de generalización.
