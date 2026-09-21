@@ -1,0 +1,21 @@
+.history-panel { padding: clamp(16px, 3vw, 28px); border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); }
+.history-panel p { margin: 8px 0 16px; max-width: 75ch; }
+.history-header { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.history-header h3 { margin: 0 0 12px; font-size: clamp(1.15rem, 2vw, 1.45rem); }
+.history-header label { display: flex; flex-direction: column; gap: 6px; font-size: .85rem; }
+.history-header select { padding: 10px; min-height: 44px; max-width: 100%; }
+.history-eyebrow { color: var(--color-action); font-weight: 700; font-size: .85rem; }
+.history-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 20px 0; }
+.history-metrics dt { font-size: .85rem; }
+.history-metrics dd { margin: 6px 0; font-size: clamp(1rem, 2.5vw, 1.5rem); font-weight: 700; }
+.history-origin { font-weight: 600; }
+.history-chart { margin: 20px 0; }
+.history-chart svg { display: block; width: 100%; height: auto; }
+.history-chart text { font-family: inherit; font-size: 13px; fill: var(--color-ink); }
+.history-chart figcaption { font-size: .85rem; }
+.history-panel summary { cursor: pointer; padding: 12px 0; }
+.history-table { overflow-x: auto; }
+.history-table table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.history-table th, .history-table td { text-align: left; padding: 10px; border-bottom: 1px solid var(--color-border); white-space: nowrap; }
+.history-table caption { text-align: left; padding: 12px 0; }
+@media (max-width: 480px) { .history-metrics { grid-template-columns: 1fr; gap: 8px; } }

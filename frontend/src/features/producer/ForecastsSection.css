@@ -1,0 +1,20 @@
+.forecasts-section { padding: clamp(16px, 3vw, 28px); border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); margin-top: 20px; }
+.forecasts-section p { margin: 8px 0 16px; max-width: 75ch; }
+.forecasts-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+.forecasts-heading:first-child { margin-top: 0; }
+.forecasts-heading h3 { margin: 0; }
+.forecasts-counts { color: var(--color-action); font-weight: 600; margin: 0; }
+.forecast-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 12px; }
+
+.forecast-card { border: 1px solid var(--color-border); border-radius: 10px; padding: 16px; background: var(--color-bg, transparent); }
+.forecast-card-header { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.forecast-card-target { font-weight: 700; margin: 0; }
+.forecast-card-meta { font-size: .85rem; margin: 4px 0 0; }
+.forecast-card-badge { font-size: .8rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--color-border); align-self: flex-start; }
+.forecast-card-badge.is-alert { background: #f4dcc0; color: #6b3a12; }
+.forecast-card-review-status { font-weight: 600; }
+.forecast-card-latest-review { font-style: italic; }
+.forecast-card-blocked { color: var(--color-ink); }
+.forecast-card-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.forecast-card-form textarea { width: 100%; min-height: 60px; margin-top: 6px; }
+.forecast-card-hint { font-size: .85rem; }

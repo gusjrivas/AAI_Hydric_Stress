@@ -9,6 +9,7 @@ import { useForecastWorkspace } from "./features/forecast/useForecastWorkspace";
 import { LineageChain } from "./features/lineage/LineageChain";
 import { EvidencePanel } from "./features/evidence/EvidencePanel";
 import { ResumenView } from "./features/summary/ResumenView";
+import { ProducerView } from "./features/producer/ProducerView";
 import { DestinationNav } from "./features/navigation/DestinationNav";
 import { DESTINATION_LABELS, useHashRoute } from "./features/navigation/useHashRoute";
 import { DemoPage } from "./features/demo/DemoPage";
@@ -152,6 +153,15 @@ function App() {
               demoGate={demoGate}
               refreshToken={demoQualityRefreshToken}
             />
+          </section>
+        )}
+
+        {!isDemoRoute && route === "productor" && (
+          <section aria-labelledby="productor-heading">
+            <h2 id="productor-heading" className="app-section-heading" tabIndex={-1}>
+              Mi cultivo
+            </h2>
+            <ProducerView />
           </section>
         )}
 
