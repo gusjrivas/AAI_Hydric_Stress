@@ -813,6 +813,21 @@ def test_package_records_its_presentation_order(package: dict) -> None:
     assert dates == sorted(dates)
 
 
+def test_package_version_matches_the_contract_version(package: dict) -> None:
+    """Hallazgo E-09: tres paquetes distintos llevaban todos `version: 1`."""
+    import pathlib
+
+    contract = json.loads(
+        (
+            pathlib.Path(__file__).resolve().parents[1]
+            / "openspec/changes/sc-08-aux-hitl/contract-H-frozen.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert package["version"] == h.PACKAGE_VERSION
+    assert package["version"] == contract["human_intervention_package"]["version"]
+    assert package["version"] == contract["contract_version"]
+
+
 def test_package_declares_the_controlled_human_class(package: dict) -> None:
     assert package["evidence_class"] == h.TRACK_HUMAN
     assert package["evidence_class_is_not"] == h.FORBIDDEN_EVIDENCE_CLASS

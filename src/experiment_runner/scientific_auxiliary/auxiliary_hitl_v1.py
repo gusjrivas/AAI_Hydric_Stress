@@ -100,11 +100,12 @@ AUXILIARY_ID = "auxiliary_hitl_v1"
 
 ARTIFACT_SCHEMA_VERSION = "auxiliary_hitl_v1_evidence.v1"
 PACKAGE_SCHEMA_VERSION = "auxiliary_hitl_v1_human_package.v1"
-PACKAGE_VERSION = 3
+PACKAGE_VERSION = 4
 """Versión del paquete de intervención. Acompaña a la versión del contrato que
-lo congela: los paquetes 1 y 2 quedaron descartados por hallazgos de crítica
+lo congela y debe coincidir con `human_intervention_package.version` del
+contrato: las versiones 1 a 3 quedaron descartadas por hallazgos de crítica
 independiente antes de mostrarse a nadie, y se distinguen por este campo además
-de por su hash."""
+de por su hash. `tests/test_auxiliary_hitl_v1.py` exige la coincidencia."""
 RESPONSE_SCHEMA_VERSION = "auxiliary_hitl_v1_human_response.v1"
 EVENT_SCHEMA_VERSION = "auxiliary_hitl_v1_feedback_event.v1"
 FINGERPRINT_SCOPE_HITL = "auxiliary_hitl_v1_eligible_rows_2015_2022"
