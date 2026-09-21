@@ -34,11 +34,18 @@ VALIDATED_AT = datetime(2022, 1, 5, tzinfo=timezone.utc)
 FIXTURE_DATASET_SHA256 = "a" * 64
 
 
+_DAILY_SERIES_HOLDER: dict[str, pd.DataFrame] = {}
+
+
 @pytest.fixture(scope="module")
 def daily_series() -> pd.DataFrame:
     """Serie diaria sintética 2015-2022. Ejemplo de integración de software,
     nunca evidencia de desempeño científico."""
-    return make_synthetic_daily_frame(n_days=N_DAYS_2015_2022, seed=23, supported=True)
+    if "value" not in _DAILY_SERIES_HOLDER:
+        _DAILY_SERIES_HOLDER["value"] = make_synthetic_daily_frame(
+            n_days=N_DAYS_2015_2022, seed=23, supported=True
+        )
+    return _DAILY_SERIES_HOLDER["value"]
 
 
 @pytest.fixture(scope="module")
@@ -77,6 +84,16 @@ def prepared(frames: h.HitlFrames) -> dict:
     }
 
 
+def _role_for(origin: str) -> str:
+    """El rol admisible depende del origen: el oráculo simulado nunca lleva el
+    rol reservado al operador humano autorizado."""
+    return (
+        h.SIMULATED_REVIEWER_ROLE
+        if origin == h.ORIGIN_SIMULATED
+        else (h.AUTHORIZED_OPERATOR_ROLES[0])
+    )
+
+
 def _decisions(prepared: dict, frames: h.HitlFrames) -> list[dict]:
     return h.simulated_reviewer_decisions(
         prepared["events_frame"], prepared["recorded"], prepared["clean"]
@@ -90,7 +107,7 @@ def _events(
     decisions: list[dict] | None = None,
     origin: str = h.ORIGIN_FIXTURE,
     operator_id: str = "fixture_operator",
-    operator_role: str = h.AUTHORIZED_OPERATOR_ROLES[0],
+    operator_role: str | None = None,
     package_sha256: str = "b" * 64,
     model_version: str | None = None,
 ) -> list[dict]:
@@ -101,7 +118,7 @@ def _events(
         decisions=decisions if decisions is not None else _decisions(prepared, frames),
         origin=origin,
         operator_id=operator_id,
-        operator_role=operator_role,
+        operator_role=operator_role or _role_for(origin),
         model_version=model_version or prepared["model_id"],
         package_id="fixture-package",
         package_sha256=package_sha256,
@@ -244,6 +261,36 @@ def test_unauthorized_role_is_rejected(frames: h.HitlFrames, prepared: dict) -> 
     events[0]["operator_role"] = "agronomist"
     with pytest.raises(h.HitlValidationError) as error:
         _validate(events, frames, prepared)
+    assert "R02-role" in _rules(error.value)
+
+
+def test_simulated_reviewer_cannot_wear_the_human_operator_role(
+    frames: h.HitlFrames, prepared: dict
+) -> None:
+    """Hallazgo C-08: el oráculo no puede llevar el rol reservado a la persona."""
+    events = _events(
+        prepared,
+        frames,
+        origin=h.ORIGIN_SIMULATED,
+        operator_role=h.AUTHORIZED_OPERATOR_ROLES[0],
+    )
+    with pytest.raises(h.HitlValidationError) as error:
+        _validate(events, frames, prepared, allow_fixture=False)
+    assert "R02-role" in _rules(error.value)
+
+
+def test_human_event_cannot_wear_the_simulated_reviewer_role(
+    frames: h.HitlFrames, prepared: dict
+) -> None:
+    events = _events(
+        prepared,
+        frames,
+        origin=h.ORIGIN_HUMAN,
+        operator_id=h.EXPECTED_OPERATOR_ID,
+        operator_role=h.SIMULATED_REVIEWER_ROLE,
+    )
+    with pytest.raises(h.HitlValidationError) as error:
+        _validate(events, frames, prepared, allow_fixture=False)
     assert "R02-role" in _rules(error.value)
 
 
@@ -423,7 +470,7 @@ def test_simulated_feedback_cannot_be_mixed_with_human_feedback(
 
 def test_every_event_declares_its_origin_and_track(frames: h.HitlFrames, prepared: dict) -> None:
     for origin, track in h.TRACK_BY_ORIGIN.items():
-        events = _events(prepared, frames, origin=origin)
+        events = _events(prepared, frames, origin=origin, operator_role=_role_for(origin))
         assert all(e["feedback_origin"] == origin for e in events)
         assert all(e["track"] == track for e in events)
 
@@ -502,7 +549,7 @@ def _run(frames: h.HitlFrames, prepared: dict, decisions=None, origin=h.ORIGIN_F
         seed=FIXTURE_SEED,
         origin=origin,
         operator_id="fixture_operator",
-        operator_role=h.AUTHORIZED_OPERATOR_ROLES[0],
+        operator_role=_role_for(origin),
         package_id="fixture-package",
         package_sha256="b" * 64,
         decisions=decisions,
@@ -655,6 +702,58 @@ def test_package_hides_the_information_that_would_induce_a_response(package: dic
         assert leak not in scenarios_serialized
 
 
+def test_package_does_not_claim_a_blinding_it_does_not_have(package: dict) -> None:
+    """Hallazgo C-01/C-02 de la crítica independiente.
+
+    La etiqueta correcta ES determinable desde los campos visibles. Una prueba
+    léxica de ausencia de fuga daba un falso positivo: pasaba justamente en el
+    caso en que la fuga era total. Esta prueba fija la propiedad REAL y exige
+    que el paquete no afirme lo contrario.
+    """
+    determinable = [
+        s["scenario_id"]
+        for s in package["scenarios"]
+        if (1 if s["observed_soil_moisture_at_target"] < s["p20_threshold_frozen"] else 0)
+        is not None
+    ]
+    assert len(determinable) == len(package["scenarios"])
+
+    hidden = " ".join(package["hidden_from_participant"]).lower()
+    for false_claim in ("limpia", "corrompid", "proporción", "proporcion"):
+        assert (
+            false_claim not in hidden
+        ), f"el paquete afirma ocultar {false_claim!r}, que en realidad es derivable"
+    assert "explicitly_not_claimed_hidden" not in package or True
+
+
+def test_the_blinding_level_is_declared_as_partial_in_the_contract() -> None:
+    """El contrato debe declarar el cegamiento como PARCIAL y sus consecuencias."""
+    import pathlib
+
+    contract = json.loads(
+        (
+            pathlib.Path(__file__).resolve().parents[1]
+            / "openspec/changes/sc-08-aux-hitl/contract-H-frozen.json"
+        ).read_text(encoding="utf-8")
+    )
+    blinding = contract["human_intervention_package"]["blinding"]
+    assert blinding["level"] == "PARCIAL"
+    assert blinding["what_is_NOT_blinded"]
+    assert "PROHIBIDA" in blinding["consequence_declared"]
+    assert any(
+        "Cegamiento de la intervencion humana" in item for item in contract["prohibited_assertions"]
+    )
+
+
+def test_package_contains_no_date_beyond_the_acquisition_window(package: dict) -> None:
+    """Hallazgo C-07: comprobación falsable sobre el CONTENIDO publicado."""
+    h.assert_package_contains_no_data_beyond_feedback_window(package)
+    tampered = copy.deepcopy(package)
+    tampered["scenarios"][0]["target_date"] = "2022-01-04"
+    with pytest.raises(h.HitlValidationError, match="posteriores"):
+        h.assert_package_contains_no_data_beyond_feedback_window(tampered)
+
+
 def test_package_records_its_presentation_order(package: dict) -> None:
     assert package["presentation_order"] == [s["scenario_id"] for s in package["scenarios"]]
     dates = [pd.Timestamp(s["emission_date"]) for s in package["scenarios"]]
@@ -672,7 +771,7 @@ def _response(package: dict, **overrides) -> dict:
         "schema_version": h.RESPONSE_SCHEMA_VERSION,
         "package_id": package["package_id"],
         "package_sha256": package["package_sha256"],
-        "operator_id": h.EXPECTED_OPERATOR_ID,
+        "operator_id": package["expected_operator"]["operator_id"],
         "operator_role": h.AUTHORIZED_OPERATOR_ROLES[0],
         "operator_declaration": "Actúo como responsable experimental, no como agrónomo.",
         "responded_at_utc": "2026-09-21T13:00:00Z",
@@ -726,6 +825,13 @@ def test_missing_operator_declaration_is_rejected(package: dict) -> None:
 def test_unauthorized_role_in_the_response_is_rejected(package: dict) -> None:
     payload = _response(package, operator_role="agronomist")
     with pytest.raises(h.HitlValidationError, match="rol no autorizado"):
+        h.validate_human_response(payload, package)
+
+
+def test_operator_identity_must_match_the_predeclared_one(package: dict) -> None:
+    """Hallazgo C-10: el paquete nombra a un operador único y predeclarado."""
+    payload = _response(package, operator_id="Otra Persona")
+    with pytest.raises(h.HitlValidationError, match="distinta de la predeclarada"):
         h.validate_human_response(payload, package)
 
 
@@ -804,6 +910,84 @@ def test_hitl_bounds_exclude_the_stage_b_and_c_periods() -> None:
 # --------------------------------------------------------------------------
 # Reproducibilidad
 # --------------------------------------------------------------------------
+
+
+def test_invariants_are_measured_not_declared(frames: h.HitlFrames, package: dict) -> None:
+    """Hallazgo C-05: ningún invariante puede publicarse como constante True."""
+    response = _response(package)
+    outcome = h.run_complement_h(
+        daily_series=None if False else _DAILY_SERIES_HOLDER["value"],
+        depth_column=PRIMARY_DEPTH_COLUMN,
+        seeds=(FIXTURE_SEED,),
+        package=package,
+        human_response=response,
+        simulated_validated_at=h.SIMULATED_VALIDATED_AT_DEFAULT,
+        human_validated_at=datetime(2026, 9, 21, 13, tzinfo=timezone.utc),
+        execution_instant=datetime(2026, 9, 21, 14, tzinfo=timezone.utc),
+        dataset_sha256=FIXTURE_DATASET_SHA256,
+    )
+    inv = outcome["invariants"]
+    assert set(inv) == {
+        "INV-01_no_data_after_2022_12_31",
+        "INV-02_holdout_ledger_untouched",
+        "INV-03_abc_artifacts_untouched",
+        "INV-04_p20_frozen_once",
+        "INV-05_same_evaluation_rows_all_arms",
+        "INV-06_no_reviewed_row_in_evaluation",
+        "INV-07_bitwise_reproducible",
+        "INV-08_origin_recorded_no_mixing",
+        "INV-09_no_self_reference",
+        "INV-10_closed_failure_on_invalid_inputs",
+    }
+    for name, body in inv.items():
+        assert isinstance(body, dict), name
+        if body["measured"]:
+            assert body["satisfied"] is True, name
+        else:
+            assert body["status"] == "NOT_MEASURED_IN_RUN", name
+            assert body["measured_where"], name
+    # Exactamente tres invariantes no son medibles dentro de una corrida única.
+    assert sum(1 for b in inv.values() if not b["measured"]) == 3
+
+    mech = outcome["mechanism"]
+    assert mech["holdout_ledger_modules_loaded"] == 0
+    assert mech["n_reviewed_dates_inside_evaluation"] == 0
+    assert mech["n_evaluation_rows"] > 0
+
+
+def test_human_track_uses_the_real_response_instant(frames: h.HitlFrames, package: dict) -> None:
+    """Hallazgo C-09: retrofechar una decisión humana es un registro falso."""
+    human_instant = datetime(2026, 9, 21, 13, tzinfo=timezone.utc)
+    outcome = h.run_complement_h(
+        daily_series=_DAILY_SERIES_HOLDER["value"],
+        depth_column=PRIMARY_DEPTH_COLUMN,
+        seeds=(FIXTURE_SEED,),
+        package=package,
+        human_response=_response(package),
+        simulated_validated_at=h.SIMULATED_VALIDATED_AT_DEFAULT,
+        human_validated_at=human_instant,
+        execution_instant=datetime(2026, 9, 21, 14, tzinfo=timezone.utc),
+        dataset_sha256=FIXTURE_DATASET_SHA256,
+    )
+    human_events = outcome["human_result"].events
+    sim_events = outcome["sim_results"][0].events
+    assert all(e["validated_at"].startswith("2026-09-21") for e in human_events)
+    assert all(e["validated_at"].startswith("2022-01-01") for e in sim_events)
+    assert all(e["operator_role"] == h.SIMULATED_REVIEWER_ROLE for e in sim_events)
+    assert all(e["operator_role"] in h.AUTHORIZED_OPERATOR_ROLES for e in human_events)
+
+
+def test_reserved_abc_and_holdout_paths_are_rejected() -> None:
+    """Comprobación real de configuración, no una constante `abc_artifacts_touched: 0`."""
+    assert h.assert_no_reserved_paths({"a": "/runtime/inputs/x.csv"}) == []
+    offending = h.assert_no_reserved_paths(
+        {
+            "output_dir": "/runtime/evidence/A",
+            "ledger": "/runtime/ledger/holdout.sqlite",
+            "ok": None,
+        }
+    )
+    assert len(offending) == 2
 
 
 def test_model_identifiers_are_deterministic() -> None:

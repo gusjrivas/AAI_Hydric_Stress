@@ -10,7 +10,7 @@
   ],
   "campaign_id": "hitl-complement-2026-09-21",
   "frozen_before_observing_results": true,
-  "frozen_at_utc": "2026-09-21T12:05:00Z",
+  "frozen_at_utc": "2026-09-21T12:40:00Z",
   "objective": {
     "primary": "Demostrar que el mecanismo Human-in-the-Loop del sistema es tecnicamente viable, auditable y reproducible, y ejecutar el disenio congelado auxiliary_hitl_v1 de correcciones supervisadas simuladas que exige SC-GOV-022.",
     "explicitly_not": [
@@ -53,7 +53,8 @@
       "feedback_origin": "simulado",
       "reviewer": "revisor simulado determinista (oraculo que restituye la etiqueta limpia en las fechas revisadas y deja sin cambio las confirmaciones)",
       "supports_claim": "CL-06 (aporte cuantitativo de correcciones supervisadas SIMULADAS)",
-      "may_be_presented_as_human_evidence": false
+      "may_be_presented_as_human_evidence": false,
+      "reviewer_role": "simulated_reviewer_oracle"
     },
     "HUMAN": {
       "id": "controlled_human_feedback",
@@ -71,7 +72,7 @@
       "supports_claim": "Ninguna. Prohibido usarlo como evidencia cientifica o humana.",
       "may_be_presented_as_human_evidence": false
     },
-    "separation_rule": "Las tres clases se registran en un campo obligatorio 'feedback_origin' de cada evento y de cada artefacto. El runner rechaza de forma cerrada cualquier ejecucion en la que un evento de origen 'fixture' o 'simulado' se declare como evidencia humana, y cualquier mezcla de origenes dentro de un mismo paquete de feedback."
+    "separation_rule": "Las tres clases se registran en campos obligatorios 'feedback_origin', 'track' y 'operator_role' de cada evento y de cada artefacto. El revisor simulado lleva su propio rol 'simulated_reviewer_oracle', NUNCA el rol reservado al operador humano autorizado, de modo que ninguna agregacion por rol pueda mezclar simulacion e intervencion humana. El runner rechaza de forma cerrada cualquier ejecucion en la que un evento de origen 'fixture' o 'simulado' se declare como evidencia humana, y cualquier mezcla de origenes dentro de un mismo paquete de feedback."
   },
   "operator": {
     "identity": "Gustavo Julian Rivas",
@@ -86,7 +87,7 @@
       "authorized_experimental_operator"
     ],
     "declaration_required_from_operator": "Confirmacion explicita de que actua como responsable experimental y no como agronomo, y de que sus decisiones no constituyen asesoramiento ni validacion agronomica.",
-    "identity_validation": "El runner exige operator_id y operator_role presentes, no vacios, y el rol dentro de la whitelist. Identidad ausente, rol no autorizado o declaracion ausente producen rechazo cerrado."
+    "identity_validation": "El runner exige operator_id y operator_role presentes y no vacios, el rol dentro de la whitelist, y ADEMAS que operator_id coincida exactamente con el operador predeclarado en el paquete congelado. Identidad ausente, identidad distinta de la predeclarada, rol no autorizado o declaracion ausente producen rechazo cerrado."
   },
   "design_frozen_auxiliary_hitl_v1": {
     "source": "docs/research/scientific-closure-decisions.md, seccion 'H: HITL prospectivo'",
@@ -187,7 +188,8 @@
       "validated_at_must_be": ">= fin del dia objetivo (target_timestamp + 1 dia)",
       "validated_at_must_not_exceed": "instante de ejecucion de H",
       "no_temporal_leak": "fecha y target_timestamp DEBEN caer dentro de la ventana de adquisicion de feedback (2021). Cualquier evento con target_timestamp > 2021-12-31 o < 2021-01-04 se rechaza.",
-      "maturation": "La recalibracion solo puede cerrarse despues de que todos los targets de 2021 hayan madurado."
+      "maturation": "La recalibracion solo puede cerrarse despues de que todos los targets de 2021 hayan madurado.",
+      "validated_at_provenance": "La pista SIM usa un instante de validacion FIJO y declarado (2022-01-01T00:00:00Z), porque es una simulacion y su procedencia temporal es un valor modelado, no un hecho. La pista HUMANA usa el instante REAL en que el operador respondio, tomado literalmente de su respuesta: retrofechar una decision humana produciria un registro de procedencia falso."
     },
     "integrity_rules": {
       "no_self_reference": "successor_model_id != source_model_id; un evento no puede referenciar como origen al modelo que el mismo produjo.",
@@ -202,7 +204,7 @@
   "human_intervention_package": {
     "package_id": "auxiliary_hitl_v1/H/human-package/2026-09-21",
     "version": 1,
-    "scenarios": "Los 20 eventos del presupuesto de la semilla primaria 42, producidos por el mismo muestreo estratificado determinista del disenio congelado.",
+    "scenarios": "Los 20 eventos del presupuesto de la semilla primaria 0, producidos por el mismo muestreo estratificado determinista del disenio congelado.",
     "presentation_order": "Orden cronologico ascendente por fecha de emision, fijado y registrado en el paquete. No se reordena despues.",
     "visible_to_participant": [
       "Numero de escenario y fecha de emision",
@@ -214,14 +216,12 @@
       "La probabilidad emitida por el modelo congelado y si genero alerta"
     ],
     "hidden_from_participant": [
-      "Si la etiqueta registrada fue corrompida por la simulacion",
-      "Cual seria la etiqueta 'limpia'",
+      "Cualquier metrica de cualquier brazo, en cualquier pista",
       "El efecto esperado de cada decision sobre cualquier metrica",
-      "Cualquier metrica de cualquier brazo",
       "Cualquier dato, prediccion o metrica de 2023, 2024 o 2025",
-      "Cualquier metrica o dato del holdout",
+      "Cualquier metrica o dato del holdout 2024-2025",
       "Los resultados de las Etapas A, B y C",
-      "El numero de escenarios corrompidos y su proporcion"
+      "Que decision fue tomada por el revisor simulado en el mismo escenario"
     ],
     "non_inducement_rules": [
       "No se sugiere ninguna respuesta.",
@@ -230,7 +230,26 @@
       "El texto de cada escenario es identico en estructura para todos los escenarios."
     ],
     "freezing": "El paquete se serializa de forma canonica (JSON ordenado, UTF-8, sin espacios superfluos), se le calcula SHA-256, se registra timestamp, codigo y runtime, y se respalda en /mnt/scientific-backup antes de mostrarse. Cualquier modificacion posterior cambia el hash e invalida el paquete.",
-    "independent_review_required_before_showing": true
+    "independent_review_required_before_showing": true,
+    "blinding": {
+      "level": "PARCIAL",
+      "what_is_blinded": [
+        "El operador no sabe cuales escenarios fueron corrompidos por la simulacion, en el sentido de que el paquete no se lo dice.",
+        "El operador no ve ninguna metrica, ningun resultado de 2022 y ningun dato de 2023-2025.",
+        "El operador no sabe que efecto tendra su decision sobre ninguna metrica."
+      ],
+      "what_is_NOT_blinded": [
+        "La etiqueta correcta de cada escenario ES DETERMINABLE por el operador: la regla de etiquetado es stress = 1 si y solo si la humedad observada en la fecha objetivo es menor que el P20 congelado, y el paquete muestra ambos valores. Quien aplique esa comparacion identifica exactamente que registros son incorrectos.",
+        "El operador conoce el codigo del generador de corrupcion y la semilla figura en el paquete: con ambos podria regenerar las posiciones corrompidas. El cegamiento frente a este operador es, a lo sumo, nominal."
+      ],
+      "consequence_declared": "La pista HUMANA demuestra que el mecanismo HITL opera correctamente cuando una persona autorizada realiza una revision de CALIDAD DE DATO con respuesta determinable. NO demuestra juicio humano bajo incertidumbre, NO demuestra pericia y NO demuestra cegamiento. Cualquier afirmacion de cegamiento sobre la pista HUMANA esta PROHIBIDA.",
+      "why_not_fully_blinded": "El revisor simulado del disenio congelado es un oraculo que restituye la etiqueta limpia. Para que la pista humana sea el analogo del mismo mecanismo, el operador necesita la observacion ya madurada, que es ademas lo que el disenio exige al cerrar la recalibracion tras la maduracion de los targets de 2021. Ocultarla convertiria la tarea en una re-prediccion desde ocho numeros, que no es lo que hace un revisor HITL."
+    },
+    "explicitly_not_claimed_hidden": [
+      "NO se afirma que la etiqueta limpia este oculta: es determinable (ver blinding).",
+      "NO se afirma que la identidad de los escenarios corrompidos este oculta: es derivable.",
+      "NO se afirma que la proporcion de corrupcion este oculta: es derivable."
+    ]
   },
   "response_validation": {
     "must_match_package_hash": true,
@@ -271,13 +290,16 @@
       "n_recalibrations",
       "lineage_chain_complete (bool)",
       "predecessor_preserved (bool)",
-      "closed_failure_on_invalid_inputs (bool)",
-      "bitwise_reproducible (bool)",
-      "holdout_access_attempts (debe ser 0)",
-      "abc_artifacts_touched (debe ser 0)",
-      "max_target_timestamp_read (debe ser <= 2022-12-31)"
+      "max_target_timestamp_read (debe ser <= 2022-12-31)",
+      "holdout_ledger_modules_loaded (debe ser 0)",
+      "abc_paths_opened (debe ser 0)"
     ],
-    "undefined_metric_policy": "Una metrica no definible (por ejemplo MCC con un solo valor de clase predicha) se registra como null con una razon explicita, nunca como 0."
+    "undefined_metric_policy": "Una metrica no definible (por ejemplo MCC con un solo valor de clase predicha) se registra como null con una razon explicita, nunca como 0.",
+    "mechanism_metrics_measured_outside_the_run": {
+      "bitwise_reproducible": "Se mide con una segunda ejecucion independiente desde las mismas entradas congeladas y una comparacion byte a byte de los artefactos, excluyendo unicamente el campo integrity_manifest.result_reference, que contiene la ruta de salida. Se registra en reproduction-record.json.",
+      "closed_failure_on_invalid_inputs": "Se mide con la suite focalizada tests/test_auxiliary_hitl_v1.py, que ejercita cada regla de validacion con una entrada invalida y exige HitlValidationError. Se registra en validation-record.json."
+    },
+    "invariants_measurement_policy": "Cada invariante que el runner publica en invariants.json DEBE derivarse de una comprobacion ejecutada sobre los datos o el proceso de esa corrida. Esta PROHIBIDO publicar un invariante como constante literal True. Un invariante que no pueda medirse en la corrida se declara NOT_MEASURED_IN_RUN con el lugar donde si se mide, nunca como satisfecho."
   },
   "invariants": [
     "INV-01 Ningun dato con timestamp posterior a 2022-12-31 es leido por el runner de H.",
@@ -315,16 +337,21 @@
     "Generalizacion de las decisiones humanas",
     "Superioridad predictiva causada por conocimiento experto",
     "Equivalencia entre feedback controlado y validacion especializada",
-    "Beneficio de una persona real sobre el desempenio del modelo"
+    "Beneficio de una persona real sobre el desempenio del modelo",
+    "Cegamiento de la intervencion humana respecto de la etiqueta correcta",
+    "Juicio humano bajo incertidumbre demostrado por la pista HUMANA"
   ],
   "declared_limitations_predeclared": [
     "No hay intervencion de un agronomo ni validacion agronomica de campo. Se registra como limitacion y trabajo futuro.",
-    "La intervencion humana es de un unico operador, no ciega respecto de la observacion madurada, y de 20 eventos: no es una muestra de revisores ni permite inferencia poblacional.",
+    "El cegamiento de la intervencion humana es PARCIAL: la etiqueta correcta es determinable por el operador. La pista humana no demuestra juicio bajo incertidumbre ni pericia.",
+    "El operador es el autor del codigo y del generador de corrupcion, y la semilla figura en el paquete: podria regenerar las posiciones corrompidas. El cegamiento frente a el es nominal.",
+    "La intervencion humana es de un unico operador y de 20 eventos: no es una muestra de revisores ni permite inferencia poblacional.",
     "La corrupcion de etiquetas de la pista SIM es un modelo de error artificial, no una medicion de la tasa de error real de un revisor.",
     "El presupuesto de 20 eventos por semilla es artificial y pequenio.",
     "Las cinco semillas [0,1,2,3,4] no son cinco poblaciones independientes.",
     "Los datos son reanalisis para un unico sitio; no son mediciones de campo.",
-    "La implementacion funcional de HU5 no prueba por si sola ningun beneficio."
+    "La implementacion funcional de HU5 no prueba por si sola ningun beneficio.",
+    "Los deltas de H son puntuales, sin intervalo de incertidumbre: el disenio congelado no predeclara bootstrap para H. No sostienen ninguna afirmacion inferencial."
   ],
   "references": {
     "feature_contract": "pergamino_features.v1",
@@ -336,5 +363,105 @@
     "historical_image_of_abc": "sha256:55bc923efac009b1b6de45acc634774b7910d4829fdfd0b2c963dd5748b297af",
     "abc_executable_commit": "214735e42ee04f018156cd630591e798aadd8bf3",
     "h_executable_identity_note": "La imagen historica de A/B/C no contiene el runner de H, que no existia cuando se construyo. H declara su propia identidad ejecutable (commit e imagen propios) y NO se atribuye la identidad de A/B/C. El entorno numerico se mantiene identico mediante el mismo Dockerfile y las mismas constraints fijadas."
+  },
+  "contract_version": 2,
+  "supersedes": {
+    "contract_version": 1,
+    "sha256": "a124db1a05ded4e142eead9f3bf8176dcced2e58ea3a75a2b642ae5ebde4c76b",
+    "commit": "5f308801f620644e4688da702c9f057f95f74a62",
+    "note": "La version 1 se conserva integra en el historial de git. NO se borra ni se reescribe. Esta version 2 corrige defectos que una revision critica independiente encontro ANTES de mostrar nada al operador y ANTES de observar cualquier resultado de H."
+  },
+  "corrections_after_independent_review": {
+    "review_date_utc": "2026-09-21T12:35:00Z",
+    "reviewer": "scientific_critic independiente, sesion separada, solo lectura",
+    "verdict_on_contract_v1_package": "NO_APTO",
+    "applied_before_showing_anything_to_the_operator": true,
+    "applied_before_observing_any_H_result": true,
+    "findings_and_resolution": [
+      {
+        "id": "C-01",
+        "severity": "MATERIAL",
+        "finding": "El paquete no era ciego: la etiqueta limpia es derivable en 20/20 escenarios comparando observed_soil_moisture_at_target con p20_threshold_frozen, y con ella la identidad y la proporcion de los escenarios corrompidos.",
+        "resolution": "ACEPTADO. No se oculta la observacion madurada, porque el disenio congelado la exige para que la pista humana sea el analogo del revisor simulado. Lo que se corrige es la AFIRMACION: se retira la garantia falsa de cegamiento y se declara el cegamiento como PARCIAL, con sus consecuencias. La correccion RESTRINGE lo que H puede afirmar; no lo amplia."
+      },
+      {
+        "id": "C-02",
+        "severity": "MATERIAL",
+        "finding": "El contrato v1 era internamente contradictorio: autorizaba mostrar exactamente el par de campos que determinaba lo que declaraba oculto.",
+        "resolution": "ACEPTADO. La contradiccion se resuelve en favor de la afirmacion mas debil y verificable: se conserva visible_to_participant y se reescribe hidden_from_participant para que solo enumere lo que efectivamente esta oculto."
+      },
+      {
+        "id": "C-03",
+        "severity": "MATERIAL",
+        "finding": "El contrato v1 nombraba una 'semilla primaria 42' ajena al conjunto congelado [0,1,2,3,4], contradiciendo sus propios campos estructurados.",
+        "resolution": "ACEPTADO. Texto corregido a la semilla 0, que es la que el paquete usa."
+      },
+      {
+        "id": "C-04",
+        "severity": "MATERIAL",
+        "finding": "La prueba de ausencia de fuga era puramente lexica y pasaba justamente en el caso en que habia fuga total.",
+        "resolution": "ACEPTADO. Se reemplaza por una prueba semantica que fija explicitamente la propiedad real: la etiqueta limpia ES determinable, y lo que debe estar ausente son las metricas, los anios reservados y los resultados de A/B/C."
+      },
+      {
+        "id": "C-05",
+        "severity": "MATERIAL",
+        "finding": "Cinco invariantes y varias metricas declaradas decisivas eran constantes literales, y dos metricas decisivas no existian en la evidencia.",
+        "resolution": "ACEPTADO. Los invariantes se computan sobre los datos de la corrida o se declaran NOT_MEASURED_IN_RUN con el lugar donde si se miden. Las dos metricas que no pertenecen a una corrida unica se mueven a un bloque propio que nombra su procedimiento de medicion."
+      },
+      {
+        "id": "C-06",
+        "severity": "MENOR",
+        "finding": "El operador es el autor del generador de corrupcion y la semilla es publica.",
+        "resolution": "ACEPTADO como limitacion declarada; no es subsanable con un unico operador."
+      },
+      {
+        "id": "C-07",
+        "severity": "MENOR",
+        "finding": "La guarda anti-contaminacion de prepare_human_package era tautologica y su docstring afirmaba que no se leian filas de 2022, siendo que si se materializan.",
+        "resolution": "ACEPTADO. La guarda pasa a verificar la propiedad que importa y que si es falsable: que el CONTENIDO del paquete no contenga ninguna fecha posterior a 2021-12-31. El docstring se corrige."
+      },
+      {
+        "id": "C-08",
+        "severity": "MENOR",
+        "finding": "El revisor simulado se registraba con el rol del operador humano autorizado.",
+        "resolution": "ACEPTADO. Rol propio 'simulated_reviewer_oracle'."
+      },
+      {
+        "id": "C-09",
+        "severity": "MENOR",
+        "finding": "validated_at de la pista humana quedaba retrofechado a 2022-01-01.",
+        "resolution": "ACEPTADO. La pista humana usa el instante real de la respuesta; la simulada conserva el instante fijo declarado."
+      },
+      {
+        "id": "C-10",
+        "severity": "MENOR",
+        "finding": "validate_human_response no contrastaba la identidad con la predeclarada.",
+        "resolution": "ACEPTADO. Se exige coincidencia exacta con expected_operator."
+      },
+      {
+        "id": "C-11",
+        "severity": "OBSERVACION",
+        "finding": "El muestreo tenia un camino de respaldo que rompia el equiespaciado.",
+        "resolution": "ACEPTADO. Era codigo muerto; se elimina y se aborta en su lugar."
+      },
+      {
+        "id": "C-12",
+        "severity": "OBSERVACION",
+        "finding": "El preflight no cubria el commit que produjo el paquete.",
+        "resolution": "ACEPTADO. Se recaptura el preflight sobre el commit final."
+      },
+      {
+        "id": "C-13",
+        "severity": "OBSERVACION",
+        "finding": "El hash del paquete se autoancla y su unica ancla externa vive en el mismo montaje escribible.",
+        "resolution": "ACEPTADO. El hash del paquete congelado se ancla ademas en un commit de git de esta rama, anterior a la respuesta humana."
+      },
+      {
+        "id": "C-14",
+        "severity": "OBSERVACION",
+        "finding": "La habilitacion de la pista humana es una interpretacion del disenio congelado, no una lectura literal.",
+        "resolution": "ACEPTADO. Se registra como interpretacion explicita en GD-28 y aqui, y se somete a auditoria independiente."
+      }
+    ]
   }
 }

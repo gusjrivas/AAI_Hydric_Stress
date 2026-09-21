@@ -145,6 +145,11 @@ una prueba no puede convertirse en evidencia."""
 # --------------------------------------------------------------------------
 
 AUTHORIZED_OPERATOR_ROLES = ("authorized_experimental_operator",)
+SIMULATED_REVIEWER_ROLE = "simulated_reviewer_oracle"
+"""Rol propio del oráculo determinista. NUNCA usa el rol reservado al operador
+humano: si lo hiciera, una agregación por `operator_role` mezclaría simulación
+e intervención humana, que es justamente lo que la regla de separación cierra."""
+KNOWN_ROLES = (*AUTHORIZED_OPERATOR_ROLES, SIMULATED_REVIEWER_ROLE)
 EXPECTED_OPERATOR_ID = "Gustavo Julián Rivas"
 OPERATOR_ROLE_IS_NOT = ("agronomist", "domain_expert", "field_validator")
 
@@ -224,6 +229,42 @@ ARMS = (ARM_FROZEN, ARM_REFIT_NO_CORRECTIONS, ARM_REFIT_WITH_CORRECTIONS)
 
 OUTCOME_EXECUTED = "EXECUTED"
 OUTCOME_NOT_EVALUABLE = "NOT_EVALUABLE"
+RESERVED_PATH_MARKERS = (
+    "/evidence/A",
+    "/evidence/B",
+    "/evidence/C",
+    "/evidence/A_sensitivity",
+    "holdout.sqlite",
+    "stage_b.sqlite",
+    "closure-campaign-",
+)
+"""Fragmentos de ruta que pertenecen a la campaña A/B/C o al holdout. Ninguna
+ruta que el complemento H reciba por línea de comandos puede contenerlos: si
+los contiene, la corrida se detiene antes de leer nada."""
+
+
+def assert_no_reserved_paths(paths: dict[str, Any]) -> list[str]:
+    """Devuelve las rutas de la configuración que tocan territorio reservado.
+
+    Comprobación real y falsable sobre la configuración efectiva de ESTA
+    corrida, en lugar de una constante `abc_artifacts_touched: 0`.
+    """
+    offending = []
+    for name, value in paths.items():
+        if value is None:
+            continue
+        text = str(value)
+        for marker in RESERVED_PATH_MARKERS:
+            if marker in text:
+                offending.append(f"{name}={text} contiene {marker!r}")
+    return offending
+
+
+SIMULATED_VALIDATED_AT_DEFAULT = datetime(2022, 1, 1, tzinfo=timezone.utc)
+"""Instante de validación de la pista SIM: fijo, declarado y reproducible.
+Es un valor MODELADO de una simulación, no el registro de un hecho. La pista
+humana nunca lo usa: toma el instante real de la respuesta del operador."""
+
 RECALIBRATION_APPLIED = "RECALIBRATION_APPLIED"
 NO_RECALIBRATION = "NO_RECALIBRATION"
 
@@ -509,19 +550,19 @@ def select_review_events(feedback: pd.DataFrame, alerts: np.ndarray) -> pd.DataF
                 f"por debajo del mínimo {EVENTS_PER_STRATUM} del diseño congelado. "
                 "Prohibido completar mirando 2022."
             )
-        positions = np.linspace(0, len(stratum) - 1, EVENTS_PER_STRATUM)
-        positions = np.unique(np.round(positions).astype(int))
-        # `np.unique` puede colapsar posiciones si el estrato es muy corto;
-        # se completa hacia adelante de forma determinista antes que reducir
-        # el presupuesto en silencio.
-        index = list(positions)
-        candidate = 0
-        while len(index) < EVENTS_PER_STRATUM:
-            if candidate not in index:
-                index.append(candidate)
-            candidate += 1
-        index = sorted(index)[:EVENTS_PER_STRATUM]
-        selected.append(stratum.iloc[index])
+        positions = np.unique(
+            np.round(np.linspace(0, len(stratum) - 1, EVENTS_PER_STRATUM)).astype(int)
+        )
+        # Con `len(stratum) >= EVENTS_PER_STRATUM` el paso de `linspace` es >= 1 y
+        # el redondeo no puede colapsar posiciones. Si alguna vez colapsara, se
+        # aborta: completar el presupuesto por otro camino rompería el
+        # equiespaciado que el diseño congelado exige, en silencio.
+        if len(positions) != EVENTS_PER_STRATUM:
+            raise HitlNotEvaluableError(
+                f"El muestreo equiespaciado del estrato model_alert={alert_value} colapsó a "
+                f"{len(positions)} posiciones distintas; no se completa por otro camino."
+            )
+        selected.append(stratum.iloc[list(positions)])
 
     events = pd.concat(selected).sort_values("feature_timestamp")
     if len(events) != EVENT_BUDGET_PER_SEED:
@@ -738,8 +779,21 @@ def validate_feedback_events(
         if not isinstance(operator_id, str) or not operator_id.strip():
             fail("R01-identity", f"{tag}: identidad del operador ausente o vacía")
         operator_role = event["operator_role"]
-        if operator_role not in AUTHORIZED_OPERATOR_ROLES:
-            fail("R02-role", f"{tag}: rol no autorizado {operator_role!r}")
+        # El rol admisible depende del origen: solo la intervención humana puede
+        # llevar el rol del operador autorizado, y solo la simulación puede
+        # llevar el del oráculo. Cruzarlos es precisamente el intento de hacer
+        # pasar una cosa por la otra.
+        if origin == ORIGIN_SIMULATED:
+            allowed_roles: tuple[str, ...] = (SIMULATED_REVIEWER_ROLE,)
+        elif origin == ORIGIN_HUMAN:
+            allowed_roles = AUTHORIZED_OPERATOR_ROLES
+        else:
+            allowed_roles = KNOWN_ROLES
+        if operator_role not in allowed_roles:
+            fail(
+                "R02-role",
+                f"{tag}: rol {operator_role!r} no autorizado para feedback_origin={origin!r}",
+            )
 
         decision = event["decision"]
         if decision not in DECISIONS:
@@ -959,24 +1013,51 @@ def build_lineage(
 # --------------------------------------------------------------------------
 
 PACKAGE_INSTRUCTIONS = (
-    "Para cada escenario, indicá una decisión: ACEPTAR (la etiqueta registrada es correcta), "
+    "Estás revisando 20 registros históricos de 2021 del sistema. Cada registro tiene una "
+    "etiqueta de estrés ya guardada, y algunas de esas etiquetas guardadas pueden ser "
+    "incorrectas. La definición de la etiqueta es: vale 1 si la humedad de suelo observada en "
+    "la fecha objetivo es menor que el umbral P20 congelado, y 0 en caso contrario; el paquete "
+    "te muestra ambos valores. "
+    "Para cada escenario indicá una decisión: ACEPTAR (la etiqueta registrada es correcta), "
     "RECHAZAR (la etiqueta registrada no es correcta y no proponés otra) o CORREGIR (proponés "
     "una etiqueta corregida, 0 o 1). Agregá un motivo breve en tus propias palabras. "
-    "No se te informa qué decisión produce qué efecto, ni se te muestra ningún resultado "
-    "posterior. Actuás como responsable experimental autorizado, no como agrónomo: tus "
-    "decisiones no constituyen asesoramiento ni validación agronómica."
+    "No se te informa qué decisión produce qué efecto sobre ninguna métrica, no se te muestra "
+    "ningún resultado posterior y no se te sugiere ninguna respuesta. Actuás como responsable "
+    "experimental autorizado, no como agrónomo: tus decisiones no constituyen asesoramiento ni "
+    "validación agronómica."
 )
 
 PACKAGE_HIDDEN_FIELDS = (
-    "si la etiqueta registrada fue corrompida por la simulación",
-    "cuál sería la etiqueta limpia",
+    "cualquier métrica de cualquier brazo, en cualquier pista",
     "el efecto esperado de cada decisión sobre cualquier métrica",
-    "cualquier métrica de cualquier brazo",
     "cualquier dato, predicción o métrica de 2023, 2024 o 2025",
-    "cualquier métrica o dato del holdout",
+    "cualquier métrica o dato del holdout 2024-2025",
     "los resultados de las Etapas A, B y C",
-    "el número de escenarios corrompidos y su proporción",
+    "qué decisión tomó el revisor simulado en el mismo escenario",
 )
+"""Lo que el paquete efectivamente oculta. Deliberadamente NO incluye la
+etiqueta correcta ni la identidad de los registros incorrectos: ambas son
+derivables de los campos visibles, y afirmar lo contrario sería una garantía
+falsa dada a la persona que responde (hallazgos C-01 y C-02 de la crítica
+independiente)."""
+
+PACKAGE_NOT_CLAIMED_HIDDEN = (
+    "La etiqueta correcta de cada escenario es DETERMINABLE: es 1 si y solo si la humedad "
+    "observada en la fecha objetivo es menor que el umbral P20 congelado, y el paquete "
+    "muestra ambos valores.",
+    "En consecuencia, también es derivable qué registros son incorrectos y cuántos son.",
+    "La semilla figura en el paquete y el generador de corrupción está en el repositorio.",
+)
+
+PACKAGE_BLINDING = {
+    "level": "PARCIAL",
+    "consequence_declared": (
+        "Esta intervención demuestra que el mecanismo HITL opera correctamente cuando una "
+        "persona autorizada realiza una revisión de CALIDAD DE DATO con respuesta "
+        "determinable. NO demuestra juicio bajo incertidumbre, NO demuestra pericia y NO "
+        "demuestra cegamiento. Afirmar cegamiento sobre esta pista está PROHIBIDO."
+    ),
+}
 
 
 def build_human_package(
@@ -1040,7 +1121,9 @@ def build_human_package(
             "role_is_not": list(OPERATOR_ROLE_IS_NOT),
         },
         "instructions": PACKAGE_INSTRUCTIONS,
+        "blinding": dict(PACKAGE_BLINDING),
         "hidden_from_participant": list(PACKAGE_HIDDEN_FIELDS),
+        "explicitly_not_claimed_hidden": list(PACKAGE_NOT_CLAIMED_HIDDEN),
         "presentation_order": [s["scenario_id"] for s in scenarios],
         "scenarios": scenarios,
     }
@@ -1068,8 +1151,16 @@ def validate_human_response(
         violations.append("package_sha256 de la respuesta no coincide con el paquete congelado")
 
     operator_id = response.get("operator_id")
+    expected_operator = package.get("expected_operator", {})
     if not isinstance(operator_id, str) or not operator_id.strip():
         violations.append("identidad del operador ausente en la respuesta")
+    elif operator_id != expected_operator.get("operator_id"):
+        # El paquete nombra a un operador único y predeclarado: la respuesta de
+        # otra persona no es una respuesta a este paquete.
+        violations.append(
+            f"identidad del operador {operator_id!r} distinta de la predeclarada "
+            f"{expected_operator.get('operator_id')!r}"
+        )
     if response.get("operator_role") not in AUTHORIZED_OPERATOR_ROLES:
         violations.append(f"rol no autorizado: {response.get('operator_role')!r}")
     declaration = response.get("operator_declaration")
@@ -1599,11 +1690,17 @@ def prepare_human_package(
     contract_id: str,
     contract_sha256: str,
 ) -> dict[str, Any]:
-    """Construye el paquete ciego sin tocar la ventana de evaluación.
+    """Construye el paquete de intervención y verifica su contenido.
 
-    Se verifica explícitamente que ninguna fila de 2022 intervenga en la
-    preparación: el paquete se deriva solo del modelo congelado y de las
-    emisiones de 2021.
+    El conjunto elegible que `build_hitl_frames` materializa cubre 2015-2022,
+    de modo que filas de 2022 **sí** se leen en memoria; afirmar lo contrario
+    sería falso. Lo que se verifica —y es falsable— es que el CONTENIDO del
+    paquete no contenga ninguna fecha posterior a 2021-12-31 ni ningún valor
+    derivado de la ventana de evaluación.
+
+    El cegamiento es PARCIAL y está declarado como tal en el contrato: la
+    etiqueta correcta es determinable por el operador a partir de la
+    observación madurada y del P20 congelado, que el diseño exige mostrar.
     """
     frames = build_hitl_frames(daily_series, depth_column)
     frozen_model = fit_hitl_model(frames.train_initial, frames.train_initial["stress_label"], seed)
@@ -1625,13 +1722,7 @@ def prepare_human_package(
     recorded_labels, _ = corrupt_training_labels(frames.feedback, seed)
     events_frame = select_review_events(frames.feedback, alerts)
 
-    max_date = pd.to_datetime(events_frame["target_timestamp"]).max()
-    if max_date > pd.Timestamp(HITL_FEEDBACK_BOUNDS.target_end):
-        raise HitlValidationError(
-            ["La preparación del paquete tocó una fila posterior a 2021-12-31"]
-        )
-
-    return build_human_package(
+    package = build_human_package(
         events=events_frame,
         recorded_labels=recorded_labels,
         probabilities=proba_series,
@@ -1644,6 +1735,27 @@ def prepare_human_package(
         contract_sha256=contract_sha256,
         seed=seed,
     )
+    assert_package_contains_no_data_beyond_feedback_window(package)
+    return package
+
+
+def assert_package_contains_no_data_beyond_feedback_window(package: dict[str, Any]) -> None:
+    """Comprobación falsable sobre el contenido publicado del paquete.
+
+    Recorre todas las fechas de todos los escenarios y aborta si alguna supera
+    el fin de la ventana de adquisición. A diferencia de una guarda sobre un
+    frame ya enmascarado por construcción, esta puede fallar de verdad.
+    """
+    limit = pd.Timestamp(HITL_FEEDBACK_BOUNDS.target_end)
+    offending: list[str] = []
+    for scenario in package["scenarios"]:
+        for field_name in ("emission_date", "target_date"):
+            if pd.Timestamp(scenario[field_name]) > limit:
+                offending.append(f"{scenario['scenario_id']}.{field_name}={scenario[field_name]}")
+    if offending:
+        raise HitlValidationError(
+            [f"El paquete publica fechas posteriores a {limit.date()}: {offending}"]
+        )
 
 
 def run_complement_h(
@@ -1653,11 +1765,18 @@ def run_complement_h(
     seeds: tuple[int, ...],
     package: dict[str, Any],
     human_response: dict[str, Any],
-    validated_at: datetime,
+    simulated_validated_at: datetime,
+    human_validated_at: datetime,
     execution_instant: datetime,
     dataset_sha256: str,
 ) -> dict[str, Any]:
-    """Ejecuta las dos pistas del complemento H y devuelve el cuerpo de la evidencia."""
+    """Ejecuta las dos pistas del complemento H y devuelve el cuerpo de la evidencia.
+
+    Los dos instantes de validación son distintos a propósito: la pista SIM usa
+    uno fijo y declarado, porque su procedencia temporal es un valor modelado;
+    la pista HUMANA usa el instante real en que el operador respondió, porque
+    retrofechar una decisión humana produciría un registro de procedencia falso.
+    """
     frames = build_hitl_frames(daily_series, depth_column)
     human_decisions = validate_human_response(human_response, package)
 
@@ -1667,11 +1786,11 @@ def run_complement_h(
             seed=seed,
             origin=ORIGIN_SIMULATED,
             operator_id="revisor_simulado_deterministico",
-            operator_role=AUTHORIZED_OPERATOR_ROLES[0],
+            operator_role=SIMULATED_REVIEWER_ROLE,
             package_id=package["package_id"],
             package_sha256=package["package_sha256"],
             decisions=None,
-            validated_at=validated_at,
+            validated_at=simulated_validated_at,
             execution_instant=execution_instant,
             dataset_sha256=dataset_sha256,
         )
@@ -1687,56 +1806,145 @@ def run_complement_h(
         package_id=package["package_id"],
         package_sha256=package["package_sha256"],
         decisions=human_decisions,
-        validated_at=validated_at,
+        validated_at=human_validated_at,
         execution_instant=execution_instant,
         dataset_sha256=dataset_sha256,
     )
 
+    all_results = [*sim_results, human_result]
+    reviewed_dates = {pd.Timestamp(event["fecha"]) for r in all_results for event in r.events}
+    evaluation_dates = set(pd.to_datetime(frames.evaluation["feature_timestamp"]))
+    n_evaluation_rows = len(frames.evaluation)
+    arm_observation_counts = {
+        (r.track, r.seed, name): arm.metrics["n_observations"]
+        for r in all_results
+        for name, arm in r.arms.items()
+    }
+    origins_by_artifact = {
+        "feedback_events_simulated": {e["feedback_origin"] for r in sim_results for e in r.events},
+        "feedback_events_human": {e["feedback_origin"] for e in human_result.events},
+    }
+    holdout_modules = [name for name in sys.modules if name.endswith("holdout_ledger")]
+
+    # Recalcular las etiquetas desde el P20 congelado: si en algún punto se
+    # hubiera recalculado un P20 por ventana, esta igualdad fallaría.
+    p20_consistent = all(
+        (window["future_soil_moisture"] < frames.p20_frozen)
+        .astype(int)
+        .equals(window["stress_label"].astype(int))
+        for window in (frames.train_initial, frames.feedback, frames.evaluation)
+    )
+
     mechanism = {
-        "n_events_received": sum(len(r.events) for r in sim_results) + len(human_result.events),
-        "n_events_valid": sum(len(r.events) for r in sim_results) + len(human_result.events),
+        "n_events_received": sum(len(r.events) for r in all_results),
+        "n_events_valid": sum(len(r.events) for r in all_results),
         "n_events_rejected_by_rule": {},
+        "n_events_rejected_by_rule_note": (
+            "Vacío por construcción en una corrida válida: el runner falla de forma cerrada y no "
+            "publica artefactos si alguna regla se viola. El poder discriminante de las reglas se "
+            "mide en la suite focalizada, no aquí."
+        ),
         "human_track": {
             "n_accept": human_result.applied.get("n_accept"),
             "n_reject": human_result.applied.get("n_reject"),
             "n_correct": human_result.applied.get("n_correct"),
             "n_effective_changes": human_result.applied.get("n_effective_changes"),
+            "n_no_change": human_result.applied.get("n_accept"),
         },
         "n_recalibrations": sum(
-            1
-            for r in [*sim_results, human_result]
-            if r.recalibration_status == RECALIBRATION_APPLIED
+            1 for r in all_results if r.recalibration_status == RECALIBRATION_APPLIED
         ),
         "lineage_chain_complete": all(
-            r.lineage is not None or r.recalibration_status == NO_RECALIBRATION
-            for r in [*sim_results, human_result]
+            (r.lineage is not None) == (r.recalibration_status == RECALIBRATION_APPLIED)
+            for r in all_results
         ),
-        "predecessor_preserved": all(r.predecessor_preserved for r in [*sim_results, human_result]),
-        "holdout_access_attempts": 0,
-        "abc_artifacts_touched": 0,
+        "predecessor_preserved": all(r.predecessor_preserved for r in all_results),
+        "holdout_ledger_modules_loaded": len(holdout_modules),
+        "holdout_ledger_modules": holdout_modules,
         "max_target_timestamp_read": pd.to_datetime(frames.eligible["target_timestamp"])
         .max()
         .date()
         .isoformat(),
+        "n_reviewed_dates": len(reviewed_dates),
+        "n_reviewed_dates_inside_evaluation": len(reviewed_dates & evaluation_dates),
+        "n_evaluation_rows": n_evaluation_rows,
     }
 
     invariants = {
-        "INV-01_no_data_after_2022_12_31": mechanism["max_target_timestamp_read"]
-        <= HITL_MAX_TARGET_DATE.isoformat(),
-        # Comprobación real, no declarativa: si algún import hubiera arrastrado
-        # el ledger del holdout, el módulo figuraría en `sys.modules`.
-        "INV-02_holdout_ledger_untouched": not any(
-            name.endswith("holdout_ledger") for name in sys.modules
-        ),
-        "INV-03_abc_artifacts_untouched": True,
-        "INV-04_p20_frozen_once": True,
-        "INV-05_same_evaluation_rows_all_arms": True,
-        "INV-06_no_reviewed_row_in_evaluation": True,
-        "INV-08_origin_recorded_no_mixing": True,
-        "INV-09_no_self_reference": all(
-            r.lineage is None or r.lineage["source_model_id"] != r.lineage["successor_model_id"]
-            for r in [*sim_results, human_result]
-        ),
+        "INV-01_no_data_after_2022_12_31": {
+            "measured": True,
+            "satisfied": mechanism["max_target_timestamp_read"] <= HITL_MAX_TARGET_DATE.isoformat(),
+            "observed": mechanism["max_target_timestamp_read"],
+        },
+        "INV-02_holdout_ledger_untouched": {
+            "measured": True,
+            "satisfied": len(holdout_modules) == 0,
+            "observed": holdout_modules,
+            "limitation": (
+                "Detecta la carga del módulo del ledger. No detectaría un sqlite3.connect "
+                "directo a su ruta; eso se cubre en INV-03 por comparación de hashes externa."
+            ),
+        },
+        "INV-03_abc_artifacts_untouched": {
+            "measured": False,
+            "status": "NOT_MEASURED_IN_RUN",
+            "measured_where": (
+                "Verificación externa de hashes del respaldo de la campaña A/B/C "
+                "(sha256sum -c sobre evidence-snapshots/final/SHA256SUMS), registrada en "
+                "validation-record.json antes y después de la corrida de H."
+            ),
+        },
+        "INV-04_p20_frozen_once": {
+            "measured": True,
+            "satisfied": bool(p20_consistent),
+            "observed": {"p20_frozen": frames.p20_frozen},
+        },
+        "INV-05_same_evaluation_rows_all_arms": {
+            "measured": True,
+            "satisfied": set(arm_observation_counts.values()) == {n_evaluation_rows},
+            "observed": {
+                "n_evaluation_rows": n_evaluation_rows,
+                "distinct_arm_counts": sorted(set(arm_observation_counts.values())),
+            },
+        },
+        "INV-06_no_reviewed_row_in_evaluation": {
+            "measured": True,
+            "satisfied": len(reviewed_dates & evaluation_dates) == 0,
+            "observed": {"n_intersection": len(reviewed_dates & evaluation_dates)},
+        },
+        "INV-07_bitwise_reproducible": {
+            "measured": False,
+            "status": "NOT_MEASURED_IN_RUN",
+            "measured_where": (
+                "Segunda ejecución independiente desde las mismas entradas congeladas y "
+                "comparación byte a byte, registrada en reproduction-record.json."
+            ),
+        },
+        "INV-08_origin_recorded_no_mixing": {
+            "measured": True,
+            "satisfied": all(len(v) == 1 for v in origins_by_artifact.values())
+            and all(
+                event.get("feedback_origin") and event.get("track")
+                for r in all_results
+                for event in r.events
+            ),
+            "observed": {k: sorted(v) for k, v in origins_by_artifact.items()},
+        },
+        "INV-09_no_self_reference": {
+            "measured": True,
+            "satisfied": all(
+                r.lineage is None or r.lineage["source_model_id"] != r.lineage["successor_model_id"]
+                for r in all_results
+            ),
+        },
+        "INV-10_closed_failure_on_invalid_inputs": {
+            "measured": False,
+            "status": "NOT_MEASURED_IN_RUN",
+            "measured_where": (
+                "Suite focalizada tests/test_auxiliary_hitl_v1.py, que ejercita cada regla con "
+                "una entrada inválida y exige HitlValidationError."
+            ),
+        },
     }
 
     return {
@@ -1794,6 +2002,23 @@ def main(argv: list[str] | None = None) -> int:
         for issue in context.issues:
             print(f"ERROR de procedencia/entorno: {issue}", file=sys.stderr)
         return 3
+
+    configured_paths = {
+        "era5_csv": args.era5_csv,
+        "nasa_power_csv": args.nasa_power_csv,
+        "output_dir": args.output_dir,
+        "package": args.package,
+        "human_response": args.human_response,
+        "contract": args.contract,
+    }
+    reserved = assert_no_reserved_paths(configured_paths)
+    if reserved:
+        for item in reserved:
+            print(
+                f"ERROR: ruta reservada de A/B/C o del holdout en la configuración: {item}",
+                file=sys.stderr,
+            )
+        return 11
 
     contract_payload: dict[str, Any] = {}
     contract_sha256 = ""
@@ -1860,11 +2085,20 @@ def main(argv: list[str] | None = None) -> int:
         return 7
 
     execution_instant = _utc_now()
-    validated_at = (
+    simulated_validated_at = (
         datetime.fromisoformat(args.validated_at.replace("Z", "+00:00"))
         if args.validated_at
-        else datetime(2022, 1, 1, tzinfo=timezone.utc)
+        else SIMULATED_VALIDATED_AT_DEFAULT
     )
+    responded_at = response.get("responded_at_utc")
+    if not responded_at:
+        print(
+            "ERROR: la respuesta humana no declara responded_at_utc; retrofechar una decisión "
+            "humana produciría un registro de procedencia falso",
+            file=sys.stderr,
+        )
+        return 9
+    human_validated_at = datetime.fromisoformat(str(responded_at).replace("Z", "+00:00"))
     seeds = tuple(int(s) for s in args.seeds.split(","))
 
     try:
@@ -1874,7 +2108,8 @@ def main(argv: list[str] | None = None) -> int:
             seeds=seeds,
             package=package,
             human_response=response,
-            validated_at=validated_at,
+            simulated_validated_at=simulated_validated_at,
+            human_validated_at=human_validated_at,
             execution_instant=execution_instant,
             dataset_sha256=context.input_hashes["era5_sha256"],
         )
@@ -1953,7 +2188,13 @@ def main(argv: list[str] | None = None) -> int:
         "track_human": _track_to_json(outcome["human_result"]),
         "feedback_events_simulated": [event for r in outcome["sim_results"] for event in r.events],
         "feedback_events_human": outcome["human_result"].events,
-        "mechanism_metrics": outcome["mechanism"],
+        "mechanism_metrics": {
+            **outcome["mechanism"],
+            "abc_paths_referenced_in_configuration": len(reserved),
+            "configured_paths": {
+                k: (str(v) if v is not None else None) for k, v in configured_paths.items()
+            },
+        },
         "invariants": outcome["invariants"],
         "warnings": [],
     }
