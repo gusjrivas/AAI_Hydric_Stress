@@ -28,7 +28,10 @@
 - [ ] 1.9b Verificar consumidores de UI para el contrato v2 completo.
 - [x] 1.10a Documentar activación, rollback, evidencia y límites de esta entrega.
 - [ ] 1.10b Documentar activación y límites de las capacidades v2 restantes.
-- [ ] 1.11 Revisar recorrido integrado antes de proponer merge a main.
+- [x] 1.11a Revisar el recorrido funcional incremental del PR #207: pruebas HTTP,
+      persistencia tras reinicio y aceptación general del usuario en Docker.
+- [ ] 1.11b Completar QA visual específica de teclado/móvil, gestión visual de
+      catálogo y recorrido de las capacidades restantes; no acreditado por 1.11a.
 - [x] 1.12 Antes de archivar, corregir estructura preexistente de architecture-integration sin cambiar requisitos y revalidar la spec canónica.
 - [x] 1.13a Implementar validación fail-closed y registro de identidad SHA-256 para
       un manifiesto de calibración congelado, sin entrenar ni evaluar.
@@ -47,3 +50,7 @@
       El adaptador actual carga un directorio local administrado; no registra en MLflow.
 
 - [x] 1.3b-iii Entorno Docker local aislado con bundles y datos sintéticos, proxy UI/API, salud y persistencia verificadas; no sustituye 1.3b-ii ni la revisión visual.
+
+El PR #207 cierra solamente la entrega incremental descrita en
+[producer-ui-main-integration.md](../../../docs/design/producer-ui-main-integration.md).
+Las tareas pendientes conservan su alcance y el change no se archiva.

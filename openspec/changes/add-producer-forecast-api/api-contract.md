@@ -1,8 +1,11 @@
-# Contrato operacional v2 propuesto
+# Contrato operacional v2 — objetivo e implementación incremental
 
-Estado: para revisión. No describe endpoints ya implementados.
+Estado: contrato aceptado, implementación parcial. PR #207 entrega catálogo,
+lecturas, GET/POST de emisiones y reviews. Resumen, assessments y recalibración
+v2 siguen pendientes. El OpenAPI del backend describe las rutas ejecutables;
+este documento conserva también el contrato objetivo de las entregas futuras.
 Base /api/v2. JSON en UTF-8; nombres de campos estables en inglés.
-La futura UI traduce etiquetas y motivos a lenguaje cotidiano.
+La UI traduce etiquetas y motivos a lenguaje cotidiano.
 
 ## Convenciones comunes
 - Identificadores opacos salvo sensor_id, que conserva regex [a-zA-Z0-9_-]{1,64}.

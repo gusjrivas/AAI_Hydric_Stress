@@ -1,7 +1,8 @@
 # Change: API de soporte a la experiencia del productor
 
 Estado: aceptado por el autor el 2026-09-19; implementación parcial mediante las
-porciones de catálogo/histórico, con emisión v2 todavía pendiente.
+porciones de catálogo/histórico, emisión desde bundles y revisión humana. Resumen,
+assessments, registro/activación MLflow y recalibración v2 siguen pendientes.
 
 ## Why
 La pantalla necesita un contrato coherente para sectores, historial, tres días
@@ -24,3 +25,10 @@ API aditiva versionada; capítulos 2 y 3. HU7/HU8 preservados.
 
 Épica 3: Integración y mejora. Configuraciones base / +sintéticos / +anomalías /
 completa: ninguna se modifica; nueva fachada operacional.
+
+## Entrega incremental PR #207
+
+El autor aprobó integrar la versión funcional probada y separar el despliegue
+operacional real. Alcance, evidencia y pendientes trazados en
+[el informe de cierre](../../../docs/design/producer-ui-main-integration.md).
+El change sigue abierto: no se eliminan requisitos ni se habilitan porcentajes.

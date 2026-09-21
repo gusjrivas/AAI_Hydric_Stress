@@ -1,5 +1,20 @@
 # Seguimiento de tareas — plan de proyecto vs. estado real del repo
 
+## 2026-09-21 — Cierre acotado de integración para PR #207 (HU6)
+
+Por aprobación explícita del autor se separa el merge funcional de Mi cultivo del
+cierre completo de modelos operacionales. Se actualizan el informe de integración,
+la descripción del contrato y las tareas para reflejar emisión y feedback ya
+implementados. No se marcan completos assessments, gate, registro/activación MLflow,
+resumen/recalibración v2 ni QA móvil/teclado pendiente. El change continúa abierto.
+
+La revisión confirma opt-in v2 desactivado por defecto, ausencia explícita cuando
+faltan bundles/datos y display_probability=null. La demo aprobada usa modelos y
+datos sintéticos separados. No cambia código runtime ni resultados experimentales.
+HU2/HU4/HU5/HU6/UI, CRISP-DM integración; sin impacto sobre hipótesis, arquitectura,
+configuración HU7/HU8 o manifiestos. Validación estricta OpenSpec y diff registrados
+en el cierre; CI del HEAD y ausencia de conflictos son condiciones para el merge.
+
 ## 2026-09-21 — Aceptación funcional y corrección del runner backend (HU6)
 
 El usuario aprobó la prueba general de producer-preview; no se infiere validación

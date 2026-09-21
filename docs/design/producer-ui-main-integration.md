@@ -1,140 +1,85 @@
-# Integración de UI y backend para productor — preparación del cierre
+# Integración de Mi cultivo — alcance de cierre del PR #207
 
-Fecha: 2026-09-21. Estado: **integración parcial validada; no lista para merge**.
+Fecha: 2026-09-21. Entrega funcional incremental aprobada por el autor.
+El merge requiere los cuatro checks de CI aprobados sobre el HEAD publicado y
+ausencia de conflictos con main. No cierra los cuatro changes completos ni HU7/HU8.
 
-## Base y trazabilidad
+## Decisión de alcance
 
-Rama `feat/hu6-productor-integracion-final`, worktree aislado
-`C:/Repo/AAI_Hydric_Stress_integration`.
+El autor probó el entorno Docker y aprobó continuar. Luego aceptó incorporar una
+primera versión funcional a main y separar el despliegue operacional real.
+Esta decisión sustituye la lista anterior que condicionaba este PR al desarrollo
+completo de todas las capacidades v2. No elimina ni marca cumplidos sus requisitos.
 
-- Base: `origin/main` en `a657014` (PR #206, prerrequisitos científicos).
-- Backend incorporado: `b573088`, `feat/hu6-backend-soporte-ui` (incluye el orquestador publicado durante esta integración).
-- UI incorporada: `a250a9e`, `feat/hu6-ui-productor-integracion`.
-- Conflicto de seguimiento resuelto conservando ambas entradas.
-- Los cambios locales de las ramas originales no se incluyeron ni modificaron.
+## Entregado y verificable
 
-HU2/HU4/HU5/HU6, capacidades `data-ingestion`, `predictive-modeling`,
-`human-feedback`, `architecture-integration` y `alerting-ui`.
-CRISP-DM: integración y verificación del despliegue. Esta entrega no cambia
-configuración experimental, hipótesis ni arquitectura. No ejecuta entrenamientos,
-abre holdouts ni modifica datasets o resultados históricos. El cierre científico
-HU7/HU8 continúa siendo independiente. Aporte a memoria: capítulo 3, integración
-verificada y límites funcionales; sin nuevos resultados para capítulo 2.
+| Capacidad | Alcance que se integra |
+|---|---|
+| Catálogo | GET/POST/PATCH de sectores y sensores; selección de primario, adopción legacy, revisiones optimistas. La UI selecciona; el alta/edición se hace por API. |
+| Históricos | Gráfico/tabla de 7/30 días, snapshots, fechas UTC, unidades, procedencia, faltantes y antigüedad. |
+| Modelos persistidos | Exportación y carga local por sensor/horizonte, verificación de identidad y compatibilidad; inferencia sin ajuste por HTTP. |
+| Tres días | POST explícito con snapshot común, fechas +1/+2/+3 y disponibilidad individual. Falta de estimación nunca significa sin alerta. |
+| Opiniones | Confirmación/rechazo desde el día objetivo UTC, sin vencimiento; correcciones, control de revisión, replay y pendientes duraderos. |
+| Compatibilidad | Rutas v2 aditivas, feature flag desactivado por defecto y reserva demo-; legacy permanece disponible. |
+| Prueba local | Compose independiente, fixtures/modelos sintéticos, volumen persistente y proxy UI/API. |
 
-## Ajustes de integración
+`display_probability` permanece null en la emisión integrada. El frontend no
+convierte score en porcentaje. La disponibilidad de un calibrador no certifica
+calibración ni validez agronómica. Sin bundles compatibles se informa ausencia;
+ningún GET entrena ni inventa un pronóstico.
 
-- La cabecera de Mi cultivo omite el selector legacy, que no controla esa vista.
-  El selector de sector/punto v2 permanece como contexto visible. Al regresar a
-  Resumen se conserva el sensor legacy previo, comprobado por una prueba de navegación.
-- Compose transmite `PRODUCER_V2_ENABLED`, desactivado por defecto. `.env.example`
-  documenta el opt-in. Verificados los valores true y false mediante `compose config`.
-- Reparada la estructura canónica de `architecture-integration`: Purpose identifica
-  la descripción existente, Limitaciones queda después de todos los requisitos y
-  se añade el marcador equivalente MUST a DEBE. Sin cambios de comportamiento
-  normativo. Tarea 1.12 cerrada tras validación estricta; no se archivaron changes.
+## Continuación trazada, fuera de este merge
 
-## Verificación reproducible
+| Pendiente | Fuente y condición para completarlo |
+|---|---|
+| Evaluación operacional real e informe reproducible | add-daily-multihorizon-predictors: 6, 7, 8.2, 9 y 12. Respetar manifiesto congelado y preservar resultados incluso si son insufficient_evidence. |
+| Registro/activación MLflow y gate de porcentajes | add-producer-forecast-api: 1.3b-ii y 1.13b. Requiere assessment compatible por dominio/rango; el directorio local no sustituye ADR-0013. |
+| Resumen/linaje y recalibración v2 | add-producer-forecast-api: 1.5, 1.6, 1.7b-ii; extend-dated-alert-feedback: 1.5. Registrar opiniones no implica aplicarlas a un modelo. |
+| UI completa, incluida gestión de catálogo | No se entrega el mock completo. Alta/edición visual y consumidores de capacidades restantes quedan ligados a 1.9b y 1.11b. |
+| QA visual específica | Móvil real, teclado y recorrido visual exhaustivo de conflictos siguen pendientes en 1.11b. La aceptación general no demuestra cada escenario. |
+| Consolidación final | Mantener changes abiertos y tareas sin completar. Consolidar canónicas/archivar al completar cada capacidad, sin promover contratos futuros a implementados. |
 
-Frontend, desde `frontend/`: `npm ci --no-audit --no-fund`, `npm test`,
-`npm run lint`, `npm run build`: **132 tests / 20 archivos**, lint y build correctos.
-La suite inicial tenía 131 tests; esta entrega agrega una prueba de navegación.
-Los 135 reportados en otro worktree no se reproducen en este checkout publicado.
+Estos pendientes pueden separarse porque sus rutas/consumidores no se presentan
+como disponibles, los porcentajes se bloquean y el backend v2 requiere opt-in.
+Las specs completas siguen vigentes como objetivo de implementación incremental.
 
-Backend: **94 passed, 11 warnings**, 248 segundos. Ejecutado en contenedor
-`aai-hydric-full:dev`, Python 3.11, repositorio montado de solo lectura en `/repo`,
-`PYTHONPATH=/repo/src:/repo/backend`, `PYTHONDONTWRITEBYTECODE=1`, directorio de
-trabajo `/tmp`; comando `python -m pytest /repo/backend/tests/ -q --tb=short -p no:cacheprovider`.
-La imagen requirió instalar `httpx2` en el contenedor efímero para su versión de
-Starlette. El primer intento falló en colección por esa dependencia; el segundo
-produjo 18 fallos al escribir MLflow en el montaje de solo lectura. El intento
-final resolvió el entorno usando `/tmp`; no requirió alterar código backend.
-Este entorno verifica contratos/regresiones HTTP, no acredita reproducibilidad
-experimental del manifiesto, cuyo entorno fijado es distinto.
+## Evidencia
 
-Los cuatro changes `add-producer-sensor-catalog`,
-`add-daily-multihorizon-predictors`, `extend-dated-alert-feedback` y
-`add-producer-forecast-api` pasan `openspec validate <change> --strict`.
-La spec canónica `architecture-integration` pasa también validación estricta;
-solo queda una sugerencia informativa por longitud de un requisito.
+- Backend en bdb6a50: 101 tests aprobados desde backend/ en contenedor temporal.
+  Se corrigió pythonpath de pytest para encontrar fixtures compartidas desde ese
+  directorio, que era la causa del fallo remoto de colección. No se excluyeron tests.
+- Frontend: 136 tests, lint y build; datos/modelado afectados: 97 tests.
+  Detalle en [emisión integrada](producer-ui-emission-integration.md).
+- Docker: UI/API saludables, catálogo/históricos/emisión probados por HTTP real
+  con fixtures sintéticos, persistencia comprobada tras reiniciar.
+- El autor confirmó «lo probé estamos ok para seguir». Aceptación funcional general,
+  sin inferir dispositivos o escenarios específicos que no declaró.
+- Los checks remotos del HEAD son la autoridad para el estado de CI; no extrapolar
+  el resultado de un commit anterior. El PR registra los enlaces de la ejecución.
 
-No se declara CI verde, suite completa de dominio ejecutada ni revisión visual
-actual por estas pruebas. CI debe aportar su resultado independiente en el PR.
+## Activación y rollback
 
-## Incorporación del orquestador y protección de identidades
+Ver [guía Docker](../../docker/producer-preview/README.md). Desde la raíz del
+checkout: `docker compose -f compose.producer-preview.yml up -d --build`.
+UI: http://localhost:5180; API: http://localhost:8180/docs.
+No se requieren los otros servicios del usuario y no se montan sus datasets.
+`docker compose -f compose.producer-preview.yml down` conserva el volumen.
 
-Durante la integración se publicó `b573088`; se incorporó sin conflictos.
-Pruebas específicas ejecutadas aquí: `test_operational_run.py`,
-`test_run_operational_manifest_v3_cli.py`, `test_calibration_assessment.py` y
-`test_calibration_manifest.py`: **73 passed** en 22 segundos, con fixtures sintéticos,
-mismo montaje de solo lectura y cwd temporal. No se ejecutó la corrida real.
-La suite completa 894 passed / 3 skipped está reportada por el autor de b573088;
-no se repitió aquí ni se presenta como evidencia propia de este checkout.
+En el stack habitual, PRODUCER_V2_ENABLED=false es el valor por defecto.
+Activarlo explícitamente requiere catálogo, lecturas y bundles propios compatibles.
+Desactivarlo y recrear backend revierte la exposición v2 sin borrar archivos.
+La vista legacy sigue disponible. No migrar ni renombrar bundles para omitir controles.
 
-La primera ejecución específica detectó 6 fallos de identidad: `core.autocrlf=true`
-había convertido LF a CRLF al crear el worktree Windows. `.gitattributes` ahora
-marca los manifiestos congelados y sus sidecars con `-text`. Se restauraron los
-bytes LF después de comprobar cada hash y longitud contra su identidad existente.
-No se recalculó ningún hash y ninguno de esos JSON difiere del blob versionado.
-Los tres hashes aprobados (v1/v2/v3) siguen intactos. Esta corrección evita que
-un checkout nuevo invalide artefactos congelados; no cambia la metodología.
+## Base, preservación y trazabilidad
 
-## Activación local
+Rama feat/hu6-productor-integracion-final; base a657014 (PR #206), backend b573088,
+UI a250a9e. Se preservaron los cambios ajenos de los worktrees originales.
+Los manifiestos congelados v1/v2/v3 conservan sus hashes; .gitattributes evita
+conversiones de finales de línea. No se ejecutó evaluación operacional real.
 
-En el checkout de integración, establecer `PRODUCER_V2_ENABLED=true` en `.env`
-(o en la sesión PowerShell antes de iniciar Compose) y reconstruir backend/frontend.
-Abrir `http://localhost:5173/#productor`. La ruta inicial legacy sigue siendo
-Resumen. No levantar otro stack con el mismo nombre/puertos mientras estén en uso.
-Para desactivar la fachada v2, restablecer false y recrear backend; los archivos
-persistidos no se borran. Registrar sensores no crea mediciones ni pronósticos.
-
-## Avance posterior: emisión conectada
-
-Se implementaron carga de bundles, inferencia +1/+2/+3, POST transaccional y botón
-en Mi cultivo; detalle y pruebas en [producer-ui-emission-integration.md](producer-ui-emission-integration.md).
-La lista siguiente describe el alcance de cierre; el punto 2 ya cuenta con código
-probado sobre modelos/datos sintéticos, pero sigue pendiente desplegar los bundles
-con su evidencia operacional real. El PR permanece en borrador.
-
-## Condiciones pendientes para cerrar y mergear
-
-1. **Resuelto:** incorporado el orquestador publicado en `b573088`; verificadas
-   sus pruebas y las del motor/manifiestos (73 passed) en el checkout combinado.
-2. Completar el recorrido modelo → snapshot → emisión persistida +1/+2/+3 → API → UI,
-   con identidades y decisiones de publicación verificadas. Actualmente la UI puede
-   consultar/revisar registros, pero no generar esas emisiones reales.
-3. Completar la evidencia operacional conforme al manifiesto congelado y exponer
-   sus assessments. Un porcentaje ausente por evidencia insuficiente es válido;
-   no suplirlo con scores crudos, porcentajes inventados ni repeticiones de t+3.
-4. Cerrar la experiencia de productor: entrada y navegación coherentes, registro
-   de sectores/puntos y recorrido de pronósticos, pendientes y correcciones.
-   La versión integrada sigue siendo incremental, no el mock completo aprobado.
-5. Resolver las tareas v2 aún abiertas de resumen/linaje y recalibración según
-   los changes aceptados. No presentarlas como implementadas por conservar legacy.
-6. Verificar en navegador contra esta misma integración: selección, historial,
-   tres fechas objetivo, revisión desde el día objetivo sin vencimiento,
-   corrección/conflicto, recarga y persistencia; escritorio, teclado y móvil real.
-7. Reconciliar contratos/canónicas y tareas con esa evidencia, completar CI y
-   revisión del PR. Solo entonces quitar el estado de borrador y mergear a main.
-
-La ausencia actual de emisiones se mantiene explícita en pantalla. Una prueba
-sembrada con fixtures valida transporte y feedback, no validez predictiva ni
-calibración. Este documento no autoriza relajar el manifiesto para conseguir
-porcentajes ni convierte una evaluación exploratoria en evidencia científica formal.
-
-## Prueba manual del entorno Docker — 2026-09-21
-
-El usuario confirmó: «lo probé estamos ok para seguir» sobre el entorno local
-producer-preview del commit d07f5ad. Se registra aceptación funcional general
-para continuar la integración; no se infiere cobertura específica de móvil,
-teclado o todos los escenarios de conflicto a partir de ese mensaje.
-
-La emisión desde bundles ya está implementada y probada con modelos sintéticos
-(ver producer-ui-emission-integration.md y docker/producer-preview/README.md).
-Esto actualiza la limitación histórica del punto 2 anterior: el recorrido técnico
-existe. Sigue pendiente su evidencia operacional real, assessments y publicación
-de porcentajes, así como los otros pendientes explícitos de cierre.
-
-Al revisar PR #207 se encontró backend-quality fallido por la importación de
-fixtures compartidas desde backend/. Se declara la raíz del repositorio en
-pythonpath de pytest para ejecutar los mismos tests desde ese directorio y CI.
-No se modifica el comportamiento de la API ni se omiten pruebas.
+HU2/HU4/HU5/HU6 y UI; data-ingestion, predictive-modeling, human-feedback,
+architecture-integration y alerting-ui. CRISP-DM integración/despliegue.
+Sin cambios a hipótesis, capas de arquitectura o configuración experimental.
+La prueba ajusta modelos sintéticos aislados; los datos/resultados históricos y
+controlled_daily_v3/v4 no se modifican. Aporte a capítulo 3, sin nueva evidencia
+científica para capítulo 2 ni declaración de cierre HU7/HU8.

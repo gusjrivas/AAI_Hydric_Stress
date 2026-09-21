@@ -1,7 +1,8 @@
 # Emisión operacional conectada a Mi cultivo — HU4/HU5/HU6
 
 Fecha: 2026-09-21. Rama: feat/hu6-productor-integracion-final, PR #207.
-Estado: implementación incremental; no declara listo el cierre completo.
+Estado: entrega incremental del PR #207; alcance de merge y pendientes vigentes en
+[producer-ui-main-integration.md](producer-ui-main-integration.md).
 
 ## Capacidad entregada
 
@@ -82,5 +83,9 @@ architecture-integration y alerting-ui. CRISP-DM despliegue/integración, con pr
 sintéticas; sin nueva configuración experimental, hipótesis o arquitectura.
 No se modifican manifiestos congelados, datos ni resultados históricos.
 Sin nueva evidencia científica HU7/HU8; aporte al capítulo 3: identidad,
-transacciones y recorrido funcional. Continúan pendientes del PR #207 la evidencia
+transacciones y recorrido funcional. Continúan pendientes de entregas posteriores la evidencia
 real, gate, registro/activación, resumen/recalibración v2, experiencia completa y QA visual.
+
+Actualización de cierre: el usuario aprobó la prueba funcional general en Docker.
+La revisión móvil/teclado específica no está acreditada. Backend posterior: 101 tests
+aprobados en bdb6a50; los conteos anteriores documentan sus respectivas entregas.
