@@ -1002,3 +1002,197 @@ def test_evaluation_config_exposes_the_real_log_loss_clipping_epsilon():
     )
     config = EvaluationConfig.from_manifest(manifest)
     assert config.log_loss_clipping_epsilon == pytest.approx(1e-15)
+
+
+# ---------------------------------------------------------------------------
+# Tarea 11: banda amplia, rango sin respaldo y ventanas inestables
+# (openspec/changes/add-daily-multihorizon-predictors/tasks.md)
+# ---------------------------------------------------------------------------
+
+
+def test_unsupported_probability_range_reduces_coverage_even_though_it_still_counts_in_ece():
+    """ "Rango sin respaldo": un intervalo de probabilidad (aqui, el bin 5,
+    ~0.5-0.6) con menos observaciones que `minimum_bin_count` no aporta a
+    `backed_indices` (no puede publicarse `display_probability` en ese
+    rango) pero SI sigue sumando al ECE (`uncertainty.ece_bin_inclusion`:
+    "no omitir intervalos de poco soporte del calculo"). Con solo 18 de
+    20 observaciones en bins respaldados, la cobertura (0.9) queda por
+    debajo de un `coverage_minimum` de 0.95 exigido, y `classify_horizon`
+    degrada todo el horizonte a insufficient_evidence por esa sola razon.
+    """
+    start = date(2024, 1, 1)
+    # 9 dias en bin0 (prob 0.05, clase 0), 9 en bin9 (prob 0.95, clase 1):
+    # bien respaldados. 2 dias en bin5 (prob 0.55): sin respaldo.
+    pairs = (
+        tuple((start + timedelta(days=i), 0.05, 0) for i in range(9))
+        + tuple((start + timedelta(days=9 + i), 0.95, 1) for i in range(9))
+        + ((start + timedelta(days=18), 0.55, 0), (start + timedelta(days=19), 0.55, 1))
+    )
+    scope = ScopeObservations(horizon=1, seed=0, period_id="full", pairs=pairs)
+    stats = build_scope_full_stats(
+        scope, bin_count=10, include_one_in_last=True, minimum_bin_count=3
+    )
+
+    assert stats.total_n == 20
+    assert 5 in stats.ece_indices  # cuenta en el ECE: no se omite por poco soporte
+    assert 5 not in stats.backed_indices  # pero no respalda un rango publicable (solo 2 < 3)
+
+    blocks = build_temporal_blocks(start, start + timedelta(days=19), block_length_days=2)
+    support = check_full_sample_support(
+        stats,
+        blocks,
+        minimum_class_count=3,
+        minimum_temporal_blocks=3,
+        coverage_minimum=0.95,
+    )
+    assert not support.ok
+    assert support.reasons == ("insufficient_coverage",)
+
+    bootstrap_result = _deterministic_bootstrap_result()
+    assessment = classify_horizon(
+        horizon=1,
+        support_results=[support],
+        bootstrap_result=bootstrap_result,
+        epsilon_ece=0.25,
+        epsilon_bin=0.25,
+    )
+    assert assessment.assessment_result == ASSESSMENT_INSUFFICIENT_EVIDENCE
+    assert assessment.reasons == ("insufficient_coverage",)
+
+
+def test_one_unstable_stability_window_makes_an_otherwise_stable_full_period_insufficient():
+    """ "Ventanas inestables": el periodo completo, evaluado solo, es
+    perfectamente estable (6 bloques identicos, siempre evaluable). Al
+    agregar una ventana de estabilidad corta con exactamente
+    `minimum_temporal_blocks` bloques (exige que el remuestreo con
+    reemplazo saque los 3 distintos, algo poco probable), la familia
+    CONJUNTA (full + ventana, `multiplicity.family_dimensions` incluye
+    "stability_window") queda mayoritariamente no evaluable, aunque el
+    periodo completo por si solo hubiera bastado.
+    """
+
+    def stable_period(period_id: str, *, num_blocks: int, block_length_days: int, start: date):
+        pairs = []
+        day = start
+        for _ in range(num_blocks * block_length_days):
+            pairs.append((day, 0.2, 0))
+            pairs.append((day, 0.8, 1))
+            day = day + timedelta(days=1)
+        end = start + timedelta(days=num_blocks * block_length_days - 1)
+        blocks = build_temporal_blocks(start, end, block_length_days=block_length_days)
+        scope = ScopeObservations(horizon=1, seed=0, period_id=period_id, pairs=tuple(pairs))
+        stats = build_scope_full_stats(
+            scope, bin_count=10, include_one_in_last=True, minimum_bin_count=2
+        )
+        return stats, blocks
+
+    full_stats, full_blocks = stable_period(
+        "full", num_blocks=6, block_length_days=2, start=date(2024, 1, 1)
+    )
+    window_stats, window_blocks = stable_period(
+        "window_1", num_blocks=3, block_length_days=1, start=date(2024, 3, 1)
+    )
+
+    full_only = run_joint_multiplicity_bootstrap(
+        {"full": [full_stats]},
+        {"full": full_blocks},
+        replicates=100,
+        resampling_seed=7,
+        bin_count=10,
+        include_one_in_last=True,
+        minimum_class_count=1,
+        minimum_temporal_blocks=3,
+        minimum_bin_count=2,
+    )
+    assert not full_only.insufficient_evidence
+    assert full_only.evaluable_replicates >= 95
+
+    full_and_window = run_joint_multiplicity_bootstrap(
+        {"full": [full_stats], "window_1": [window_stats]},
+        {"full": full_blocks, "window_1": window_blocks},
+        replicates=100,
+        resampling_seed=7,
+        bin_count=10,
+        include_one_in_last=True,
+        minimum_class_count=1,
+        # window_1 tiene exactamente 3 bloques: exige que los 3 salgan
+        # distintos al remuestrear con reemplazo (poco probable).
+        minimum_temporal_blocks=3,
+        minimum_bin_count=2,
+    )
+    assert full_and_window.insufficient_evidence
+    assert full_and_window.joint_upper_bound is None
+
+    assessment = classify_horizon(
+        horizon=1,
+        support_results=[SupportCheckResult(ok=True, reasons=())],
+        bootstrap_result=full_and_window,
+        epsilon_ece=0.25,
+        epsilon_bin=0.25,
+    )
+    assert assessment.assessment_result == ASSESSMENT_INSUFFICIENT_EVIDENCE
+    assert assessment.reasons == ("insufficient_evidence_bootstrap",)
+
+
+def test_a_genuinely_wide_empirical_band_fails_even_though_its_median_would_look_fine():
+    """ "Banda amplia": design.md es explicito -- "que una banda amplia
+    incluya la diagonal NO basta". Se construye una unica replica con
+    variabilidad real (11 bloques bien calibrados + 1 bloque con error
+    grande) para que la distribucion empirica de maximos conjuntos tenga
+    dispersion real (no el fixture deterministico de bloques identicos
+    usado en el resto del archivo). El percentil 50 (0.067) quedaria
+    dentro de ambas tolerancias -- un resumen puntual "aprobaria" -- pero
+    el limite superior exigido por el manifiesto (percentil 95, 0.15)
+    no, y por construccion `classify_horizon` solo mira el limite
+    superior: falla, no aprueba por tener una banda que a veces luce bien.
+    """
+    start = date(2024, 1, 1)
+    block_length = 4
+    num_blocks = 12
+    well_calibrated = ((0.1, 0), (0.1, 0), (0.9, 1), (0.9, 1))
+    miscalibrated = ((0.9, 0), (0.9, 0), (0.1, 1), (0.1, 1))
+    pairs = []
+    day = start
+    for block_index in range(num_blocks):
+        block_pairs = miscalibrated if block_index == num_blocks - 1 else well_calibrated
+        for probability, outcome in block_pairs:
+            pairs.append((day, probability, outcome))
+            day = day + timedelta(days=1)
+    end = start + timedelta(days=num_blocks * block_length - 1)
+    blocks = build_temporal_blocks(start, end, block_length_days=block_length)
+    scope = ScopeObservations(horizon=1, seed=0, period_id="full", pairs=tuple(pairs))
+    stats = build_scope_full_stats(
+        scope, bin_count=10, include_one_in_last=True, minimum_bin_count=2
+    )
+
+    bootstrap_result = run_joint_multiplicity_bootstrap(
+        {"full": [stats]},
+        {"full": blocks},
+        replicates=2000,
+        resampling_seed=3,
+        bin_count=10,
+        include_one_in_last=True,
+        minimum_class_count=1,
+        minimum_temporal_blocks=2,
+        minimum_bin_count=2,
+        nominal_level=0.95,
+    )
+    assert not bootstrap_result.insufficient_evidence
+    assert bootstrap_result.joint_upper_bound == pytest.approx(0.15, abs=1e-6)
+
+    # Un resumen puntual (p. ej. la mediana de la misma distribucion) esta
+    # comodo dentro de una tolerancia de 0.10; el limite superior exigido
+    # no lo esta -- confirma que el ancho de la banda, no un punto dentro
+    # de ella, es lo que decide.
+    epsilon = 0.10
+    assert bootstrap_result.joint_upper_bound > epsilon
+
+    assessment = classify_horizon(
+        horizon=1,
+        support_results=[SupportCheckResult(ok=True, reasons=())],
+        bootstrap_result=bootstrap_result,
+        epsilon_ece=epsilon,
+        epsilon_bin=epsilon,
+    )
+    assert assessment.assessment_result == ASSESSMENT_FAILED
+    assert assessment.joint_upper_bound == pytest.approx(0.15, abs=1e-6)

@@ -2195,3 +2195,109 @@ abrió ningún holdout real, no se usó MLflow compartido, y
 `controlled_daily_v3`, los baselines históricos, `backend/`, `frontend/` y
 `human_feedback/` quedan sin alteración. No se hizo merge ni se habilitó
 auto-merge.
+
+## Orquestador reproducible de entrenamiento/evaluación del manifiesto operacional v3 (2026-09-21)
+
+HU4/HU6, capacidad `predictive-modeling`/`architecture-integration`, CRISP-DM
+modelado/evaluación. Cierra la tarea 3 (parcial: entrenar y congelar, sin
+carga de bundles), 5.2 y 11 de
+`openspec/changes/add-daily-multihorizon-predictors/tasks.md`. La evaluación
+operacional (motor de bootstrap, `classify_horizon`, `make_final_decision`)
+ya estaba implementada y probada (`2e22c6f`); lo que faltaba era la entrada
+reproducible que conecta preparación, entrenamiento por horizonte/semilla,
+calibración, baselines y decisión final — eso es lo que agrega esta entrega.
+
+**Implementado:**
+
+1. `src/predictive_modeling/operational_run.py` (nuevo): orquestador puro
+   (no lee archivos) que, dado un manifiesto ya verificado
+   (`calibration_manifest.verify_frozen_calibration_manifest`) y un
+   DataFrame con su `dataset_sha256`, entrena un Random Forest por
+   horizonte (`manifest.horizons`) y semilla (`training_seeds`) sobre
+   `partitions.train`, calibra con `CalibratedClassifierCV(FrozenEstimator(...),
+   method="sigmoid")` sobre `partitions.calibration` (reemplazo vigente de
+   `cv="prefit"`, removido en la version de scikit-learn ya en uso — 1.9.x
+   —, documentado en el docstring del módulo), calcula baselines
+   raw/persistencia/climatología, arma las `ScopeObservations` por
+   horizonte/semilla/ventana usando `target_date` como fecha de agrupamiento,
+   corre el bootstrap conjunto UNA sola vez sobre toda la familia
+   horizonte×semilla×período (`multiplicity.family_dimensions` incluye
+   "horizon"), y arma un `HorizonContract`/`ArtifactIdentity` por horizonte
+   con el modelo/calibrador de `deployment_seed`. Un horizonte cuyo
+   entrenamiento falla (p. ej. una sola clase) queda `status="training_failed"`
+   con motivo explícito, sin abortar los otros dos horizontes ni inventar su
+   resultado.
+2. `src/predictive_modeling/operational_run_artifacts.py` (nuevo): persiste
+   cada corrida en un `output_dir` NUEVO y vacío (rechaza reutilizar uno
+   ocupado), con identidad de manifiesto/dataset/código/entorno, predicciones
+   por fecha, comparaciones contra baselines, diagnóstico y decisión final
+   por horizonte, los `.joblib` del modelo/calibrador de `deployment_seed`, y
+   un `report.md` legible por horizonte con límites explícitos ("solo
+   evaluación de desarrollo", "`classify_horizon` no es aprobación final").
+3. `scripts/run_operational_manifest_v3.py` (nuevo): entrada de línea de
+   comandos. Verifica identidad del manifiesto, exige `--allow-real-data`
+   explícito si `dataset.source_kind != "synthetic"` (protección adicional
+   contra activar por error una corrida real), carga el dataset vía
+   `data_ingestion.storage.load_dataset_snapshot` (hash y DataFrame de la
+   MISMA lectura), corre el orquestador y persiste los artefactos.
+4. Tres pruebas nuevas en `tests/test_calibration_assessment.py` que cierran
+   la tarea 11 con fixtures reales (no mockeados) del motor ya existente:
+   "rango sin respaldo" (un intervalo de probabilidad sin soporte suficiente
+   sigue sumando al ECE pero no respalda cobertura — `insufficient_coverage`),
+   "ventanas inestables" (una ventana de estabilidad corta con pocos bloques
+   vuelve `insufficient_evidence` a la familia conjunta aunque el período
+   completo por sí solo sería evaluable) y "banda amplia no basta" (una
+   distribución bootstrap con dispersión real, mediana 0.067 dentro de
+   tolerancia pero percentil 95 en 0.15 fuera de ella: `classify_horizon`
+   falla porque solo mira el límite superior, nunca un resumen puntual).
+5. `tests/test_operational_run.py` (nuevo): prueba integrada con un fixture
+   sintético completo (240 días, 6 columnas, `dataset.source_kind="synthetic"`,
+   parámetros de soporte/bootstrap reducidos y declarados como tales) que
+   congela el manifiesto en un directorio temporal, lo verifica, y ejercita
+   el orquestador de punta a punta para los tres horizontes; más una prueba
+   de rechazo por hash de dataset no coincidente, una de familia de modelo
+   no soportada, y una que fuerza (con `monkeypatch`) el fallo de
+   entrenamiento de un único horizonte para verificar que los otros dos se
+   evalúan con normalidad (tarea 5.2).
+6. `tests/test_run_operational_manifest_v3_cli.py` (nuevo): smoke test del
+   script de línea de comandos completo vía `subprocess`, contra un dataset y
+   manifiesto sintéticos escritos en un directorio temporal: corrida exitosa
+   con artefactos escritos, rechazo de una segunda corrida sobre el mismo
+   `--output-dir`, y rechazo de un dataset declarado `source_kind="real"` sin
+   `--allow-real-data`.
+
+**No incluido en esta entrega (fuera del alcance acordado):** ninguna
+corrida contra `data/melchor_romero_2024_consolidado.parquet` ni contra
+ningún holdout; carga de un bundle ya persistido para reutilizarlo sin
+reentrenar (tarea 3, parte "cargar"); publicación de porcentajes en una UI o
+API (fuera de alcance explícito); registro en MLflow. `controlled_daily_v3`,
+`controlled_daily_v4`, sus baselines históricos, `backend/`, `frontend/` y
+`human_feedback/` quedan sin alteración.
+
+**Comandos realmente ejecutados** (`aai-hydric-full:dev`, mount de este
+worktree sobre `/workspace`, sin reconstruir imagen):
+
+- `pytest -q tests/test_calibration_assessment.py` → **40 passed** en 2.74–3.50s
+  (37 preexistentes + 3 nuevas de la tarea 11).
+- `pytest -q tests/test_operational_run.py` → **4 passed** en 5.28–5.57s.
+- `pytest -q tests/test_run_operational_manifest_v3_cli.py` → **3 passed** en
+  ~22s (incluye dos subprocesos reales del CLI).
+- `ruff check src tests scripts/run_operational_manifest_v3.py` y
+  `black --check` sobre los mismos → limpio (182 archivos).
+- `pytest -q tests/ --deselect tests/test_controlled_daily_v4_stage_a_integration.py
+  --deselect tests/test_controlled_daily_v4_stage_b_integration.py
+  --deselect tests/test_controlled_daily_v4_stage_c_integration.py` (suite
+  completa menos las 3 integraciones lentas de v4) → **868 passed, 3 skipped,
+  0 failed** en 1545.44s (0:25:45).
+- `pytest -q tests/` (suite completa, sin exclusiones) → **894 passed, 3
+  skipped, 0 failed** en 2394.09s (0:39:54) — confirma que las 3
+  integraciones lentas de `controlled_daily_v4` tampoco se vieron afectadas.
+- `git diff --check` (con `git add -A -n` para listar los archivos nuevos) →
+  solo avisos de conversión LF→CRLF de `core.autocrlf=true`, sin advertencias
+  reales de espacios en blanco.
+
+Solo datos sintéticos: no se leyó ningún CSV/parquet real, no se abrió
+ningún holdout, no se ejecutó ninguna corrida real del manifiesto v3, y no
+se modificó ningún parámetro o cláusula de
+`config/producer-calibration-plan.frozen.v3.json` ni de su identidad. No se
+hizo merge ni se abrió PR.
