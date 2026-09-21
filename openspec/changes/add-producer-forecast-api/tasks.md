@@ -29,7 +29,7 @@
 - [x] 1.10a Documentar activación, rollback, evidencia y límites de esta entrega.
 - [ ] 1.10b Documentar activación y límites de las capacidades v2 restantes.
 - [ ] 1.11 Revisar recorrido integrado antes de proponer merge a main.
-- [ ] 1.12 Antes de archivar, corregir estructura preexistente de architecture-integration sin cambiar requisitos y revalidar la spec canónica.
+- [x] 1.12 Antes de archivar, corregir estructura preexistente de architecture-integration sin cambiar requisitos y revalidar la spec canónica.
 - [x] 1.13a Implementar validación fail-closed y registro de identidad SHA-256 para
       un manifiesto de calibración congelado, sin entrenar ni evaluar.
 - [ ] 1.13b Exponer evidencia inmutable de assessment con aislamiento por sensor y

@@ -1,5 +1,26 @@
 # Seguimiento de tareas — plan de proyecto vs. estado real del repo
 
+## 2026-09-21 — Integración aislada UI/backend para productor (HU6)
+
+HU2/HU4/HU5/HU6; capacidades data-ingestion, predictive-modeling,
+human-feedback, architecture-integration y alerting-ui; CRISP-DM integración.
+Se combinan main a657014, backend 2e22c6f y UI a250a9e sin tocar los worktrees
+con desarrollo concurrente. Se corrigen selector legacy ajeno a Mi cultivo,
+transmisión del flag v2 en Compose y estructura de la spec canónica
+architecture-integration (tarea 1.12, sin cambio normativo).
+
+Evidencia: 132 tests frontend, lint/build correctos, 94 tests backend, cuatro
+changes y spec canónica de arquitectura válidos en modo estricto. El entorno
+backend necesitó httpx2 y un cwd temporal escribible para MLflow. No se declara
+CI verde, prueba visual integrada ni cierre funcional completo.
+
+Pendientes de merge: orquestador concurrente publicado, emisión real +1/+2/+3,
+evidencia y assessments, experiencia completa de productor, capacidades v2
+abiertas y recorrido de navegador/móvil. Sin entrenamiento ni cambios a datos,
+resultados históricos, hipótesis, configuración experimental o arquitectura.
+HU7/HU8 no se dan por cerrados. Memoria: capítulo 3, evidencia de integración.
+Detalle y condiciones de cierre: [producer-ui-main-integration.md](design/producer-ui-main-integration.md).
+
 ## 2026-09-20 — Prerrequisitos de ejecución de controlled_daily_v4 (HU7/HU8)
 
 Change `integrate-controlled-daily-v4-execution-prerequisites`, capacidad
