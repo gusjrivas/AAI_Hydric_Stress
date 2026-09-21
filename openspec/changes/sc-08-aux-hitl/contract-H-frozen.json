@@ -1,0 +1,340 @@
+{
+  "schema_version": "auxiliary_hitl_v1_contract.v1",
+  "contract_id": "auxiliary_hitl_v1/H/2026-09-21",
+  "complement": "H",
+  "change": "sc-08-aux-hitl",
+  "requirement": "SC-GOV-022",
+  "claims_supported": [
+    "CL-06",
+    "CL-10"
+  ],
+  "campaign_id": "hitl-complement-2026-09-21",
+  "frozen_before_observing_results": true,
+  "frozen_at_utc": "2026-09-21T12:05:00Z",
+  "objective": {
+    "primary": "Demostrar que el mecanismo Human-in-the-Loop del sistema es tecnicamente viable, auditable y reproducible, y ejecutar el disenio congelado auxiliary_hitl_v1 de correcciones supervisadas simuladas que exige SC-GOV-022.",
+    "explicitly_not": [
+      "No se propone demostrar mejora predictiva.",
+      "No se propone demostrar eficacia agronomica.",
+      "No se propone demostrar beneficio de una persona real sobre el desempenio del modelo.",
+      "No se propone validar la hipotesis general del Trabajo Final."
+    ],
+    "criterion_note": "El criterio principal evalua funcionamiento, trazabilidad, seguridad y reproducibilidad del mecanismo HITL. Una mejora, un empate o un deterioro predictivo son todos resultados admisibles y ninguno cambia el veredicto por si solo."
+  },
+  "scope": {
+    "in_scope": [
+      "Ejecucion del disenio congelado auxiliary_hitl_v1 (pista SIM) tal como lo fija docs/research/scientific-closure-decisions.md, seccion 'H: HITL prospectivo'.",
+      "Ejecucion de una pista HUMANA controlada (pista HUMAN) con un unico operador experimental autorizado, con protocolo de revision y procedencia propios.",
+      "Ventana temporal 2015-2022 exclusivamente (subconjunto estricto de la ventana de la Etapa A).",
+      "Sitio unico Pergamino, profundidad soil_moisture_0_to_7cm, contrato de features pergamino_features.v1."
+    ],
+    "out_of_scope": [
+      "Cualquier lectura, reejecucion o modificacion de las Etapas A, B o C y de su evidencia, ledger o resultados.",
+      "Cualquier acceso al holdout 2024-2025 o al ledger holdout.sqlite.",
+      "Cualquier dato posterior a 2022-12-31.",
+      "Balcarce y cualquier sitio distinto de Pergamino.",
+      "Validacion agronomica de campo y participacion de un agronomo."
+    ]
+  },
+  "technical_hypothesis": {
+    "statement": "El mecanismo HITL implementado (registro de feedback, validacion de identidad y rol, validacion estructural y temporal, aplicacion de aceptacion/rechazo/correccion, recalibracion controlada, preservacion de predecesor y sucesor, y linaje verificable) opera de forma determinista, cerrada ante entradas invalidas y reproducible bit a bit desde entradas congeladas.",
+    "falsifiable_by": [
+      "Una entrada invalida que el runner acepte en lugar de rechazar.",
+      "Una ejecucion repetida con las mismas entradas que produzca artefactos distintos.",
+      "Un linaje incompleto, autorreferente o que pierda el predecesor.",
+      "Cualquier lectura de datos posteriores a 2022-12-31 durante la ejecucion de H."
+    ],
+    "not_a_hypothesis": "No se formula ninguna hipotesis sobre el signo o la magnitud del efecto de las correcciones en las metricas."
+  },
+  "tracks": {
+    "SIM": {
+      "id": "simulated_supervised_feedback",
+      "authority": "Disenio congelado auxiliary_hitl_v1, docs/research/scientific-closure-decisions.md, seccion 'H: HITL prospectivo'. Criterio de aceptacion de SC-GOV-022.",
+      "feedback_origin": "simulado",
+      "reviewer": "revisor simulado determinista (oraculo que restituye la etiqueta limpia en las fechas revisadas y deja sin cambio las confirmaciones)",
+      "supports_claim": "CL-06 (aporte cuantitativo de correcciones supervisadas SIMULADAS)",
+      "may_be_presented_as_human_evidence": false
+    },
+    "HUMAN": {
+      "id": "controlled_human_feedback",
+      "authority": "El disenio congelado establece: 'Feedback real futuro necesita protocolo de revision y procedencia propia'. Este contrato ES ese protocolo propio. No sustituye ni modifica la pista SIM.",
+      "feedback_origin": "humano_controlado",
+      "reviewer": "Gustavo Julian Rivas, responsable del proyecto, en calidad de operador experimental autorizado",
+      "supports_claim": "Ninguna afirmacion cuantitativa. Sostiene exclusivamente la demostracion de viabilidad tecnica, auditabilidad y reproducibilidad del mecanismo HITL.",
+      "must_never_be_labelled": "expert_agronomic_feedback",
+      "may_be_presented_as_human_evidence": true
+    },
+    "FIXTURE": {
+      "id": "fixture",
+      "authority": "Pruebas automatizadas unicamente.",
+      "feedback_origin": "fixture",
+      "supports_claim": "Ninguna. Prohibido usarlo como evidencia cientifica o humana.",
+      "may_be_presented_as_human_evidence": false
+    },
+    "separation_rule": "Las tres clases se registran en un campo obligatorio 'feedback_origin' de cada evento y de cada artefacto. El runner rechaza de forma cerrada cualquier ejecucion en la que un evento de origen 'fixture' o 'simulado' se declare como evidencia humana, y cualquier mezcla de origenes dentro de un mismo paquete de feedback."
+  },
+  "operator": {
+    "identity": "Gustavo Julian Rivas",
+    "role": "authorized_experimental_operator",
+    "role_is_not": [
+      "agronomist",
+      "domain_expert",
+      "field_validator"
+    ],
+    "authorization_source": "Instruccion expresa del responsable del proyecto del 2026-09-21 que ordena implementar, validar y ejecutar el complemento H con una unica intervencion humana controlada suya.",
+    "authorized_roles_whitelist": [
+      "authorized_experimental_operator"
+    ],
+    "declaration_required_from_operator": "Confirmacion explicita de que actua como responsable experimental y no como agronomo, y de que sus decisiones no constituyen asesoramiento ni validacion agronomica.",
+    "identity_validation": "El runner exige operator_id y operator_role presentes, no vacios, y el rol dentro de la whitelist. Identidad ausente, rol no autorizado o declaracion ausente producen rechazo cerrado."
+  },
+  "design_frozen_auxiliary_hitl_v1": {
+    "source": "docs/research/scientific-closure-decisions.md, seccion 'H: HITL prospectivo'",
+    "model": {
+      "estimator": "RandomForestClassifier",
+      "n_estimators": 100,
+      "max_depth": 8,
+      "min_samples_leaf": 5,
+      "n_jobs": 1,
+      "random_state": "seed"
+    },
+    "initial_training_targets": "2015-01-10..2020-12-31",
+    "initial_training_emissions": "2015-01-07..2020-12-28",
+    "p20": "Percentil 20 de future_soil_moisture del train inicial (targets <= 2020-12-31). Congelado: se reutiliza sin recalcular para etiquetar 2021 y 2022.",
+    "feedback_acquisition_emissions": "2021-01-01..2021-12-28",
+    "feedback_acquisition_targets": "2021-01-04..2021-12-31",
+    "recalibration_closes_after": "maduracion de targets <= 2021-12-31",
+    "evaluation_emissions": "2022-01-01..2022-12-28",
+    "evaluation_targets": "2022-01-04..2022-12-31",
+    "arms": [
+      {
+        "id": "frozen",
+        "definition": "Modelo inicial congelado, entrenado con targets <= 2020-12-31, sin refit."
+      },
+      {
+        "id": "refit_no_corrections",
+        "definition": "Refit sobre 2015-2021 con las etiquetas de 2021 TAL COMO ESTAN tras la corrupcion simulada, sin aplicar ninguna correccion del revisor."
+      },
+      {
+        "id": "refit_with_corrections",
+        "definition": "Refit identico al anterior, con las correcciones del revisor aplicadas sobre las fechas revisadas."
+      }
+    ],
+    "arm_invariant": "Los tres brazos comparten exactamente la misma matriz de ocho features, las mismas fechas de evaluacion y el mismo P20 congelado. La UNICA diferencia entre refit_no_corrections y refit_with_corrections son las etiquetas de entrenamiento de las fechas efectivamente corregidas.",
+    "event_budget_per_seed": 20,
+    "event_strata": {
+      "alertas": 10,
+      "no_alertas": 10
+    },
+    "sampling": "Muestreo temporal estratificado de las emisiones de 2021: se ordena por fecha dentro de cada estrato (alerta / no alerta segun la prediccion del modelo congelado con umbral 0.5) y se toman 10 posiciones equiespaciadas de cada estrato, de forma determinista y sin aleatoriedad adicional.",
+    "insufficient_stratum_policy": "Si un estrato tiene menos de 10 emisiones, la corrida reporta NOT_EVALUABLE para esa semilla. Prohibido completar el presupuesto mirando 2022 o ampliando la ventana.",
+    "selection_information": "La seleccion usa exclusivamente predicciones emitidas en 2021.",
+    "simulated_corruption": "Invertir, con un stream pseudoaleatorio independiente por semilla, el 10% de las etiquetas de entrenamiento de 2021, antes del refit.",
+    "simulated_reviewer": "Restituye la etiqueta limpia en las 20 fechas revisadas y deja sin cambio las confirmaciones (fechas revisadas cuya etiqueta registrada ya era la limpia).",
+    "excluded_from_evaluation": "Las filas de recalibracion (fechas de 2021) no se usan en la evaluacion de 2022; las ventanas son disjuntas por construccion.",
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "seeds_note": "Semillas [0,1,2,3,4], fijadas por el bloque padre del disenio congelado (docs/research/scientific-closure-decisions.md, 'Evaluaciones complementarias'): 'Seeds [0,1,2,3,4]; seeds no representan poblaciones independientes'. PROHIBIDO seleccionar semillas favorables o adaptar el presupuesto segun resultados. Se reporta por semilla y el agregado es descriptivo.",
+    "primary_seed_for_human_package": 0,
+    "seeds_source": "docs/research/scientific-closure-decisions.md, seccion 'Evaluaciones complementarias (H08/H09/H12/H13/H14)'"
+  },
+  "feedback_event_schema": {
+    "required_fields": [
+      "event_id",
+      "scenario_id",
+      "feedback_origin",
+      "operator_id",
+      "operator_role",
+      "sensor_id",
+      "fecha",
+      "target_timestamp",
+      "model_version",
+      "target_threshold",
+      "recorded_label",
+      "decision",
+      "corrected_label",
+      "reason",
+      "issued_at",
+      "validated_at",
+      "package_id",
+      "package_sha256"
+    ],
+    "decision_vocabulary": [
+      "ACEPTAR",
+      "RECHAZAR",
+      "CORREGIR"
+    ],
+    "decision_semantics": {
+      "ACEPTAR": "El operador confirma la etiqueta registrada. corrected_label DEBE ser null. No produce correccion y no altera el entrenamiento.",
+      "RECHAZAR": "El operador rechaza la etiqueta registrada sin proponer una alternativa. corrected_label DEBE ser null. La fila se EXCLUYE del entrenamiento del brazo con correcciones. No inventa una etiqueta.",
+      "CORREGIR": "El operador propone una etiqueta corregida explicita. corrected_label DEBE ser 0 o 1 y DEBE diferir de recorded_label. Reemplaza la etiqueta en el entrenamiento del brazo con correcciones."
+    },
+    "admissible_reasons": {
+      "policy": "Texto libre, no vacio, de 1 a 500 caracteres, provisto por el operador. No se normaliza, no se reescribe y no se traduce. Se registra literal.",
+      "required_for": [
+        "ACEPTAR",
+        "RECHAZAR",
+        "CORREGIR"
+      ]
+    },
+    "temporal_rules": {
+      "target_timestamp_equals": "fecha + 3 dias (horizonte del contrato)",
+      "validated_at_must_be": ">= fin del dia objetivo (target_timestamp + 1 dia)",
+      "validated_at_must_not_exceed": "instante de ejecucion de H",
+      "no_temporal_leak": "fecha y target_timestamp DEBEN caer dentro de la ventana de adquisicion de feedback (2021). Cualquier evento con target_timestamp > 2021-12-31 o < 2021-01-04 se rechaza.",
+      "maturation": "La recalibracion solo puede cerrarse despues de que todos los targets de 2021 hayan madurado."
+    },
+    "integrity_rules": {
+      "no_self_reference": "successor_model_id != source_model_id; un evento no puede referenciar como origen al modelo que el mismo produjo.",
+      "duplicates": "Dos eventos con el mismo (sensor_id, fecha) en un mismo paquete se rechazan como duplicado.",
+      "contradictory": "Dos eventos con el mismo (sensor_id, fecha) y decisiones o corrected_label incompatibles se rechazan como feedback contradictorio.",
+      "reference_must_exist": "fecha DEBE existir como emision elegible de 2021 del escenario congelado; una referencia inexistente se rechaza.",
+      "hash_must_match": "package_sha256 del evento DEBE coincidir con el hash del paquete congelado; un hash incorrecto se rechaza.",
+      "feature_contract": "El contrato de features declarado DEBE ser exactamente pergamino_features.v1 con las ocho columnas en el orden del contrato; cualquier incompatibilidad se rechaza.",
+      "lineage": "Todo evento aplicado DEBE producir una referencia de linaje completa (sensor_id, fecha, model_version, target_timestamp) bajo lineage_version 2 con dataset_sha256 presente."
+    }
+  },
+  "human_intervention_package": {
+    "package_id": "auxiliary_hitl_v1/H/human-package/2026-09-21",
+    "version": 1,
+    "scenarios": "Los 20 eventos del presupuesto de la semilla primaria 42, producidos por el mismo muestreo estratificado determinista del disenio congelado.",
+    "presentation_order": "Orden cronologico ascendente por fecha de emision, fijado y registrado en el paquete. No se reordena despues.",
+    "visible_to_participant": [
+      "Numero de escenario y fecha de emision",
+      "Fecha objetivo (t+3)",
+      "Las ocho features del contrato en la fecha de emision",
+      "La humedad de suelo observada y madurada en la fecha objetivo",
+      "El umbral P20 congelado del train inicial",
+      "La etiqueta registrada en el sistema para esa fecha",
+      "La probabilidad emitida por el modelo congelado y si genero alerta"
+    ],
+    "hidden_from_participant": [
+      "Si la etiqueta registrada fue corrompida por la simulacion",
+      "Cual seria la etiqueta 'limpia'",
+      "El efecto esperado de cada decision sobre cualquier metrica",
+      "Cualquier metrica de cualquier brazo",
+      "Cualquier dato, prediccion o metrica de 2023, 2024 o 2025",
+      "Cualquier metrica o dato del holdout",
+      "Los resultados de las Etapas A, B y C",
+      "El numero de escenarios corrompidos y su proporcion"
+    ],
+    "non_inducement_rules": [
+      "No se sugiere ninguna respuesta.",
+      "No se indica que decision mejoraria ningun resultado.",
+      "No se muestra consecuencia posterior de ninguna decision.",
+      "El texto de cada escenario es identico en estructura para todos los escenarios."
+    ],
+    "freezing": "El paquete se serializa de forma canonica (JSON ordenado, UTF-8, sin espacios superfluos), se le calcula SHA-256, se registra timestamp, codigo y runtime, y se respalda en /mnt/scientific-backup antes de mostrarse. Cualquier modificacion posterior cambia el hash e invalida el paquete.",
+    "independent_review_required_before_showing": true
+  },
+  "response_validation": {
+    "must_match_package_hash": true,
+    "must_cover_all_scenarios": "Todo escenario del paquete debe tener exactamente una respuesta.",
+    "missing_scenario": "RECHAZO de la respuesta completa; H no se ejecuta.",
+    "duplicate_scenario": "RECHAZO de la respuesta completa; H no se ejecuta.",
+    "altered_scenario": "Un escenario cuyo contenido no coincide con el paquete congelado produce RECHAZO de la respuesta completa.",
+    "incomplete_or_contradictory_policy": "El runner NO completa, NO infiere y NO corrige una respuesta humana. Rechaza de forma cerrada y detiene la ejecucion de la pista HUMAN, registrando el motivo. La pista SIM no se ve afectada.",
+    "content_immutability": "La respuesta humana se incorpora literalmente. Prohibido normalizar, reescribir, traducir o reinterpretar decisiones o motivos."
+  },
+  "recalibration_criteria": {
+    "recalibrate_when": "Existe al menos una correccion efectiva nueva y madura (decision CORREGIR con corrected_label distinto de recorded_label, o decision RECHAZAR que excluye una fila), y ambas clases estan presentes en el conjunto de entrenamiento resultante.",
+    "no_change_when": "Todas las decisiones son ACEPTAR, o ninguna correccion cambia efectivamente el conjunto de entrenamiento.",
+    "no_change_is_a_valid_outcome": true,
+    "no_change_must_be_recorded": "Se registra explicitamente NO_RECALIBRATION con su razon; la ausencia de recalibracion nunca se omite ni se presenta como fallo.",
+    "successive_recalibration": "Una segunda recalibracion parte del sucesor de la primera; el predecesor se conserva intacto y el linaje encadena source -> successor sin perdida.",
+    "predecessor_preservation": "El modelo predecesor y sus artefactos se conservan inmutables; la recalibracion produce un sucesor nuevo con model_id propio, nunca sobreescribe."
+  },
+  "technical_metrics": {
+    "predictive_reported_not_decisive": [
+      "MCC",
+      "average_precision",
+      "brier_score",
+      "f1",
+      "false_positives",
+      "false_negatives",
+      "n_episodes"
+    ],
+    "deltas": {
+      "isolates_corrections": "refit_with_corrections menos refit_no_corrections",
+      "combines_temporal_update": "refit_no_corrections menos frozen"
+    },
+    "mechanism_metrics_decisive": [
+      "n_events_received",
+      "n_events_valid",
+      "n_events_rejected_by_rule (desglosado por regla)",
+      "n_accept / n_reject / n_correct / n_no_change",
+      "n_recalibrations",
+      "lineage_chain_complete (bool)",
+      "predecessor_preserved (bool)",
+      "closed_failure_on_invalid_inputs (bool)",
+      "bitwise_reproducible (bool)",
+      "holdout_access_attempts (debe ser 0)",
+      "abc_artifacts_touched (debe ser 0)",
+      "max_target_timestamp_read (debe ser <= 2022-12-31)"
+    ],
+    "undefined_metric_policy": "Una metrica no definible (por ejemplo MCC con un solo valor de clase predicha) se registra como null con una razon explicita, nunca como 0."
+  },
+  "invariants": [
+    "INV-01 Ningun dato con timestamp posterior a 2022-12-31 es leido por el runner de H.",
+    "INV-02 El ledger holdout.sqlite no es abierto, leido ni escrito por el runner de H.",
+    "INV-03 Ningun artefacto de evidencia de A, B o C es leido, escrito o modificado por el runner de H.",
+    "INV-04 El P20 del train inicial se calcula una sola vez y no se recalcula al recalibrar.",
+    "INV-05 Los tres brazos evaluan exactamente el mismo conjunto de filas de 2022.",
+    "INV-06 Ninguna fila de 2021 revisada entra en la evaluacion de 2022.",
+    "INV-07 Ejecutar el runner dos veces con las mismas entradas congeladas produce artefactos identicos byte a byte, salvo los campos de reloj explicitamente listados en el manifiesto como no deterministas.",
+    "INV-08 Todo evento aplicado tiene feedback_origin registrado y ningun artefacto mezcla origenes.",
+    "INV-09 source_model_id != successor_model_id en todo evento de linaje.",
+    "INV-10 Una entrada invalida produce salida de error y ningun artefacto parcial publicado."
+  ],
+  "verdict_criteria": {
+    "PASS": "Se cumplen los diez invariantes; la pista SIM ejecuta el disenio congelado completo con los tres brazos, la maduracion separada y 20 eventos por semilla para las cinco semillas, con la simulacion identificada; la pista HUMAN ejecuta con la respuesta literal del operador validada contra el paquete congelado; la reproduccion independiente coincide; todas las pruebas focalizadas pasan; y no queda ningun hallazgo material de critica o auditoria.",
+    "PASS_WITH_LIMITATIONS": "Se cumple lo anterior pero subsisten limitaciones declaradas que no invalidan la demostracion, entre ellas necesariamente la ausencia de validacion agronomica y el caracter no generalizable de una intervencion humana unica de 20 eventos.",
+    "FAIL": "Se viola un invariante; la respuesta humana no valida contra el paquete congelado y se intenta ejecutar igual; la reproduccion no coincide; o se sostiene una afirmacion prohibida.",
+    "BLOCKED": "Un impedimento cientifico, tecnico o externo real impide ejecutar o verificar. La ausencia de un agronomo NO constituye por si sola un bloqueo.",
+    "improvement_not_required": "Ningun veredicto depende de obtener mejora predictiva. Un delta negativo, nulo o positivo son todos compatibles con PASS."
+  },
+  "stop_conditions": [
+    "Cualquier intento de lectura de datos posteriores a 2022-12-31.",
+    "Cualquier apertura del ledger de holdout.",
+    "Cualquier escritura en evidencia de A, B o C.",
+    "Respuesta humana faltante, duplicada, alterada o que no valida contra el paquete congelado.",
+    "Deteccion de que un fixture o una simulacion se esta presentando como evidencia humana.",
+    "Arbol de trabajo sucio o identidad de codigo no capturable en el momento de ejecutar."
+  ],
+  "prohibited_assertions": [
+    "Participacion de un agronomo",
+    "Validacion agronomica",
+    "Incorporacion de conocimiento agronomico experto",
+    "Eficacia agronomica",
+    "Mejora productiva de campo",
+    "Generalizacion de las decisiones humanas",
+    "Superioridad predictiva causada por conocimiento experto",
+    "Equivalencia entre feedback controlado y validacion especializada",
+    "Beneficio de una persona real sobre el desempenio del modelo"
+  ],
+  "declared_limitations_predeclared": [
+    "No hay intervencion de un agronomo ni validacion agronomica de campo. Se registra como limitacion y trabajo futuro.",
+    "La intervencion humana es de un unico operador, no ciega respecto de la observacion madurada, y de 20 eventos: no es una muestra de revisores ni permite inferencia poblacional.",
+    "La corrupcion de etiquetas de la pista SIM es un modelo de error artificial, no una medicion de la tasa de error real de un revisor.",
+    "El presupuesto de 20 eventos por semilla es artificial y pequenio.",
+    "Las cinco semillas [0,1,2,3,4] no son cinco poblaciones independientes.",
+    "Los datos son reanalisis para un unico sitio; no son mediciones de campo.",
+    "La implementacion funcional de HU5 no prueba por si sola ningun beneficio."
+  ],
+  "references": {
+    "feature_contract": "pergamino_features.v1",
+    "lineage_version": 2,
+    "dataset": {
+      "era5_csv_sha256": "318edffb89c64d5f500e35b5530e6064cb02f68b89bd28a71262c2ebb01f485f",
+      "nasa_power_csv_sha256": "415b4f71abb78e419b765110f4a42c3f32587b204d12897812df9573c5c2202b"
+    },
+    "historical_image_of_abc": "sha256:55bc923efac009b1b6de45acc634774b7910d4829fdfd0b2c963dd5748b297af",
+    "abc_executable_commit": "214735e42ee04f018156cd630591e798aadd8bf3",
+    "h_executable_identity_note": "La imagen historica de A/B/C no contiene el runner de H, que no existia cuando se construyo. H declara su propia identidad ejecutable (commit e imagen propios) y NO se atribuye la identidad de A/B/C. El entorno numerico se mantiene identico mediante el mismo Dockerfile y las mismas constraints fijadas."
+  }
+}
