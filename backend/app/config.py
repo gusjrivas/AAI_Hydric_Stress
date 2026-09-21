@@ -6,6 +6,7 @@ deployment: se derivan por sensor (ADR-0008,
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from data_ingestion.storage import DEFAULT_DATA_DIR
@@ -39,3 +40,13 @@ def get_dataset_data_dir() -> Path:
     no escribir en el `data/` real del proyecto.
     """
     return DEFAULT_DATA_DIR
+
+
+def is_producer_v2_enabled() -> bool:
+    """Feature flag aditivo; deshabilitarlo no elimina metadatos persistidos."""
+    return os.getenv("PRODUCER_V2_ENABLED", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }

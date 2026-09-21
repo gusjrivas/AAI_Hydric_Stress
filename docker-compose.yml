@@ -78,6 +78,8 @@ services:
       - mlflow
     environment:
       MLFLOW_TRACKING_URI: http://mlflow:5000
+      PRODUCER_V2_ENABLED: ${PRODUCER_V2_ENABLED:-false}
+      PRODUCER_BUNDLE_ROOT: ${PRODUCER_BUNDLE_ROOT:-/workspace/data/operational_bundles}
     ports:
       - "8000:8000"
     volumes:

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import * as forecastApi from "./features/forecast/api";
+import * as catalogApi from "./features/producer/catalogApi";
 import * as qualityApi from "./features/quality/api";
 import * as lineageApi from "./features/lineage/api";
 
@@ -232,6 +233,27 @@ describe("App — navegación por hash (Entrega 2)", () => {
   });
 });
 
+describe("App — contexto del productor (HU6)", () => {
+  it("hides the unrelated legacy selector in Mi cultivo and restores its selection when returning", async () => {
+    window.location.hash = "#resumen";
+    vi.restoreAllMocks();
+    vi.spyOn(forecastApi, "listFeedback").mockResolvedValue({ rows: [] });
+    vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(null);
+    vi.spyOn(catalogApi, "listSectors").mockResolvedValue({ items: [], next_cursor: null });
+    render(<App />);
+    const input = screen.getByLabelText(/punto de medición \(sensor\)/i);
+    await userEvent.clear(input);
+    await userEvent.type(input, "sensor-b");
+    await userEvent.click(screen.getByRole("button", { name: "Aplicar" }));
+    await userEvent.click(screen.getByRole("link", { name: "Mi cultivo" }));
+    await screen.findByRole("heading", { name: "Mi cultivo" });
+    expect(screen.queryByLabelText(/punto de medición \(sensor\)/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/sensor activo/i)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("link", { name: "Resumen" }));
+    expect(await screen.findByLabelText(/punto de medición \(sensor\)/i)).toHaveValue("sensor-b");
+    expect(screen.getByText(/sensor activo/i)).toHaveTextContent("sensor-b");
+  });
+});
 describe("App — diseño coherente y accesibilidad (Entrega 4)", () => {
   beforeEach(() => {
     window.location.hash = "";

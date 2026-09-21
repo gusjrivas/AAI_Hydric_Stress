@@ -1,0 +1,10 @@
+**
+!frontend/
+!frontend/**
+!docker/
+!docker/producer-preview/
+!docker/producer-preview/nginx.conf
+frontend/node_modules/
+frontend/dist/
+frontend/.env*
+frontend/*.local

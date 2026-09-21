@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 
-export const ROUTES = ["resumen", "prediccion", "calidad", "linaje", "evidencia"] as const;
+export const ROUTES = ["resumen", "productor", "prediccion", "calidad", "linaje", "evidencia"] as const;
 export type RouteId = (typeof ROUTES)[number];
 
 export const DEFAULT_ROUTE: RouteId = "resumen";
 
 export const DESTINATION_LABELS: Record<RouteId, string> = {
   resumen: "Resumen",
+  productor: "Mi cultivo",
   prediccion: "Historial y observaciones",
   calidad: "Datos disponibles",
   linaje: "Ajustar próximos pronósticos",

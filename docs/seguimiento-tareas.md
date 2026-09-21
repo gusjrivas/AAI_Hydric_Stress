@@ -1,5 +1,118 @@
 # Seguimiento de tareas — plan de proyecto vs. estado real del repo
 
+## 2026-09-21 — Cierre acotado de integración para PR #207 (HU6)
+
+Por aprobación explícita del autor se separa el merge funcional de Mi cultivo del
+cierre completo de modelos operacionales. Se actualizan el informe de integración,
+la descripción del contrato y las tareas para reflejar emisión y feedback ya
+implementados. No se marcan completos assessments, gate, registro/activación MLflow,
+resumen/recalibración v2 ni QA móvil/teclado pendiente. El change continúa abierto.
+
+La revisión confirma opt-in v2 desactivado por defecto, ausencia explícita cuando
+faltan bundles/datos y display_probability=null. La demo aprobada usa modelos y
+datos sintéticos separados. No cambia código runtime ni resultados experimentales.
+HU2/HU4/HU5/HU6/UI, CRISP-DM integración; sin impacto sobre hipótesis, arquitectura,
+configuración HU7/HU8 o manifiestos. Validación estricta OpenSpec y diff registrados
+en el cierre; CI del HEAD y ausencia de conflictos son condiciones para el merge.
+
+## 2026-09-21 — Aceptación funcional y corrección del runner backend (HU6)
+
+El usuario aprobó la prueba general de producer-preview; no se infiere validación
+móvil/teclado específica ni evidencia predictiva. PR #207 seguía en borrador y
+backend-quality fallaba al importar tests.test_operational_inference desde backend/.
+Se agrega pythonpath raíz a pytest sin excluir tests ni modificar código runtime.
+Validación: 101 tests backend aprobados desde backend/ en una copia temporal
+escribible, imagen aai-producer-preview-backend:local y copia del fixture histórico
+requerido por legacy. Intentos previos fallaron por dependencias de otra imagen,
+montaje de solo lectura y fixture ausente; no eran evidencia de regresión funcional.
+Git diff --check correcto; CI remoto debe ejecutarse nuevamente tras publicar.
+HU6 / architecture-integration, CRISP-DM integración. Sin cambios experimentales,
+a hipótesis, arquitectura, manifiestos ni resultados HU7/HU8. No se ejecutó la
+evaluación operacional real. Detalle: docs/design/producer-ui-main-integration.md.
+
+## 2026-09-21 — Docker local aislado para probar Mi cultivo (HU6)
+
+HU2/HU4/HU5/HU6, capacidades data-ingestion, predictive-modeling, human-feedback,
+architecture-integration y alerting-ui; CRISP-DM integración. Se agrega
+compose.producer-preview.yml y docker/producer-preview/: preparación explícita
+con fixtures sintéticos, dos sectores, tres sensores (uno vacío), bundles por
+sensor, tandas históricas revisables y tandas futuras. Nginx sirve la UI compilada
+y el proxy de API del mismo origen. No se ejecuta entrenamiento desde HTTP.
+
+Proyecto aai-producer-preview, puertos loopback 5180/8180 y volumen independiente.
+No se montan datos del repositorio ni se conectan los servicios MLflow/MinIO/Postgres
+existentes. El marcador de preparación evita reentrenar o sobrescribir opiniones
+al reiniciar; un volumen parcial no se sobrescribe silenciosamente.
+
+Verificado: build de ambas imágenes, preparación exitosa, API y frontend saludables,
+redirección a Mi cultivo, 30 días/3 horizontes/3 pendientes revisables por sensor,
+estado vacío, documentación API y mismo conjunto de 6 emisiones tras reiniciar y
+reejecutar prepare. Validación por HTTP real a través del proxy; no se declara
+inspección visual de navegador. Sin porcentajes habilitados. Comandos y límites en
+[docker/producer-preview/README.md](../docker/producer-preview/README.md).
+
+No modifica configuración experimental, manifiestos congelados, hipótesis,
+arquitectura ni resultados históricos. No es la corrida operacional real ni
+registro científico MLflow. HU7/HU8 sin nueva evidencia. Aporte al capítulo 3:
+entorno ejecutable de prueba funcional; PR #207 continúa en borrador.
+
+## 2026-09-21 — Emisión v2 conectada a Mi cultivo (HU2/HU4/HU5/HU6)
+
+Capacidades data-ingestion, predictive-modeling, human-feedback,
+architecture-integration y alerting-ui; CRISP-DM despliegue/integración.
+Se agrega carga verificada de bundles y predicción sin reajuste, POST de emisión
++1/+2/+3 con snapshot, persistencia atómica/replay HTTP y consulta explícita desde
+Mi cultivo. Conserva fechas reales, fallos parciales, contratos de éxitos previos,
+reserva demo y revisión humana. No modifica hipótesis ni arquitectura: el adaptador
+local sobre los artefactos exportados es intermedio; registro/activación MLflow
+continúa pendiente conforme a ADR-0013.
+
+Verificación: frontend 136 tests + lint/build; datos/modelado afectados 97 tests;
+backend completo 100 tests. Tras reforzar carga/contrato y diferir dependencias,
+19 tests específicos (7 HTTP + 12 inferencia) nuevamente correctos. Dos changes
+OpenSpec estrictos válidos, diff check limpio y Compose transmite bundle root.
+Pruebas con modelos efectivamente ajustados sobre fixtures sintéticos. No se
+entrenó con datos reales ni se abrió ningún holdout; manifiestos intactos.
+
+Porcentajes siguen null hasta implementar el gate compatible de evidencia/rango.
+Navegador pendiente por fallo de inicio del controlador (deny-read ACLs), sin
+atribuir inspección visual a tests DOM. Persisten tareas de despliegue real,
+assessment, resumen/recalibración y cierre integral del PR #207; no se declara
+CI verde ni cierre científico HU7/HU8. Aporte a memoria: capítulo 3.
+Detalle: [producer-ui-emission-integration.md](design/producer-ui-emission-integration.md).
+
+## 2026-09-21 — Integración aislada UI/backend para productor (HU6)
+
+HU2/HU4/HU5/HU6; capacidades data-ingestion, predictive-modeling,
+human-feedback, architecture-integration y alerting-ui; CRISP-DM integración.
+Se combinan main a657014, backend 2e22c6f y UI a250a9e sin tocar los worktrees
+con desarrollo concurrente. Se corrigen selector legacy ajeno a Mi cultivo,
+transmisión del flag v2 en Compose y estructura de la spec canónica
+architecture-integration (tarea 1.12, sin cambio normativo).
+
+Evidencia: 132 tests frontend, lint/build correctos, 94 tests backend, cuatro
+changes y spec canónica de arquitectura válidos en modo estricto. El entorno
+backend necesitó httpx2 y un cwd temporal escribible para MLflow. No se declara
+CI verde, prueba visual integrada ni cierre funcional completo.
+
+Pendientes de merge: orquestador concurrente publicado, emisión real +1/+2/+3,
+evidencia y assessments, experiencia completa de productor, capacidades v2
+abiertas y recorrido de navegador/móvil. Sin entrenamiento ni cambios a datos,
+resultados históricos, hipótesis, configuración experimental o arquitectura.
+HU7/HU8 no se dan por cerrados. Memoria: capítulo 3, evidencia de integración.
+Detalle y condiciones de cierre: [producer-ui-main-integration.md](design/producer-ui-main-integration.md).
+
+### Actualización de esta integración: orquestador e identidades congeladas
+
+Se incorporó b573088 cuando la sesión concurrente terminó y publicó. Se ejecutaron
+73 pruebas específicas del orquestador, CLI, motor y manifiestos sobre la rama
+combinada. La primera ejecución falló en 6 verificaciones de identidad porque
+el checkout Windows convirtió LF a CRLF; se corrigió con `.gitattributes` (`-text`
+para manifiestos congelados y sidecars) y se restauraron exactamente los bytes
+versionados, comprobando los hashes/longitudes existentes. Los JSON no cambiaron
+respecto de Git. La segunda ejecución pasó 73/73. No hubo corrida real ni cambios
+metodológicos. Sigue pendiente la conexión a emisión real, evidencia y UI completa.
+
 ## 2026-09-20 — Prerrequisitos de ejecución de controlled_daily_v4 (HU7/HU8)
 
 Change `integrate-controlled-daily-v4-execution-prerequisites`, capacidad
@@ -32,6 +145,50 @@ experimentales. `controlled_daily_v3` y su evidencia congelada no se modifican. 
 runners complementarios (regresión, HITL, anomalías, robustez) siguen diseñados y no
 implementados. Aporte a la memoria técnica: capítulo 2 (contrato de features real y
 criterios de soporte predeclarados) y capítulo 3 (custodia y preflight de ejecución).
+
+## 2026-09-19 — Primera entrega de catálogo e históricos para productor
+
+HU2/HU6; `data-ingestion`, `architecture-integration` y `alerting-ui`;
+CRISP-DM comprensión/preparación de datos y despliegue/integración. Implementados
+catálogo persistente de sectores y sensores, adopción sin reescritura, selección
+primaria, histórico UTC por snapshot SHA-256 y fachada aditiva `/api/v2` con
+paginación, errores propios, OpenAPI y feature flag
+`PRODUCER_V2_ENABLED`. Ver
+[documentación de la entrega](design/backend-producer-ui-first-delivery.md).
+
+Persistencia con reemplazo atómico y lock entre procesos; concurrencia,
+revisiones optimistas, preservación byte a byte y compatibilidad legacy
+verificadas en directorios temporales. Validación: 33 tests dirigidos de dominio,
+18 de HTTP/sensores legacy, 21 de compatibilidad con escritores existentes,
+suite backend completa 61, demo 56 passed/1 skipped. Ruff, Black, ambos changes
+con `openspec validate --strict` y `git diff --check` pasan. OpenSpec mantiene
+el aviso preexistente de estructura canónica registrado en la tarea 1.12.
+
+ADR-0013 continúa propuesto y los cambios no se archivan. No se implementaron
+modelado, calibración, porcentajes, feedback v2, UI ni autenticación. Sin cambios
+en protocolos, datasets, resultados HU7/HU8, configuraciones experimentales,
+hipótesis, alcance o arquitectura. Aporte a capítulo 3; capítulo 2 preserva
+procedencia, faltantes y límites científicos.
+
+## 2026-09-18 — Corrección de evidencia de calibración (solo specs)
+HU4/HU6; predictive-modeling y architecture-integration; CRISP-DM modelado,
+evaluación de desarrollo e integración. Se corrige el criterio de publicación:
+Brier/log-loss no bastan; se exigen diagnósticos directos, incertidumbre temporal,
+soporte, cobertura y tolerancias previas. API distingue motivos de no calificación.
+No se ejecutaron experimentos ni se modificaron código, protocolos v3/v4,
+configuraciones formales o resultados históricos HU7/HU8. Hipótesis, alcance
+y arquitectura intactos. Documentación propuesta para capítulos 2 y 3.
+
+## 2026-09-18 — Especificaciones de backend para UI de productor (propuesta)
+
+Se proponen cuatro changes para HU2, HU4, HU5 y HU6, con ADR-0013 pendiente
+de aprobación: catálogo/historial, pronósticos +1/+2/+3, feedback por emisión
+y contrato API v2. Ver [plan y dependencias](design/backend-producer-ui-plan.md).
+CRISP-DM: datos, modelado, evaluación de desarrollo e integración. Solo specs;
+no se implementaron capacidades ni se completaron tareas de código.
+Configuraciones base / +sintéticos / +anomalías / completa, protocolos formales,
+resultados HU7/HU8, hipótesis y capas de arquitectura permanecen intactos.
+Aporte futuro a capítulos 2 y 3: causalidad, límites de probabilidades y trazabilidad.
 
 ## 2026-09-17 — UI en lenguaje cotidiano (HU6/HU5)
 
@@ -2184,3 +2341,109 @@ abrió ningún holdout real, no se usó MLflow compartido, y
 `controlled_daily_v3`, los baselines históricos, `backend/`, `frontend/` y
 `human_feedback/` quedan sin alteración. No se hizo merge ni se habilitó
 auto-merge.
+
+## Orquestador reproducible de entrenamiento/evaluación del manifiesto operacional v3 (2026-09-21)
+
+HU4/HU6, capacidad `predictive-modeling`/`architecture-integration`, CRISP-DM
+modelado/evaluación. Cierra la tarea 3 (parcial: entrenar y congelar, sin
+carga de bundles), 5.2 y 11 de
+`openspec/changes/add-daily-multihorizon-predictors/tasks.md`. La evaluación
+operacional (motor de bootstrap, `classify_horizon`, `make_final_decision`)
+ya estaba implementada y probada (`2e22c6f`); lo que faltaba era la entrada
+reproducible que conecta preparación, entrenamiento por horizonte/semilla,
+calibración, baselines y decisión final — eso es lo que agrega esta entrega.
+
+**Implementado:**
+
+1. `src/predictive_modeling/operational_run.py` (nuevo): orquestador puro
+   (no lee archivos) que, dado un manifiesto ya verificado
+   (`calibration_manifest.verify_frozen_calibration_manifest`) y un
+   DataFrame con su `dataset_sha256`, entrena un Random Forest por
+   horizonte (`manifest.horizons`) y semilla (`training_seeds`) sobre
+   `partitions.train`, calibra con `CalibratedClassifierCV(FrozenEstimator(...),
+   method="sigmoid")` sobre `partitions.calibration` (reemplazo vigente de
+   `cv="prefit"`, removido en la version de scikit-learn ya en uso — 1.9.x
+   —, documentado en el docstring del módulo), calcula baselines
+   raw/persistencia/climatología, arma las `ScopeObservations` por
+   horizonte/semilla/ventana usando `target_date` como fecha de agrupamiento,
+   corre el bootstrap conjunto UNA sola vez sobre toda la familia
+   horizonte×semilla×período (`multiplicity.family_dimensions` incluye
+   "horizon"), y arma un `HorizonContract`/`ArtifactIdentity` por horizonte
+   con el modelo/calibrador de `deployment_seed`. Un horizonte cuyo
+   entrenamiento falla (p. ej. una sola clase) queda `status="training_failed"`
+   con motivo explícito, sin abortar los otros dos horizontes ni inventar su
+   resultado.
+2. `src/predictive_modeling/operational_run_artifacts.py` (nuevo): persiste
+   cada corrida en un `output_dir` NUEVO y vacío (rechaza reutilizar uno
+   ocupado), con identidad de manifiesto/dataset/código/entorno, predicciones
+   por fecha, comparaciones contra baselines, diagnóstico y decisión final
+   por horizonte, los `.joblib` del modelo/calibrador de `deployment_seed`, y
+   un `report.md` legible por horizonte con límites explícitos ("solo
+   evaluación de desarrollo", "`classify_horizon` no es aprobación final").
+3. `scripts/run_operational_manifest_v3.py` (nuevo): entrada de línea de
+   comandos. Verifica identidad del manifiesto, exige `--allow-real-data`
+   explícito si `dataset.source_kind != "synthetic"` (protección adicional
+   contra activar por error una corrida real), carga el dataset vía
+   `data_ingestion.storage.load_dataset_snapshot` (hash y DataFrame de la
+   MISMA lectura), corre el orquestador y persiste los artefactos.
+4. Tres pruebas nuevas en `tests/test_calibration_assessment.py` que cierran
+   la tarea 11 con fixtures reales (no mockeados) del motor ya existente:
+   "rango sin respaldo" (un intervalo de probabilidad sin soporte suficiente
+   sigue sumando al ECE pero no respalda cobertura — `insufficient_coverage`),
+   "ventanas inestables" (una ventana de estabilidad corta con pocos bloques
+   vuelve `insufficient_evidence` a la familia conjunta aunque el período
+   completo por sí solo sería evaluable) y "banda amplia no basta" (una
+   distribución bootstrap con dispersión real, mediana 0.067 dentro de
+   tolerancia pero percentil 95 en 0.15 fuera de ella: `classify_horizon`
+   falla porque solo mira el límite superior, nunca un resumen puntual).
+5. `tests/test_operational_run.py` (nuevo): prueba integrada con un fixture
+   sintético completo (240 días, 6 columnas, `dataset.source_kind="synthetic"`,
+   parámetros de soporte/bootstrap reducidos y declarados como tales) que
+   congela el manifiesto en un directorio temporal, lo verifica, y ejercita
+   el orquestador de punta a punta para los tres horizontes; más una prueba
+   de rechazo por hash de dataset no coincidente, una de familia de modelo
+   no soportada, y una que fuerza (con `monkeypatch`) el fallo de
+   entrenamiento de un único horizonte para verificar que los otros dos se
+   evalúan con normalidad (tarea 5.2).
+6. `tests/test_run_operational_manifest_v3_cli.py` (nuevo): smoke test del
+   script de línea de comandos completo vía `subprocess`, contra un dataset y
+   manifiesto sintéticos escritos en un directorio temporal: corrida exitosa
+   con artefactos escritos, rechazo de una segunda corrida sobre el mismo
+   `--output-dir`, y rechazo de un dataset declarado `source_kind="real"` sin
+   `--allow-real-data`.
+
+**No incluido en esta entrega (fuera del alcance acordado):** ninguna
+corrida contra `data/melchor_romero_2024_consolidado.parquet` ni contra
+ningún holdout; carga de un bundle ya persistido para reutilizarlo sin
+reentrenar (tarea 3, parte "cargar"); publicación de porcentajes en una UI o
+API (fuera de alcance explícito); registro en MLflow. `controlled_daily_v3`,
+`controlled_daily_v4`, sus baselines históricos, `backend/`, `frontend/` y
+`human_feedback/` quedan sin alteración.
+
+**Comandos realmente ejecutados** (`aai-hydric-full:dev`, mount de este
+worktree sobre `/workspace`, sin reconstruir imagen):
+
+- `pytest -q tests/test_calibration_assessment.py` → **40 passed** en 2.74–3.50s
+  (37 preexistentes + 3 nuevas de la tarea 11).
+- `pytest -q tests/test_operational_run.py` → **4 passed** en 5.28–5.57s.
+- `pytest -q tests/test_run_operational_manifest_v3_cli.py` → **3 passed** en
+  ~22s (incluye dos subprocesos reales del CLI).
+- `ruff check src tests scripts/run_operational_manifest_v3.py` y
+  `black --check` sobre los mismos → limpio (182 archivos).
+- `pytest -q tests/ --deselect tests/test_controlled_daily_v4_stage_a_integration.py
+  --deselect tests/test_controlled_daily_v4_stage_b_integration.py
+  --deselect tests/test_controlled_daily_v4_stage_c_integration.py` (suite
+  completa menos las 3 integraciones lentas de v4) → **868 passed, 3 skipped,
+  0 failed** en 1545.44s (0:25:45).
+- `pytest -q tests/` (suite completa, sin exclusiones) → **894 passed, 3
+  skipped, 0 failed** en 2394.09s (0:39:54) — confirma que las 3
+  integraciones lentas de `controlled_daily_v4` tampoco se vieron afectadas.
+- `git diff --check` (con `git add -A -n` para listar los archivos nuevos) →
+  solo avisos de conversión LF→CRLF de `core.autocrlf=true`, sin advertencias
+  reales de espacios en blanco.
+
+Solo datos sintéticos: no se leyó ningún CSV/parquet real, no se abrió
+ningún holdout, no se ejecutó ninguna corrida real del manifiesto v3, y no
+se modificó ningún parámetro o cláusula de
+`config/producer-calibration-plan.frozen.v3.json` ni de su identidad. No se
+hizo merge ni se abrió PR.

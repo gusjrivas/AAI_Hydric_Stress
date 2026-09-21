@@ -35,6 +35,8 @@ build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Resolve shared test fixtures from the repository root, including runs from backend/.
+pythonpath = ["."]
 
 [tool.ruff]
 line-length = 100
