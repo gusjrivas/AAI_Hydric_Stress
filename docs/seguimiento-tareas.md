@@ -1,5 +1,20 @@
 # Seguimiento de tareas — plan de proyecto vs. estado real del repo
 
+## 2026-09-21 — Aceptación funcional y corrección del runner backend (HU6)
+
+El usuario aprobó la prueba general de producer-preview; no se infiere validación
+móvil/teclado específica ni evidencia predictiva. PR #207 seguía en borrador y
+backend-quality fallaba al importar tests.test_operational_inference desde backend/.
+Se agrega pythonpath raíz a pytest sin excluir tests ni modificar código runtime.
+Validación: 101 tests backend aprobados desde backend/ en una copia temporal
+escribible, imagen aai-producer-preview-backend:local y copia del fixture histórico
+requerido por legacy. Intentos previos fallaron por dependencias de otra imagen,
+montaje de solo lectura y fixture ausente; no eran evidencia de regresión funcional.
+Git diff --check correcto; CI remoto debe ejecutarse nuevamente tras publicar.
+HU6 / architecture-integration, CRISP-DM integración. Sin cambios experimentales,
+a hipótesis, arquitectura, manifiestos ni resultados HU7/HU8. No se ejecutó la
+evaluación operacional real. Detalle: docs/design/producer-ui-main-integration.md.
+
 ## 2026-09-21 — Docker local aislado para probar Mi cultivo (HU6)
 
 HU2/HU4/HU5/HU6, capacidades data-ingestion, predictive-modeling, human-feedback,

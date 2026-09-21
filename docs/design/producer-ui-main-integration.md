@@ -120,3 +120,21 @@ La ausencia actual de emisiones se mantiene explícita en pantalla. Una prueba
 sembrada con fixtures valida transporte y feedback, no validez predictiva ni
 calibración. Este documento no autoriza relajar el manifiesto para conseguir
 porcentajes ni convierte una evaluación exploratoria en evidencia científica formal.
+
+## Prueba manual del entorno Docker — 2026-09-21
+
+El usuario confirmó: «lo probé estamos ok para seguir» sobre el entorno local
+producer-preview del commit d07f5ad. Se registra aceptación funcional general
+para continuar la integración; no se infiere cobertura específica de móvil,
+teclado o todos los escenarios de conflicto a partir de ese mensaje.
+
+La emisión desde bundles ya está implementada y probada con modelos sintéticos
+(ver producer-ui-emission-integration.md y docker/producer-preview/README.md).
+Esto actualiza la limitación histórica del punto 2 anterior: el recorrido técnico
+existe. Sigue pendiente su evidencia operacional real, assessments y publicación
+de porcentajes, así como los otros pendientes explícitos de cierre.
+
+Al revisar PR #207 se encontró backend-quality fallido por la importación de
+fixtures compartidas desde backend/. Se declara la raíz del repositorio en
+pythonpath de pytest para ejecutar los mismos tests desde ese directorio y CI.
+No se modifica el comportamiento de la API ni se omiten pruebas.
