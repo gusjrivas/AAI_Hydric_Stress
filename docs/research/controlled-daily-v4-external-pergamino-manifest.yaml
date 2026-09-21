@@ -24,17 +24,17 @@ implementation_status:
   stage_a_code: IMPLEMENTED
   stage_a_verification: SYNTHETIC_TESTS_ONLY
   stage_a_real_execution: NOT_EXECUTED
-  stage_b_code: NOT_IMPLEMENTED
-  stage_c_code: NOT_IMPLEMENTED
+  stage_b_code: IMPLEMENTED
+  stage_c_code: IMPLEMENTED
+  stage_b_verification: SYNTHETIC_TESTS_ONLY
+  stage_c_verification: SYNTHETIC_TESTS_ONLY
+  stage_b_real_execution: NOT_EXECUTED
+  stage_c_real_execution: NOT_EXECUTED
+  complementary_runners: DESIGN_ONLY_NOT_IMPLEMENTED
   note: >
-    El runner de la Etapa A (src/experiment_runner/controlled_daily_v4/) existe,
-    con verificación exhaustiva sobre datos sintéticos (ver
-    docs/seguimiento-tareas.md, secciones sobre el runner de Etapa A y sus
-    correcciones H-01 a H-06). No se ejecutó todavía sobre los CSV reales de
-    Pergamino. Las Etapas B y C no tienen ningún código asociado: solo existen
-    sus fronteras temporales de referencia (STAGE_B_BOUNDS/STAGE_C_BOUNDS en
-    config.py), usadas exclusivamente para que el runner rechace explícitamente
-    cualquier intento de ejecutarlas.
+    Actualizado 2026-09-17. A/B/C integradas, sin resultados científicos.
+    La versión del 13/09 indicaba B/C sin código; ese estado es histórico.
+    Ver scientific-closure-decisions.md y scientific-closure-runbook.md.
 
 site:
   name: Pergamino
@@ -86,19 +86,24 @@ sources:
       soil_moisture presentes en el CSV), modelo (era5_land) y timezone
       (America/Argentina/Buenos_Aires) coinciden exactamente con los metadatos
       embebidos y con el contenido tabular del archivo.
-    acquisition_date: "2026-09-08"
+    acquisition_date: null
+    project_reported_acquisition_date_unverified: "2026-09-08"
     acquisition_date_status: PENDING_CONFIRMATION
     acquisition_date_note: >
       Fecha informada por el proyecto; no verificable de forma independiente
       desde el repositorio (solo se observó la fecha de modificación del
       archivo en disco, que puede diferir de la fecha real de descarga desde
       la API).
-    license_status: PENDING_CONFIRMATION
+    product: ERA5-Land hourly data from 1950 to present, distributed through Open-Meteo
+    official_catalog: https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land?tab=overview
+    product_doi: 10.24381/cds.e2161bac
+    license_status: OFFICIAL_TERMS_CHECKED_2026_09_17
+    license: CC-BY-4.0 for Open-Meteo data; Copernicus catalogue links CC-BY
+    license_url: https://open-meteo.com/en/terms
     license_note: >
-      Requiere verificación oficial contra documentación de Open-Meteo y de
-      Copernicus/ECMWF (ERA5-Land es un producto Copernicus) antes de
-      incorporar los CSV al manifiesto científico definitivo. No se transcribe
-      texto de licencia sin verificar directamente la fuente oficial.
+      Atribuir Open-Meteo y Copernicus ERA5-Land, y registrar modificaciones.
+      API gratuita reservada a uso no comercial. No prueba términos históricos
+      exactos de adquisición, cuya fecha permanece desconocida.
     temporal_resolution: hourly
     spatial_resolution_native: "~0.1 grado (grilla nativa ERA5-Land)"
     variables:
@@ -128,7 +133,7 @@ sources:
       timestamp_max: "2025-12-31T23:00"
 
   nasa_power:
-    provider: NASA POWER API (MERRA-2 + CERES SYN1deg)
+    provider: NASA POWER API (metadatos históricos MERRA-2 + CERES SYN1deg)
     acquisition_url: >-
       https://power.larc.nasa.gov/api/temporal/daily/point?parameters=RH2M%2CALLSKY_SFC_SW_DWN%2CT2M%2CPRECTOTCORR&community=AG&longitude=-60.57462&latitude=-33.89101&start=20150101&end=20251231&format=CSV
     url_consistency_check: CONSISTENT
@@ -138,7 +143,8 @@ sources:
       exactamente con los metadatos embebidos y el contenido tabular del
       archivo. La coordenada solicitada en la URL coincide, redondeada, con la
       "Location" reportada en el propio header del CSV.
-    acquisition_date: "2026-09-08"
+    acquisition_date: null
+    project_reported_acquisition_date_unverified: "2026-09-08"
     acquisition_date_status: PENDING_CONFIRMATION
     license_status: PENDING_CONFIRMATION
     license_note: >
@@ -146,7 +152,17 @@ sources:
       NASA POWER antes de incorporar los CSV al manifiesto científico
       definitivo.
     temporal_resolution: daily
-    spatial_resolution_native: "~0.5 x 0.625 grados (grilla nativa MERRA-2/CERES)"
+    spatial_resolution_native: "meteorología 0.5 x 0.625 grados; radiación 1 x 1 grado"
+    product: NASA POWER daily point, community AG
+    official_api_docs: https://power.larc.nasa.gov/docs/services/api/temporal/daily/
+    official_resolution_reference: https://power.larc.nasa.gov/docs/tutorials/service-data-request/api/
+    official_citation_reference: https://power.larc.nasa.gov/docs/referencing/
+    downloaded_service_version: UNKNOWN
+    citation_status: OFFICIAL_GUIDANCE_CHECKED_2026_09_17
+    license_verification_note: >
+      Guía oficial de atribución verificada; licencia específica aplicable al
+      archivo histórico pendiente, no inferida de su acceso público.
+    temporal_convention_reference: https://power.larc.nasa.gov/docs/faqs/other/
     missing_value_sentinel: -999
     variables:
       - name: RH2M
@@ -186,7 +202,10 @@ aggregation_rules:
   date_alignment: >
     Inner join por fecha calendario entre el promedio diario de ERA5-Land y el
     registro diario de NASA POWER (reconstruyendo la fecha desde YEAR+DOY).
-    Verificado: 4018/4018 fechas comunes, 0% de faltantes post-cruce, 0 fechas
+    Aproximación metodológica: día civil UTC-3 y LST no son intervalos idénticos.
+    No se convierte retrospectivamente LST a UTC a partir de agregados diarios.
+    Consistencia reportada en auditoría histórica (no reabierta en esta intervención):
+    4018/4018 fechas comunes, 0% de faltantes post-cruce, 0 fechas
     exclusivas de ninguna de las dos fuentes, en el rango 2015-01-01/2025-12-31.
 
 experimental_design:
@@ -342,3 +361,19 @@ future_versioned_artifacts:
     daily_derived_dataset_sha256: PENDING_BEFORE_EXECUTION
     oof_predictions: PENDING_BEFORE_EXECUTION
     results: PENDING_BEFORE_EXECUTION
+
+current_interpretation:
+  feature_contract: pergamino_features.v1
+  n_features: 8
+  include_current: true
+  temporal_transformations: soil_moisture_only
+  v3_n_features: 15
+  v3_include_current: false
+  direct_replication_of_v3: false
+  operational_availability: NOT_DEMONSTRATED
+  latency_reference: https://power.larc.nasa.gov/docs/faqs/data/
+  note: >
+    Horizonte nominal retrospectivo t+3. POWER informa latencias aproximadas
+    de 2-3 días para meteorología y 5-7 para radiación. No afirmar anticipación
+    operativa sin medir disponibilidad real. Hashes/cobertura previos se
+    conservan; esta actualización no releyó valores de períodos reservados.

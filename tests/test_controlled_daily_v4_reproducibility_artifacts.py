@@ -8,6 +8,7 @@ con datos sintéticos, nunca ejecuta la Etapa A real."""
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 
 import pytest
 
@@ -40,7 +41,7 @@ FAST_CONFIG = ProtocolConfig(
 
 @pytest.fixture(scope="module")
 def stage_a_results():
-    daily = make_synthetic_daily_frame(n_days=900, seed=23)
+    daily = make_synthetic_daily_frame(n_days=900, seed=23, supported=True)
     return run_stage_a(daily, PRIMARY_DEPTH_COLUMN, FAST_CONFIG)
 
 
@@ -56,7 +57,7 @@ def test_dataset_fingerprint_is_populated_and_matches_the_eligible_frame(stage_a
     from experiment_runner.controlled_daily_v4.stage_a_runner import build_eligible_frame
     from tests.controlled_daily_v4_fixtures import make_synthetic_daily_frame as _make
 
-    daily = _make(n_days=900, seed=23)
+    daily = _make(n_days=900, seed=23, supported=True)
     eligible = build_eligible_frame(daily, PRIMARY_DEPTH_COLUMN)
     expected = compute_dataset_fingerprint(eligible)
     assert stage_a_results.dataset_fingerprint["sha256"] == expected["sha256"]
@@ -133,23 +134,29 @@ def test_warnings_log_entries_always_carry_a_phase_context(stage_a_results):
 def _run_cli(tmp_path, extra_args=()):
     from experiment_runner.controlled_daily_v4.cli import main
 
-    era5, nasa = write_synthetic_pergamino_csv_pair(tmp_path, n_days=200, seed=13)
+    era5, nasa = write_synthetic_pergamino_csv_pair(tmp_path, n_days=900, seed=23, supported=True)
     output_dir = tmp_path / "out"
-    exit_code = main(
-        [
-            "--stage",
-            "A",
-            "--era5-csv",
-            str(era5),
-            "--nasa-power-csv",
-            str(nasa),
-            "--output-dir",
-            str(output_dir),
-            "--input-mode",
-            "synthetic",
-            *extra_args,
-        ]
-    )
+    # Exercise real CLI/serialization with a small grid, never the scientific sweep.
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(
+            "experiment_runner.controlled_daily_v4.cli.ProtocolConfig",
+            lambda **kwargs: replace(FAST_CONFIG, **kwargs),
+        )
+        exit_code = main(
+            [
+                "--stage",
+                "A",
+                "--era5-csv",
+                str(era5),
+                "--nasa-power-csv",
+                str(nasa),
+                "--output-dir",
+                str(output_dir),
+                "--input-mode",
+                "synthetic",
+                *extra_args,
+            ]
+        )
     return exit_code, output_dir
 
 
@@ -246,7 +253,7 @@ def test_resolved_config_persists_the_effective_protocol_config_actually_consume
     resolved = _load(cli_output, "resolved_config.json")
     effective = resolved["effective_protocol_config"]
 
-    expected = ProtocolConfig(bootstrap_seed=BOOTSTRAP_SEED, bootstrap_replicas=10)
+    expected = replace(FAST_CONFIG, bootstrap_seed=BOOTSTRAP_SEED, bootstrap_replicas=10)
 
     assert effective["gap"] == expected.gap
     assert effective["outer_n_splits"] == expected.outer_n_splits
@@ -303,7 +310,7 @@ def test_cli_marks_code_identity_deviation_when_tree_is_dirty(tmp_path, monkeypa
         "capture_code_identity",
         lambda: CodeIdentity(available=False, source="unavailable", commit=None, dirty=None),
     )
-    exit_code, output_dir = _run_cli(tmp_path)
+    exit_code, output_dir = _run_cli(tmp_path, extra_args=("--bootstrap-replicas", "10"))
     assert exit_code == 0
     resolved = _load(output_dir, "resolved_config.json")
     assert "code_identity" in resolved["normative_deviations"]

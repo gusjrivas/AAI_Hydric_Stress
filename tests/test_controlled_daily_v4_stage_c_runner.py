@@ -263,7 +263,7 @@ def test_monoclass_training_labels_produce_explicit_reason_without_predictions()
     assert len(result.y_pred_candidate) == 0
 
 
-def test_monoclass_evaluation_labels_produce_explicit_reason_without_predictions():
+def test_monoclass_evaluation_labels_produce_explicit_reason_and_retain_predictions():
     daily_series = _daily_series()
     mask_eval = daily_series.index >= pd.Timestamp("2024-01-01")
     mutated = daily_series.copy()
@@ -271,8 +271,17 @@ def test_monoclass_evaluation_labels_produce_explicit_reason_without_predictions
 
     contract = _contract()
     result = run_stage_c(contract, mutated, bootstrap_replicas=REDUCED_BOOTSTRAP_REPLICAS)
-    assert result.predictions_available is False
+    assert result.predictions_available is True
     assert REASON_EVALUATION_LABELS_MONOCLASS in result.outcome_reasons
+
+    assert len(result.y_pred_candidate) == result.evaluation_frame_n_rows
+    assert result.metrics_candidate["brier_score"]["status"] == "defined"
+    assert result.metrics_candidate["log_loss"]["status"] == "defined"
+    assert result.metrics_candidate["mcc"]["status"] == "undefined"
+    assert (
+        sum(map(sum, result.metrics_candidate["confusion_matrix"]))
+        == result.evaluation_frame_n_rows
+    )
 
 
 # --------------------------------------------------------------------------

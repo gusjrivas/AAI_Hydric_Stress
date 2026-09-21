@@ -37,6 +37,7 @@ from experiment_runner.controlled_daily_v4.features import compute_p20_threshold
 from experiment_runner.controlled_daily_v4.metrics import mcc_strict
 from experiment_runner.controlled_daily_v4.stage_b_runner import (
     REASON_BOOTSTRAP_NO_VALID_REPLICAS,
+    REASON_BOOTSTRAP_NOT_EXECUTED,
     REASON_DELTA_LOWER_BOUND_BELOW_THRESHOLD,
     REASON_EVALUATION_LABELS_MONOCLASS,
     REASON_MCC_NOT_POSITIVE,
@@ -517,7 +518,7 @@ def _daily_series_with_constant_2023_moisture(value=0.9):
     return mutated
 
 
-def test_run_stage_b_with_genuinely_monoclass_evaluation_data_has_no_predictions():
+def test_run_stage_b_with_genuinely_monoclass_evaluation_data_retains_predictions():
     daily_series = _daily_series_with_constant_2023_moisture(0.9)
     contract = _contract()
 
@@ -525,7 +526,16 @@ def test_run_stage_b_with_genuinely_monoclass_evaluation_data_has_no_predictions
 
     assert result.verdict == STAGE_B_VERDICT_NOT_VALIDATED
     assert REASON_EVALUATION_LABELS_MONOCLASS in result.verdict_reasons
-    assert result.predictions_available is False
+    assert result.predictions_available is True
+    assert result.metrics_candidate["brier_score"]["status"] == "defined"
+    assert result.metrics_candidate["log_loss"]["status"] == "defined"
+    # El bootstrap NO se intentó (evaluación monoclase): el artefacto no debe
+    # afirmar el resultado de un procedimiento que nunca se ejecutó, pero la
+    # ausencia de intervalo pareado debe seguir bloqueando la validación.
+    assert result.bootstrap_executed is False
+    assert REASON_BOOTSTRAP_NO_VALID_REPLICAS not in result.verdict_reasons
+    assert REASON_BOOTSTRAP_NOT_EXECUTED in result.verdict_reasons
+    assert result.metrics_candidate["roc_auc"]["status"] == "undefined"
     assert result.bootstrap_executed is False
     assert result.bootstrap_result is None
     assert result.bootstrap_diagnostics is None
@@ -536,7 +546,7 @@ def test_run_stage_b_with_genuinely_monoclass_evaluation_data_has_no_predictions
     assert result.evaluation_frame_n_rows > 0
     assert len(result.y_true) == result.evaluation_frame_n_rows
     assert len(result.feature_timestamps) == result.evaluation_frame_n_rows
-    assert len(result.y_pred_candidate) == 0
+    assert len(result.y_pred_candidate) == result.evaluation_frame_n_rows
 
 
 def test_write_stage_b_artifacts_persists_decision_for_genuinely_monoclass_result(tmp_path):
@@ -574,14 +584,14 @@ def test_write_stage_b_artifacts_persists_decision_for_genuinely_monoclass_resul
     decision = json.loads(written["decision"].read_text(encoding="utf-8"))
     assert decision["verdict"] == STAGE_B_VERDICT_NOT_VALIDATED
     assert REASON_EVALUATION_LABELS_MONOCLASS in decision["reasons"]
-    assert decision["predictions_available"] is False
+    assert decision["predictions_available"] is True
 
     holdout_status = json.loads(written["holdout_status"].read_text(encoding="utf-8"))
     assert holdout_status["stage_c_executed"] is False
 
     predictions = pd.read_csv(written["predictions"])
     assert len(predictions) == result.evaluation_frame_n_rows
-    assert "y_pred_candidate" not in predictions.columns
+    assert "y_pred_candidate" in predictions.columns
 
     bootstrap_payload = json.loads(written["bootstrap"].read_text(encoding="utf-8"))
     assert bootstrap_payload["bootstrap_executed"] is False

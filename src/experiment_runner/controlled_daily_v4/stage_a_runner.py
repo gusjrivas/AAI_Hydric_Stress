@@ -50,6 +50,7 @@ from experiment_runner.controlled_daily_v4.models import (
     iter_random_forest_configs,
 )
 from experiment_runner.controlled_daily_v4.selection import (
+    OUTCOME_NO_VALID_SELECTION,
     CandidateOOF,
     SelectionResult,
     select_family,
@@ -232,10 +233,11 @@ def _concatenate_oof(
     )
 
 
-def run_stage_a(
+def _run_stage_a(
     daily_series: pd.DataFrame,
     depth_column: str,
     protocol_config: ProtocolConfig | None = None,
+    _state=None,
 ) -> StageAResults:
     """Ejecuta la Etapa A completa (nested CV, OOF, selección, congelamiento)
     para una única profundidad. `daily_series` debe ser la serie diaria
@@ -254,6 +256,15 @@ def run_stage_a(
     }
     inner_folds_by_outer: dict[int, list[Fold]] = {}
     warnings_log: list[dict[str, Any]] = []
+    if _state is not None:
+        _state["results"] = StageAResults(
+            depth_column=depth_column,
+            outer_folds=outer_folds,
+            per_family_outer_results=per_family_outer_results,
+            dataset_fingerprint=dataset_fingerprint,
+            inner_folds_by_outer=inner_folds_by_outer,
+            warnings_log=warnings_log,
+        )
 
     for outer_fold in outer_folds:
         p20_train = compute_p20_threshold(outer_fold.train["future_soil_moisture"])
@@ -304,6 +315,9 @@ def run_stage_a(
         for family, results in per_family_outer_results.items()
     }
 
+    if _state is not None:
+        _state["results"].oof_by_family = oof_by_family
+
     selection = select_family(
         oof_by_family,
         delta=protocol_config.practical_margin_delta_mcc,
@@ -321,6 +335,9 @@ def run_stage_a(
         inner_folds_by_outer=inner_folds_by_outer,
         warnings_log=warnings_log,
     )
+
+    if _state is not None:
+        _state["results"] = results
 
     if selection.selected_family is None:
         return results
@@ -397,3 +414,51 @@ def _describe_final_estimator(estimator: object, selected_family: str | None) ->
             for family, base in estimator.named_estimators_.items()
         }
     return {selected_family: _describe_estimator(estimator)}
+
+
+def run_stage_a(daily_series, depth_column, protocol_config=None):
+    """Keep completed evidence and fail closed when statistical support is insufficient."""
+    from experiment_runner.controlled_daily_v4.bootstrap import NoValidBootstrapReplicasError
+    from experiment_runner.controlled_daily_v4.tuning import InsufficientFoldSupport
+
+    state = {}
+    try:
+        return _run_stage_a(daily_series, depth_column, protocol_config, state)
+    except (InsufficientFoldSupport, NoValidBootstrapReplicasError) as exc:
+        result = state.get("results")
+        if result is None:
+            result = StageAResults(
+                depth_column=depth_column,
+                outer_folds=[],
+                dataset_fingerprint=compute_dataset_fingerprint(
+                    build_eligible_frame(daily_series, depth_column)
+                ),
+            )
+        result.selection = SelectionResult(
+            outcome=OUTCOME_NO_VALID_SELECTION,
+            global_mcc_by_family={},
+            pairwise_intervals={},
+            equivalence_set=[],
+            stable_winner=None,
+            selected_family=None,
+            selection_reason=str(exc),
+        )
+        # Retain completed folds even if a later family/fold cannot be selected.
+        for family, completed in result.per_family_outer_results.items():
+            if completed and family not in result.oof_by_family:
+                result.oof_by_family[family] = _concatenate_oof(family, completed, depth_column)
+        result.final_estimator = None
+        result.final_p20_train = None
+        result.frozen_single_family = None
+        result.frozen_soft_voting_bases = None
+        result.warnings_log.append(
+            {
+                "category": type(exc).__name__,
+                "message": str(exc),
+                "fold_diagnostics": getattr(exc, "fold_diagnostics", None),
+                "support_diagnostics": (
+                    vars(exc.diagnostics) if getattr(exc, "diagnostics", None) else None
+                ),
+            }
+        )
+        return result

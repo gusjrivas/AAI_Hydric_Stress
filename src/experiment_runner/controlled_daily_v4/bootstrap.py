@@ -49,8 +49,14 @@ class SegmentTooShortForBlockError(ValueError):
 
 
 class NoValidBootstrapReplicasError(RuntimeError):
-    """Ninguna réplica produjo una métrica definida; no hay intervalo que
-    reportar y el resultado no puede interpretarse como comparación válida.
+    """El soporte de réplicas válidas no alcanza el piso predeclarado del 80 %
+    (`ceil(0.8 * replicas_requested)`); no hay intervalo que reportar y el
+    resultado no puede interpretarse como comparación válida. El caso de cero
+    réplicas válidas es el límite inferior de esa misma condición, no un caso
+    aparte: el nombre histórico de la excepción y su razón asociada
+    (`bootstrap_no_valid_replicas`) se conservan por compatibilidad de los
+    artefactos ya emitidos, pero la cantidad y la proporción exactas viajan en
+    `diagnostics` (`replicas_valid`, `discarded_fraction`, `support_sufficient`).
 
     Revisión externa (2026-09-14), hallazgo sobre evidencia de
     reproducibilidad de la Etapa B: lleva adjuntos los `diagnostics`
@@ -103,6 +109,19 @@ class BootstrapDiagnostics:
     discard_reasons: dict[str, int] = field(default_factory=dict)
     interval_lower: float | None = None
     interval_upper: float | None = None
+    discarded_fraction: float = 0.0
+    support_sufficient: bool = False
+
+    def __post_init__(self):
+        fraction = (
+            self.replicas_discarded / self.replicas_requested if self.replicas_requested else 1.0
+        )
+        object.__setattr__(self, "discarded_fraction", fraction)
+        object.__setattr__(
+            self,
+            "support_sufficient",
+            self.replicas_valid >= max(1, int(np.ceil(0.8 * self.replicas_requested))),
+        )
 
 
 def compute_is_normative_configuration(n_replicas: int, seed: int, block_length: int) -> bool:
@@ -258,11 +277,11 @@ def paired_bootstrap_delta(
             )
 
     segment_sizes = {plan.segment_id: plan.size for plan in plans}
-    if not valid:
+    if len(valid) < max(1, int(np.ceil(0.8 * n_replicas))):
         zero_valid_diagnostics = BootstrapDiagnostics(
             replicas_requested=n_replicas,
-            replicas_valid=0,
-            replicas_discarded=n_replicas,
+            replicas_valid=len(valid),
+            replicas_discarded=n_replicas - len(valid),
             n_segments=len(plans),
             block_length=block_length,
             seed=seed,
@@ -273,7 +292,7 @@ def paired_bootstrap_delta(
             interval_upper=None,
         )
         raise NoValidBootstrapReplicasError(
-            f"Ninguna de las {n_replicas} réplicas produjo una métrica definida "
+            f"Soporte insuficiente: {len(valid)}/{n_replicas} réplicas válidas; requerido >= 80 % "
             f"(motivos: {discard_reasons or {DISCARD_UNDEFINED_METRIC: n_replicas}}). "
             "No hay intervalo pareado que reportar.",
             diagnostics=zero_valid_diagnostics,

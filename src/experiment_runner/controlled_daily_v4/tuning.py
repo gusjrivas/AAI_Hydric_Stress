@@ -28,6 +28,9 @@ def evaluate_config_on_folds(config: ModelConfig, folds: list[Fold]) -> list[flo
         y_val = build_target(fold.validation["future_soil_moisture"], p20_train).to_numpy()
         X_train = fold.train[list(FEATURE_COLUMNS)].to_numpy()
         X_val = fold.validation[list(FEATURE_COLUMNS)].to_numpy()
+        if len(np.unique(y_train)) < 2:
+            scores.append(float("nan"))
+            continue
         estimator = fit_estimator(config.family, config.params, X_train, y_train)
         y_pred = estimator.predict(X_val)
         scores.append(mcc_strict(y_val, y_pred))
@@ -48,12 +51,34 @@ def select_best_config(
     best_config = None
     best_median = float("nan")
     best_scores: list[float] = []
+    diagnostics = []
     for config in configs:
         scores = evaluate_config_on_folds(config, folds)
+        diagnostics.append(
+            {
+                "family": config.family,
+                "params": config.params,
+                "scores": [float(v) if np.isfinite(v) else None for v in scores],
+                "valid_folds": int(sum(np.isfinite(scores))),
+                "required_valid_folds": 2,
+                "total_folds": len(scores),
+            }
+        )
         median = median_ignoring_nan(scores)
+        if sum(np.isfinite(scores)) < 2:
+            continue
         if best_config is None or (
             not np.isnan(median) and (np.isnan(best_median) or median > best_median)
         ):
             best_config, best_median, best_scores = config, median, scores
-    assert best_config is not None
+    if best_config is None:
+        raise InsufficientFoldSupport("NO_VALID_SELECTION: fewer than two valid folds", diagnostics)
     return best_config, best_median, best_scores
+
+
+class InsufficientFoldSupport(ValueError):
+    """No candidate has the preregistered minimum of two valid folds."""
+
+    def __init__(self, message, fold_diagnostics=None):
+        super().__init__(message)
+        self.fold_diagnostics = fold_diagnostics

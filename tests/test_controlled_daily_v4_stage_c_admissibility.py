@@ -612,6 +612,59 @@ def test_zero_valid_bootstrap_replicas_is_rejected(tmp_path):
     assert any("replicas_valid" in reason for reason in exc.value.reasons)
 
 
+def test_bootstrap_support_below_eighty_percent_is_rejected(tmp_path):
+    """La compuerta B->C aplica el mismo piso de soporte que el propio
+    bootstrap (>= 80 % de replicas validas): 3999/5000 se rechaza aunque el
+    intervalo persistido tenga forma numerica valida y replicas_valid > 0."""
+    producer_dir = tmp_path / "producer_a"
+    stage_b_dir = tmp_path / "stage_b"
+    _write_stage_b_evidence(
+        stage_b_dir,
+        producer_dir,
+        diagnostics=_valid_diagnostics(
+            replicas_valid=3999,
+            replicas_requested=BOOTSTRAP_REPLICAS_DEFAULT,
+            replicas_discarded=BOOTSTRAP_REPLICAS_DEFAULT - 3999,
+        ),
+    )
+
+    with pytest.raises(StageCAdmissibilityError) as exc:
+        check_stage_c_admissibility(
+            _contract(),
+            stage_b_dir=stage_b_dir,
+            producer_dir=producer_dir,
+            consumer_input_mode=INPUT_MODE_SCIENTIFIC,
+            consumer_code_identity=_CONSUMER_CODE_IDENTITY,
+            consumer_environment_issues=[],
+        )
+    assert any("replicas_valid" in reason for reason in exc.value.reasons)
+
+
+def test_bootstrap_support_at_exactly_eighty_percent_is_admissible(tmp_path):
+    """Contraparte exacta del piso: 4000/5000 satisface el soporte y no
+    aporta ninguna razon de rechazo por replicas."""
+    producer_dir = tmp_path / "producer_a"
+    stage_b_dir = tmp_path / "stage_b"
+    _write_stage_b_evidence(
+        stage_b_dir,
+        producer_dir,
+        diagnostics=_valid_diagnostics(
+            replicas_valid=4000,
+            replicas_requested=BOOTSTRAP_REPLICAS_DEFAULT,
+            replicas_discarded=BOOTSTRAP_REPLICAS_DEFAULT - 4000,
+        ),
+    )
+
+    check_stage_c_admissibility(
+        _contract(),
+        stage_b_dir=stage_b_dir,
+        producer_dir=producer_dir,
+        consumer_input_mode=INPUT_MODE_SCIENTIFIC,
+        consumer_code_identity=_CONSUMER_CODE_IDENTITY,
+        consumer_environment_issues=[],
+    )
+
+
 def test_rejected_stage_c_case_never_touches_holdout(tmp_path, monkeypatch):
     """Spy: ningún caso rechazado por `check_stage_c_admissibility` reserva el
     ledger ni accede a datos del holdout -- esta función nunca debe llamar a

@@ -25,7 +25,9 @@ ERA5_SOIL_MOISTURE_RAW_COLUMNS = [
 ]
 
 
-def make_synthetic_daily_frame(n_days: int = 500, seed: int = 7) -> pd.DataFrame:
+def make_synthetic_daily_frame(
+    n_days: int = 500, seed: int = 7, supported: bool = False
+) -> pd.DataFrame:
     """DataFrame indexado por fecha (desde 2015-01-01), con las 4 columnas
     de humedad de suelo, RH2M, ALLSKY_SFC_SW_DWN, T2M, PRECTOTCORR. Serie
     autocorrelacionada (random walk acotado) para que haya variabilidad
@@ -50,6 +52,16 @@ def make_synthetic_daily_frame(n_days: int = 500, seed: int = 7) -> pd.DataFrame
         18 + 8 * np.sin(np.linspace(0, 6 * np.pi, n_days) + 2) + rng.normal(0, 2, n_days), -5, 40
     )
     precip = np.clip(rng.exponential(2.0, n_days) - 1.5, 0, None)
+
+    if supported:
+        # Deliberately predictable periodic fixture: short inner folds contain both classes.
+        # Software integration example, never scientific performance evidence.
+        phase = np.arange(n_days) * (2 * np.pi / 20)
+        soil_0_7 = 0.35 + 0.1 * np.sin(phase)
+        soil_7_28 = soil_0_7 + 0.01
+        soil_28_100 = soil_0_7 + 0.02
+        rh2m = 65 + 20 * np.sin(phase)
+        radiation = 18 + 8 * np.cos(phase)
 
     return pd.DataFrame(
         {
@@ -137,10 +149,10 @@ def write_synthetic_nasa_power_csv(path: str | Path, daily_frame: pd.DataFrame) 
 
 
 def write_synthetic_pergamino_csv_pair(
-    tmp_dir: str | Path, n_days: int = 500, seed: int = 7
+    tmp_dir: str | Path, n_days: int = 500, seed: int = 7, supported: bool = False
 ) -> tuple[Path, Path]:
     tmp_dir = Path(tmp_dir)
-    daily_frame = make_synthetic_daily_frame(n_days=n_days, seed=seed)
+    daily_frame = make_synthetic_daily_frame(n_days=n_days, seed=seed, supported=supported)
     era5_path = tmp_dir / "pergamino_era5land_soil_hourly_2015_2025.csv"
     nasa_power_path = tmp_dir / "pergamino_nasa_power_daily_2015_2025.csv"
     write_synthetic_era5_csv(era5_path, daily_frame)

@@ -504,7 +504,7 @@ def test_cli_end_to_end_with_genuinely_monoclass_2023_data_still_persists_decisi
     import pandas as pd
 
     predictions = pd.read_csv(stage_b_out / "predictions_2023.csv")
-    assert "y_pred_candidate" not in predictions.columns
+    assert "y_pred_candidate" in predictions.columns
 
 
 # --------------------------------------------------------------------------
