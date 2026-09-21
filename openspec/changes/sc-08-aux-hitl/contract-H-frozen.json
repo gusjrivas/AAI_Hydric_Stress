@@ -10,7 +10,7 @@
   ],
   "campaign_id": "hitl-complement-2026-09-21",
   "frozen_before_observing_results": true,
-  "frozen_at_utc": "2026-09-21T13:05:00Z",
+  "frozen_at_utc": "2026-09-21T13:35:00Z",
   "objective": {
     "primary": "Demostrar que el mecanismo Human-in-the-Loop del sistema es tecnicamente viable, auditable y reproducible, y ejecutar el disenio congelado auxiliary_hitl_v1 de correcciones supervisadas simuladas que exige SC-GOV-022.",
     "explicitly_not": [
@@ -203,20 +203,23 @@
   },
   "human_intervention_package": {
     "package_id": "auxiliary_hitl_v1/H/human-package/2026-09-21",
-    "version": 1,
+    "version": 4,
     "scenarios": "Los 20 eventos del presupuesto de la semilla primaria 0, producidos por el mismo muestreo estratificado determinista del disenio congelado.",
     "presentation_order": "Orden cronologico ascendente por fecha de emision, fijado y registrado en el paquete. No se reordena despues.",
     "visible_to_participant": [
-      "Numero de escenario y fecha de emision",
+      "Identificador de escenario, posicion en el orden de presentacion y fecha de emision",
       "Fecha objetivo (t+3)",
+      "Identificador del sensor",
       "Las ocho features del contrato en la fecha de emision",
       "La humedad de suelo observada y madurada en la fecha objetivo",
       "El umbral P20 congelado del train inicial",
       "La etiqueta registrada en el sistema para esa fecha",
-      "La probabilidad emitida por el modelo congelado y si genero alerta"
+      "La probabilidad emitida por el modelo congelado en 2021 y si genero alerta",
+      "El identificador del modelo congelado y el umbral de decision 0.5",
+      "Las tres decisiones admisibles"
     ],
     "hidden_from_participant": [
-      "Cualquier metrica de cualquier brazo, en cualquier pista",
+      "Cualquier metrica de EVALUACION (2022) de cualquier brazo, en cualquier pista",
       "El efecto esperado de cada decision sobre cualquier metrica",
       "Cualquier dato, prediccion o metrica de 2023, 2024 o 2025",
       "Cualquier metrica o dato del holdout 2024-2025",
@@ -233,8 +236,8 @@
     "blinding": {
       "level": "PARCIAL",
       "what_is_blinded": [
-        "Ninguna metrica de ningun brazo llega al paquete.",
-        "Ningun resultado de 2022 y ningun dato de 2023-2025 llegan al paquete.",
+        "Ninguna metrica de la ventana de EVALUACION (2022) de ningun brazo llega al paquete.",
+        "Ningun dato de 2023, 2024 o 2025 llega al paquete.",
         "El efecto de cada decision sobre cualquier metrica no se informa."
       ],
       "what_is_NOT_blinded": [
@@ -250,8 +253,10 @@
       "NO se afirma que la identidad de los escenarios corrompidos este oculta: es derivable.",
       "NO se afirma que la proporcion de corrupcion este oculta: es derivable.",
       "NO se afirma que la decision del revisor simulado este oculta: el disenio publicado dice que restituye la etiqueta limpia y confirma el resto, de modo que tambien es derivable.",
-      "NO se afirma que el operador carezca de un procedimiento: las instrucciones le enuncian la regla de etiquetado."
-    ]
+      "NO se afirma que el operador carezca de un procedimiento: las instrucciones le enuncian la regla de etiquetado.",
+      "NO se afirma que el desempenio del modelo congelado sobre las 20 fechas revisadas de 2021 este oculto: el paquete muestra su probabilidad y su alerta, de modo que su acierto sobre esas fechas es derivable. Lo que no se muestra es ninguna metrica de la ventana de evaluacion de 2022."
+    ],
+    "visible_to_participant_is_exhaustive": true
   },
   "response_validation": {
     "must_match_package_hash": true,
@@ -376,7 +381,7 @@
     "abc_executable_commit": "214735e42ee04f018156cd630591e798aadd8bf3",
     "h_executable_identity_note": "La imagen historica de A/B/C no contiene el runner de H, que no existia cuando se construyo. H declara su propia identidad ejecutable (commit e imagen propios) y NO se atribuye la identidad de A/B/C. El entorno numerico se mantiene identico mediante el mismo Dockerfile y las mismas constraints fijadas."
   },
-  "contract_version": 3,
+  "contract_version": 4,
   "supersedes": {
     "versions": [
       {
@@ -388,6 +393,11 @@
         "contract_version": 2,
         "sha256": "e74bc31235f9aa38808fb026aa3f7a0ec9e2de5bf9ca2f432e3f2ccd23dc917a",
         "commit": "547c1a98c888852eafb067e1135ce033fc80472a"
+      },
+      {
+        "contract_version": 3,
+        "sha256": "71e41896345d8d4dba4e913fc5d717e3ff7ad39c3d52bf57c124f55349e5a1ef",
+        "commit": "6afe0765abb9be5202f4ea479b6bea483ac4d330"
       }
     ],
     "note": "Las versiones anteriores se conservan integras en el historial de git. NO se borran ni se reescriben. Cada version corrige defectos que una critica independiente encontro ANTES de mostrar nada al operador y ANTES de observar cualquier resultado de H."
@@ -587,6 +597,68 @@
       "No hubo NINGUNA relajacion del criterio de PASS: verdict_criteria y stop_conditions sin cambios; prohibited_assertions y declared_limitations_predeclared solo crecieron.",
       "No se altero retrospectivamente ninguna condicion congelada del disenio: verificado parametro por parametro contra scientific-closure-decisions.md, que no difiere de origin/main.",
       "A/B/C intactos: 91 hashes OK, 0 FAILED. Holdout en CONFIRMADA con el mismo attempt_id."
+    ]
+  },
+  "corrections_after_independent_review_round_3": {
+    "review_date_utc": "2026-09-21T13:30:00Z",
+    "reviewer": "scientific_critic independiente, tercera sesion separada, solo lectura",
+    "verdict_on_contract_v3_package": "APTO_PARA_MOSTRAR",
+    "note": "La tercera revision declaro el paquete APTO y confirmo que los cuatro hallazgos materiales de la ronda 2 estan resueltos, que las pruebas escritas para cerrarlos son contingentes, que la clasificacion 'kind' de los invariantes es honesta item por item, que no hubo relajacion alguna del criterio de PASS y que el disenio congelado esta intacto parametro por parametro. Reprodujo ademas el paquete por su cuenta, fuera del contenedor, obteniendo un resultado identico byte a byte. Los nueve puntos menores que senalo se corrigen igualmente antes de la pausa humana.",
+    "findings_and_resolution": [
+      {
+        "id": "E-01",
+        "severity": "MENOR",
+        "finding": "El paquete declaraba oculta 'cualquier metrica de cualquier brazo' mientras mostraba la probabilidad y la alerta del brazo congelado sobre 2021, de modo que su acierto sobre esas 20 fechas es derivable.",
+        "resolution": "ACEPTADO. Se acota la afirmacion a metricas de EVALUACION (2022) y se declara expresamente lo que si se muestra."
+      },
+      {
+        "id": "E-02",
+        "severity": "MENOR",
+        "finding": "--contract y --package-anchor eran opcionales, de modo que la verificacion del vinculo paquete-contrato y del ancla se evadia omitiendo un flag.",
+        "resolution": "ACEPTADO. Ambos son obligatorios en corrida cientifica, y el ancla se contrasta tambien por contract_sha256."
+      },
+      {
+        "id": "E-03",
+        "severity": "MENOR",
+        "finding": "--seeds aceptaba cualquier subconjunto del conjunto congelado, que es exactamente el vector de seleccion de semillas que el disenio prohibe.",
+        "resolution": "ACEPTADO. En corrida cientifica se exige el conjunto completo, y una lista no numerica produce rechazo con motivo en vez de ValueError."
+      },
+      {
+        "id": "E-04",
+        "severity": "OBSERVACION",
+        "finding": "Un comentario afirmaba que el identificador provisional bastaba para detectar autorreferencia; R20 es alli infalsificable.",
+        "resolution": "ACEPTADO. El comentario dice ahora exactamente lo que el codigo hace y nombra las dos comprobaciones que si garantizan la propiedad."
+      },
+      {
+        "id": "E-05",
+        "severity": "OBSERVACION",
+        "finding": "Expresion muerta 'None if False else ...' en una prueba.",
+        "resolution": "ACEPTADO. Eliminada."
+      },
+      {
+        "id": "E-06",
+        "severity": "OBSERVACION",
+        "finding": "Sobrevivia un encabezado 'Paquete ciego' en las pruebas.",
+        "resolution": "ACEPTADO. Eliminado."
+      },
+      {
+        "id": "E-07",
+        "severity": "OBSERVACION",
+        "finding": "visible_to_participant se leia como exhaustiva y no lo era.",
+        "resolution": "ACEPTADO. Lista completada y marcada como exhaustiva."
+      },
+      {
+        "id": "E-08",
+        "severity": "OBSERVACION",
+        "finding": "Tras resolver enlaces, la cadena cruda ya no se comprobaba; y la ruta del ancla no pasaba por la guarda.",
+        "resolution": "ACEPTADO. Se comprueban ambas formas y el ancla entra en la guarda."
+      },
+      {
+        "id": "E-09",
+        "severity": "OBSERVACION",
+        "finding": "Los tres paquetes congelados llevaban 'version: 1', y el preflight conservaba un bloque de repositorio viejo junto al recapturado.",
+        "resolution": "ACEPTADO. La version del paquete acompana a la del contrato y el bloque viejo del preflight se marca como superado in situ."
+      }
     ]
   }
 }

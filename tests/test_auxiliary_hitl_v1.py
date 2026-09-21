@@ -658,7 +658,7 @@ def test_lineage_rejects_self_reference(frames: h.HitlFrames, prepared: dict) ->
 
 
 # --------------------------------------------------------------------------
-# Paquete ciego y respuesta humana
+# Paquete de intervención y respuesta humana
 # --------------------------------------------------------------------------
 
 
@@ -992,7 +992,7 @@ def test_invariants_are_measured_not_declared(frames: h.HitlFrames, package: dic
     """Hallazgo C-05: ningún invariante puede publicarse como constante True."""
     response = _response(package)
     outcome = h.run_complement_h(
-        daily_series=None if False else _DAILY_SERIES_HOLDER["value"],
+        daily_series=_DAILY_SERIES_HOLDER["value"],
         depth_column=PRIMARY_DEPTH_COLUMN,
         seeds=(FIXTURE_SEED,),
         package=package,
@@ -1082,6 +1082,9 @@ def test_human_track_uses_the_real_response_instant(frames: h.HitlFrames, packag
 def test_reserved_abc_and_holdout_paths_are_rejected() -> None:
     """Comprobación real de configuración, no una constante `abc_artifacts_touched: 0`."""
     assert h.assert_no_reserved_paths({"a": "/runtime/inputs/x.csv"}) == []
+    # La cadena cruda también se comprueba: un enlace roto que `resolve()` no
+    # puede seguir no debe evadir la guarda (hallazgo E-08).
+    assert h.assert_no_reserved_paths({"a": "/no/existe/evidence/A/x.json"})
     offending = h.assert_no_reserved_paths(
         {
             "output_dir": "/runtime/evidence/A",

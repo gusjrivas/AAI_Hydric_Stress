@@ -100,6 +100,11 @@ AUXILIARY_ID = "auxiliary_hitl_v1"
 
 ARTIFACT_SCHEMA_VERSION = "auxiliary_hitl_v1_evidence.v1"
 PACKAGE_SCHEMA_VERSION = "auxiliary_hitl_v1_human_package.v1"
+PACKAGE_VERSION = 3
+"""Versión del paquete de intervención. Acompaña a la versión del contrato que
+lo congela: los paquetes 1 y 2 quedaron descartados por hallazgos de crítica
+independiente antes de mostrarse a nadie, y se distinguen por este campo además
+de por su hash."""
 RESPONSE_SCHEMA_VERSION = "auxiliary_hitl_v1_human_response.v1"
 EVENT_SCHEMA_VERSION = "auxiliary_hitl_v1_feedback_event.v1"
 FINGERPRINT_SCOPE_HITL = "auxiliary_hitl_v1_eligible_rows_2015_2022"
@@ -253,15 +258,19 @@ def assert_no_reserved_paths(paths: dict[str, Any]) -> list[str]:
     for name, value in paths.items():
         if value is None:
             continue
-        # `resolve()` sigue enlaces simbólicos y normaliza `..`: comparar la
-        # cadena cruda dejaría pasar un enlace con nombre inocuo (hallazgo D-13).
+        # Se comprueban AMBAS formas: la cadena cruda y la ruta resuelta.
+        # Sólo la cruda dejaría pasar un enlace simbólico con nombre inocuo
+        # (hallazgo D-13); sólo la resuelta dejaría pasar un enlace roto o una
+        # ruta que `resolve()` no pueda seguir (hallazgo E-08).
+        candidates = {str(value)}
         try:
-            text = str(Path(str(value)).resolve())
+            candidates.add(str(Path(str(value)).resolve()))
         except OSError:
-            text = str(value)
-        for marker in RESERVED_PATH_MARKERS:
-            if marker in text:
-                offending.append(f"{name}={text} contiene {marker!r}")
+            pass
+        for text in sorted(candidates):
+            for marker in RESERVED_PATH_MARKERS:
+                if marker in text:
+                    offending.append(f"{name}={text} contiene {marker!r}")
     return offending
 
 
@@ -1049,7 +1058,7 @@ PACKAGE_INSTRUCTIONS = (
 )
 
 PACKAGE_HIDDEN_FIELDS = (
-    "cualquier métrica de cualquier brazo, en cualquier pista",
+    "cualquier métrica de EVALUACIÓN (2022) de cualquier brazo, en cualquier pista",
     "el efecto esperado de cada decisión sobre cualquier métrica",
     "cualquier dato, predicción o métrica de 2023, 2024 o 2025",
     "cualquier métrica o dato del holdout 2024-2025",
@@ -1070,14 +1079,18 @@ PACKAGE_NOT_CLAIMED_HIDDEN = (
     "publicado dice que restituye la etiqueta limpia y confirma el resto.",
     "Las propias instrucciones enuncian la regla de etiquetado, de modo que quien la aplique "
     "obtiene una respuesta determinada para los 20 escenarios.",
+    "El paquete SÍ muestra la probabilidad y la alerta que el modelo congelado emitió en 2021 "
+    "para cada escenario, de modo que su acierto sobre esas 20 fechas también es derivable. Lo "
+    "que no se muestra es ninguna métrica de la ventana de evaluación de 2022.",
     "La semilla figura en el paquete y el generador de corrupción está en el repositorio.",
 )
 
 PACKAGE_BLINDING = {
     "level": "PARCIAL",
     "what_is_blinded": (
-        "Ninguna métrica, ningún resultado de 2022 y ningún dato de 2023-2025 llegan al "
-        "paquete; tampoco el efecto de cada decisión sobre ninguna métrica.",
+        "Ninguna métrica de la ventana de evaluación (2022) de ningún brazo llega al paquete.",
+        "Ningún dato de 2023, 2024 o 2025 llega al paquete.",
+        "El efecto de cada decisión sobre cualquier métrica no se informa.",
     ),
     "consequence_declared": (
         "Esta intervención demuestra que el mecanismo HITL opera correctamente cuando una "
@@ -1138,7 +1151,7 @@ def build_human_package(
     package = {
         "schema_version": PACKAGE_SCHEMA_VERSION,
         "package_id": package_id,
-        "version": 1,
+        "version": PACKAGE_VERSION,
         "campaign_id": campaign_id,
         "auxiliary": AUXILIARY_ID,
         "contract_id": contract_id,
@@ -1384,9 +1397,13 @@ def run_track_for_seed(
 
     # La validación precede a cualquier aplicación: aplicar primero y validar
     # después dejaría que una decisión inválida modificara etiquetas antes de
-    # ser rechazada (hallazgo D-07). El identificador del sucesor todavía no se
-    # conoce, así que se usa uno provisional derivado de los propios eventos:
-    # basta para detectar autorreferencia, y el definitivo se comprueba aparte.
+    # ser rechazada (hallazgo D-07). El identificador definitivo del sucesor
+    # todavía no se conoce, así que se pasa uno provisional. Ese provisional NO
+    # acredita ausencia de autorreferencia —no puede colisionar con
+    # `model_version` por construcción, de modo que R20 es aquí infalsificable
+    # (hallazgo E-04)—: la propiedad real la garantizan R19, que fuerza
+    # `model_version == frozen_model_id`, y la comprobación explícita sobre el
+    # identificador definitivo, más abajo.
     provisional_successor_id = deterministic_model_id(
         arm=ARM_REFIT_WITH_CORRECTIONS,
         seed=seed,
@@ -2118,6 +2135,7 @@ def main(argv: list[str] | None = None) -> int:
         "package": args.package,
         "human_response": args.human_response,
         "contract": args.contract,
+        "package_anchor": args.package_anchor,
     }
     reserved = assert_no_reserved_paths(configured_paths)
     if reserved:
@@ -2180,6 +2198,18 @@ def main(argv: list[str] | None = None) -> int:
     if args.package is None or args.human_response is None:
         print("ERROR: --mode run exige --package y --human-response", file=sys.stderr)
         return 2
+    if args.input_mode == INPUT_MODE_SCIENTIFIC and (
+        args.contract is None or args.package_anchor is None
+    ):
+        # Sin estos dos, el vínculo paquete-contrato y el ancla externa quedan
+        # sin verificar: la comprobación sería evadible por omisión de un flag
+        # (hallazgo E-02).
+        print(
+            "ERROR: una corrida científica exige --contract y --package-anchor para verificar "
+            "el vínculo con el contrato congelado y con el ancla versionada en git",
+            file=sys.stderr,
+        )
+        return 2
 
     package = json.loads(args.package.read_text(encoding="utf-8"))
     response = json.loads(args.human_response.read_text(encoding="utf-8"))
@@ -2200,9 +2230,14 @@ def main(argv: list[str] | None = None) -> int:
         return 7
     if args.package_anchor is not None:
         anchor = json.loads(args.package_anchor.read_text(encoding="utf-8"))
-        if anchor.get("package_sha256") != package.get("package_sha256"):
+        mismatches = [
+            field
+            for field in ("package_sha256", "contract_sha256")
+            if anchor.get(field) != package.get(field)
+        ]
+        if mismatches:
             print(
-                "ERROR: el paquete no coincide con el ancla externa versionada en git",
+                f"ERROR: el paquete no coincide con el ancla versionada en git: {mismatches}",
                 file=sys.stderr,
             )
             return 7
@@ -2222,11 +2257,26 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 9
     human_validated_at = datetime.fromisoformat(str(responded_at).replace("Z", "+00:00"))
-    seeds = tuple(int(s) for s in args.seeds.split(","))
+    try:
+        seeds = tuple(int(token) for token in args.seeds.split(","))
+    except ValueError:
+        print(f"ERROR: --seeds no es una lista de enteros: {args.seeds!r}", file=sys.stderr)
+        return 12
+    # En corrida científica se exige el conjunto COMPLETO: aceptar un subconjunto
+    # sería exactamente el vector que el diseño prohíbe, «sin seleccionar
+    # semillas favorables» (hallazgo E-03).
+    if args.input_mode == INPUT_MODE_SCIENTIFIC and set(seeds) != set(DEFAULT_SEEDS):
+        print(
+            f"ERROR: una corrida científica exige el conjunto congelado completo de semillas "
+            f"{list(DEFAULT_SEEDS)}; recibido {sorted(set(seeds))}. El diseño prohíbe "
+            "seleccionar semillas.",
+            file=sys.stderr,
+        )
+        return 12
     if not set(seeds) <= set(DEFAULT_SEEDS):
         print(
             f"ERROR: semillas {sorted(set(seeds) - set(DEFAULT_SEEDS))} fuera del conjunto "
-            f"congelado {list(DEFAULT_SEEDS)}; el diseño prohíbe seleccionar semillas",
+            f"congelado {list(DEFAULT_SEEDS)}",
             file=sys.stderr,
         )
         return 12
