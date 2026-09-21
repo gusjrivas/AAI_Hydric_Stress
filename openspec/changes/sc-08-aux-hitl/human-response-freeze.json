@@ -1,0 +1,45 @@
+{
+  "schema_version": "auxiliary_hitl_v1_human_response_freeze.v1",
+  "purpose": "Ancla externa e inmutable de la intervención humana, commiteada ANTES de ejecutar H. Fija qué respondió el operador, cuándo y contra qué paquete, de modo que la evidencia posterior no pueda reinterpretarla.",
+  "campaign_id": "hitl-complement-2026-09-21",
+  "change": "sc-08-aux-hitl",
+  "requirement": "SC-GOV-022",
+  "evidence_class": "controlled_human_feedback",
+  "evidence_class_is_not": "expert_agronomic_feedback",
+  "operator_id": "Gustavo Julián Rivas",
+  "operator_role": "authorized_experimental_operator",
+  "responded_at_utc": "2026-09-21T19:14:26.798Z",
+  "package_id": "auxiliary_hitl_v1/H/human-package/2026-09-21",
+  "package_sha256": "6f2143e0680cfde452f9a0f509a12e39f1087e45b6fbcd7de7a045a51233b6de",
+  "response_sha256": "5a0cc46955b2ce5b984965bc71ea62e6b5cefe73e4641dc7f78c806be5b8e352",
+  "transcription_1_sha256": "45cd5a83a7e91aee1bdc26712fe54011c6db76eebf207b95b0ce57fb082271af",
+  "n_scenarios_answered": 20,
+  "decisions_summary": {
+    "ACEPTAR": 20,
+    "RECHAZAR": 0,
+    "CORREGIR": 0
+  },
+  "verbatim_statements": [
+    {
+      "order": 1,
+      "at_utc": "2026-09-21T19:14:26.798Z",
+      "content": "te confirmo que las 20 están ok de acuerdo al umbral puesto como control para esta evaluación, luego hay que probarlo a futuro en el campo con una persona que pueda realmnete estar viendo si las predicciones son certeras con la realidad",
+      "role": "decisiones sobre los 20 escenarios y declaración de trabajo futuro"
+    },
+    {
+      "order": 2,
+      "at_utc": "2026-09-21T19:14:51.437Z",
+      "content": "Confirmo que actúo como responsable experimental autorizado, no como agrónomo,\ny que mis decisiones no constituyen asesoramiento ni validación agronómica.",
+      "role": "declaración explícita de rol exigida por el contrato"
+    }
+  ],
+  "operator_declaration": "Confirmo que actúo como responsable experimental autorizado, no como agrónomo,\ny que mis decisiones no constituyen asesoramiento ni validación agronómica.",
+  "operator_statement_on_future_work": "Validación de campo pendiente, con una persona que pueda observar directamente si las predicciones se corresponden con la realidad. Declarada por el propio operador, no inferida.",
+  "declaration_of_scope": "Esta intervención NO constituye asesoramiento ni validación agronómica. El participante actuó como responsable experimental autorizado y lo declaró expresamente. La validación de campo con una persona que observe directamente si las predicciones se corresponden con la realidad queda declarada por el propio operador como TRABAJO FUTURO.",
+  "frozen_before_execution": true,
+  "frozen_at_utc": "2026-09-21T19:15:14.499648Z",
+  "executable_identity": {
+    "commit": "217b924b5af69f50c0c6696b1f049f3b5bcd465b",
+    "image_id": "sha256:1d710ab5d26790f8c1fa4f966c9aeef736267f66405de4a8801a684de3a04145"
+  }
+}
