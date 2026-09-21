@@ -6,7 +6,7 @@
   "requirement": "SC-GOV-022",
   "package_id": "auxiliary_hitl_v1/H/human-package/2026-09-21",
   "package_version": 1,
-  "package_sha256": "29afedc9d951b332f61ed48bd8aada2bb30467b0c082db24489b5f9bcd9cdea8",
+  "package_sha256": "e1c3eb70aa15532b3318ac7dcd16fa9070f81d516a8322671ddbc6b77e8d42c9",
   "package_canonicalization": "json.dumps(payload sin el campo package_sha256, sort_keys=True, separators=(',',':'), ensure_ascii=False, allow_nan=False), UTF-8, SHA-256",
   "n_scenarios": 20,
   "presentation_order": [
@@ -44,11 +44,11 @@
       "field_validator"
     ]
   },
-  "contract_sha256": "e74bc31235f9aa38808fb026aa3f7a0ec9e2de5bf9ca2f432e3f2ccd23dc917a",
-  "contract_version": 2,
+  "contract_sha256": "71e41896345d8d4dba4e913fc5d717e3ff7ad39c3d52bf57c124f55349e5a1ef",
+  "contract_version": 3,
   "executable_identity": {
-    "commit": "4ae6df00465c8bc3c325cf0149a97721c6f01fab",
-    "image_id": "sha256:563d0b9f5aa65daae8da42960bfd45c08efece514c3a26c44f0a41b9501fccef",
+    "commit": "6afe0765abb9be5202f4ea479b6bea483ac4d330",
+    "image_id": "sha256:234fe49fc82ee5604dd9face73909aff3e252648f9ba908906b3878a6575eacf",
     "image_tag": "experiment-v4-hitl-complement",
     "note": "Identidad ejecutable PROPIA de H (GD-27). NO es la de A/B/C: la imagen histórica sha256:55bc923e… es anterior al runner de H y no lo contiene. Mismo Dockerfile y mismas constraints; pip freeze verificado idéntico al histórico."
   },
@@ -61,8 +61,18 @@
     "performed": true,
     "result": "El paquete se regeneró desde las mismas entradas congeladas y resultó idéntico byte a byte (cmp)."
   },
-  "frozen_at_utc": "2026-09-21T12:43:51.209505Z",
+  "frozen_at_utc": "2026-09-21T16:43:35.079930Z",
   "state": "FROZEN_AWAITING_HUMAN_RESPONSE",
   "declaration": "Al momento de este registro no se le mostró nada al operador y no se observó ningún resultado de H. El cegamiento del paquete es PARCIAL y está declarado como tal.",
-  "package_hash_stability_note": "El package_sha256 es idéntico al producido sobre el commit 547c1a9: los cambios posteriores afectaron sólo a pruebas y a un campo descriptivo de los invariantes, no al contenido del paquete. Se deja constancia porque demuestra que el paquete no depende de esos cambios."
+  "superseded_packages": [
+    {
+      "contract_version": 1,
+      "package_sha256": "a9d0ee2d57d5212794ae2ac9e976212cbabd81c38fabd01073cc626d7e3cef29"
+    },
+    {
+      "contract_version": 2,
+      "package_sha256": "29afedc9d951b332f61ed48bd8aada2bb30467b0c082db24489b5f9bcd9cdea8"
+    }
+  ],
+  "superseded_packages_note": "Ninguna versión anterior se mostró al operador ni produjo evidencia: quedaron descartadas por hallazgos de crítica independiente antes de la pausa humana. Se listan sus hashes para que sea verificable que no se usó ninguna de ellas."
 }
