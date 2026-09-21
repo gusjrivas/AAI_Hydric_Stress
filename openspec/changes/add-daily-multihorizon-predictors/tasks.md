@@ -26,6 +26,6 @@
 - [ ] 8.2 Repetir la regresión t+3 y la verificación v3/v4 al integrar entrenamiento,
       calibración y gate de porcentajes.
 - [ ] 9. Registrar evidencia y actualizar canon solo al completar implementación.
-- [ ] 10. Implementar diagnósticos directos por intervalo e incertidumbre temporal con límites simultáneos; comprobarlos con fixtures de calibración conocida y mala calibración.
+- [x] 10. Implementar diagnósticos directos por intervalo e incertidumbre temporal con límites simultáneos; comprobarlos con fixtures de calibración conocida y mala calibración.
 - [ ] 11. Probar mejora de Brier sin aprobación directa, banda amplia, plan incompleto, soporte insuficiente, ventanas inestables y rango sin respaldo.
 - [ ] 12. Publicar informe reproducible por horizonte con fechas, predicciones, conteos, intervalos, comparación de referencias y límites de generalización.
