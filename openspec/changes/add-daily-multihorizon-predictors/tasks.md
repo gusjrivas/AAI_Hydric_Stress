@@ -18,7 +18,7 @@
       entrega (no pedido por el alcance acordado).
 - [x] 4.1 Probar que modificar un valor futuro no altera entradas de inferencia
       anteriores y solo cambia el target que corresponde.
-- [ ] 4.2 Probar que modificar valores futuros no altera la inferencia previa de los
+- [x] 4.2 Probar que modificar valores futuros no altera la inferencia previa de los
       bundles entrenados.
 - [x] 5.1 Probar gaps, targets faltantes, unidades e incompatibilidades entre
       contratos por horizonte.
@@ -38,3 +38,5 @@
       `tests/test_calibration_assessment.py`; los demás ya estaban cubiertos por
       `test_final_decision_*` y por `tests/test_calibration_manifest.py`).
 - [ ] 12. Publicar informe reproducible por horizonte con fechas, predicciones, conteos, intervalos, comparación de referencias y límites de generalización.
+
+- [x] 3.1 Cargar bundles persistidos sin reajuste, verificando archivos, entorno, sensor, horizonte, unidades y features; probar corrupción, fechas y faltantes con modelos sintéticos ajustados.

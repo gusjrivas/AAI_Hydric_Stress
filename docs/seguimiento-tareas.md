@@ -1,5 +1,30 @@
 # Seguimiento de tareas — plan de proyecto vs. estado real del repo
 
+## 2026-09-21 — Emisión v2 conectada a Mi cultivo (HU2/HU4/HU5/HU6)
+
+Capacidades data-ingestion, predictive-modeling, human-feedback,
+architecture-integration y alerting-ui; CRISP-DM despliegue/integración.
+Se agrega carga verificada de bundles y predicción sin reajuste, POST de emisión
++1/+2/+3 con snapshot, persistencia atómica/replay HTTP y consulta explícita desde
+Mi cultivo. Conserva fechas reales, fallos parciales, contratos de éxitos previos,
+reserva demo y revisión humana. No modifica hipótesis ni arquitectura: el adaptador
+local sobre los artefactos exportados es intermedio; registro/activación MLflow
+continúa pendiente conforme a ADR-0013.
+
+Verificación: frontend 136 tests + lint/build; datos/modelado afectados 97 tests;
+backend completo 100 tests. Tras reforzar carga/contrato y diferir dependencias,
+19 tests específicos (7 HTTP + 12 inferencia) nuevamente correctos. Dos changes
+OpenSpec estrictos válidos, diff check limpio y Compose transmite bundle root.
+Pruebas con modelos efectivamente ajustados sobre fixtures sintéticos. No se
+entrenó con datos reales ni se abrió ningún holdout; manifiestos intactos.
+
+Porcentajes siguen null hasta implementar el gate compatible de evidencia/rango.
+Navegador pendiente por fallo de inicio del controlador (deny-read ACLs), sin
+atribuir inspección visual a tests DOM. Persisten tareas de despliegue real,
+assessment, resumen/recalibración y cierre integral del PR #207; no se declara
+CI verde ni cierre científico HU7/HU8. Aporte a memoria: capítulo 3.
+Detalle: [producer-ui-emission-integration.md](design/producer-ui-emission-integration.md).
+
 ## 2026-09-21 — Integración aislada UI/backend para productor (HU6)
 
 HU2/HU4/HU5/HU6; capacidades data-ingestion, predictive-modeling,

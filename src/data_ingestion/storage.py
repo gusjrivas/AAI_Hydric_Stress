@@ -169,6 +169,7 @@ class DatasetSnapshot:
     dataframe: pd.DataFrame
     dataset_sha256: str
     cache_fingerprint: tuple[float, int]
+    content: bytes = b""
 
 
 def load_dataset_snapshot(
@@ -208,6 +209,7 @@ def load_dataset_snapshot(
         dataframe=dataframe,
         dataset_sha256=digest.hexdigest(),
         cache_fingerprint=fingerprint_after,
+        content=content,
     )
 
 

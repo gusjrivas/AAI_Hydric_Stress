@@ -18,13 +18,15 @@ Layout written under `output_dir`:
     horizon_<h>/predictions.csv         per seed/date: raw, calibrated, persistence, outcome
     horizon_<h>/baseline_comparisons.csv
     horizon_<h>/support_results.csv
-    horizon_<h>/model_seed<deployment_seed>.joblib
-    horizon_<h>/calibrator_seed<deployment_seed>.joblib
+    horizon_<h>/model.joblib
+    horizon_<h>/calibrator.joblib
+    horizon_<h>/bundle.json    load contract, feature configuration and file digests
 """
 
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import platform
 import subprocess
@@ -36,7 +38,11 @@ from typing import Any
 
 import joblib
 
-from predictive_modeling.operational_run import OperationalRunResult
+from predictive_modeling.operational_run import (
+    DEFAULT_LAGS,
+    DEFAULT_ROLLING_WINDOWS,
+    OperationalRunResult,
+)
 
 TRACKED_PACKAGES = ("scikit-learn", "pandas", "numpy", "pyarrow")
 
@@ -300,6 +306,25 @@ def persist_operational_run(
         )
         joblib.dump(deployment_fit.model, horizon_dir / "model.joblib")
         joblib.dump(deployment_fit.calibrator, horizon_dir / "calibrator.joblib")
+        # Last-written marker: incomplete exports have no loadable bundle.
+        # 0.5 is the existing operational alert threshold; never selected on test.
+        _write_json(
+            horizon_dir / "bundle.json",
+            {
+                "format_version": 1,
+                "contract": horizon_result.contract.to_dict(),
+                "feature_columns": list(result.feature_columns),
+                "feature_names": list(horizon_result.feature_names),
+                "lags": list(DEFAULT_LAGS),
+                "rolling_windows": list(DEFAULT_ROLLING_WINDOWS),
+                "decision_threshold": 0.5,
+                "environment": environment,
+                "files": {
+                    name: hashlib.sha256((horizon_dir / name).read_bytes()).hexdigest()
+                    for name in ("model.joblib", "calibrator.joblib", "contract.json")
+                },
+            },
+        )
 
     (output_dir / "report.md").write_text(
         _build_report(

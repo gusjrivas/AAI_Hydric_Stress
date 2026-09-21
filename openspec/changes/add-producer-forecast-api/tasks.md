@@ -6,7 +6,7 @@
 - [x] 1.3a Implementar identidad, persistencia transaccional e idempotencia
       del repositorio operacional v2 por sensor (tandas y emisiones).
 - [ ] 1.3b Integrar snapshot real de lecturas y emisión de tres horizontes
-      desde el modelo (pendiente: emisión real HU4 fuera de esta entrega).
+      desde el modelo (código y fixtures completos en 1.3b-i; despliegue y evidencia real pendientes en 1.3b-ii).
 - [x] 1.4 Integrar revisión humana (GET/GET/POST /forecasts) y listado
       persistente de pendientes (pending_total, reviewable_pending_total).
 - [ ] 1.5 Integrar resumen, procedencia, fechas, frescura y linaje.
@@ -37,3 +37,11 @@
 
 - [x] 1.14 Implementar identidad y transaccion operacional por sensor segun decisiones del 2026-09-20; probar concurrencia, caidas y replay.
 - [x] 1.15 Aplicar reserva permanente demo- a mutaciones operacionales v2; probar estados, ausencia de manifiesto y compatibilidad legacy.
+
+- [x] 1.3b-i Conectar snapshot capturado, bundles persistidos e inferencia a POST
+      de emisión; persistir snapshot, contratos, resultados y replay HTTP en una
+      transacción; probar fallos parciales, conflicto, almacenamiento y reviews
+      con modelos ajustados sobre fixtures sintéticos.
+- [ ] 1.3b-ii Completar despliegue/registro de bundles y evidencia operacional real,
+      incluyendo gate de porcentajes por dominio/rango y revisión de navegador.
+      El adaptador actual carga un directorio local administrado; no registra en MLflow.

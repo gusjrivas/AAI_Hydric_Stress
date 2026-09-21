@@ -5,6 +5,7 @@ validación, reusando `data_ingestion.sensor_naming.validate_sensor_id`.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fastapi import Depends, HTTPException
@@ -45,3 +46,8 @@ def require_producer_v2_enabled(
 ) -> None:
     if not enabled:
         raise HTTPException(status_code=404, detail="Not Found")
+
+
+def get_producer_bundle_root(data_dir: Path = Depends(get_dataset_data_dir)) -> Path:
+    """Administrator-controlled deployment directory; never a client-supplied path."""
+    return Path(os.environ.get("PRODUCER_BUNDLE_ROOT", str(data_dir / "operational_bundles")))

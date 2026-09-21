@@ -87,6 +87,14 @@ Resumen. No levantar otro stack con el mismo nombre/puertos mientras estén en u
 Para desactivar la fachada v2, restablecer false y recrear backend; los archivos
 persistidos no se borran. Registrar sensores no crea mediciones ni pronósticos.
 
+## Avance posterior: emisión conectada
+
+Se implementaron carga de bundles, inferencia +1/+2/+3, POST transaccional y botón
+en Mi cultivo; detalle y pruebas en [producer-ui-emission-integration.md](producer-ui-emission-integration.md).
+La lista siguiente describe el alcance de cierre; el punto 2 ya cuenta con código
+probado sobre modelos/datos sintéticos, pero sigue pendiente desplegar los bundles
+con su evidencia operacional real. El PR permanece en borrador.
+
 ## Condiciones pendientes para cerrar y mergear
 
 1. **Resuelto:** incorporado el orquestador publicado en `b573088`; verificadas

@@ -1,38 +1,23 @@
-"""Repositorio operacional v2 de emisiones y revisiones humanas, separado
-por sensor (HU4/HU5/HU6; capacidades predictive-modeling, human-feedback y
-architecture-integration). Ver
-`docs/design/backend-producer-ui-emission-dependencies.md` y
-`openspec/changes/extend-dated-alert-feedback/`.
-
-Alcance de esta entrega: identidad determinista de tandas y emisiones,
-inmutabilidad de éxitos, revisiones append-only, idempotencia persistente,
-control optimista de revisiones y exclusión entre procesos. La emisión
-real desde modelos permanece fuera de alcance (HU4 pendiente); por eso
-`record_batch` no se expone por HTTP en esta entrega y solo existe para
-sembrar fixtures en pruebas aisladas (ver AGENTS.md, sección "Datos y
-emisiones").
-
-Limitación documentada: esta PoC no persiste los bytes del snapshot de
-lecturas (eso pertenece a la futura emisión real); `snapshot_id` es un
-hash opaco provisto por quien registra la tanda. La detección de cambio
-de snapshot para una misma clave (`issued_snapshot_conflict`) sí está
-implementada porque no depende de esos bytes.
+"""Atomic operational forecasts and human reviews, isolated per sensor (HU4/HU5/HU6).
+emit_snapshot commits captured input bytes, forecasts and HTTP replay together.
+record_batch remains the lower-level entry used by isolated tests.
+See docs/design/backend-producer-ui-emission-dependencies.md.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Iterator, Sequence
-from contextlib import contextmanager
+from collections.abc import Callable, Iterator, Sequence
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from data_ingestion.sensor_naming import validate_sensor_id
-from data_ingestion.storage import atomic_write_bytes, interprocess_lock
+from data_ingestion.storage import StorageLockTimeout, atomic_write_bytes, interprocess_lock
 from predictive_modeling.operational_contract import OPERATIONAL_CONTRACT_VERSION
 from predictive_modeling.operational_preparation import SUPPORTED_HORIZONS
 
@@ -118,9 +103,7 @@ def _parse_iso_z(value: str) -> datetime:
 
 @dataclass(frozen=True)
 class SlotSeed:
-    """Entrada de siembra para un horizonte de una tanda (uso exclusivo de
-    fixtures de prueba aisladas; no proviene de un endpoint público).
-    """
+    """Resultado de un horizonte, producido por inferencia o por fixtures aislados."""
 
     horizon_days: int
     status: str  # "available" | "unavailable"
@@ -221,10 +204,20 @@ class OperationalRepository:
             ) from error
 
     @contextmanager
-    def _locked_document(self) -> Iterator[dict[str, Any]]:
+    def _locked_document(self, *, timeout: float = 10.0) -> Iterator[dict[str, Any]]:
         try:
-            with interprocess_lock(self.lock_path):
+            with interprocess_lock(self.lock_path, timeout=timeout):
                 yield self._read()
+        except StorageLockTimeout as error:
+            if timeout == 0:
+                raise OperationalRepositoryError(
+                    "operation_in_progress", "Hay otra operación en curso. Reintentá.", 409
+                ) from error
+            raise OperationalRepositoryError(
+                "operational_storage_unavailable",
+                "No se pudo bloquear el repositorio operacional.",
+                503,
+            ) from error
         except OperationalRepositoryError:
             raise
         except OSError as error:
@@ -234,7 +227,7 @@ class OperationalRepository:
                 503,
             ) from error
 
-    # -- Emisión (solo fixtures de prueba; sin endpoint público) --------
+    # -- Persistencia de resultados de inferencia y fixtures aislados --------
 
     def record_batch(
         self,
@@ -248,6 +241,7 @@ class OperationalRepository:
         idempotency_key: str,
         contract_version: str = OPERATIONAL_CONTRACT_VERSION,
         now: datetime,
+        _document: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         if not idempotency_key:
             raise OperationalRepositoryError(
@@ -292,7 +286,8 @@ class OperationalRepository:
         }
         request_hash = _request_hash(request_payload)
 
-        with self._locked_document() as document:
+        context = self._locked_document() if _document is None else nullcontext(_document)
+        with context as document:
             idem_store = document["idempotency"]["emission"]
             existing_idem = idem_store.get(idempotency_key)
             if existing_idem is not None:
@@ -383,8 +378,88 @@ class OperationalRepository:
             }
             document["batches"][batch_id] = batch_record
             idem_store[idempotency_key] = {"request_hash": request_hash, "batch_id": batch_id}
-            self._write(document)
+            if _document is None:
+                self._write(document)
             return self._render_batch(document, batch_id, now)
+
+    def emit_snapshot(
+        self, *, idempotency_key: str, capture: Callable, predict: Callable, now: datetime
+    ) -> tuple[int, dict[str, Any]]:
+        """One lock and one atomic commit for snapshot, forecasts and HTTP replay.
+
+        Capture/predict are invoked only after replay lookup. A process crash
+        before the atomic write commits neither an emission nor an HTTP success.
+        """
+        if not idempotency_key or len(idempotency_key) > 128:
+            raise OperationalRepositoryError("invalid_idempotency_key", "Clave inválida.", 422)
+        if is_demo_reserved(self.sensor_id):
+            raise _demo_write_locked()
+        with self._locked_document(timeout=0) as document:
+            requests = document["idempotency"].setdefault("http_emission", {})
+            if idempotency_key in requests:
+                previous = requests[idempotency_key]
+                return previous["status_code"], previous["response"]
+            captured = capture()
+            if captured is None:
+                body = {
+                    "batch_id": None,
+                    "revision": 0,
+                    "sensor_id": self.sensor_id,
+                    "contract_version": OPERATIONAL_CONTRACT_VERSION,
+                    "as_of_date": None,
+                    "issued_at": None,
+                    "snapshot_id": None,
+                    "data_age_days": None,
+                    "provenance": "unknown",
+                    "slots": [
+                        {
+                            "horizon_days": h,
+                            "target_date": None,
+                            "status": "unavailable",
+                            "reason_code": "no_readings",
+                            "forecast_id": None,
+                            "review": None,
+                        }
+                        for h in SUPPORTED_HORIZONS
+                    ],
+                }
+                status_code = 200
+            else:
+                values = captured["batch"]
+                batch_id = compute_batch_id(
+                    self.sensor_id, values["as_of_date"], OPERATIONAL_CONTRACT_VERSION
+                )
+                existing = document["batches"].get(batch_id)
+                if existing and existing["snapshot_id"] != values["snapshot_id"]:
+                    raise OperationalRepositoryError(
+                        "issued_snapshot_conflict", "Los datos del día ya emitido cambiaron.", 409
+                    )
+                missing = [
+                    h
+                    for h in SUPPORTED_HORIZONS
+                    if not existing or existing["slots"][str(h)]["status"] != "available"
+                ]
+                if missing:
+                    slots = predict(captured, missing)
+                    body = self.record_batch(
+                        **values,
+                        slots=slots,
+                        idempotency_key=idempotency_key,
+                        issued_at=now,
+                        now=now,
+                        _document=document,
+                    )
+                    artifact = captured["artifact"]
+                    previous_bundles = (existing or {}).get("input_snapshot", {}).get("bundles", {})
+                    artifact["bundles"] = {**previous_bundles, **artifact.get("bundles", {})}
+                    document["batches"][batch_id]["input_snapshot"] = artifact
+                else:
+                    body = self._render_batch(document, batch_id, now)
+                status_code = 200 if existing else 201
+            body.update(calendar_timezone="UTC", server_today=now.date().isoformat())
+            requests[idempotency_key] = {"status_code": status_code, "response": body}
+            self._write(document)
+            return status_code, body
 
     def _render_batch(
         self, document: dict[str, Any], batch_id: str, now: datetime
@@ -397,7 +472,9 @@ class OperationalRepository:
                 slots.append(
                     {
                         "horizon_days": horizon,
-                        "target_date": None,
+                        "target_date": (
+                            date.fromisoformat(batch["as_of_date"]) + timedelta(days=horizon)
+                        ).isoformat(),
                         "status": "unavailable",
                         "reason_code": slot["reason_code"],
                         "forecast_id": None,

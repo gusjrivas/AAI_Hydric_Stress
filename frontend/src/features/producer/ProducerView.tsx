@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { SectorSensorPicker } from "./SectorSensorPicker";
 import { ProducerHistoryPanel } from "./ProducerHistoryPanel";
+import { EmissionPanel } from "./EmissionPanel";
 import { ForecastsSection } from "./ForecastsSection";
 import type { SensorSummary } from "./catalogApi";
 import "./ProducerView.css";
@@ -10,6 +11,7 @@ import "./ProducerView.css";
  * catálogo v2, mediciones históricas y consulta/revisión de pronósticos.
  */
 export function ProducerView() {
+  const [forecastRefresh, setForecastRefresh] = useState(0);
   const [sensor, setSensor] = useState<SensorSummary | null>(null);
   const handleSelect = useCallback((selected: SensorSummary | null) => {
     setSensor(selected);
@@ -34,8 +36,9 @@ export function ProducerView() {
 
       {sensor ? (
         <>
+          <EmissionPanel key={sensor.sensor_id} sensorId={sensor.sensor_id} onChanged={() => setForecastRefresh((value) => value + 1)} />
           <ProducerHistoryPanel sensorId={sensor.sensor_id} />
-          <ForecastsSection sensorId={sensor.sensor_id} />
+          <ForecastsSection key={`${sensor.sensor_id}:${forecastRefresh}`} sensorId={sensor.sensor_id} />
         </>
       ) : (
         <p role="status">Elegí un punto de medición para ver su historial y sus pronósticos.</p>

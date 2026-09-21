@@ -16,9 +16,9 @@ import {
 import type { Forecast, ReviewAction } from "./forecastsApi";
 
 const HORIZON_LABELS: Record<1 | 2 | 3, string> = {
-  1: "Mañana (+1 día)",
-  2: "Pasado mañana (+2 días)",
-  3: "En 3 días (+3 días)",
+  1: "1 día después de la medición",
+  2: "2 días después de la medición",
+  3: "3 días después de la medición",
 };
 
 function reviewActionCopy(forecast: Forecast): Record<ReviewAction, string> {

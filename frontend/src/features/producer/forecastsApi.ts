@@ -278,3 +278,25 @@ export function displayProbability(forecast: Forecast): string {
   if (forecast.display_probability === null) return "Probabilidad no disponible";
   return `${Math.round(forecast.display_probability * 100)} %`;
 }
+
+export type ForecastSlot = (Forecast & { status: "available" }) | { horizon_days: 1 | 2 | 3; target_date: string | null; status: "unavailable"; reason_code: string };
+export interface ForecastBatch {
+  batch_id: string | null; revision: number; as_of_date: string | null;
+  data_age_days: number | null; server_today: string; slots: ForecastSlot[];
+}
+export async function emitForecasts(sensorId: string, requestId: string): Promise<ForecastBatch> {
+  const response = await fetch(forecastsPath(sensorId), {
+    method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": requestId }, body: "{}",
+  });
+  if (response.ok) return response.json();
+  const error = await readErrorEnvelope(response);
+  const messages: Record<string, string> = {
+    issued_snapshot_conflict: "Las mediciones de ese día cambiaron. Conservamos el pronóstico anterior; hace falta revisar los datos.",
+    demo_write_locked: "Este punto pertenece a la demostración anterior y no permite generar pronósticos aquí.",
+    future_readings: "Hay mediciones con fechas futuras. Revisá sus fechas antes de continuar.",
+    invalid_calendar: "Hay fechas de medición inconsistentes. Es necesario revisarlas.",
+    sensor_not_found: "Este punto de medición ya no está disponible.",
+  };
+  if (response.status === 404 && !error) throw new ProducerV2UnavailableError();
+  throw new Error(messages[error?.code ?? ""] ?? "No pudimos recuperar el resultado. Reintentá para consultar el mismo pedido.");
+}

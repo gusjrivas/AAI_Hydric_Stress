@@ -157,12 +157,7 @@ function ForecastList({
   );
 }
 
-/**
- * Pronósticos y revisión humana de un sensor (contrato v2). Todavía no
- * existe generación real de emisiones: sin registros del backend, se
- * muestra el vacío honesto, nunca datos inventados ni un botón para
- * generar pronósticos de ejemplo.
- */
+/** Historial y pendientes persistidos; la emisión explícita está en EmissionPanel. */
 export function ForecastsSection({ sensorId }: { sensorId: string }) {
   const historyFeed = useForecastFeed(sensorId);
   const pendingFeed = useForecastFeed(sensorId, "pending");

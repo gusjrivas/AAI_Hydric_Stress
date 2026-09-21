@@ -6,10 +6,12 @@ import base64
 import binascii
 import json
 from datetime import date, datetime, timezone
+from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Header, Query, Response, status
 
+from architecture_integration.producer_emission import emit_forecasts
 from data_ingestion.catalog import CatalogError, CatalogRepository
 from data_ingestion.history import query_readings
 from human_feedback.operational_repository import (
@@ -20,10 +22,13 @@ from human_feedback.operational_repository import (
 from ..dependencies import (
     get_catalog_repository,
     get_operational_repository,
+    get_producer_bundle_root,
     require_producer_v2_enabled,
 )
 from ..schemas_v2 import (
+    EmissionRequest,
     ErrorResponse,
+    ForecastBatchResponse,
     ForecastListResponse,
     ForecastResponse,
     ForecastReview,
@@ -365,3 +370,31 @@ def create_review(
         now=datetime.now(timezone.utc),
     )
     return ForecastReview(**review)
+
+
+@router.post(
+    "/sensors/{sensor_id}/forecasts",
+    response_model=ForecastBatchResponse,
+    status_code=201,
+    responses={**ERROR_RESPONSES, 200: {"model": ForecastBatchResponse}},
+)
+def create_forecasts(
+    sensor_id: str,
+    payload: EmissionRequest,
+    response: Response,
+    idempotency_key: str = Header(min_length=1, max_length=128),
+    catalog: CatalogRepository = Depends(get_catalog_repository),
+    repository: OperationalRepository = Depends(get_operational_repository),
+    bundle_root: Path = Depends(get_producer_bundle_root),
+) -> ForecastBatchResponse:
+    if not catalog.sensor_exists(sensor_id):
+        raise OperationalRepositoryError("sensor_not_found", "Punto de medición desconocido.", 404)
+    status_code, body = emit_forecasts(
+        repository,
+        data_dir=catalog.data_dir,
+        bundle_root=bundle_root,
+        idempotency_key=idempotency_key,
+        now=datetime.now(timezone.utc),
+    )
+    response.status_code = status_code
+    return ForecastBatchResponse(**body)

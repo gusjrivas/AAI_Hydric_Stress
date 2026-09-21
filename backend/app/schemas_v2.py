@@ -241,3 +241,45 @@ class ErrorBody(StrictModel):
 
 class ErrorResponse(StrictModel):
     error: ErrorBody
+
+
+class EmissionRequest(StrictModel):
+    pass
+
+
+class AvailableForecastSlot(ForecastResponse):
+    status: Literal["available"]
+    reason_code: None = None
+
+
+class UnavailableForecastSlot(StrictModel):
+    horizon_days: Literal[1, 2, 3]
+    target_date: date | None
+    status: Literal["unavailable"]
+    reason_code: str
+    forecast_id: None = None
+    alert: None = None
+    score: None = None
+    score_kind: None = None
+    display_probability: None = None
+    probability_status: None = None
+    probability_reason_code: None = None
+    decision_threshold: None = None
+    event_threshold: None = None
+    model_reference: None = None
+    review: None = None
+
+
+class ForecastBatchResponse(StrictModel):
+    batch_id: str | None
+    revision: int
+    sensor_id: str
+    contract_version: str
+    as_of_date: date | None
+    issued_at: datetime | None
+    snapshot_id: str | None
+    calendar_timezone: Literal["UTC"]
+    server_today: date
+    data_age_days: int | None
+    provenance: Literal["real", "synthetic", "mixed", "unknown"]
+    slots: list[AvailableForecastSlot | UnavailableForecastSlot] = Field(min_length=3, max_length=3)
