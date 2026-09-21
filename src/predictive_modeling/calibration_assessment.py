@@ -30,10 +30,22 @@ documentan aqui en vez de decidirse en silencio dentro de las specs):
   componente en cualquier alcance/bin de esa familia, la replica entera
   queda no evaluable para todos los alcances de esa llamada, no solo para
   el periodo o alcance donde ocurrio.
+- Los controles de Brier/log-loss (`compare_against_baselines`) reciben ya
+  calculadas las probabilidades calibrada, raw y de persistencia, y el
+  escalar de climatologia: este modulo no ajusta ni deriva ningun baseline
+  a partir de datos crudos (eso sigue siendo responsabilidad exclusiva del
+  llamador, incluida la causalidad de `raw`/`persistence` y que
+  `climatology_probability` provenga solo de `partitions.train`). Lo que
+  el modulo SI garantiza es que las tres series de probabilidad y los
+  resultados compartan exactamente el mismo conjunto de fechas antes de
+  comparar nada (`build_baseline_comparison_inputs`), y que la decision
+  final nunca sea `passed` con un control ausente, un alcance requerido
+  incompleto o un valor no finito.
 """
 
 from __future__ import annotations
 
+import math
 import random
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -594,6 +606,7 @@ class EvaluationConfig:
     nominal_level: float
     epsilon_ece: float
     epsilon_bin: float
+    log_loss_clipping_epsilon: float
 
     @classmethod
     def from_manifest(cls, manifest: Mapping[str, object]) -> EvaluationConfig:
@@ -602,6 +615,7 @@ class EvaluationConfig:
         coverage = manifest["coverage"]
         uncertainty = manifest["uncertainty"]
         tolerances = manifest["tolerances"]
+        log_loss = manifest["log_loss"]
         return cls(
             bin_count=probability_bins["count"],
             include_one_in_last=probability_bins["include_one_in_last"],
@@ -615,4 +629,321 @@ class EvaluationConfig:
             nominal_level=uncertainty["nominal_level"],
             epsilon_ece=tolerances["epsilon_ece"],
             epsilon_bin=tolerances["epsilon_bin"],
+            log_loss_clipping_epsilon=log_loss["clipping_epsilon"],
         )
+
+
+# ---------------------------------------------------------------------------
+# Brier / log-loss y controles adicionales frente a baselines
+# (design.md, "Evaluacion directa y dependencia temporal" y "Regla de
+# presentacion, por horizonte", punto 3)
+# ---------------------------------------------------------------------------
+
+
+def _require_finite_probability(value: object, name: str) -> None:
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        raise ValueError(f"{name} debe ser numerico.")
+    if not math.isfinite(value):
+        raise ValueError(f"{name} debe ser un valor finito.")
+    if not (0.0 <= value <= 1.0):
+        raise ValueError(f"{name} debe estar en [0, 1].")
+
+
+def _require_matching_probability_outcome_series(
+    probabilities: Sequence[float], outcomes: Sequence[int]
+) -> None:
+    if len(probabilities) == 0 or len(outcomes) == 0:
+        raise ValueError("probabilities/outcomes no pueden estar vacios.")
+    if len(probabilities) != len(outcomes):
+        raise ValueError("probabilities y outcomes deben tener la misma longitud.")
+    for probability in probabilities:
+        _require_finite_probability(probability, "probability")
+    for outcome in outcomes:
+        if outcome not in (0, 1):
+            raise ValueError("outcome debe ser 0 o 1.")
+
+
+def brier_score(probabilities: Sequence[float], outcomes: Sequence[int]) -> float:
+    """Brier = promedio de (probabilidad - resultado)^2. Entrada vacia,
+    desalineada o con valores no finitos/fuera de [0, 1] falla explicito
+    (nunca produce silenciosamente un puntaje que pueda leerse como
+    aprobacion)."""
+    _require_matching_probability_outcome_series(probabilities, outcomes)
+    n = len(outcomes)
+    return (
+        sum((probability - outcome) ** 2 for probability, outcome in zip(probabilities, outcomes))
+        / n
+    )
+
+
+def log_loss_score(
+    probabilities: Sequence[float], outcomes: Sequence[int], *, clipping_epsilon: float
+) -> float:
+    """Log-loss binario con clipping simetrico `clipping_epsilon` (mismo
+    valor para todos los comparadores, `log_loss.clipping_epsilon` del
+    manifiesto): evita log(0) sin ocultar fallos de un baseline."""
+    _require_matching_probability_outcome_series(probabilities, outcomes)
+    if isinstance(clipping_epsilon, bool) or not isinstance(clipping_epsilon, int | float):
+        raise ValueError("clipping_epsilon debe ser numerico.")
+    if not (0.0 < clipping_epsilon < 0.5):
+        raise ValueError("clipping_epsilon debe estar en (0, 0.5).")
+    n = len(outcomes)
+    total = 0.0
+    for probability, outcome in zip(probabilities, outcomes):
+        clipped = min(max(probability, clipping_epsilon), 1.0 - clipping_epsilon)
+        total += -(outcome * math.log(clipped) + (1 - outcome) * math.log(1.0 - clipped))
+    return total / n
+
+
+def climatology_probability_from_training(training_outcomes: Sequence[int]) -> float:
+    """Prevalencia observada EXCLUSIVAMENTE en `partitions.train`
+    (design.md: "climatologia ajustada en entrenamiento"). El llamador es
+    responsable de que `training_outcomes` provenga solo del tramo de
+    entrenamiento, nunca de calibracion o evaluacion."""
+    if len(training_outcomes) == 0:
+        raise ValueError("training_outcomes no puede estar vacio.")
+    for outcome in training_outcomes:
+        if outcome not in (0, 1):
+            raise ValueError("training_outcomes debe contener solo 0 o 1.")
+    return sum(training_outcomes) / len(training_outcomes)
+
+
+@dataclass(frozen=True)
+class BaselineComparisonInputs:
+    """Probabilidades calibrada, raw y de persistencia, junto con los
+    resultados observados, para UN alcance (horizonte, semilla, periodo).
+    `climatology_probability` es un escalar ya estimado solo en
+    entrenamiento (`climatology_probability_from_training`), no una serie
+    por fecha: la climatologia no varia por fecha de emision.
+
+    Construir con `build_baseline_comparison_inputs`, que verifica que las
+    tres series compartan EXACTAMENTE el mismo conjunto de fechas
+    (design.md: "comparar... sobre exactamente las mismas fechas") antes de
+    aceptar la entrada; instanciar este dataclass directamente con series
+    desalineadas o con fechas de mas/de menos falla en `__post_init__`.
+    """
+
+    horizon: int
+    seed: int
+    period_id: str
+    outcomes_by_date: Mapping[date, int]
+    calibrated_by_date: Mapping[date, float]
+    raw_by_date: Mapping[date, float]
+    persistence_by_date: Mapping[date, float]
+    climatology_probability: float
+
+    def __post_init__(self) -> None:
+        if not self.outcomes_by_date:
+            raise ValueError("outcomes_by_date no puede estar vacio.")
+        reference_dates = set(self.outcomes_by_date)
+        for name, series in (
+            ("calibrated_by_date", self.calibrated_by_date),
+            ("raw_by_date", self.raw_by_date),
+            ("persistence_by_date", self.persistence_by_date),
+        ):
+            if set(series) != reference_dates:
+                raise ValueError(
+                    f"{name} debe cubrir exactamente las mismas fechas que outcomes_by_date "
+                    "(fechas incompatibles entre calibrado/raw/persistencia/resultados)."
+                )
+            for probability in series.values():
+                _require_finite_probability(probability, name)
+        for outcome in self.outcomes_by_date.values():
+            if outcome not in (0, 1):
+                raise ValueError("outcomes_by_date debe contener solo 0 o 1.")
+        _require_finite_probability(self.climatology_probability, "climatology_probability")
+
+    @property
+    def sorted_dates(self) -> tuple[date, ...]:
+        return tuple(sorted(self.outcomes_by_date))
+
+    def aligned_outcomes(self) -> tuple[int, ...]:
+        dates = self.sorted_dates
+        return tuple(self.outcomes_by_date[day] for day in dates)
+
+    def aligned(self, series: Mapping[date, float]) -> tuple[float, ...]:
+        dates = self.sorted_dates
+        return tuple(series[day] for day in dates)
+
+
+def build_baseline_comparison_inputs(
+    *,
+    horizon: int,
+    seed: int,
+    period_id: str,
+    outcomes: Sequence[tuple[date, int]],
+    calibrated_probabilities: Sequence[tuple[date, float]],
+    raw_probabilities: Sequence[tuple[date, float]],
+    persistence_probabilities: Sequence[tuple[date, float]],
+    climatology_probability: float,
+) -> BaselineComparisonInputs:
+    """Arma `BaselineComparisonInputs` a partir de series (fecha, valor)
+    posiblemente en cualquier orden; rechaza fechas duplicadas dentro de
+    una misma serie y fechas que no coincidan exactamente entre series."""
+
+    def _to_mapping(name: str, series: Sequence[tuple[date, float | int]]) -> dict:
+        mapping: dict = {}
+        for day, value in series:
+            if day in mapping:
+                raise ValueError(f"{name} contiene la fecha {day} duplicada.")
+            mapping[day] = value
+        return mapping
+
+    return BaselineComparisonInputs(
+        horizon=horizon,
+        seed=seed,
+        period_id=period_id,
+        outcomes_by_date=_to_mapping("outcomes", outcomes),
+        calibrated_by_date=_to_mapping("calibrated_probabilities", calibrated_probabilities),
+        raw_by_date=_to_mapping("raw_probabilities", raw_probabilities),
+        persistence_by_date=_to_mapping("persistence_probabilities", persistence_probabilities),
+        climatology_probability=climatology_probability,
+    )
+
+
+@dataclass(frozen=True)
+class BaselineComparisonResult:
+    horizon: int
+    seed: int
+    period_id: str
+    n: int
+    brier_calibrated: float
+    brier_raw: float
+    brier_climatology: float
+    brier_persistence: float
+    log_loss_calibrated: float
+    log_loss_raw: float
+    log_loss_climatology: float
+    log_loss_persistence: float
+    ok: bool
+    reasons: tuple[str, ...]
+
+
+def compare_against_baselines(
+    inputs: BaselineComparisonInputs, *, clipping_epsilon: float
+) -> BaselineComparisonResult:
+    """Controles adicionales de utilidad (design.md, "Regla de
+    presentacion", punto 3): Brier calibrado < climatologia, Brier
+    calibrado <= raw, log-loss calibrado <= raw. Persistencia se calcula y
+    se reporta siempre, pero NUNCA participa de `ok`/`reasons`: no se
+    inventa un cuarto requisito de aprobacion a partir de ella.
+    """
+    outcomes = inputs.aligned_outcomes()
+    n = len(outcomes)
+    calibrated = inputs.aligned(inputs.calibrated_by_date)
+    raw = inputs.aligned(inputs.raw_by_date)
+    persistence = inputs.aligned(inputs.persistence_by_date)
+    climatology_series = (inputs.climatology_probability,) * n
+
+    brier_calibrated = brier_score(calibrated, outcomes)
+    brier_raw = brier_score(raw, outcomes)
+    brier_climatology = brier_score(climatology_series, outcomes)
+    brier_persistence = brier_score(persistence, outcomes)
+    log_loss_calibrated = log_loss_score(calibrated, outcomes, clipping_epsilon=clipping_epsilon)
+    log_loss_raw = log_loss_score(raw, outcomes, clipping_epsilon=clipping_epsilon)
+    log_loss_climatology = log_loss_score(
+        climatology_series, outcomes, clipping_epsilon=clipping_epsilon
+    )
+    log_loss_persistence = log_loss_score(persistence, outcomes, clipping_epsilon=clipping_epsilon)
+
+    reasons: list[str] = []
+    if not (brier_calibrated < brier_climatology):
+        reasons.append("brier_not_better_than_climatology")
+    if not (brier_calibrated <= brier_raw):
+        reasons.append("brier_not_better_than_raw")
+    if not (log_loss_calibrated <= log_loss_raw):
+        reasons.append("log_loss_not_better_than_raw")
+
+    return BaselineComparisonResult(
+        horizon=inputs.horizon,
+        seed=inputs.seed,
+        period_id=inputs.period_id,
+        n=n,
+        brier_calibrated=brier_calibrated,
+        brier_raw=brier_raw,
+        brier_climatology=brier_climatology,
+        brier_persistence=brier_persistence,
+        log_loss_calibrated=log_loss_calibrated,
+        log_loss_raw=log_loss_raw,
+        log_loss_climatology=log_loss_climatology,
+        log_loss_persistence=log_loss_persistence,
+        ok=not reasons,
+        reasons=tuple(reasons),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Decision final: diagnostico parcial de calibracion vs. aprobacion completa
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class HorizonFinalDecision:
+    """Diferencia explicitamente el diagnostico PARCIAL de calibracion
+    (`calibration_diagnostic`, de `classify_horizon`: soporte + limite
+    simultaneo de ECE/error por bin) de la APROBACION final
+    (`final_result`), que ademas exige los controles de Brier/log-loss de
+    `baseline_comparisons` para cada alcance requerido."""
+
+    horizon: int
+    calibration_diagnostic: HorizonAssessment
+    baseline_comparisons: tuple[BaselineComparisonResult, ...]
+    final_result: str
+    reasons: tuple[str, ...]
+
+
+def make_final_decision(
+    horizon: int,
+    calibration_diagnostic: HorizonAssessment,
+    baseline_comparisons: Sequence[BaselineComparisonResult],
+    *,
+    required_scope_keys: Sequence[tuple[int, str]],
+) -> HorizonFinalDecision:
+    """`final_result` solo es `ASSESSMENT_PASSED` si TODOS los controles se
+    verificaron para TODOS los `required_scope_keys` (semilla, periodo):
+    ningun control ausente, alcance incompleto o incumplimiento puede
+    producir `passed` por omision.
+    """
+    baseline_comparisons = tuple(baseline_comparisons)
+
+    if calibration_diagnostic.assessment_result != ASSESSMENT_PASSED:
+        return HorizonFinalDecision(
+            horizon,
+            calibration_diagnostic,
+            baseline_comparisons,
+            calibration_diagnostic.assessment_result,
+            calibration_diagnostic.reasons or ("calibration_diagnostic_not_passed",),
+        )
+
+    present_keys = {(comparison.seed, comparison.period_id) for comparison in baseline_comparisons}
+    missing_keys = [key for key in required_scope_keys if key not in present_keys]
+    if missing_keys:
+        return HorizonFinalDecision(
+            horizon,
+            calibration_diagnostic,
+            baseline_comparisons,
+            ASSESSMENT_INSUFFICIENT_EVIDENCE,
+            ("missing_baseline_comparison_for_required_scope",),
+        )
+
+    required_set = set(required_scope_keys)
+    failing = [
+        comparison
+        for comparison in baseline_comparisons
+        if (comparison.seed, comparison.period_id) in required_set and not comparison.ok
+    ]
+    if failing:
+        combined_reasons = tuple(
+            sorted({reason for comparison in failing for reason in comparison.reasons})
+        )
+        return HorizonFinalDecision(
+            horizon,
+            calibration_diagnostic,
+            baseline_comparisons,
+            ASSESSMENT_FAILED,
+            combined_reasons,
+        )
+
+    return HorizonFinalDecision(
+        horizon, calibration_diagnostic, baseline_comparisons, ASSESSMENT_PASSED, ()
+    )

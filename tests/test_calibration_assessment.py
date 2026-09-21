@@ -10,6 +10,7 @@ duplicada solo dentro del test), y las pruebas de "texto" (en
 
 from __future__ import annotations
 
+import math
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -19,22 +20,30 @@ from predictive_modeling.calibration_assessment import (
     ASSESSMENT_FAILED,
     ASSESSMENT_INSUFFICIENT_EVIDENCE,
     ASSESSMENT_PASSED,
+    BaselineComparisonInputs,
     EvaluationConfig,
+    HorizonAssessment,
     ScopeFullStats,
     ScopeObservations,
     SupportCheckResult,
     TemporalBlocks,
     assign_bin_index,
     backed_bin_indices,
+    brier_score,
+    build_baseline_comparison_inputs,
     build_scope_full_stats,
     build_temporal_blocks,
     check_full_sample_support,
     classify_horizon,
+    climatology_probability_from_training,
+    compare_against_baselines,
     compute_bin_stats,
     compute_ece,
     compute_replicate_components,
     draw_block_replicate,
     ece_bin_inclusion_indices,
+    log_loss_score,
+    make_final_decision,
     run_joint_multiplicity_bootstrap,
     select_pairs_for_blocks,
 )
@@ -643,3 +652,353 @@ def test_engine_runs_end_to_end_with_the_real_manifest_parameters_unreduced():
         ASSESSMENT_INSUFFICIENT_EVIDENCE,
     }
     assert "no ofrece una garantia" in assessment.coverage_guarantee_caveat.lower()
+
+
+# ---------------------------------------------------------------------------
+# Brier / log-loss: casos calculables a mano
+# ---------------------------------------------------------------------------
+
+
+def test_brier_score_manual_case():
+    probabilities = [0.2, 0.8, 0.5]
+    outcomes = [0, 1, 1]
+    # A mano: ((0.2-0)^2 + (0.8-1)^2 + (0.5-1)^2) / 3 = (0.04+0.04+0.25)/3
+    assert brier_score(probabilities, outcomes) == pytest.approx((0.04 + 0.04 + 0.25) / 3)
+
+
+def test_log_loss_score_manual_case():
+    probabilities = [0.2, 0.8, 0.5]
+    outcomes = [0, 1, 1]
+    expected = (-math.log(0.8) + -math.log(0.8) + -math.log(0.5)) / 3
+    assert log_loss_score(probabilities, outcomes, clipping_epsilon=1e-15) == pytest.approx(
+        expected
+    )
+
+
+def test_log_loss_clipping_avoids_log_of_zero():
+    # Sin clipping, log(0) diverge; con epsilon=0.01 el resultado es finito
+    # y calculable a mano.
+    probabilities = [0.0, 1.0]
+    outcomes = [0, 1]
+    expected = (-math.log(1.0 - 0.01) + -math.log(1.0 - 0.01)) / 2
+    assert log_loss_score(probabilities, outcomes, clipping_epsilon=0.01) == pytest.approx(expected)
+
+
+def test_climatology_probability_from_training_manual_case():
+    assert climatology_probability_from_training([0, 1, 0, 1, 0, 1]) == pytest.approx(0.5)
+    assert climatology_probability_from_training([1, 1, 1, 0]) == pytest.approx(0.75)
+
+
+# ---------------------------------------------------------------------------
+# Brier/log-loss: entradas vacias, no finitas, fechas desalineadas
+# ---------------------------------------------------------------------------
+
+
+def test_brier_and_log_loss_reject_empty_or_misaligned_inputs():
+    with pytest.raises(ValueError):
+        brier_score([], [])
+    with pytest.raises(ValueError):
+        brier_score([0.5, 0.5], [0])  # longitudes distintas
+    with pytest.raises(ValueError):
+        brier_score([float("nan")], [0])
+    with pytest.raises(ValueError):
+        brier_score([1.5], [0])  # fuera de [0, 1]
+    with pytest.raises(ValueError):
+        log_loss_score([0.5], [2], clipping_epsilon=1e-15)  # outcome invalido
+    with pytest.raises(ValueError):
+        log_loss_score([0.5], [0], clipping_epsilon=0.6)  # fuera de (0, 0.5)
+    with pytest.raises(ValueError):
+        climatology_probability_from_training([])
+
+
+def test_build_baseline_comparison_inputs_rejects_misaligned_dates():
+    d0, d1, d2 = date(2024, 10, 19), date(2024, 10, 20), date(2024, 10, 21)
+    with pytest.raises(ValueError, match="fechas incompatibles"):
+        build_baseline_comparison_inputs(
+            horizon=1,
+            seed=0,
+            period_id="full",
+            outcomes=[(d0, 0), (d1, 1), (d2, 0)],
+            calibrated_probabilities=[(d0, 0.1), (d1, 0.9), (d2, 0.1)],
+            raw_probabilities=[(d0, 0.2), (d1, 0.8), (d2, 0.2)],
+            # persistencia tiene una fecha distinta (d2 reemplazada por otra):
+            # no cubre exactamente las mismas fechas que outcomes.
+            persistence_probabilities=[(d0, 0.5), (d1, 0.5), (date(2024, 10, 22), 0.5)],
+            climatology_probability=0.4,
+        )
+
+
+def test_build_baseline_comparison_inputs_rejects_duplicate_dates():
+    d0, d1 = date(2024, 10, 19), date(2024, 10, 20)
+    with pytest.raises(ValueError, match="duplicada"):
+        build_baseline_comparison_inputs(
+            horizon=1,
+            seed=0,
+            period_id="full",
+            outcomes=[(d0, 0), (d0, 1)],  # d0 repetida
+            calibrated_probabilities=[(d0, 0.1), (d1, 0.9)],
+            raw_probabilities=[(d0, 0.2), (d1, 0.8)],
+            persistence_probabilities=[(d0, 0.5), (d1, 0.5)],
+            climatology_probability=0.4,
+        )
+
+
+def test_baseline_comparison_inputs_rejects_empty_or_non_finite_values():
+    with pytest.raises(ValueError):
+        BaselineComparisonInputs(
+            horizon=1,
+            seed=0,
+            period_id="full",
+            outcomes_by_date={},
+            calibrated_by_date={},
+            raw_by_date={},
+            persistence_by_date={},
+            climatology_probability=0.5,
+        )
+    d0 = date(2024, 10, 19)
+    with pytest.raises(ValueError):
+        BaselineComparisonInputs(
+            horizon=1,
+            seed=0,
+            period_id="full",
+            outcomes_by_date={d0: 0},
+            calibrated_by_date={d0: float("nan")},
+            raw_by_date={d0: 0.2},
+            persistence_by_date={d0: 0.5},
+            climatology_probability=0.5,
+        )
+
+
+# ---------------------------------------------------------------------------
+# compare_against_baselines: calculo real, casos cumple/incumple
+# ---------------------------------------------------------------------------
+
+
+def _four_date_inputs(
+    *, calibrated: list[float], raw: list[float], persistence: list[float], climatology: float
+) -> BaselineComparisonInputs:
+    dates = [date(2024, 10, 19 + i) for i in range(4)]
+    outcomes = [0, 1, 0, 1]
+    return build_baseline_comparison_inputs(
+        horizon=1,
+        seed=0,
+        period_id="full",
+        outcomes=list(zip(dates, outcomes)),
+        calibrated_probabilities=list(zip(dates, calibrated)),
+        raw_probabilities=list(zip(dates, raw)),
+        persistence_probabilities=list(zip(dates, persistence)),
+        climatology_probability=climatology,
+    )
+
+
+def test_compare_against_baselines_passes_when_all_three_controls_hold():
+    inputs = _four_date_inputs(
+        calibrated=[0.05, 0.95, 0.05, 0.95],
+        raw=[0.4, 0.6, 0.4, 0.6],
+        persistence=[0.5, 0.5, 0.5, 0.5],
+        climatology=0.5,
+    )
+    result = compare_against_baselines(inputs, clipping_epsilon=1e-15)
+
+    # A mano: Brier_calibrado = ((0.05)^2*4)/4 = 0.0025
+    assert result.brier_calibrated == pytest.approx(0.0025)
+    assert result.brier_climatology == pytest.approx(0.25)  # (0.5^2 * 4) / 4
+    assert result.brier_calibrated < result.brier_climatology
+    assert result.brier_calibrated <= result.brier_raw
+    assert result.log_loss_calibrated <= result.log_loss_raw
+    assert result.ok
+    assert result.reasons == ()
+    assert result.n == 4
+    # Persistencia se reporta, pero nunca decide `ok`.
+    assert result.brier_persistence == pytest.approx(0.25)
+
+
+def test_compare_against_baselines_fails_when_raw_beats_calibrated():
+    """Calibracion aceptable en el sentido de ECE/soporte (ver el test de
+    integracion mas abajo) puede seguir fallando aqui: Brier/log-loss son
+    controles independientes, nunca sustituidos por el diagnostico de
+    calibracion."""
+    inputs = _four_date_inputs(
+        calibrated=[0.4, 0.6, 0.4, 0.6],  # peor que raw
+        raw=[0.1, 0.9, 0.1, 0.9],  # casi perfecto
+        persistence=[0.5, 0.5, 0.5, 0.5],
+        climatology=0.5,
+    )
+    result = compare_against_baselines(inputs, clipping_epsilon=1e-15)
+
+    assert result.brier_calibrated == pytest.approx(0.16)  # (0.4^2*4)/4
+    assert result.brier_raw == pytest.approx(0.01)  # (0.1^2*4)/4
+    assert not result.ok
+    assert "brier_not_better_than_raw" in result.reasons
+    assert "log_loss_not_better_than_raw" in result.reasons
+    # Si bate a la climatologia, ese control especifico no debe figurar.
+    assert "brier_not_better_than_climatology" not in result.reasons
+
+
+def test_compare_against_baselines_fails_when_worse_than_climatology_only():
+    inputs = _four_date_inputs(
+        calibrated=[
+            0.45,
+            0.45,
+            0.45,
+            0.45,
+        ],  # peor que climatologia (0.5 fijo iguala outcomes 50/50)
+        raw=[0.9, 0.9, 0.9, 0.9],  # aun peor: calibrado sigue ganandole a raw
+        persistence=[0.5, 0.5, 0.5, 0.5],
+        climatology=0.5,
+    )
+    result = compare_against_baselines(inputs, clipping_epsilon=1e-15)
+
+    assert not result.ok
+    assert "brier_not_better_than_climatology" in result.reasons
+    assert "brier_not_better_than_raw" not in result.reasons
+
+
+# ---------------------------------------------------------------------------
+# make_final_decision: diagnostico parcial vs. aprobacion final
+# ---------------------------------------------------------------------------
+
+
+def _passed_calibration_diagnostic() -> HorizonAssessment:
+    bootstrap_result = _deterministic_bootstrap_result()
+    return classify_horizon(
+        horizon=1,
+        support_results=[SupportCheckResult(ok=True, reasons=())],
+        bootstrap_result=bootstrap_result,
+        epsilon_ece=0.25,
+        epsilon_bin=0.25,
+    )
+
+
+def test_final_decision_passed_requires_calibration_and_all_baseline_controls():
+    calibration_diagnostic = _passed_calibration_diagnostic()
+    assert calibration_diagnostic.assessment_result == ASSESSMENT_PASSED
+
+    good_inputs = _four_date_inputs(
+        calibrated=[0.05, 0.95, 0.05, 0.95],
+        raw=[0.4, 0.6, 0.4, 0.6],
+        persistence=[0.5, 0.5, 0.5, 0.5],
+        climatology=0.5,
+    )
+    baseline_result = compare_against_baselines(good_inputs, clipping_epsilon=1e-15)
+    assert baseline_result.ok
+
+    decision = make_final_decision(
+        horizon=1,
+        calibration_diagnostic=calibration_diagnostic,
+        baseline_comparisons=[baseline_result],
+        required_scope_keys=[(0, "full")],
+    )
+    assert decision.final_result == ASSESSMENT_PASSED
+    assert decision.reasons == ()
+    assert decision.calibration_diagnostic is calibration_diagnostic
+    assert decision.baseline_comparisons == (baseline_result,)
+
+
+def test_final_decision_fails_when_calibration_passed_but_baselines_do_not():
+    """Diagnostico de calibracion aceptable (ECE/soporte dentro de
+    tolerancia) con Brier/log-loss incumplidos: la decision final debe
+    diferenciar ambos, no heredar 'passed' del diagnostico parcial."""
+    calibration_diagnostic = _passed_calibration_diagnostic()
+    assert calibration_diagnostic.assessment_result == ASSESSMENT_PASSED
+
+    bad_inputs = _four_date_inputs(
+        calibrated=[0.4, 0.6, 0.4, 0.6],
+        raw=[0.1, 0.9, 0.1, 0.9],
+        persistence=[0.5, 0.5, 0.5, 0.5],
+        climatology=0.5,
+    )
+    baseline_result = compare_against_baselines(bad_inputs, clipping_epsilon=1e-15)
+    assert not baseline_result.ok
+
+    decision = make_final_decision(
+        horizon=1,
+        calibration_diagnostic=calibration_diagnostic,
+        baseline_comparisons=[baseline_result],
+        required_scope_keys=[(0, "full")],
+    )
+    assert decision.final_result == ASSESSMENT_FAILED
+    assert "brier_not_better_than_raw" in decision.reasons
+    assert "log_loss_not_better_than_raw" in decision.reasons
+
+
+def test_final_decision_insufficient_evidence_when_a_required_scope_is_missing():
+    calibration_diagnostic = _passed_calibration_diagnostic()
+    good_inputs = _four_date_inputs(
+        calibrated=[0.05, 0.95, 0.05, 0.95],
+        raw=[0.4, 0.6, 0.4, 0.6],
+        persistence=[0.5, 0.5, 0.5, 0.5],
+        climatology=0.5,
+    )
+    baseline_result = compare_against_baselines(good_inputs, clipping_epsilon=1e-15)
+
+    # Se exige (seed=0, "full") Y (seed=1, "full"), pero solo se aporto
+    # el control de seed=0: alcance incompleto -> insufficient_evidence.
+    decision = make_final_decision(
+        horizon=1,
+        calibration_diagnostic=calibration_diagnostic,
+        baseline_comparisons=[baseline_result],
+        required_scope_keys=[(0, "full"), (1, "full")],
+    )
+    assert decision.final_result == ASSESSMENT_INSUFFICIENT_EVIDENCE
+    assert decision.reasons == ("missing_baseline_comparison_for_required_scope",)
+
+
+def test_final_decision_insufficient_evidence_when_no_baseline_controls_were_run():
+    """Controles ausentes por completo (lista vacia) nunca deben producir
+    passed, incluso si el diagnostico de calibracion es passed."""
+    calibration_diagnostic = _passed_calibration_diagnostic()
+    decision = make_final_decision(
+        horizon=1,
+        calibration_diagnostic=calibration_diagnostic,
+        baseline_comparisons=[],
+        required_scope_keys=[(0, "full")],
+    )
+    assert decision.final_result == ASSESSMENT_INSUFFICIENT_EVIDENCE
+    assert decision.final_result != ASSESSMENT_PASSED
+
+
+def test_final_decision_inherits_insufficient_evidence_from_calibration_diagnostic():
+    scope_stats, blocks = _identical_content_blocks(num_blocks=4, block_length_days=2)
+    bootstrap_result = run_joint_multiplicity_bootstrap(
+        {"full": [scope_stats]},
+        {"full": blocks},
+        replicates=20,
+        resampling_seed=1,
+        bin_count=10,
+        include_one_in_last=True,
+        minimum_class_count=1,
+        minimum_temporal_blocks=5,  # imposible: fuerza insufficient_evidence
+        minimum_bin_count=2,
+    )
+    calibration_diagnostic = classify_horizon(
+        horizon=1,
+        support_results=[SupportCheckResult(ok=True, reasons=())],
+        bootstrap_result=bootstrap_result,
+        epsilon_ece=0.25,
+        epsilon_bin=0.25,
+    )
+    assert calibration_diagnostic.assessment_result == ASSESSMENT_INSUFFICIENT_EVIDENCE
+
+    decision = make_final_decision(
+        horizon=1,
+        calibration_diagnostic=calibration_diagnostic,
+        baseline_comparisons=[],  # ni siquiera hace falta: se corta antes
+        required_scope_keys=[(0, "full")],
+    )
+    assert decision.final_result == ASSESSMENT_INSUFFICIENT_EVIDENCE
+    assert decision.reasons == ("insufficient_evidence_bootstrap",)
+
+
+# ---------------------------------------------------------------------------
+# EvaluationConfig: log_loss_clipping_epsilon desde el manifiesto real
+# ---------------------------------------------------------------------------
+
+
+def test_evaluation_config_exposes_the_real_log_loss_clipping_epsilon():
+    repo_root = Path(__file__).resolve().parents[1]
+    manifest = verify_frozen_calibration_manifest(
+        repo_root / "config" / "producer-calibration-plan.frozen.v3.json"
+    )
+    config = EvaluationConfig.from_manifest(manifest)
+    assert config.log_loss_clipping_epsilon == pytest.approx(1e-15)
