@@ -496,13 +496,22 @@ def _predict(model, frame: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
 
 @dataclass(frozen=True)
 class ArmResult:
-    """Resultado de evaluar un brazo sobre la ventana de 2022."""
+    """Resultado de evaluar un brazo sobre la ventana de 2022.
+
+    `predictions` transporta la predicción POR FECHA que el bloque padre del
+    diseño congelado exige entre los artefactos de protocolo («configuración,
+    commit/imagen/dependencias, hashes fuente/derivado, fechas, semillas,
+    **predicciones por fecha**, métricas, soporte, advertencias y límites»).
+    Sin ellas ninguna métrica publicada puede recomputarse sin reejecutar el
+    runner, que es justamente lo que el requisito evita (hallazgo F-01).
+    """
 
     arm: str
     model_id: str
     n_training_rows: int
     trained_through: str
     metrics: dict[str, Any]
+    predictions: pd.DataFrame = field(default_factory=pd.DataFrame, repr=False)
 
 
 def evaluate_arm(
@@ -521,12 +530,26 @@ def evaluate_arm(
         proba,
         feature_timestamps=pd.to_datetime(evaluation["feature_timestamp"]).to_numpy(),
     )
+    predictions = pd.DataFrame(
+        {
+            "feature_timestamp": pd.to_datetime(evaluation["feature_timestamp"]).dt.strftime(
+                "%Y-%m-%d"
+            ),
+            "target_timestamp": pd.to_datetime(evaluation["target_timestamp"]).dt.strftime(
+                "%Y-%m-%d"
+            ),
+            "y_true": evaluation["stress_label"].to_numpy(dtype=int),
+            "y_proba": proba,
+            "y_pred": predicted,
+        }
+    )
     return ArmResult(
         arm=arm,
         model_id=model_id,
         n_training_rows=int(n_training_rows),
         trained_through=trained_through,
         metrics=payload,
+        predictions=predictions,
     )
 
 
@@ -1273,6 +1296,7 @@ class TrackSeedResult:
     lineage: dict[str, Any] | None = None
     applied: dict[str, Any] = field(default_factory=dict)
     predecessor_preserved: bool = True
+    strata: dict[str, int] = field(default_factory=dict)
 
 
 def _delta(with_corrections: ArmResult, baseline: ArmResult, metric: str) -> dict[str, Any]:
@@ -1347,6 +1371,10 @@ def run_track_for_seed(
 
     try:
         events_frame = select_review_events(feedback, alerts_2021)
+        strata = {
+            scenario_identifier(position): int(row["model_alert"])
+            for position, (_, row) in enumerate(events_frame.iterrows(), start=1)
+        }
     except HitlNotEvaluableError as error:
         return TrackSeedResult(
             track=track,
@@ -1519,6 +1547,7 @@ def run_track_for_seed(
         },
         deltas=deltas,
         lineage=lineage_payload,
+        strata=strata,
         applied={
             "n_accept": applied.n_accept,
             "n_reject": applied.n_reject,
@@ -1647,6 +1676,101 @@ def _arm_to_json(arm: ArmResult) -> dict[str, Any]:
     }
 
 
+def build_feedback_events_index(
+    results: list[TrackSeedResult], strata_by_track_seed: dict[tuple[str, int], dict[str, int]]
+) -> list[dict[str, Any]]:
+    """Índice plano de los eventos con su semilla y su estrato.
+
+    Los artefactos de eventos repiten `scenario_id` entre semillas y no llevan
+    el campo `seed`, de modo que la semilla sólo se recuperaba por posición, y
+    la estratificación 10/10 sólo era verificable para la semilla del paquete
+    humano (hallazgos F-12 y F-13). Este índice cierra ambas cosas sin alterar
+    los artefactos ya emitidos.
+    """
+    index = []
+    for result in results:
+        strata = strata_by_track_seed.get((result.track, result.seed), {})
+        for event in result.events:
+            index.append(
+                {
+                    "event_id": event["event_id"],
+                    "scenario_id": event["scenario_id"],
+                    "track": result.track,
+                    "feedback_origin": result.origin,
+                    "seed": result.seed,
+                    "fecha": event["fecha"],
+                    "target_timestamp": event["target_timestamp"],
+                    "model_alert": strata.get(event["scenario_id"]),
+                    "recorded_label": event["recorded_label"],
+                    "reference_label": event["reference_label_available_to_runner"],
+                    "record_consistent_with_reference": (
+                        event["recorded_label"] == event["reference_label_available_to_runner"]
+                    ),
+                    "decision": event["decision"],
+                    "corrected_label": event["corrected_label"],
+                    "operator_role": event["operator_role"],
+                }
+            )
+    return index
+
+
+def build_agreement_analysis(
+    human_result: TrackSeedResult, package: dict[str, Any]
+) -> dict[str, Any]:
+    """Concordancia entre las decisiones humanas y la regla determinista.
+
+    Análisis **posterior y descriptivo**: no genera, no altera y no reemplaza
+    ninguna decisión del operador. Existe porque el contrato declara el
+    cegamiento como PARCIAL y la respuesta como determinable: medir la
+    concordancia es la única forma honesta de caracterizar qué aportó la
+    intervención. Se emite desde el runner, con su código versionado, en lugar
+    de calcularse aparte (hallazgo F-05).
+    """
+    by_scenario = {s["scenario_id"]: s for s in package["scenarios"]}
+    rows = []
+    for event in human_result.events:
+        scenario = by_scenario[event["scenario_id"]]
+        reference_label = int(event["reference_label_available_to_runner"])
+        consistent = reference_label == int(event["recorded_label"])
+        reference_decision = DECISION_ACCEPT if consistent else DECISION_CORRECT
+        rows.append(
+            {
+                "scenario_id": event["scenario_id"],
+                "observed_soil_moisture_at_target": scenario["observed_soil_moisture_at_target"],
+                "p20_threshold_frozen": scenario["p20_threshold_frozen"],
+                "recorded_label": int(event["recorded_label"]),
+                "deterministic_reference_label": reference_label,
+                "record_consistent_with_threshold": consistent,
+                "deterministic_reference_decision": reference_decision,
+                "human_decision": event["decision"],
+                "human_corrected_label": event["corrected_label"],
+                "human_agrees_with_reference": event["decision"] == reference_decision,
+                "human_reason_verbatim": event["reason"],
+            }
+        )
+    n = len(rows)
+    agree = sum(1 for r in rows if r["human_agrees_with_reference"])
+    inconsistent = [r["scenario_id"] for r in rows if not r["record_consistent_with_threshold"]]
+    divergent = [r["scenario_id"] for r in rows if not r["human_agrees_with_reference"]]
+    return {
+        "analysis_kind": "posterior_descriptive_analysis",
+        "does_not_alter_or_replace_the_human_response": True,
+        "reference_rule": (
+            "stress = 1 si y solo si observed_soil_moisture_at_target < p20_threshold_frozen"
+        ),
+        "n_scenarios": n,
+        "n_records_inconsistent_with_threshold": len(inconsistent),
+        "scenarios_with_inconsistent_record": inconsistent,
+        "n_human_decisions_agreeing_with_reference": agree,
+        "n_human_decisions_diverging_from_reference": n - agree,
+        "scenarios_where_human_diverges_from_reference": divergent,
+        "decisions_summary": {
+            d: sum(1 for r in rows if r["human_decision"] == d) for d in DECISIONS
+        },
+        "per_scenario": rows,
+    }
+
+
 def _track_to_json(result: TrackSeedResult) -> dict[str, Any]:
     return {
         "track": result.track,
@@ -1663,10 +1787,28 @@ def _track_to_json(result: TrackSeedResult) -> dict[str, Any]:
     }
 
 
+def _write_csv(path: Path, frame: pd.DataFrame) -> None:
+    """Escritura atómica de CSV, mismo contrato que `_write_json`."""
+    import os
+    import tempfile
+
+    handle, tmp_name = tempfile.mkstemp(
+        dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp"
+    )
+    try:
+        os.close(handle)
+        frame.to_csv(tmp_name, index=False)
+        os.replace(tmp_name, path)
+    except BaseException:
+        Path(tmp_name).unlink(missing_ok=True)
+        raise
+
+
 def write_hitl_artifacts(
     output_dir: str | Path,
     *,
     payloads: dict[str, Any],
+    frames: dict[str, pd.DataFrame] | None = None,
     overwrite: bool = False,
 ) -> dict[str, Path]:
     """Escribe la evidencia de H y cierra con un manifiesto de integridad.
@@ -1680,6 +1822,10 @@ def write_hitl_artifacts(
     for name, payload in payloads.items():
         path = directory / f"{name}.json"
         _write_json(path, payload)
+        written[name] = path
+    for name, frame in (frames or {}).items():
+        path = directory / f"{name}.csv"
+        _write_csv(path, frame)
         written[name] = path
 
     manifest_files = {
@@ -2369,6 +2515,14 @@ def main(argv: list[str] | None = None) -> int:
         "track_human": _track_to_json(outcome["human_result"]),
         "feedback_events_simulated": [event for r in outcome["sim_results"] for event in r.events],
         "feedback_events_human": outcome["human_result"].events,
+        "feedback_events_index": build_feedback_events_index(
+            [*outcome["sim_results"], outcome["human_result"]],
+            {
+                (r.track, r.seed): r.strata
+                for r in [*outcome["sim_results"], outcome["human_result"]]
+            },
+        ),
+        "agreement_analysis": build_agreement_analysis(outcome["human_result"], package),
         "mechanism_metrics": {
             **outcome["mechanism"],
             "abc_paths_referenced_in_configuration": len(reserved),
@@ -2386,7 +2540,17 @@ def main(argv: list[str] | None = None) -> int:
         "warnings": [],
     }
 
-    written = write_hitl_artifacts(args.output_dir, payloads=payloads, overwrite=args.overwrite)
+    prediction_frames = {
+        f"predictions_{result.track}_seed{result.seed}_{name}": arm.predictions
+        for result in [*outcome["sim_results"], outcome["human_result"]]
+        for name, arm in result.arms.items()
+    }
+    written = write_hitl_artifacts(
+        args.output_dir,
+        payloads=payloads,
+        frames=prediction_frames,
+        overwrite=args.overwrite,
+    )
     for name, path in written.items():
         print(f"{name}: {path}")
     return 0

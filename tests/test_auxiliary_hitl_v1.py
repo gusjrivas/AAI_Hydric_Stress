@@ -1154,6 +1154,95 @@ def test_reserved_paths_are_detected_through_a_symlink(tmp_path) -> None:
     assert h.assert_no_reserved_paths({"output_dir": link})
 
 
+def test_predictions_per_date_allow_recomputing_every_published_metric(
+    frames: h.HitlFrames, prepared: dict
+) -> None:
+    """Hallazgo F-01: el diseño congelado exige predicciones por fecha.
+
+    Sin ellas ninguna métrica publicada puede recomputarse sin reejecutar el
+    runner. Esta prueba recomputa MCC y F1 desde el CSV y exige que coincidan
+    con los valores publicados: si las predicciones no correspondieran al
+    brazo, fallaría.
+    """
+    from sklearn.metrics import f1_score, matthews_corrcoef
+
+    result = _run(frames, prepared)
+    for name, arm in result.arms.items():
+        pred = arm.predictions
+        assert list(pred.columns) == [
+            "feature_timestamp",
+            "target_timestamp",
+            "y_true",
+            "y_proba",
+            "y_pred",
+        ], name
+        assert len(pred) == arm.metrics["n_observations"], name
+        assert pred["feature_timestamp"].is_monotonic_increasing, name
+        # Toda fecha de emisión cae en la ventana de evaluación de 2022.
+        assert pred["feature_timestamp"].str.startswith("2022").all(), name
+
+        recomputed_mcc = matthews_corrcoef(pred["y_true"], pred["y_pred"])
+        published = arm.metrics["mcc"]
+        assert published["status"] == "defined", name
+        assert recomputed_mcc == pytest.approx(published["value"], abs=1e-12), name
+
+        recomputed_f1 = f1_score(pred["y_true"], pred["y_pred"], zero_division=0)
+        assert recomputed_f1 == pytest.approx(arm.metrics["f1"]["value"], abs=1e-12), name
+
+
+def test_predictions_differ_between_arms_when_the_models_differ(
+    frames: h.HitlFrames, prepared: dict
+) -> None:
+    """Contingente: si los tres brazos publicaran la misma predicción, fallaría."""
+    result = _run(frames, prepared)
+    frozen = result.arms[h.ARM_FROZEN].predictions["y_proba"].to_numpy()
+    refit = result.arms[h.ARM_REFIT_NO_CORRECTIONS].predictions["y_proba"].to_numpy()
+    assert not np.allclose(
+        frozen, refit
+    ), "el brazo congelado y el refit no pueden producir predicciones idénticas"
+
+
+def test_event_index_carries_seed_and_stratum(frames: h.HitlFrames, prepared: dict) -> None:
+    """Hallazgos F-12 y F-13: la semilla y el estrato deben ser recuperables."""
+    results = [_run(frames, prepared, origin=h.ORIGIN_SIMULATED)]
+    index = h.build_feedback_events_index(results, {(r.track, r.seed): r.strata for r in results})
+    assert len(index) == h.EVENT_BUDGET_PER_SEED
+    assert {row["seed"] for row in index} == {FIXTURE_SEED}
+    alerts = [row["model_alert"] for row in index]
+    assert alerts.count(1) == h.EVENTS_PER_STRATUM
+    assert alerts.count(0) == h.EVENTS_PER_STRATUM
+    for row in index:
+        assert row["record_consistent_with_reference"] == (
+            row["recorded_label"] == row["reference_label"]
+        )
+
+
+def test_agreement_analysis_is_contingent_and_does_not_alter_the_response(
+    frames: h.HitlFrames, prepared: dict, package: dict
+) -> None:
+    """Hallazgo F-05: el análisis se emite desde el runner, con código versionado."""
+    accepting = _run(frames, prepared, decisions=_uniform_decisions(prepared, h.DECISION_ACCEPT))
+    analysis = h.build_agreement_analysis(accepting, package)
+    assert analysis["analysis_kind"] == "posterior_descriptive_analysis"
+    assert analysis["does_not_alter_or_replace_the_human_response"] is True
+    assert analysis["decisions_summary"]["ACEPTAR"] == h.EVENT_BUDGET_PER_SEED
+    n_inconsistent = analysis["n_records_inconsistent_with_threshold"]
+    # Aceptar todo diverge de la referencia exactamente en los registros
+    # inconsistentes: si el análisis fuera una constante, esto no se cumpliría.
+    assert analysis["n_human_decisions_diverging_from_reference"] == n_inconsistent
+    assert analysis["scenarios_where_human_diverges_from_reference"] == (
+        analysis["scenarios_with_inconsistent_record"]
+    )
+
+    # Caso contrario: corregir todo invierte la divergencia.
+    correcting = _run(frames, prepared, decisions=_uniform_decisions(prepared, h.DECISION_CORRECT))
+    other = h.build_agreement_analysis(correcting, package)
+    assert other["n_human_decisions_diverging_from_reference"] == (
+        other["n_scenarios"] - n_inconsistent
+    )
+    assert other["decisions_summary"]["CORREGIR"] == h.EVENT_BUDGET_PER_SEED
+
+
 def test_model_identifiers_are_deterministic() -> None:
     kwargs = dict(
         arm=h.ARM_FROZEN,
