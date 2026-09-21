@@ -47,8 +47,8 @@
   "contract_sha256": "e74bc31235f9aa38808fb026aa3f7a0ec9e2de5bf9ca2f432e3f2ccd23dc917a",
   "contract_version": 2,
   "executable_identity": {
-    "commit": "547c1a98c888852eafb067e1135ce033fc80472a",
-    "image_id": "sha256:7a9575db0632063a172d47df187ea720028136c0f4b8d826fef38825e9171bc6",
+    "commit": "4ae6df00465c8bc3c325cf0149a97721c6f01fab",
+    "image_id": "sha256:563d0b9f5aa65daae8da42960bfd45c08efece514c3a26c44f0a41b9501fccef",
     "image_tag": "experiment-v4-hitl-complement",
     "note": "Identidad ejecutable PROPIA de H (GD-27). NO es la de A/B/C: la imagen histórica sha256:55bc923e… es anterior al runner de H y no lo contiene. Mismo Dockerfile y mismas constraints; pip freeze verificado idéntico al histórico."
   },
@@ -61,7 +61,8 @@
     "performed": true,
     "result": "El paquete se regeneró desde las mismas entradas congeladas y resultó idéntico byte a byte (cmp)."
   },
-  "frozen_at_utc": "2026-09-21T12:37:24.878299Z",
+  "frozen_at_utc": "2026-09-21T12:43:51.209505Z",
   "state": "FROZEN_AWAITING_HUMAN_RESPONSE",
-  "declaration": "Al momento de este registro no se le mostró nada al operador y no se observó ningún resultado de H. El cegamiento del paquete es PARCIAL y está declarado como tal."
+  "declaration": "Al momento de este registro no se le mostró nada al operador y no se observó ningún resultado de H. El cegamiento del paquete es PARCIAL y está declarado como tal.",
+  "package_hash_stability_note": "El package_sha256 es idéntico al producido sobre el commit 547c1a9: los cambios posteriores afectaron sólo a pruebas y a un campo descriptivo de los invariantes, no al contenido del paquete. Se deja constancia porque demuestra que el paquete no depende de esos cambios."
 }
