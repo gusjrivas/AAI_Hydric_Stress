@@ -114,13 +114,27 @@
         "T19",
         "T20"
       ],
-      "status": "BLOCKED",
-      "approved_for_implementation": false,
+      "status": "PASS",
+      "approved_for_implementation": true,
       "scientific_execution_authorized": false,
       "extra_gate": "sc-01 PASS AND preparation approved; verify authorization mechanism, not future B/C permissions; unresolved runtime/provenance/ADR/backup blocks campaign",
-      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
-      "approval": null,
-      "audit": null,
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
+      "approval": {
+        "actor": "responsable tecnico y cientifico (Gustavo Rivas), via prompt de reanudacion",
+        "timestamp_utc": "2026-09-21T03:20:00Z",
+        "scope": "Calificar entorno, custodia, procedencia, respaldo externo independiente y autoridad antes de la campana",
+        "source": "Prompt de reanudacion del responsable tecnico y cientifico, 2026-09-21: autoriza readiness, respaldo y ejecucion de la campana A -> B -> C conforme al protocolo congelado."
+      },
+      "audit": {
+        "verdict": "PASS",
+        "snapshot": "37eed42716803baa9bdbed912356b981adac093a",
+        "evidence": "evidence/governance/closure-campaign-2026-09-21/ (preflight.json, environment-identity.json) y /mnt/scientific-backup/AAI_Hydric_Stress/closure-campaign-2026-09-21/{manifest,rehearsal}",
+        "actor": "/auditor_independiente_cierre_cientifico",
+        "timestamp_utc": "2026-09-21T04:30:00Z",
+        "scope": "Readiness verificado directamente: rama/HEAD/arbol/remoto, Docker operativo, imagen historica identificada y ejecutable, respaldo en disco USB fisicamente independiente con manifiesto, hashes y ensayo de recuperacion, evidence/ y ledger/ vacios, hashes de entradas coincidentes con el manifiesto, checker exit 0 y preflight PREPARED_NOT_AUTHORIZED."
+      },
       "state_events": [
         {
           "from": "PLANNED",
@@ -129,6 +143,38 @@
           "timestamp_utc": "2026-09-19T08:38:20.773053Z",
           "reason": "Readiness integral BLOCKED: AUD-READ01..08; faltan insumos externos originales, custodia, entorno, aislamiento y otros gates. No implementar dependientes ni ejecutar campañas.",
           "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T03:20:00Z",
+          "reason": "EXT-02 y EXT-03 resueltos por comprobacion directa: el daemon Docker responde y ejecuta la imagen aprobada; /mnt/scientific-backup es el disco USB 1 (serie 8986451183503575922), fisicamente distinto del NVMe que respalda el ext4.vhdx de WSL. EXT-01 ya estaba resuelto por el merge de origin/main.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/ (preflight.json, environment-identity.json) y /mnt/scientific-backup/AAI_Hydric_Stress/closure-campaign-2026-09-21/{manifest,rehearsal}"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T03:25:00Z",
+          "reason": "Ejecucion del readiness: preflight metadata-only, respaldo cientifico externo con manifiesto e inventario, verificacion de hashes y ensayo de recuperacion de imagen, codigo y entradas.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/ (preflight.json, environment-identity.json) y /mnt/scientific-backup/AAI_Hydric_Stress/closure-campaign-2026-09-21/{manifest,rehearsal}"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "REVIEW",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T04:10:00Z",
+          "reason": "Readiness congelado; evidencia verificada por hash desde el disco externo (14/14 OK) y ensayo de recuperacion PASS en sus cuatro componentes.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/ (preflight.json, environment-identity.json) y /mnt/scientific-backup/AAI_Hydric_Stress/closure-campaign-2026-09-21/{manifest,rehearsal}"
+        },
+        {
+          "from": "REVIEW",
+          "to": "PASS",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T04:30:00Z",
+          "reason": "Prerrequisitos operativos y normativos acreditados. Se deja constancia de que la condicion 2 de ADR-0011 (licencia especifica de NASA POWER) sigue PENDING_CONFIRMATION y se acepta como limitacion declarada via decision GD-13 (ADMISSIBLE_WITH_EXPLICIT_LIMITATIONS).",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/ (preflight.json, environment-identity.json) y /mnt/scientific-backup/AAI_Hydric_Stress/closure-campaign-2026-09-21/{manifest,rehearsal}"
         }
       ]
     },
@@ -157,13 +203,27 @@
         "T11",
         "T15"
       ],
-      "status": "BLOCKED",
-      "approved_for_implementation": false,
-      "scientific_execution_authorized": false,
+      "status": "PASS",
+      "approved_for_implementation": true,
+      "scientific_execution_authorized": true,
       "extra_gate": "sc-02 PASS AND G1 satisfied AND authorization A recorded AND fixed executable/image verified",
-      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
-      "approval": null,
-      "audit": null,
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
+      "approval": {
+        "actor": "responsable tecnico y cientifico (Gustavo Rivas), via prompt de reanudacion",
+        "timestamp_utc": "2026-09-21T03:20:00Z",
+        "scope": "Ejecutar la Etapa A (desarrollo y seleccion, 2015-2022) y su sensibilidad de profundidad 7-28 cm",
+        "source": "Prompt de reanudacion del responsable tecnico y cientifico, 2026-09-21: autoriza readiness, respaldo y ejecucion de la campana A -> B -> C conforme al protocolo congelado."
+      },
+      "audit": {
+        "verdict": "PASS",
+        "snapshot": "37eed42716803baa9bdbed912356b981adac093a",
+        "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/ (execution-record.json, gate-review.json, temporal-contract-check.json, statistical-review.json, sensitivity-7-28cm-record.json)",
+        "actor": "/auditor_independiente_cierre_cientifico",
+        "timestamp_utc": "2026-09-21T04:30:00Z",
+        "scope": "Etapa A: fronteras temporales, contrato de features, nested CV, soporte de folds y bootstrap, regla de seleccion y congelamiento. Auditor independiente reprodujo los cuatro MCC globales a 15 digitos y los doce intervalos pareados a <1e-12."
+      },
       "state_events": [
         {
           "from": "PLANNED",
@@ -172,6 +232,38 @@
           "timestamp_utc": "2026-09-19T08:38:20.773053Z",
           "reason": "Dependencias sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas.",
           "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T03:20:00Z",
+          "reason": "sc-02 PASS y autorizacion explicita de la Etapa A por el responsable.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/ (execution-record.json, gate-review.json, temporal-contract-check.json, statistical-review.json, sensitivity-7-28cm-record.json)"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T03:25:00Z",
+          "reason": "Ejecucion de la Etapa A dentro de la imagen aprobada sha256:55bc923e..., identidad ejecutable 214735e, exit 0 en 496 s; mas la sensibilidad 7-28 cm en un directorio separado.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/ (execution-record.json, gate-review.json, temporal-contract-check.json, statistical-review.json, sensitivity-7-28cm-record.json)"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "REVIEW",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T04:10:00Z",
+          "reason": "Artefactos congelados y respaldados en disco externo con hashes verificados.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/ (execution-record.json, gate-review.json, temporal-contract-check.json, statistical-review.json, sensitivity-7-28cm-record.json)"
+        },
+        {
+          "from": "REVIEW",
+          "to": "PASS",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T04:30:00Z",
+          "reason": "Auditoria independiente PASS. Resultado: SIN_GANADOR_ESTABLE con desempate predeclarado de simplicidad hacia logistic_regression. NINGUNA familia demostro superioridad; es un resultado negativo valido, no un defecto. Candidato transferible producido, de modo que B no queda bloqueada por NO_VALID_SELECTION.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/ (execution-record.json, gate-review.json, temporal-contract-check.json, statistical-review.json, sensitivity-7-28cm-record.json)"
         }
       ]
     },
@@ -197,13 +289,27 @@
         "T12",
         "T13"
       ],
-      "status": "BLOCKED",
-      "approved_for_implementation": false,
-      "scientific_execution_authorized": false,
+      "status": "PASS",
+      "approved_for_implementation": true,
+      "scientific_execution_authorized": true,
       "extra_gate": "sc-03 PASS AND A scientific_run AND primary_selection AND candidate_produced AND support valid AND authorization B recorded AND custody unused; NO_VALID_SELECTION blocks B",
-      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
-      "approval": null,
-      "audit": null,
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
+      "approval": {
+        "actor": "responsable tecnico y cientifico (Gustavo Rivas), via prompt de reanudacion",
+        "timestamp_utc": "2026-09-21T03:20:00Z",
+        "scope": "Ejecutar la Etapa B (validacion temporal 2023) preservando la custodia del primer y unico intento",
+        "source": "Prompt de reanudacion del responsable tecnico y cientifico, 2026-09-21: autoriza readiness, respaldo y ejecucion de la campana A -> B -> C conforme al protocolo congelado."
+      },
+      "audit": {
+        "verdict": "PASS",
+        "snapshot": "37eed42716803baa9bdbed912356b981adac093a",
+        "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-04-stage-b/ (execution-record.json, gate-review.json, custody-review.json)",
+        "actor": "/auditor_independiente_cierre_cientifico",
+        "timestamp_utc": "2026-09-21T04:30:00Z",
+        "scope": "Etapa B: compuerta de la seccion 10, custodia H07/H15, fronteras temporales y ausencia de fuga del holdout. El auditor independiente re-derivo la etapa end-to-end desde los CSV crudos con corte duro en 2023-12-31 y reprodujo los artefactos bit a bit."
+      },
       "state_events": [
         {
           "from": "PLANNED",
@@ -212,6 +318,38 @@
           "timestamp_utc": "2026-09-19T08:38:20.773053Z",
           "reason": "Dependencias sc-03-stage-a sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas.",
           "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T03:20:00Z",
+          "reason": "sc-03 PASS, auditoria independiente de A con veredicto PASS y autorizacion explicita de la Etapa B.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-04-stage-b/ (execution-record.json, gate-review.json, custody-review.json)"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T03:25:00Z",
+          "reason": "Ejecucion del unico intento de B con reserva exclusiva previa a la lectura de valores; exit 0 en 16.6 s.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-04-stage-b/ (execution-record.json, gate-review.json, custody-review.json)"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "REVIEW",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T04:10:00Z",
+          "reason": "Intento finalizado con hashes completos; evidencia y ledger respaldados y verificados.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-04-stage-b/ (execution-record.json, gate-review.json, custody-review.json)"
+        },
+        {
+          "from": "REVIEW",
+          "to": "PASS",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T04:30:00Z",
+          "reason": "Auditoria independiente PASS con stage_c_admissible=true. Veredicto CANDIDATE_VALIDATED: MCC 0.7014 > 0 y limite inferior -0.0146 >= -0.05. ADVERTENCIA REGISTRADA: la compuerta es de NO INFERIORIDAD; el intervalo pareado incluye el cero y NO se demuestra superioridad frente a persistencia.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-04-stage-b/ (execution-record.json, gate-review.json, custody-review.json)"
         }
       ]
     },
@@ -237,13 +375,27 @@
       "tasks": [
         "T14"
       ],
-      "status": "BLOCKED",
-      "approved_for_implementation": false,
-      "scientific_execution_authorized": false,
+      "status": "PASS",
+      "approved_for_implementation": true,
+      "scientific_execution_authorized": true,
       "extra_gate": "sc-04 PASS AND B CANDIDATE_VALIDATED AND authorization C recorded AND ledger initialization separately authorized AND custody admissible; CANDIDATE_NOT_VALIDATED blocks C",
-      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
-      "approval": null,
-      "audit": null,
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
+      "approval": {
+        "actor": "responsable tecnico y cientifico (Gustavo Rivas), via prompt de reanudacion",
+        "timestamp_utc": "2026-09-21T03:20:00Z",
+        "scope": "Inicializar el ledger del holdout y ejecutar la Etapa C (holdout final 2024-2025) una unica vez",
+        "source": "Prompt de reanudacion del responsable tecnico y cientifico, 2026-09-21: autoriza readiness, respaldo y ejecucion de la campana A -> B -> C conforme al protocolo congelado."
+      },
+      "audit": {
+        "verdict": "PASS",
+        "snapshot": "37eed42716803baa9bdbed912356b981adac093a",
+        "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-05-stage-c/ (execution-record.json, holdout-review.json)",
+        "actor": "/auditor_independiente_cierre_cientifico",
+        "timestamp_utc": "2026-09-21T04:30:00Z",
+        "scope": "Etapa C: conformidad con la seccion 11, unicidad e irreversibilidad de la apertura del holdout, ledger CONFIRMADA con autorizacion nominal, y recomputo independiente de MCC, delta e intervalo bootstrap, ademas del P20 desde el CSV crudo."
+      },
       "state_events": [
         {
           "from": "PLANNED",
@@ -252,6 +404,38 @@
           "timestamp_utc": "2026-09-19T08:38:20.773053Z",
           "reason": "Dependencias sc-04-stage-b sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas.",
           "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T03:20:00Z",
+          "reason": "sc-04 PASS, auditoria independiente de B con veredicto PASS y stage_c_admissible=true, autorizacion explicita de C e inicializacion separada del ledger autorizada.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-05-stage-c/ (execution-record.json, holdout-review.json)"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T03:25:00Z",
+          "reason": "Inicializacion separada del ledger (exit 0) y ejecucion unica de la Etapa C (exit 0 en 17.2 s), con apertura del holdout registrada de forma nominal e irreversible.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-05-stage-c/ (execution-record.json, holdout-review.json)"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "REVIEW",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T04:10:00Z",
+          "reason": "Evidencia congelada; manifiesto de integridad de C verificado 18/18 y respaldo externo verificado 84/84.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-05-stage-c/ (execution-record.json, holdout-review.json)"
+        },
+        {
+          "from": "REVIEW",
+          "to": "PASS",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T04:30:00Z",
+          "reason": "Auditoria final independiente con veredicto PASS_WITH_LIMITATIONS sobre la campana. Gate GC SATISFECHO por integridad y unicidad del procedimiento, no por que el resultado fuera favorable. Resultado: delta MCC [+0.0227, +0.1784], que excluye el cero. NO confirma la hipotesis general, NO es validacion agronomica y NO revierte el empate de la Etapa A. Limitaciones agregadas tras la auditoria: calibracion degradada en el holdout y deriva de prevalencia entre etapas.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-05-stage-c/ (execution-record.json, holdout-review.json)"
         }
       ]
     },
@@ -285,7 +469,9 @@
       "approved_for_implementation": false,
       "scientific_execution_authorized": false,
       "extra_gate": "Audited terminal A or B or C AND all REQUIRED auxiliaries audited; UNRESOLVED blocks closure",
-      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
       "approval": null,
       "audit": null,
       "state_events": [
@@ -326,7 +512,9 @@
       "approved_for_implementation": false,
       "scientific_execution_authorized": false,
       "extra_gate": "R REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization R; NOT_REQUIRED/UNRESOLVED blocks execution",
-      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
       "approval": null,
       "audit": null,
       "state_events": [
@@ -367,7 +555,9 @@
       "approved_for_implementation": false,
       "scientific_execution_authorized": false,
       "extra_gate": "H REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization H; NOT_REQUIRED/UNRESOLVED blocks execution",
-      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
       "approval": null,
       "audit": null,
       "state_events": [
@@ -408,7 +598,9 @@
       "approved_for_implementation": false,
       "scientific_execution_authorized": false,
       "extra_gate": "N REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization N; NOT_REQUIRED/UNRESOLVED blocks execution",
-      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
       "approval": null,
       "audit": null,
       "state_events": [
@@ -449,7 +641,9 @@
       "approved_for_implementation": false,
       "scientific_execution_authorized": false,
       "extra_gate": "S REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization S; NOT_REQUIRED/UNRESOLVED blocks execution",
-      "orchestrator_paths": ["openspec/scientific-closure/changes.json"],
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
       "approval": null,
       "audit": null,
       "state_events": [

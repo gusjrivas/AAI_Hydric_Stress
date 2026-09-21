@@ -1,5 +1,101 @@
 # Checkpoint de ejecución actual
 
+## Estado vigente — 2026-09-21, CAMPAÑA A → B → C EJECUTADA
+
+Esta sección **reemplaza toda lectura de las secciones posteriores**, incluida la
+de «2026-09-21, integración de `origin/main`», que se conserva íntegra como
+registro histórico. Varias afirmaciones de esas secciones **eran ciertas hasta el
+2026-09-21 y dejaron de serlo ese mismo día**; se identifican abajo una por una
+para que nadie las lea como vigentes.
+
+**Qué hizo esta sesión.** Resolvió el readiness por comprobación directa, creó el
+respaldo científico externo con ensayo de recuperación, y **ejecutó la campaña
+A → B → C completa** dentro de la imagen histórica aprobada. **El holdout
+2024–2025 fue abierto**: evento único, autorizado nominalmente e **irreversible**.
+
+**Afirmaciones anteriores que HOY SON FALSAS** (no reescribo las secciones
+históricas; las corrijo aquí):
+
+- «`evidence/` y `ledger/` de la raíz de runtime siguen vacíos» — **falso desde
+  el 2026-09-21**: contienen la evidencia de A, B, C, la sensibilidad 7–28 cm,
+  gobernanza, y dos ledgers SQLite.
+- «A, B y C **no** se ejecutaron» — **falso**: las tres se ejecutaron con exit 0.
+- «el holdout 2024–2025 permanece cerrado y ningún valor reservado fue leído» —
+  **falso**: fue abierto el 2026-09-21T04:06:11Z, estado del ledger `CONFIRMADA`.
+- «el ledger definitivo **no** está inicializado» — **falso**: inicializado como
+  operación separada previa a C.
+- **EXT-02 resuelto**: el daemon Docker responde desde esta distro y ejecuta la
+  imagen aprobada. La afirmación de inalcanzabilidad es histórica.
+- **EXT-03 resuelto**: `/mnt/scientific-backup` es el disco USB 1 (serie
+  8986451183503575922), físicamente distinto del NVMe (disco 0) que respalda el
+  `ext4.vhdx` de WSL. Verificado con `Get-Disk`/`Get-Partition`.
+
+**Identidad de la campaña.**
+
+| Concepto | Valor |
+| --- | --- |
+| SHA ejecutable | `214735e42ee04f018156cd630591e798aadd8bf3` (embebido en la imagen, `dirty=false`) |
+| SHA documental | `37eed42716803baa9bdbed912356b981adac093a` |
+| Imagen | `sha256:55bc923efac009b1b6de45acc634774b7910d4829fdfd0b2c963dd5748b297af` |
+| Entradas | ERA5 `318edffb…f485f`, NASA POWER `415b4f71…2202b` |
+| Semillas | bootstrap 20250109, modelo 42 |
+
+**Resolución de GD-25 / RK-09 (SC-GOV-009).** La sección histórica establecía que
+«ninguna afirmación de identidad ejecutable puede apoyarse ya en `214735e`». Esa
+regla se levanta **con evidencia, no por redacción**: `214735e` **sí** es ancestro
+de `37eed42` (verificado con `git merge-base --is-ancestor`), y el delta de siete
+archivos de `src/experiment_runner/controlled_daily_v4/` fue clasificado archivo
+por archivo como **sin efecto sobre resultados numéricos** —sólo mensajes,
+docstrings, `pd.Timedelta(days=3)` → `HORIZON_DAYS` (=3), un literal sustituido
+por su constante homónima, una impresión a stderr, y un motivo adicional
+(`bootstrap_not_executed`) que sólo aplica al caso monoclase de B, que no ocurrió.
+Dos auditores independientes verificaron esa clasificación por su cuenta. Detalle
+en `evidence/environment-identity.json`. La campaña declara `214735e` como
+identidad ejecutable y `37eed42` como documental, que es exactamente la
+distinción que AGENTS.md exige.
+
+**Resultados (sin sobreinterpretación).**
+
+- **A** — `SIN_GANADOR_ESTABLE`. Las cuatro familias dentro de δ=0.05 y todos los
+  intervalos pareados contra la mejor incluyen el cero. **Ninguna demostró
+  superioridad.** `logistic_regression` se congeló por **desempate predeclarado de
+  simplicidad**, nunca por superioridad. Resultado negativo válido.
+- **B** — `CANDIDATE_VALIDATED` (MCC 0.7014 > 0; límite inferior −0.0146 ≥ −0.05).
+  **Es una compuerta de NO INFERIORIDAD:** el intervalo [−0.0146, +0.2092]
+  **incluye el cero**, así que **no** se demuestra superioridad frente a
+  persistencia.
+- **C** — holdout 2024–2025. MCC candidato 0.6648 frente a persistencia 0.5734;
+  ΔMCC [+0.0227, +0.1784], que **excluye el cero**. El protocolo **no define
+  criterio de aceptación para C**: se reporta tal cual. **No** confirma la
+  hipótesis general del Trabajo Final, **no** es validación agronómica y **no**
+  revierte retroactivamente el empate de A.
+- **Sensibilidad 7–28 cm** — también `SIN_GANADOR_ESTABLE`; su MCC más alto
+  refleja mayor suavidad y autocorrelación del reanálisis a más profundidad, no un
+  mejor modelo. No interviene en ninguna selección.
+
+**Limitaciones detectadas por la auditoría final y ahora declaradas.**
+
+- **Calibración degradada en el holdout**: bin 0.9–1.0 predice 0.9643 y observa
+  0.6627 (n=83). El Brier y el ROC-AUC no lo revelan. Sólo la decisión binaria al
+  umbral 0.5 está sostenida; las probabilidades **no** son riesgo calibrado.
+- **Deriva de prevalencia**: 33.3 % (A) → 26.5 % (B) → 17.6 % (C). El MCC no es
+  invariante a la prevalencia, así que los tres valores **no** son directamente
+  comparables entre sí.
+- **Costo operativo**: en C, 75 días de aviso falso en 26 rachas sobre 728 días,
+  precisión 0.6032, 2 episodios no detectados.
+- Un solo sitio (Pergamino), datos de **reanálisis**, sin mediciones de campo.
+
+**Estados de requisitos.** `sc-01` a `sc-05` quedan en `PASS` en `changes.json`.
+`sc-06` a `sc-10` siguen **BLOCKED**: el complemento **H (HITL) está declarado
+`REQUIRED` en `claims.md` y no tiene runner implementado ni evidencia**, de modo
+que el **gate GF no es alcanzable hoy** y el cierre científico global permanece
+abierto. Esto **no** es un defecto de la campaña: es alcance no ejecutado.
+
+**Lo que la próxima sesión NO debe hacer.** No repetir A, B ni C: están
+consumidas. El holdout **no** puede volver a cerrarse; ninguna evaluación futura
+sobre 2024–2025 será ciega para este protocolo.
+
+
 ## Estado vigente — 2026-09-21, integración de `origin/main`
 
 Esta sección **reemplaza toda lectura de las secciones posteriores**, incluida

@@ -43,6 +43,51 @@ Las comprobaciones de contenido científico son revisiones sustantivas además
 de tests: un archivo presente no demuestra que su resultado sea válido.
 La ausencia de artefacto produce PENDING/BLOCKED según el momento del gate.
 
+## Estado por requisito — 2026-09-21 (CAMPAÑA A → B → C EJECUTADA)
+
+Esta sección **prevalece** sobre la de 2026-09-20, que se conserva íntegra abajo
+como registro histórico. La campaña se ejecutó el 2026-09-21 y **el holdout
+2024–2025 fue abierto**, de modo que varias afirmaciones de la sección histórica
+—«A no fue ejecutada», «B no fue ejecutada», «el ledger no está inicializado»,
+«el holdout permanece cerrado. Ningún valor reservado fue leído»— **son hoy
+falsas**. No se reescriben allí; se corrigen aquí.
+
+| Requisito | Estado | Base |
+| --- | --- | --- |
+| **SC-GOV-001** | PASS | Identidad de sesión verificada directamente (rama, HEAD, árbol limpio, remoto). |
+| **SC-GOV-002** | PASS | Autorización explícita del responsable para readiness, respaldo y campaña A→B→C. |
+| **SC-GOV-003** | PASS | v3, UI y `src/` intactos; `git diff origin/main` vacío en `frontend/` y `src/`. |
+| **SC-GOV-004** | PASS | Inventario de evidencia reproducible con hashes y respaldo externo verificado. |
+| **SC-GOV-005** | PASS_WITH_LIMITATIONS | Afirmaciones trazadas; CL-06 (H) queda sin evidencia y CL-10 no es alcanzable hoy. |
+| **SC-GOV-006** | PASS_WITH_LIMITATIONS | Revisión independiente efectiva mediante tres auditores en sesiones separadas. **Sustitución declarada:** no se usaron los cinco perfiles `.codex`; el runtime efectivo de esta sesión es Claude Opus 5 con subagentes independientes. Se documenta la sustitución, no se la presenta como equivalencia. |
+| **SC-GOV-007** | PASS | `changes.json` con transiciones, aprobación y auditoría por cada change ejecutado. |
+| **SC-GOV-008** | PASS | Auditores independientes distintos del implementador en A, B y cierre final. |
+| **SC-GOV-009** | PASS | Identidad ejecutable `214735e` (ancestro de HEAD) frente a documental `37eed42`; delta de 7 archivos clasificado sin efecto numérico y verificado por dos auditores. Resuelve GD-25/RK-09. |
+| **SC-GOV-010** | PASS | `temporal-contract-check.json`: fronteras 2015–2022 / 2023 / 2024–2025, contrato de 8 features idéntico en las tres etapas, sin fuga. |
+| **SC-GOV-011** | PASS | `A/gate-review.json`: GA satisfecho; `SIN_GANADOR_ESTABLE` con desempate de simplicidad; soporte 3/3 folds y 5000/5000 réplicas. |
+| **SC-GOV-012** | PASS | `B/gate-review.json`: GB satisfecho; `CANDIDATE_VALIDATED` por **no inferioridad** (el intervalo incluye el cero). |
+| **SC-GOV-013** | PASS | `B/custody-review.json`: intento único, reserva previa a la lectura de valores, sin recuperación ni repetición. |
+| **SC-GOV-014** | PASS | `C/holdout-review.json`: GC satisfecho por integridad y unicidad; apertura única, nominal e irreversible; ledger `CONFIRMADA`. |
+| **SC-GOV-015** | PASS_WITH_LIMITATIONS | `statistical-review.json`: bootstrap reproducido de forma independiente en A, B y C. Salvedad declarada: intervalos percentiles sin corrección por multiplicidad ni calibración de cobertura; ~24 unidades efectivas en C. |
+| **SC-GOV-016** | PASS_WITH_LIMITATIONS | Revisión de sobreinterpretación superada; se añadieron calibración degradada y deriva de prevalencia tras la auditoría final. |
+| **SC-GOV-017** | PASS_WITH_LIMITATIONS | Procedencia verificada por hash. **Condición 2 de ADR-0011 (licencia NASA POWER) sigue `PENDING_CONFIRMATION`**, aceptada como limitación vía GD-13. |
+| **SC-GOV-018** | PASS | Respaldo externo en disco USB físicamente independiente, con manifiesto, inventario, hashes y ensayo de recuperación PASS en sus cuatro componentes. |
+| **SC-GOV-019** | PASS | RK-14 ratificado en ADR-0011; trazabilidad de commits y push registrada. |
+| **SC-GOV-020** | PASS | Checker exit 0, pruebas de gobernanza 15/15, suite v4 488 passed / 3 skipped. |
+| **SC-GOV-021** | BLOCKED | R `NOT_REQUIRED`, pero la decisión de suficiencia GD-12 sigue sin crítica ni auditoría independiente. |
+| **SC-GOV-022** | BLOCKED | **H (HITL) está declarado `REQUIRED` y no tiene runner implementado ni evidencia alguna.** No se ejecutó. |
+| **SC-GOV-023** | BLOCKED | N `NOT_REQUIRED`, misma razón que SC-GOV-021. |
+| **SC-GOV-024** | BLOCKED | S `NOT_REQUIRED`, misma razón que SC-GOV-021. |
+| **SC-GOV-025** | BLOCKED | **Gate GF no alcanzable hoy:** el plan exige todos los `REQUIRED` con PASS y H no lo está. |
+
+Resumen: **PASS 14, PASS_WITH_LIMITATIONS 6, BLOCKED 5, NOT_APPLICABLE 0.**
+
+**Lectura honesta del conjunto.** La campaña experimental A→B→C está completa,
+auditada y respaldada. El **cierre científico global NO está completo**: el
+complemento H sigue siendo alcance aprobado sin ejecutar, y sin él el gate GF no
+puede evaluarse como PASS. Ausencia de mejora general, `SIN_GANADOR_ESTABLE` y la
+no inferioridad de B son **resultados válidos**, no defectos a corregir.
+
 ## Estado por requisito — 2026-09-20 (revisado 2026-09-20, sesión de verificación)
 
 Vocabulario cerrado, sin otros valores: `PASS`, `PASS_WITH_LIMITATIONS`,

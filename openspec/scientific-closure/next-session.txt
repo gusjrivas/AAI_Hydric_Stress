@@ -1,3 +1,45 @@
+PROMPT SIGUIENTE — vigente desde 2026-09-21 (CAMPAÑA A -> B -> C EJECUTADA).
+Esta cabecera REEMPLAZA toda lectura del texto posterior, que se conserva
+integro como registro historico y cuyas afirmaciones sobre "A/B/C no ejecutadas",
+"ledger no inicializado" y "holdout cerrado" SON HOY FALSAS.
+
+LO QUE YA OCURRIO Y NO SE REPITE
+- La campana A -> B -> C se ejecuto el 2026-09-21 dentro de la imagen aprobada
+  sha256:55bc923e..., identidad ejecutable 214735e42ee04f018156cd630591e798aadd8bf3.
+- A: SIN_GANADOR_ESTABLE, desempate predeclarado de simplicidad -> logistic_regression.
+  NINGUNA familia demostro superioridad.
+- B: CANDIDATE_VALIDATED por NO INFERIORIDAD; su intervalo pareado incluye el cero.
+- C: holdout 2024-2025 ABIERTO, evento unico e IRREVERSIBLE. delta MCC
+  [+0.0227, +0.1784], excluye el cero. No confirma la hipotesis general del
+  Trabajo Final ni es validacion agronomica.
+- Respaldo externo verificado en disco USB fisicamente independiente.
+- changes.json: sc-01..sc-05 PASS; sc-06..sc-10 BLOCKED.
+
+POR ESO, Y CON MAS FUERZA QUE ANTES: NO ejecutar cientificamente A/B/C.
+Estan CONSUMIDAS. El holdout no puede volver a cerrarse y ninguna evaluacion
+futura sobre 2024-2025 sera ciega. Repetirlas seria una violacion del protocolo,
+no una correccion. Tampoco reinicializar ni sustituir los ledgers.
+
+LO QUE SI QUEDA PENDIENTE (alcance aprobado no ejecutado)
+1. H (HITL, sc-08): declarado REQUIRED en claims.md, SIN runner implementado y
+   SIN evidencia. Mientras siga asi, el gate GF NO es alcanzable y SC-GOV-025
+   permanece BLOCKED. Alternativas: implementarlo y ejecutarlo bajo su diseno
+   congelado, o cambiar motivadamente su condicion a NOT_REQUIRED con critica y
+   auditoria independiente. No hay tercera via.
+2. Someter la decision de suficiencia GD-12 (R/N/S NOT_REQUIRED) a critica y
+   auditoria independiente, para que SC-GOV-021/023/024 puedan volver a
+   NOT_APPLICABLE en lugar de BLOCKED.
+3. Cerrar o aceptar formalmente la condicion 2 de ADR-0011 (licencia NASA POWER,
+   PENDING_CONFIRMATION).
+4. Incorporar a la memoria tecnica las limitaciones declaradas: calibracion
+   degradada en el holdout, deriva de prevalencia entre etapas, costo operativo
+   de los avisos falsos, sitio unico y datos de reanalisis.
+
+WORKTREE: /home/gus/work/AAI_Hydric_Stress_scientific_closure
+RAMA: feat/scientific-closure   UPSTREAM: origin/feat/scientific-closure
+
+=== TEXTO HISTORICO ANTERIOR (2026-09-21, integracion de origin/main) ===
+
 PROMPT SIGUIENTE — vigente desde 2026-09-21 (integración de origin/main).
 Base: la versión del 2026-09-20 (sesión de verificación de cierre), conservada
 en su totalidad. Las correcciones del 2026-09-21 están marcadas en línea con la
