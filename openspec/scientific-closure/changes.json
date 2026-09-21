@@ -133,7 +133,8 @@
         "evidence": "evidence/governance/closure-campaign-2026-09-21/ (preflight.json, environment-identity.json) y /mnt/scientific-backup/AAI_Hydric_Stress/closure-campaign-2026-09-21/{manifest,rehearsal}",
         "actor": "/auditor_independiente_cierre_cientifico",
         "timestamp_utc": "2026-09-21T04:30:00Z",
-        "scope": "Readiness verificado directamente: rama/HEAD/arbol/remoto, Docker operativo, imagen historica identificada y ejecutable, respaldo en disco USB fisicamente independiente con manifiesto, hashes y ensayo de recuperacion, evidence/ y ledger/ vacios, hashes de entradas coincidentes con el manifiesto, checker exit 0 y preflight PREPARED_NOT_AUTHORIZED."
+        "scope": "Readiness verificado directamente: rama/HEAD/arbol/remoto, Docker operativo, imagen historica identificada y ejecutable, respaldo en disco USB fisicamente independiente con manifiesto, hashes y ensayo de recuperacion, evidence/ y ledger/ vacios, hashes de entradas coincidentes con el manifiesto, checker exit 0 y preflight PREPARED_NOT_AUTHORIZED.",
+        "verdict_qualification": "PASS sobre los prerrequisitos operativos verificados. Limitacion declarada: la condicion 2 de ADR-0011 (licencia especifica de NASA POWER) sigue PENDING_CONFIRMATION y se acepta via decision GD-13 como ADMISSIBLE_WITH_EXPLICIT_LIMITATIONS; es una cuestion de licenciamiento y atribucion, no de validez metodologica."
       },
       "state_events": [
         {
@@ -394,7 +395,8 @@
         "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-05-stage-c/ (execution-record.json, holdout-review.json)",
         "actor": "/auditor_independiente_cierre_cientifico",
         "timestamp_utc": "2026-09-21T04:30:00Z",
-        "scope": "Etapa C: conformidad con la seccion 11, unicidad e irreversibilidad de la apertura del holdout, ledger CONFIRMADA con autorizacion nominal, y recomputo independiente de MCC, delta e intervalo bootstrap, ademas del P20 desde el CSV crudo."
+        "scope": "Etapa C: conformidad con la seccion 11, unicidad e irreversibilidad de la apertura del holdout, ledger CONFIRMADA con autorizacion nominal, y recomputo independiente de MCC, delta e intervalo bootstrap, ademas del P20 desde el CSV crudo.",
+        "verdict_qualification": "El vocabulario cerrado del checker solo admite PASS/FAIL/BLOCKED en este campo. El veredicto literal del auditor final independiente es PASS_WITH_LIMITATIONS sobre la campana, con scientific_sufficiency INSUFFICIENT para el gate GF. Se registra PASS porque la Etapa C satisface su propia compuerta GC; la insuficiencia es de ALCANCE GLOBAL (complemento H sin ejecutar) y se refleja en sc-06..sc-10, que permanecen BLOCKED. Ver evidence/governance/closure-campaign-2026-09-21/sc-05-stage-c/holdout-review.json."
       },
       "state_events": [
         {

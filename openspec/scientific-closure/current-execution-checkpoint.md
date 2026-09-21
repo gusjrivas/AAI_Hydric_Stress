@@ -56,10 +56,21 @@ distinción que AGENTS.md exige.
 
 **Resultados (sin sobreinterpretación).**
 
-- **A** — `SIN_GANADOR_ESTABLE`. Las cuatro familias dentro de δ=0.05 y todos los
-  intervalos pareados contra la mejor incluyen el cero. **Ninguna demostró
-  superioridad.** `logistic_regression` se congeló por **desempate predeclarado de
-  simplicidad**, nunca por superioridad. Resultado negativo válido.
+- **A** — `SIN_GANADOR_ESTABLE`. Las cuatro familias quedan dentro de δ=0.05
+  respecto de la mejor (diferencias 0.0101, 0.0127 y 0.0222), por lo que las cuatro
+  integran el conjunto de equivalencia práctica y **ninguna es superior estable**.
+  `logistic_regression` se congeló por **desempate predeclarado de simplicidad**,
+  nunca por superioridad. Resultado negativo válido.
+  **Corrección 2026-09-21 (hallazgo EV-01 del verificador de evidencia):** una
+  versión anterior de esta sección, y el mensaje del commit `5355aee`, afirmaban
+  que «todos los intervalos pareados contra la mejor incluyen el cero». **Es
+  falso.** El par `hist_gradient_boosting_classifier` vs `soft_voting` es
+  `[−0.04907, −0.00066]` y **excluye** el cero; 10 de los 12 intervalos pareados lo
+  incluyen. El veredicto **no cambia**: el conjunto de equivalencia se define como
+  diferencia `< δ` **o** intervalo que incluye el cero, y HGB entra por la primera
+  cláusula (0.0222 < 0.05); `soft_voting` no es ganador estable porque necesitaría
+  una diferencia `≥ δ` frente a **cada** rival y no la tiene frente a ninguno. Lo
+  inexacto era la evidencia citada, no la conclusión.
 - **B** — `CANDIDATE_VALIDATED` (MCC 0.7014 > 0; límite inferior −0.0146 ≥ −0.05).
   **Es una compuerta de NO INFERIORIDAD:** el intervalo [−0.0146, +0.2092]
   **incluye el cero**, así que **no** se demuestra superioridad frente a

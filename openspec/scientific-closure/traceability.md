@@ -63,24 +63,38 @@ falsas**. No se reescriben allí; se corrigen aquí.
 | **SC-GOV-007** | PASS | `changes.json` con transiciones, aprobación y auditoría por cada change ejecutado. |
 | **SC-GOV-008** | PASS | Auditores independientes distintos del implementador en A, B y cierre final. |
 | **SC-GOV-009** | PASS | Identidad ejecutable `214735e` (ancestro de HEAD) frente a documental `37eed42`; delta de 7 archivos clasificado sin efecto numérico y verificado por dos auditores. Resuelve GD-25/RK-09. |
-| **SC-GOV-010** | PASS | `temporal-contract-check.json`: fronteras 2015–2022 / 2023 / 2024–2025, contrato de 8 features idéntico en las tres etapas, sin fuga. |
-| **SC-GOV-011** | PASS | `A/gate-review.json`: GA satisfecho; `SIN_GANADOR_ESTABLE` con desempate de simplicidad; soporte 3/3 folds y 5000/5000 réplicas. |
-| **SC-GOV-012** | PASS | `B/gate-review.json`: GB satisfecho; `CANDIDATE_VALIDATED` por **no inferioridad** (el intervalo incluye el cero). |
-| **SC-GOV-013** | PASS | `B/custody-review.json`: intento único, reserva previa a la lectura de valores, sin recuperación ni repetición. |
-| **SC-GOV-014** | PASS | `C/holdout-review.json`: GC satisfecho por integridad y unicidad; apertura única, nominal e irreversible; ledger `CONFIRMADA`. |
-| **SC-GOV-015** | PASS_WITH_LIMITATIONS | `statistical-review.json`: bootstrap reproducido de forma independiente en A, B y C. Salvedad declarada: intervalos percentiles sin corrección por multiplicidad ni calibración de cobertura; ~24 unidades efectivas en C. |
+| **SC-GOV-010** | PASS | `sc-03-stage-a/temporal-contract-check.json`: fronteras 2015–2022 / 2023 / 2024–2025, contrato de 8 features idéntico en las tres etapas, sin fuga. |
+| **SC-GOV-011** | PASS | `sc-03-stage-a/gate-review.json`: GA satisfecho; `SIN_GANADOR_ESTABLE` con desempate de simplicidad; soporte 3/3 folds y 5000/5000 réplicas. |
+| **SC-GOV-012** | PASS | `sc-04-stage-b/gate-review.json`: GB satisfecho; `CANDIDATE_VALIDATED` por **no inferioridad** (el intervalo incluye el cero). |
+| **SC-GOV-013** | PASS | `sc-04-stage-b/custody-review.json`: intento único, reserva previa a la lectura de valores, sin recuperación ni repetición. |
+| **SC-GOV-014** | PASS | `sc-05-stage-c/holdout-review.json`: GC satisfecho por integridad y unicidad; apertura única, nominal e irreversible; ledger `CONFIRMADA`. |
+| **SC-GOV-015** | PASS_WITH_LIMITATIONS | `sc-03-stage-a/statistical-review.json`: bootstrap reproducido de forma independiente en A, B y C. Salvedad declarada: intervalos percentiles sin corrección por multiplicidad ni calibración de cobertura; ~24 unidades efectivas en C. |
 | **SC-GOV-016** | PASS_WITH_LIMITATIONS | Revisión de sobreinterpretación superada; se añadieron calibración degradada y deriva de prevalencia tras la auditoría final. |
 | **SC-GOV-017** | PASS_WITH_LIMITATIONS | Procedencia verificada por hash. **Condición 2 de ADR-0011 (licencia NASA POWER) sigue `PENDING_CONFIRMATION`**, aceptada como limitación vía GD-13. |
 | **SC-GOV-018** | PASS | Respaldo externo en disco USB físicamente independiente, con manifiesto, inventario, hashes y ensayo de recuperación PASS en sus cuatro componentes. |
-| **SC-GOV-019** | PASS | RK-14 ratificado en ADR-0011; trazabilidad de commits y push registrada. |
-| **SC-GOV-020** | PASS | Checker exit 0, pruebas de gobernanza 15/15, suite v4 488 passed / 3 skipped. |
+| **SC-GOV-019** | PASS_WITH_LIMITATIONS | Trazabilidad de commits y push registrada; RK-14 ratificado en ADR-0011. **Limitación (hallazgo EV-03):** la ratificación **reconoce y autoriza conservar** la desviación, pero el propio ADR-0011 dice que **«no subsana el incumplimiento: RK-14 permanece registrado como desviación reconocida»**. No existe artefacto que lo cure, de modo que este requisito **no** puede declararse PASS pleno. |
+| **SC-GOV-020** | PASS | Checker exit 0, pruebas de gobernanza 15/15, suite v4 488 passed / 3 skipped (checkout) y 483 passed / 3 skipped (imagen). Archivado en `evidence/governance/closure-campaign-2026-09-21/validation/validation-record.json` tras el hallazgo EV-04. |
 | **SC-GOV-021** | BLOCKED | R `NOT_REQUIRED`, pero la decisión de suficiencia GD-12 sigue sin crítica ni auditoría independiente. |
 | **SC-GOV-022** | BLOCKED | **H (HITL) está declarado `REQUIRED` y no tiene runner implementado ni evidencia alguna.** No se ejecutó. |
 | **SC-GOV-023** | BLOCKED | N `NOT_REQUIRED`, misma razón que SC-GOV-021. |
 | **SC-GOV-024** | BLOCKED | S `NOT_REQUIRED`, misma razón que SC-GOV-021. |
 | **SC-GOV-025** | BLOCKED | **Gate GF no alcanzable hoy:** el plan exige todos los `REQUIRED` con PASS y H no lo está. |
 
-Resumen: **PASS 14, PASS_WITH_LIMITATIONS 6, BLOCKED 5, NOT_APPLICABLE 0.**
+Resumen: **PASS 14, PASS_WITH_LIMITATIONS 6, BLOCKED 5, NOT_APPLICABLE 0** (total 25).
+Recuento corregido el 2026-09-21 tras el hallazgo EV-02 del verificador de evidencia:
+una versión intermedia de esta tabla declaraba `SC-GOV-019` como PASS, lo que daba
+15/5/5 y no coincidía con el resumen. Al degradar `SC-GOV-019` a
+PASS_WITH_LIMITATIONS —porque ADR-0011 declara que la ratificación de RK-14 **no**
+subsana el incumplimiento— el recuento pasa a ser 14/6/5, que es el que figura arriba.
+
+**Naturaleza de los artefactos de gate (hallazgo EV-06).** Los seis artefactos
+`temporal-contract-check.json`, `gate-review.json` (A y B), `statistical-review.json`,
+`custody-review.json` y `holdout-review.json` **no** son salidas del runner: son
+**atestaciones retrospectivas** producidas el 2026-09-21T04:20:00Z, después de
+ejecutar la campaña, para cerrar el hallazgo F-02 de la auditoría final. Su contenido
+numérico se reconcilia íntegramente con la evidencia intacta de A, B y C —verificado
+de forma independiente— pero no deben leerse como registros emitidos durante la
+ejecución. La evidencia científica sí es contemporánea y no fue modificada.
 
 **Lectura honesta del conjunto.** La campaña experimental A→B→C está completa,
 auditada y respaldada. El **cierre científico global NO está completo**: el

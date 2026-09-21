@@ -287,7 +287,7 @@ hyperparameter_grids:
     base_models: [logistic_regression, random_forest, hist_gradient_boosting_classifier]
 
 environment:
-  status: VALIDATED_FOR_TESTS_ONLY
+  status: VALIDATED_FOR_TESTS_ONLY_THEN_USED_IN_REAL_EXECUTION_2026_09_21
   note: >
     Entorno experimental dedicado, resuelto y construido en un contenedor
     limpio (docker/experiment-v4/Dockerfile, base python@sha256:9534e5a8e31548
@@ -331,7 +331,7 @@ repository_state:
     La distincion es deliberada y esta verificada en evidence/environment-identity.json.
   historical_note: >
     Ambos campos se completan con la rama y el commit reales en el momento de
-    ejecución REAL de la Etapa A sobre Pergamino (todavía no ejecutada). El
+    ejecución REAL de la Etapa A sobre Pergamino (SUPERADO 2026-09-21: ejecutada ese día). El
     valor anterior de `branch` (feat/controlled-daily-v4-stage-a-runner) quedó
     obsoleto: esa rama ya fue mergeada a main (PR #188) y main avanzó con
     correcciones posteriores (PR #189, #190) sin que se haya ejecutado ninguna
@@ -414,8 +414,10 @@ execution_artifacts:
 
 future_versioned_artifacts:
   note: >
-    A versionar únicamente después de ejecutar el protocolo (fuera de alcance
-    de esta tarea): predicciones OOF, métricas finales, resultados de Etapa B
+    NOTA HISTORICA, SUPERADA 2026-09-21: decía «a versionar únicamente después de
+    ejecutar el protocolo (fuera de alcance de esta tarea)». El protocolo ya se
+    ejecutó; ver `actual_paths` más abajo, que registra dónde residen realmente
+    estos artefactos y aclara que NO fueron versionados en Git: predicciones OOF, métricas finales, resultados de Etapa B
     y C, y el dataset diario derivado (o su receta reproducible de
     construcción) junto con su propio SHA-256. Los CSV crudos permanecen
     fuera de Git en todo momento. El SHA-256 del conjunto diario elegible ya
