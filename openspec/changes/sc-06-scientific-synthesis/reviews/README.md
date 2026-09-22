@@ -41,7 +41,7 @@ de estos dos informes.
 
 | Archivo | Rol | Objeto | Veredicto |
 | --- | --- | --- | --- |
-| `review-audit-reconciliation.md` | `scientific_auditor` | Snapshot reconciliado sobre `65ca852` | Ver el archivo |
+| `review-audit-reconciliation.md` | `scientific_auditor` | Snapshot `e822f6f` (reconciliación sobre `65ca852`) | **`PASS`** de alcance acotado a seis ítems; 1 hallazgo material (`F-01`, corregido) y 3 observaciones. **No** descarga RB-05/T25: no fue auditoría requisito por requisito |
 
 **Alcance de esa auditoría, fijado por el responsable.** Verificar que RB-03
 siga conforme al `PASS` de su propio auditor (sin reabrirlo ni reauditarlo);

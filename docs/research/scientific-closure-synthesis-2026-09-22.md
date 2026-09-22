@@ -253,17 +253,29 @@ artefacto que la desagregue en 2024 y 2025 por separado, y no se infiere.
 
 **(e) Imputación causal en la evidencia de referencia v3, no en A/B/C.**
 *Añadido en la reconciliación del 2026-09-22, no estaba en la versión de
-`f355272`.* La campaña A/B/C/H usa entradas de reanálisis (ERA5-Land, NASA
-POWER) sobre Pergamino, con imputación causal declarada sólo sobre entradas y
-target nunca imputado (`temporal-contract-check.json`, sección 7 de este
-documento). Esto **no** es lo mismo que la evidencia de referencia
-`controlled_daily_v3` (Melchor Romero), citada en `claims.md` para CL-04 y
-CL-08: ese dataset tiene 75,96 % de cobertura real en humedad de suelo, es
-decir ~24 % de días con huecos del producto satelital imputados por
-`causal_ffill`, en las ocho configuraciones formales por igual, sin
-caracterización de su efecto. Ver `hu8-resultados-discusion-conclusiones.md`
+`f355272`. Corregido tras el hallazgo `F-01` de la auditoría de esa
+reconciliación (`review-audit-reconciliation.md`): la redacción original citaba
+`temporal-contract-check.json` como verificación de que la campaña A/B/C/H
+imputa causalmente sólo sobre entradas. Ese artefacto no contiene ningún campo
+ni control de imputación; sus cinco `leakage_checks` cubren fronteras
+temporales, contaminación de P20 y el contrato de ocho features, no
+imputación.* La campaña A/B/C/H usa entradas de reanálisis (ERA5-Land, NASA
+POWER) sobre Pergamino y **no imputa**: el runner de v4 exige calendario diario
+completo y aborta ante huecos en lugar de repararlos
+(`controlled_daily_v4/features.py::validate_continuous_daily_calendar`,
+`ingestion.py::aggregate_era5_daily`; verificado por grep, sin campo
+`imputation` en el paquete v4). `causal_ffill` es una propiedad del contrato de
+**v3**, no de v4 (`predictive_modeling/contract.py`,
+`PIPELINE_VERSION = "controlled_daily_v3"`). Esto **no** es lo mismo que la
+evidencia de referencia `controlled_daily_v3` (Melchor Romero), citada en
+`claims.md` para CL-04 y CL-08: ese dataset tiene 75,96 % de cobertura real en
+humedad de suelo, es decir ~24 % de días con huecos del producto satelital
+imputados por `causal_ffill`, en las ocho configuraciones formales por igual,
+sin caracterización de su efecto. Ver `hu8-resultados-discusion-conclusiones.md`
 §8.4 y el dossier de suficiencia GD-12. No afecta las métricas de A, B, C ni H
-reportadas en este documento; sí acota lo que la evidencia de v3 puede sostener
+reportadas en este documento —la garantía real de v4 (calendario completo o
+aborto) es más estricta que la enunciada originalmente, no más débil—; sí acota
+lo que la evidencia de v3 puede sostener
 cuando se cita para justificar la suficiencia de S (robustez).
 
 **Soporte efectivo.** Bootstrap 5000/5000 réplicas válidas, bloques de 30 días
@@ -414,11 +426,15 @@ ninguna afirmación cuantitativa.**
 **Lo que sostiene la validez interna.**
 
 - **Causalidad temporal verificada.** Fronteras 2015–2022 / 2023 / 2024–2025 sin
-  solapamiento, gap de tres días, target observado a t+3 **no imputado**,
-  imputación causal sólo sobre entradas, P20 y transformaciones aprendidos en
-  train y aplicados a validación. El contrato de ocho features es idéntico en las
-  tres etapas. Verificado en `temporal-contract-check.json` y recomprobado por
-  auditoría independiente.
+  solapamiento, gap de tres días, target observado a t+3 **no imputado**, P20 y
+  transformaciones aprendidos en train y aplicados a validación. El contrato de
+  ocho features es idéntico en las tres etapas. Verificado en
+  `temporal-contract-check.json` (cinco `leakage_checks` de fronteras,
+  contaminación de P20 y contrato de features) y recomprobado por auditoría
+  independiente. **Corrección tras el hallazgo `F-01`:** la campaña **no
+  imputa** entradas; el runner de v4 aborta ante huecos del calendario diario
+  en vez de repararlos (ver ítem (e) de la sección 5). `causal_ffill` es una
+  propiedad del contrato de v3, no de v4.
 - **Preinscripción.** El protocolo, el margen δ = 0,05, la regla de desempate por
   simplicidad, las dos condiciones de la compuerta B y el contrato de H estaban
   congelados y anclados en git **antes** de producir los resultados que gobiernan.

@@ -377,8 +377,14 @@ sin condición limpia de comparación. Declarado en
 `hu8-resultados-discusion-conclusiones.md` §8.4, en `claims.md` (`CL-04`,
 `CL-08`) y en `thesis-traceability.md` (fila `2.12`). **No** se afirma que S se
 haya ejecutado ni que exista evidencia de robustez ante mediciones ausentes; la
-campaña A/B/C/H (Pergamino, no Melchor Romero) declara imputación causal sólo
-sobre entradas, con target nunca imputado, y esto no cambia.
+campaña A/B/C/H (Pergamino, no Melchor Romero) **no imputa** —el runner de v4
+aborta ante huecos del calendario diario en vez de repararlos
+(`controlled_daily_v4/features.py::validate_continuous_daily_calendar`)— y
+`causal_ffill` es una propiedad exclusiva del contrato de v3
+(`predictive_modeling/contract.py`), y esto no cambia. **Corrección tras el
+hallazgo `F-01` de la auditoría de esta reconciliación:** la redacción anterior
+atribuía a `temporal-contract-check.json` una verificación de imputación que
+ese artefacto no contiene.
 
 **Auditoría independiente única solicitada.** Sobre el snapshot que congela
 esta reconciliación, con el alcance exacto: (1) que RB-03 siga conforme al
