@@ -1,12 +1,14 @@
 {
   "schema_version": "scientific_closure_gate_artifact.v1",
   "campaign_id": "sufficiency-review-2026-09-22",
-  "produced_at_utc": "2026-09-22T02:08:58Z",
+  "version": 2,
+  "version_note": "Versión 2, corregida tras la primera crítica independiente sobre el snapshot 2185ed4, que emitió siete hallazgos materiales. El informe del crítico se conserva verbatim en openspec/changes/sc-0{7,9,10}-*/reviews/review-critic-gd12.md y la resolución de cada hallazgo en findings-resolution.json. Los veredictos de clasificación de la versión 1 fueron confirmados; lo corregido es la estructura del argumento, la exactitud de cuatro citas y la gobernanza de las transiciones de estado.",
+  "produced_at_utc": "2026-09-22T03:05:00Z",
   "produced_by": "orquestador de la sesión sufficiency-review-2026-09-22, bajo AUTH-SUFF-2026-09-22",
   "snapshot_of_inputs": "1c33aad8cbee765e2968bd164b5d4890743eea0a",
   "nature_of_this_artifact": "Artefacto de DECISIÓN DE SUFICIENCIA, no de ejecución. El complemento no se implementó ni se ejecutó, y este archivo no contiene ninguna métrica, predicción ni resultado experimental. Registra por qué el complemento no es necesario para el alcance científico aprobado, qué queda por eso fuera de lo afirmable, y bajo qué condición volvería a ser REQUIRED.",
   "dossier": "openspec/scientific-closure/sufficiency-review-2026-09-22/gd12-sufficiency-dossier.md",
-  "decision_record": "openspec/scientific-closure/decisions.md, GD-12 (decisión de fondo), GD-23 (degradación a BLOCKED), GD-30 (esta revisión)",
+  "decision_record": "openspec/scientific-closure/decisions.md, GD-12 (decisión de fondo), GD-23 (degradación a BLOCKED), GD-30 (esta revisión), GD-31 y GD-32 (gobernanza del estado)",
   "artifact": "auxiliary/R/review.json",
   "change_id": "sc-07-aux-regression",
   "requirement_ids": [
@@ -19,65 +21,78 @@
   "acceptance_criterion_verbatim": "NOT_REQUIRED para sola clasificación P20; REQUIRED exige diseño R, runner validado, MAE/RMSE en m3/m3 y comparación contra persistencia; sin confundir con MCC.",
   "check_verbatim": "Revisión claims-assessment y fixtures específicos del diseño auxiliary_soil_regression_v1 antes de cualquier ejecución.",
   "decision": "NOT_REQUIRED",
-  "decision_rule": "La norma tiene forma condicional con dos términos: una intención de afirmar algo, y una insuficiencia de la evidencia para afirmarlo. El complemento es REQUIRED cuando se cumplen ambos. Es NOT_REQUIRED cuando falla el primero. El disparador es la afirmación, no el hueco de evidencia.",
+  "decision_rule": "SC-GOV-021 usa «solo si», que hace de la conjunción una condición NECESARIA de la activación: si no se pretende sostener desempeño sobre humedad continua, la activación no está permitida. NOT_REQUIRED no es una lectura favorable, es lo que la norma impone.",
   "trigger_first_term": {
     "question": "¿Alguna afirmación del alcance aprobado pretende sostener desempeño sobre humedad continua?",
     "answer": "NO",
-    "basis": [
-      "claims.md CL-05: «Error continuo de humedad t+3 permanece registrado, pero no se sostiene como afirmación de la campaña P20». La brecha está enunciada y condicionada a una ampliación de alcance que no ocurrió.",
-      "openspec/project.md: el propósito es la detección temprana de estrés hídrico; HU4 es modelado predictivo y generación de alertas tempranas. La salida del sistema es una alerta, no un valor de humedad.",
+    "basis_independent_of_the_decision": [
+      "Criterio de aceptación verbatim del propio SC-GOV-021: «NOT_REQUIRED para sola clasificación P20». El alcance ejecutado es exclusivamente clasificación binaria P20 a t+3.",
+      "Título del Trabajo Final: «Arquitectura de inteligencia artificial para DETECCIÓN TEMPRANA de estrés hídrico en cultivos hortícolas bajo escenarios de escasez y variabilidad de datos».",
+      "openspec/project.md: HU4 es «modelado predictivo y generación de alertas tempranas». La salida del sistema es una alerta, no un valor de humedad.",
       "Protocolo v4 y etapas A, B y C ejecutadas el 2026-09-21: clasificación binaria P20 a t+3, MCC como métrica primaria.",
-      "docs/research/scientific-closure-preexecution-audit.md: «MCC primaria; MAE/RMSE pertenecen al auxiliar continuo».",
-      "Ninguna de CL-01..CL-10 requiere una cifra en m3/m3."
-    ]
+      "docs/research/scientific-closure-preexecution-audit.md: «MCC primaria; MAE/RMSE pertenecen al auxiliar continuo»."
+    ],
+    "registered_but_not_used_as_proof": "claims.md CL-05 registra la misma exclusión. claims.md NO se invoca como fundamento. Hallazgo material C-04: git log muestra que GD-12 y la redacción limitante de CL-04, CL-05, CL-07 y CL-08 entraron en el mismo commit a0d8bf7 (2026-09-19), del mismo autor, y la quinta columna de esa tabla se llama «Decisión sobre complementos» y ya dice «R/N/S NOT_REQUIRED». claims.md es el registro de la misma decisión que aquí se evalúa, no una fuente independiente. Se cita como registro, nunca como prueba."
   },
   "trigger_second_term": {
     "question": "Si se pretendiera sostenerlo, ¿lo cubriría la evidencia existente?",
     "answer": "NO — y por eso la primera respuesta es la que decide",
-    "verified_negative_fact": "Búsqueda de MAE/RMSE sobre docs/research/reference-v3-formal-results.json: 0 ocurrencias. No existe ningún artefacto de regresión en la evidencia de A, B, C ni H. Hecho verificado por búsqueda directa, no inferido."
+    "verified_negative_fact": "Búsqueda de MAE/RMSE sobre docs/research/reference-v3-formal-results.json: 0 ocurrencias. El crítico independiente lo reverificó y lo halló más fuerte: sobre los 89 archivos de la raíz de evidencia (A, B, C, gobernanza) ningún archivo contiene claves mae, rmse, r2, mean_absolute_error ni root_mean_squared_error, y el único nombre con «regres» es oof_predictions_logistic_regression.csv, que es un clasificador. Verificado por nombres y grep -rl, sin imprimir ningún valor y sin abrir el holdout."
+  },
+  "preexecution_risk": {
+    "id": "SC08",
+    "verbatim": "MAE/RMSE ausentes — alta para cierre final",
+    "status": "LIMITACIÓN VIVA, NO RESUELTA",
+    "correction_C09": "La versión 1 afirmaba que «la columna de mitigación del propio SC08 lo dice». No lo dice: la mitigación dice «Diseño R completo; runner/evaluación/evidencia pendientes, separado de clasificación» y la severidad dice «alta para cierre final», sin condicionar. La condicionalidad de la severidad es una INFERENCIA de este dossier y se presenta como tal."
   },
   "acceptance_clause_by_clause": [
     {
       "clause": "NOT_REQUIRED para sola clasificación P20",
       "status": "CUMPLIDA",
-      "evidence": "El alcance ejecutado es exclusivamente clasificación P20 a t+3 (A, B, C). No hay afirmación de regresión."
+      "evidence": "El alcance ejecutado es exclusivamente clasificación P20 a t+3 (A, B, C). Es además la cláusula que decide el caso, y es fuente normativa independiente de claims.md."
     },
     {
       "clause": "REQUIRED exige diseño R, runner validado, MAE/RMSE en m3/m3 y comparación contra persistencia",
       "status": "NO APLICA",
-      "evidence": "Cláusula condicional a la rama REQUIRED, que no se toma. El diseño R se preserva congelado en docs/research/scientific-closure-decisions.md; no hay runner y no se implementa ninguno."
+      "evidence": "Cláusula condicional a la rama REQUIRED, que no se toma. El diseño R se preserva congelado; no hay runner y no se implementa ninguno."
     },
     {
       "clause": "sin confundir con MCC",
       "status": "CUMPLIDA POR DECLARACIÓN",
-      "evidence": "Prohibición que rige incondicionalmente y se declara en las limitaciones de abajo: no se traduce MCC, AP, Brier ni F1 a exactitud sobre humedad."
+      "evidence": "Prohibición que rige incondicionalmente y se declara en las limitaciones."
     }
   ],
   "check_clause_by_clause": [
     {
       "clause": "Revisión claims-assessment",
       "status": "EJECUTADA",
-      "evidence": "Sección 3 del dossier; revisión de CL-01..CL-10 y del propósito/alcance de project.md."
+      "evidence": "Secciones 3 y 6 del dossier, rehechas sobre fuentes independientes de claims.md tras el hallazgo C-04."
     },
     {
       "clause": "fixtures específicos del diseño auxiliary_soil_regression_v1 antes de cualquier ejecución",
       "status": "NO APLICA",
-      "evidence": "No hay fixtures porque no hay implementación ni ejecución. La cláusula es condicional a la rama REQUIRED. Se declara en lugar de omitirse."
+      "evidence": "No hay fixtures porque no hay implementación ni ejecución. Cláusula condicional a la rama REQUIRED. Se declara en lugar de omitirse."
     }
   ],
   "limitations_that_must_remain_declared": [
-    "No puede afirmarse que el sistema predice, estima o pronostica el VALOR de humedad de suelo.",
-    "No puede reportarse error en m3/m3, MAE, RMSE ni R2, de ninguna procedencia.",
+    "No puede afirmarse que el sistema predice, estima o pronostica el VALOR de humedad de suelo a ningún horizonte.",
+    "No puede reportarse MAE, RMSE ni R2 COMO DESEMPEÑO PREDICTIVO DE HUMEDAD de la campaña P20 o de la arquitectura de detección temprana. Corregido tras el hallazgo C-13: la versión 1 decía «de ninguna procedencia», lo cual era insostenible porque la spec de data-quality (HU3), dentro del alcance aprobado, ya reporta MAE 0.02312/0.02323 para la utilidad predictiva del generador sintético. Ese resultado preexistente NO se suprime; lo prohibido es presentarlo como desempeño de predicción de humedad de esta campaña.",
     "No puede traducirse MCC, AP, Brier o F1 a exactitud sobre humedad.",
-    "No puede presentarse la ausencia de estos números como evidencia de que la regresión funcionaría, ni de que no funcionaría. No se midió."
+    "No puede presentarse la ausencia de estos números como evidencia de que la regresión funcionaría, ni de que no funcionaría. No se midió.",
+    "El riesgo preejecución SC08 queda declarado como limitación viva, no resuelto."
   ],
   "reopens_if": "Se pretenda sostener desempeño sobre el valor de humedad de suelo (m3/m3) en cualquier horizonte. Requiere change aprobado, autorización propia, runner validado y evidencia auditada.",
+  "proposed_states": {
+    "requirement": "SC-GOV-021: NOT_APPLICABLE en traceability.md, sólo con auditoría independiente favorable. Es lo que GD-23 degradó y prometió devolver, y lo que operations.md reserva para «complementos NOT_REQUIRED con decisión de suficiencia auditada».",
+    "change": "sc-07-aux-regression: permanece BLOCKED, sin moverse. Corregido tras los hallazgos materiales C-05, C-06 y C-08: su extra_gate exige la condición REQUIRED, que no se cumple y no se cumplirá, y plan.md prohíbe despachar un change con gate negativo. BLOCKED no describe aquí un defecto removible sino un complemento condicional que no hay que ejecutar."
+  },
   "what_this_artifact_does_not_claim": [
     "No afirma que el complemento sea innecesario para el problema científico: es trabajo futuro pertinente y su diseño congelado se preserva intacto.",
     "No afirma nada sobre los resultados que el complemento habría producido. No se ejecutó; no hay resultado, ni positivo ni negativo.",
     "No convierte la ausencia de ejecución en una conclusión experimental.",
+    "No resuelve el riesgo preejecución asociado: queda como limitación viva.",
     "No desbloquea SC-GOV-025 ni el gate GF: RB-04, RB-05 y RB-06 siguen abiertos.",
     "No se apoya en el holdout 2024-2025 para nada."
   ],
-  "independent_review_status": "PENDIENTE al emitirse este artefacto. La crítica y la auditoría independientes se registran en los directorios reviews/ del change correspondiente y su veredicto es lo único que puede mover el estado del requisito."
+  "independent_review_status": "Crítica independiente RECIBIDA sobre el snapshot 2185ed4: confirma NOT_REQUIRED y emite 7 hallazgos materiales, todos remediados en esta versión 2. Auditoría independiente PENDIENTE; su veredicto es lo único que puede mover el estado del requisito."
 }

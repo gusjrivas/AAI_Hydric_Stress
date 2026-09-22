@@ -1,0 +1,151 @@
+{
+  "schema_version": "1.0",
+  "record": "findings_resolution",
+  "campaign_id": "sufficiency-review-2026-09-22",
+  "reviewed_snapshot": "2185ed45da0b5c85bf7c5074f8ed91e39e6ab976",
+  "reviewer": "scientific_critic independiente, sesión de contexto separado, solo lectura instruida",
+  "report_preserved_verbatim_at": [
+    "openspec/changes/sc-07-aux-regression/reviews/review-critic-gd12.md",
+    "openspec/changes/sc-09-aux-anomalies/reviews/review-critic-gd12.md",
+    "openspec/changes/sc-10-aux-robustness/reviews/review-critic-gd12.md"
+  ],
+  "report_sha256": "a8eb9d23366a52038f8ed1f21c6e6d127695fe471f60ba7bab48893d5d092a89",
+  "verdicts_received": {
+    "R": "CONFIRMA NOT_REQUIRED",
+    "N": "CONFIRMA NOT_REQUIRED, con la justificación escrita defectuosa",
+    "S": "CONFIRMA NOT_REQUIRED, con reserva expresa",
+    "stop_condition": "NO se activa: el crítico no identificó ninguna afirmación obligatoria sin respaldo y declara expresamente que no recomienda ejecutar R, N ni S",
+    "snapshot": "NO confirmado: 7 hallazgos materiales abiertos impedían pasar a auditoría"
+  },
+  "resolution_policy": "Cada hallazgo se verificó contra su fuente ANTES de aceptarlo. Ninguno se aceptó por deferencia ni se rechazó por comodidad. El informe del crítico no se edita: las correcciones viven aquí y en los artefactos.",
+  "findings": [
+    {
+      "id": "C-01",
+      "severity": "MATERIAL",
+      "status": "ACEPTADO Y CORREGIDO",
+      "finding": "Las tres normas NO tienen la misma forma: SC-GOV-021 usa «solo si» (necesaria) y SC-GOV-023/024 usan «si» (suficiente). Para N y S, inferir NOT_REQUIRED de la falla del antecedente es negar el antecedente.",
+      "verification_by_orchestrator": "Verificado carácter por carácter contra openspec/specs/scientific-closure/spec.md líneas 333, 365 y 381. El hallazgo es correcto y la versión 1 incurría en la falacia.",
+      "resolution": "Se reescribió la sección 1 del dossier con la tabla de formas lógicas y se retiró el título «tomada de la norma y no construida aquí». Para R la norma decide sola; para N y S la clasificación pasa a apoyarse en la demostración positiva de la sección 6 sobre fuentes independientes. El campo decision_rule de los tres review.json se reescribió en consecuencia."
+    },
+    {
+      "id": "C-02",
+      "severity": "MATERIAL",
+      "status": "ACEPTADO Y CORREGIDO",
+      "finding": "El dossier atribuía a las 8 configuraciones formales una comparación pre-formal de HU8 §7 (F1 0.7309 vs 0.7278) cuya dirección es la inversa de la evidencia formal.",
+      "verification_by_orchestrator": "Verificado contra docs/research/reference-v3-formal-table.md: base F1 0.5592 / MCC -0.0135 / AP 0.5816; anomalias F1 0.5689 / MCC 0.0110 / AP 0.5672.",
+      "resolution": "Se reemplazó el párrafo probatorio de la sección 4 por la tabla de valores formales y por la lectura vigente de HU8 §8.2, «evidencia mixta (F1/MCC débil-positivo, AP negativo en 5/5 semillas)». Igual corrección en auxiliary/N/review.json."
+    },
+    {
+      "id": "C-03",
+      "severity": "MATERIAL",
+      "status": "ACEPTADO Y CORREGIDO",
+      "finding": "Se reproducían dos conclusiones que la tercera auditoría de HU8 registró como ERRATAS: «no hay evidencia de un efecto real» y «MCC más negativo de todo el estudio (-0.1103, peor incluso que persistencia)».",
+      "verification_by_orchestrator": "Verificado: la sección de erratas dice que las diferencias de signo mixto «no demuestran ausencia de efecto» y que «-0.1103 es mayor (menos negativo) que -0.1113 … además, los escenarios no compartían el mismo target». train_fraction=0.5 es además un escenario pre-formal.",
+      "resolution": "Se adoptó la formulación corregida «ausencia de mejora consistente» para N, y se RETIRÓ la limitación de S anclada en -0.1103, reemplazada por la lectura vigente (resultados mixtos, dependientes del mecanismo, una sola fracción, explicación causal no demostrada)."
+    },
+    {
+      "id": "C-04",
+      "severity": "MATERIAL",
+      "status": "ACEPTADO Y CORREGIDO",
+      "finding": "Circularidad: la verificación de la condición de parada se apoyaba en claims.md, que fue co-redactado con GD-12.",
+      "verification_by_orchestrator": "Verificado con git log: GD-12 y la redacción limitante de CL-04/05/07/08 entraron en el mismo commit a0d8bf7 (2026-09-19), mismo autor. La quinta columna de la tabla se llama «Decisión sobre complementos».",
+      "resolution": "Se rehizo la sección 6 sobre fuentes independientes de la decisión: título y propósito de project.md, su lista «Incluye», la hipótesis canónica de ADR-0001, CA1-CA4 de HU8 y los criterios de aceptación verbatim de los propios requisitos. claims.md queda citado como registro y nunca como prueba, y así se declara en los tres review.json."
+    },
+    {
+      "id": "C-05",
+      "severity": "MATERIAL",
+      "status": "ACEPTADO Y REVERTIDO",
+      "finding": "Las transiciones BLOCKED→APPROVED→IN_PROGRESS se hicieron con el gate negativo, contra plan.md y operations.md.",
+      "verification_by_orchestrator": "Verificado: plan.md dice «sc-07..10 requieren sc-01+sc-02 y condición REQUIRED» y «Cambios dependientes no se ejecutan si gate negativo»; operations.md exige extra_gate para APPROVED→IN_PROGRESS y establece que un campo indeterminado bloquea. El hallazgo es correcto.",
+      "resolution": "Los tres changes se devolvieron a BLOCKED con un evento IN_PROGRESS→BLOCKED que documenta el incumplimiento y su corrección, siguiendo el precedente de GD-19. Los eventos anteriores NO se borran, conforme a operations.md. Registrado como GD-32."
+    },
+    {
+      "id": "C-06",
+      "severity": "MATERIAL",
+      "status": "ACEPTADO Y CORREGIDO",
+      "finding": "approved_for_implementation: true mientras el propio registro declaraba «implementation approved» satisfied: false. El booleano es el predicado de esa cláusula.",
+      "verification_by_orchestrator": "Verificado en el diff de 2185ed4. El hallazgo es correcto: la prosa honesta no repara un booleano falso y un consumidor automático quedaba inducido a error.",
+      "resolution": "approved_for_implementation vuelve a false y approval a null en los tres changes, restituyendo el estado de 1c33aad."
+    },
+    {
+      "id": "C-07",
+      "severity": "MENOR",
+      "status": "ACEPTADO",
+      "finding": "Tensión entre las cláusulas (3) y (7) de AUTH-SUFF-2026-09-22: la (7) condiciona actualizar changes.json a una auditoría favorable, y se actualizó antes.",
+      "verification_by_orchestrator": "El hallazgo es correcto y la versión 1 resolvió la tensión a su favor sin discutirla.",
+      "resolution": "La reversión de C-05 deja el registro conforme a la cláusula (7): lo único escrito antes de la auditoría son los eventos que documentan y revierten la transición indebida, que no pueden borrarse. Se declara expresamente en la sección 7 del dossier."
+    },
+    {
+      "id": "C-08",
+      "severity": "MATERIAL",
+      "status": "ACEPTADO Y CORREGIDO",
+      "finding": "Cerrar los tres como PASS de change dejaría applicability_decision en null y haría indistinguible, en el registro legible por máquina, un complemento nunca implementado de uno cuyo contrato se cumplió.",
+      "verification_by_orchestrator": "El hecho de GD-31 (NOT_APPLICABLE sólo desde PLANNED) fue verificado y es correcto, pero la salida elegida era mala.",
+      "resolution": "Se adoptó la vía que el propio crítico señala: los changes permanecen BLOCKED y cada uno recibe un campo applicability_decision con la decisión, su base, su artefacto, la crítica y la auditoría. NOT_APPLICABLE queda para las filas de REQUISITO en traceability.md. GD-31 se corrige en línea."
+    },
+    {
+      "id": "C-09",
+      "severity": "MENOR",
+      "status": "ACEPTADO Y CORREGIDO",
+      "finding": "Se atribuía a la celda de mitigación de SC08 una condicionalidad de la severidad que su texto no tiene.",
+      "verification_by_orchestrator": "Verificado contra docs/research/scientific-closure-preexecution-audit.md línea 47. El hallazgo es correcto.",
+      "resolution": "La condicionalidad se presenta ahora como inferencia propia del dossier, y SC08 queda declarado limitación viva, no resuelto. Igual tratamiento para SC10 y SC11."
+    },
+    {
+      "id": "C-10",
+      "severity": "MENOR",
+      "status": "ACEPTADO Y CORREGIDO",
+      "finding": "El propósito de project.md se truncaba justo antes de «en escenarios de disponibilidad limitada, ruido y alta variabilidad de datos», que es la cláusula que sostiene el contraargumento de S.",
+      "verification_by_orchestrator": "Verificado contra openspec/project.md líneas 5 y 11.",
+      "resolution": "Se cita el propósito completo y también el título del Trabajo Final, que dice «bajo escenarios de escasez y variabilidad de datos»."
+    },
+    {
+      "id": "C-11",
+      "severity": "MATERIAL",
+      "status": "ACEPTADO Y CORREGIDO",
+      "finding": "La partición «la evidencia cubre etiquetas y ruido y NO cubre mediciones ausentes» es falsa como descripción de los datos: el dataset tiene 75,96 % de cobertura en humedad y el contrato imputa con causal_ffill.",
+      "verification_by_orchestrator": "Verificado: docs/seguimiento-tareas.md línea 92 registra 75,96 % de cobertura («gaps reales del producto satelital»); reference-v3-formal-results.json declara dataset melchor_romero_2024_consolidado y contiene 40 referencias a causal_ffill; la tercera auditoría registra que «cuatro de esas 71 etiquetas provenían de humedad imputada».",
+      "resolution": "Se reescribió la tabla de cobertura de la sección 5 y la de auxiliary/S/review.json: las mediciones ausentes NO están fuera de la evidencia, están DENTRO y sin caracterizar, en las ocho configuraciones. Se agregó una limitación permanente que obliga a declarar ese ~24 % junto a cualquier resultado de v3. La exclusión de CL-08 sigue siendo correcta; el motivo que se daba, no."
+    },
+    {
+      "id": "C-12",
+      "severity": "MENOR",
+      "status": "ACEPTADO Y CORREGIDO",
+      "finding": "«una fracción (0.5) por mecanismo» es la celda Alcance de HU8 §8.2, no la Limitación, y se omitía que recent_fraction_0.5 es calificado de mejora consistente.",
+      "verification_by_orchestrator": "Verificado contra docs/research/hu8-resultados-discusion-conclusiones.md §8.2 y §8.3.",
+      "resolution": "Se corrigió la atribución por columnas y se incorporó que recent_fraction_0.5 es «mejora consistente» y, en §8.3, «el único efecto consistente y de mayor magnitud»."
+    },
+    {
+      "id": "C-13",
+      "severity": "MENOR",
+      "status": "ACEPTADO Y CORREGIDO",
+      "finding": "El límite de R «no reportar MAE/RMSE de ninguna procedencia» obligaría a suprimir un resultado existente de HU3 (MAE 0.02312/0.02323 de la utilidad predictiva del generador sintético).",
+      "verification_by_orchestrator": "Verificado contra openspec/specs/data-quality/spec.md líneas 183 y 216. El hallazgo es correcto.",
+      "resolution": "El límite se acotó: lo prohibido es reportar MAE/RMSE/R2 COMO DESEMPEÑO PREDICTIVO DE HUMEDAD de la campaña P20 o de la arquitectura de detección temprana. El resultado de HU3 es preexistente, válido en su propio alcance y no se suprime."
+    },
+    {
+      "id": "C-14",
+      "severity": "OBSERVACIÓN",
+      "status": "ACEPTADO, NO RESUELTO AQUÍ",
+      "finding": "El dossier propagaba «nueve de diez cubiertas» mientras la tabla post-campaña de claims.md marca las diez filas como CUBIERTA.",
+      "verification_by_orchestrator": "Inconsistencia preexistente en claims.md, no creada por esta sesión.",
+      "resolution": "Se señala en una nota de la sección 6 en lugar de propagarse. Corregirla corresponde a RB-02/RB-04 y excede la autorización AUTH-SUFF-2026-09-22, que es exclusivamente RB-03."
+    },
+    {
+      "id": "C-15",
+      "severity": "OBSERVACIÓN",
+      "status": "ACEPTADO Y CORREGIDO",
+      "finding": "La hipótesis nombra tres términos de contexto; el dossier decía «los dos contextos», siguiendo la fusión de la matriz §8.2.",
+      "verification_by_orchestrator": "Verificado contra HU8 §8.1.",
+      "resolution": "Se cita la hipótesis por sus tres términos y se aclara que la matriz §8.2 fusiona ruido y variabilidad en una fila."
+    }
+  ],
+  "corrections_to_the_critic_itself": [
+    {
+      "about": "V-11, cita de docs/research/hu8-auditoria-revalidacion.md línea 145",
+      "observation": "La cita «ni los criterios de aceptación reales de HU7 ni los de HU8 exigen esa evaluación cuantitativa» es literal, pero su REFERENTE es la retroalimentación humana (sección 10 del documento, HITL), no los complementos R, N o S. Listada junto a las fuentes sobre N, puede leerse como si hablara de N.",
+      "how_it_was_handled": "El dossier la usa explícitamente como PRECEDENTE DE MÉTODO con su referente declarado, y no como pronunciamiento sobre R, N o S. El informe del crítico se conserva sin alterar; esta precisión vive aquí."
+    }
+  ],
+  "material_findings_still_open": "NINGUNO. Los siete se remediaron. La auditoría independiente puede intervenir, conforme a operations.md paso 8."
+}

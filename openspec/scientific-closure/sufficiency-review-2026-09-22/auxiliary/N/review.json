@@ -1,12 +1,14 @@
 {
   "schema_version": "scientific_closure_gate_artifact.v1",
   "campaign_id": "sufficiency-review-2026-09-22",
-  "produced_at_utc": "2026-09-22T02:08:58Z",
+  "version": 2,
+  "version_note": "Versión 2, corregida tras la primera crítica independiente sobre el snapshot 2185ed4, que emitió siete hallazgos materiales. El informe del crítico se conserva verbatim en openspec/changes/sc-0{7,9,10}-*/reviews/review-critic-gd12.md y la resolución de cada hallazgo en findings-resolution.json. Los veredictos de clasificación de la versión 1 fueron confirmados; lo corregido es la estructura del argumento, la exactitud de cuatro citas y la gobernanza de las transiciones de estado.",
+  "produced_at_utc": "2026-09-22T03:05:00Z",
   "produced_by": "orquestador de la sesión sufficiency-review-2026-09-22, bajo AUTH-SUFF-2026-09-22",
   "snapshot_of_inputs": "1c33aad8cbee765e2968bd164b5d4890743eea0a",
   "nature_of_this_artifact": "Artefacto de DECISIÓN DE SUFICIENCIA, no de ejecución. El complemento no se implementó ni se ejecutó, y este archivo no contiene ninguna métrica, predicción ni resultado experimental. Registra por qué el complemento no es necesario para el alcance científico aprobado, qué queda por eso fuera de lo afirmable, y bajo qué condición volvería a ser REQUIRED.",
   "dossier": "openspec/scientific-closure/sufficiency-review-2026-09-22/gd12-sufficiency-dossier.md",
-  "decision_record": "openspec/scientific-closure/decisions.md, GD-12 (decisión de fondo), GD-23 (degradación a BLOCKED), GD-30 (esta revisión)",
+  "decision_record": "openspec/scientific-closure/decisions.md, GD-12 (decisión de fondo), GD-23 (degradación a BLOCKED), GD-30 (esta revisión), GD-31 y GD-32 (gobernanza del estado)",
   "artifact": "auxiliary/N/review.json",
   "change_id": "sc-09-aux-anomalies",
   "requirement_ids": [
@@ -19,20 +21,29 @@
   "acceptance_criterion_verbatim": "Fit solo train, inyección reservada conocida y métricas/soporte conforme diseño N; no convertir anomalías simuladas en fallas reales.",
   "check_verbatim": "Fixtures de inyección, fit/reserva y matriz de confusión del diseño auxiliary_anomalies_v1.",
   "decision": "NOT_REQUIRED",
-  "decision_rule": "La norma tiene forma condicional con dos términos: una intención de afirmar algo, y una insuficiencia de la evidencia para afirmarlo. El complemento es REQUIRED cuando se cumplen ambos. Es NOT_REQUIRED cuando falla el primero. El disparador es la afirmación, no el hueco de evidencia.",
+  "decision_rule": "Corregido tras el hallazgo material C-01. La norma usa «si», que es condición SUFICIENTE: fija cuándo hay que activar el complemento y CALLA sobre el caso negativo. Inferir NOT_REQUIRED de que el antecedente no se cumple sería negar el antecedente, una falacia, y es lo que hacía la versión 1. La clasificación se sostiene en cambio por una demostración POSITIVA sobre fuentes independientes de la decisión: ninguna fuente de obligación del trabajo —título y propósito de project.md, su lista «Incluye», la hipótesis canónica de ADR-0001, los criterios de aceptación reales de HU8 (CA1-CA4) y los criterios de aceptación verbatim de los propios requisitos— exige una afirmación que sólo este complemento podría sostener. Ver sección 6 del dossier.",
   "trigger_first_term": {
-    "question": "¿Alguna afirmación del alcance aprobado afirma detección reservada de corrupciones?",
+    "question": "¿Alguna fuente de obligación exige afirmar detección reservada de corrupciones?",
     "answer": "NO",
-    "basis": [
-      "claims.md CL-07: «Detección de corrupciones reservadas permanece explícita, pero no se sostiene en el cierre limitado»; su brecha declara que afirmarla exigiría fit train y evaluación reservada, que es el diseño N.",
-      "La afirmación que sí se sostiene es CL-04, distinta: el aporte de las anomalías COMO PREDICTORAS en la referencia v3.",
-      "docs/research/hu8-resultados-discusion-conclusiones.md §8.5: «Ninguna de estas acciones es necesaria para sostener el cierre de HU8: la evidencia formal ya existente es válida y suficiente para los criterios de aceptación reales»."
-    ]
+    "basis_independent_of_the_decision": [
+      "CA2 de HU8, verbatim: «Se analiza el APORTE de los componentes incorporados a la arquitectura». Aporte del componente, no desempeño del detector como clasificador de corrupciones.",
+      "Lista «Incluye» de openspec/project.md: «un plan experimental que compare configuraciones (base, base+sintéticos, base+anomalías, completa)». Son las cuatro que v3 ejecutó; no enumera detección reservada.",
+      "docs/research/hu8-auditoria-revalidacion.md cierra CA1-CA4 como CUMPLE CON LIMITACIÓN y declara que ninguno de los gaps «exige nueva evidencia experimental»."
+    ],
+    "registered_but_not_used_as_proof": "claims.md CL-07 registra la misma exclusión y CL-04 la afirmación que sí se sostiene. claims.md NO se invoca como fundamento. Hallazgo material C-04: git log muestra que GD-12 y la redacción limitante de CL-04, CL-05, CL-07 y CL-08 entraron en el mismo commit a0d8bf7 (2026-09-19), del mismo autor, y la quinta columna de esa tabla se llama «Decisión sobre complementos» y ya dice «R/N/S NOT_REQUIRED». claims.md es el registro de la misma decisión que aquí se evalúa, no una fuente independiente. Se cita como registro, nunca como prueba."
   },
   "trigger_second_term": {
-    "question": "Para la afirmación que SÍ se sostiene (CL-04), ¿alcanza la evidencia existente?",
+    "question": "Para la afirmación que SÍ se sostiene —el aporte de las anomalías como predictoras—, ¿alcanza la evidencia existente?",
     "answer": "SÍ, con sus límites declarados",
-    "evidence": "Configuraciones formales v3 `anomalias` y `completa` en docs/research/reference-v3-formal-results.json, preservadas y no recalculadas. HU8 §7 reporta el resultado tal como quedó: tras la purga de frontera de horizonte, `base` supera a `+anomalías` en F1 y MCC, con diferencias por semilla de signo mixto [+0.0122, +0.0158, -0.0396, +0.0210, -0.0250], y la conclusión correcta es que no hay evidencia de un efecto real, positivo ni negativo. Resultado negativo válido, no brecha."
+    "evidence_corrected": "Corregido tras los hallazgos materiales C-02 y C-03. La versión 1 citaba una comparación de HU8 §7 (F1 0.7309 vs 0.7278) atribuyéndola a las 8 configuraciones formales: era evidencia PRE-FORMAL y, en la tabla formal, la dirección es la INVERSA. Los valores vigentes son base F1 0.5592 / MCC -0.0135 / AP 0.5816 y anomalias F1 0.5689 / MCC 0.0110 / AP 0.5672, es decir F1 y MCC levemente a favor de anomalias y AP a favor de base.",
+    "vigent_reading": "Matriz de contrastación de HU8 §8.2: «Evidencia mixta (F1/MCC débil-positivo, AP negativo en 5/5 semillas)», alcance «este dataset», limitación «compromiso entre métricas sin resolver».",
+    "retracted_formulation_not_used": "La versión 1 concluía «no hay evidencia de un efecto real, positivo ni negativo». La tercera auditoría del propio documento RETRACTÓ esa formulación: «Diferencias de signo mixto entre cinco semillas no demuestran ausencia de efecto. La conclusión defendible es ausencia de mejora consistente en la evidencia reunida». Se adopta la formulación corregida."
+  },
+  "preexecution_risk": {
+    "id": "SC10",
+    "verbatim": "Anomalías evaluadas sin reserva independiente — alta",
+    "status": "LIMITACIÓN VIVA, NO RESUELTA",
+    "mitigation_verbatim": "Diseño N separado; demostración previa queda limitada; runner/evidencia pendientes."
   },
   "acceptance_clause_by_clause": [
     {
@@ -43,7 +54,7 @@
     {
       "clause": "no convertir anomalías simuladas en fallas reales",
       "status": "CUMPLIDA POR DECLARACIÓN",
-      "evidence": "Prohibición que rige incondicionalmente y se declara en las limitaciones de abajo."
+      "evidence": "Prohibición que rige incondicionalmente y se declara en las limitaciones."
     }
   ],
   "check_clause_by_clause": [
@@ -58,15 +69,22 @@
     "No puede reportarse precisión, recall, tasa de falsas alarmas ni matriz de confusión del detector.",
     "La demostración de HU3 es FUNCIONAL y debe llamarse así; no es evaluación científica de detección.",
     "No puede interpretarse las anomalías simuladas de v3 como fallas reales de sensores.",
-    "Tampoco puede afirmarse lo inverso —que el detector no detecta—: no se midió sobre una reserva independiente."
+    "Tampoco puede afirmarse lo inverso —que el detector no detecta—: no se midió sobre una reserva independiente.",
+    "El aporte NO puede presentarse como «mejora»: la lectura vigente es evidencia mixta con compromiso entre métricas sin resolver, y la formulación «ausencia de efecto» está retractada por el propio registro.",
+    "El riesgo preejecución SC10 queda declarado como limitación viva, no resuelto."
   ],
   "reopens_if": "Se pretenda afirmar detección de corrupciones, anomalías o fallas de sensor con cifras de detección sobre una reserva independiente. Requiere change aprobado, autorización propia, runner validado y evidencia auditada.",
+  "proposed_states": {
+    "requirement": "SC-GOV-023: NOT_APPLICABLE en traceability.md, sólo con auditoría independiente favorable. Es lo que GD-23 degradó y prometió devolver, y lo que operations.md reserva para «complementos NOT_REQUIRED con decisión de suficiencia auditada».",
+    "change": "sc-09-aux-anomalies: permanece BLOCKED, sin moverse. Corregido tras los hallazgos materiales C-05, C-06 y C-08: su extra_gate exige la condición REQUIRED, que no se cumple y no se cumplirá, y plan.md prohíbe despachar un change con gate negativo. BLOCKED no describe aquí un defecto removible sino un complemento condicional que no hay que ejecutar."
+  },
   "what_this_artifact_does_not_claim": [
     "No afirma que el complemento sea innecesario para el problema científico: es trabajo futuro pertinente y su diseño congelado se preserva intacto.",
     "No afirma nada sobre los resultados que el complemento habría producido. No se ejecutó; no hay resultado, ni positivo ni negativo.",
     "No convierte la ausencia de ejecución en una conclusión experimental.",
+    "No resuelve el riesgo preejecución asociado: queda como limitación viva.",
     "No desbloquea SC-GOV-025 ni el gate GF: RB-04, RB-05 y RB-06 siguen abiertos.",
     "No se apoya en el holdout 2024-2025 para nada."
   ],
-  "independent_review_status": "PENDIENTE al emitirse este artefacto. La crítica y la auditoría independientes se registran en los directorios reviews/ del change correspondiente y su veredicto es lo único que puede mover el estado del requisito."
+  "independent_review_status": "Crítica independiente RECIBIDA sobre el snapshot 2185ed4: confirma NOT_REQUIRED y emite 7 hallazgos materiales, todos remediados en esta versión 2. Auditoría independiente PENDIENTE; su veredicto es lo único que puede mover el estado del requisito."
 }
