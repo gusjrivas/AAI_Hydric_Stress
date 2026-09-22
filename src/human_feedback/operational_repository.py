@@ -555,21 +555,24 @@ class OperationalRepository:
         filtered.sort(key=lambda forecast: forecast["target_date"], reverse=True)
 
         if after is not None:
-            after_key = tuple(after)
-            cut_index = next(
-                (
-                    index + 1
-                    for index, forecast in enumerate(filtered)
-                    if (
-                        forecast["target_date"],
-                        forecast["issued_at"],
-                        forecast["forecast_id"],
+            # Keyset pagination must not depend on the anchor still matching
+            # a mutable review filter. Preserve target DESC, issued DESC, ID ASC.
+            target, issued, forecast_id = after
+            filtered = [
+                forecast
+                for forecast in filtered
+                if forecast["target_date"] < target
+                or (
+                    forecast["target_date"] == target
+                    and (
+                        forecast["issued_at"] < issued
+                        or (
+                            forecast["issued_at"] == issued
+                            and forecast["forecast_id"] > forecast_id
+                        )
                     )
-                    == after_key
-                ),
-                0,
-            )
-            filtered = filtered[cut_index:]
+                )
+            ]
 
         page = filtered[: limit + 1]
         has_more = len(page) > limit

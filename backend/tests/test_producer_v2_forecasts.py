@@ -1022,3 +1022,68 @@ def test_openapi_publishes_forecast_and_review_contracts(client):
     assert "/api/v2/sensors/{sensor_id}/forecasts" in document["paths"]
     assert "/api/v2/sensors/{sensor_id}/forecasts/{forecast_id}" in document["paths"]
     assert "/api/v2/sensors/{sensor_id}/forecasts/{forecast_id}/reviews" in document["paths"]
+
+
+@pytest.mark.parametrize("limit", [1, 2, 3])
+def test_pending_pagination_survives_review_of_cursor_anchor(client, limit):
+    test_client, data_dir = client
+    repo = OperationalRepository(data_dir, "sensor-a")
+    for day in (1, 2):
+        _seed_batch(
+            repo,
+            as_of_date=date(2026, 9, day),
+            slots=_all_available(),
+            idempotency_key=f"page-{day}",
+        )
+    url = "/api/v2/sensors/sensor-a/forecasts"
+    expected = test_client.get(url, params={"review_status": "pending"}).json()["items"]
+    first = test_client.get(url, params={"review_status": "pending", "limit": limit}).json()
+    anchor = first["items"][-1]
+    review = test_client.post(
+        f"{url}/{anchor['forecast_id']}/reviews",
+        json={"request_id": "review-anchor", "expected_revision": 0, "action": "confirm"},
+    )
+    assert review.status_code == 201
+    before_reads = repo.path.read_bytes()
+    cursor = first["next_cursor"]
+    remainder = []
+    while cursor:
+        response = test_client.get(
+            url, params={"review_status": "pending", "limit": limit, "cursor": cursor}
+        )
+        assert response.status_code == 200
+        page = response.json()
+        assert page["pending_total"] == 5
+        assert page["reviewable_pending_total"] == 5
+        remainder.extend(item["forecast_id"] for item in page["items"])
+        assert len(remainder) <= 6, "Pagination must make progress"
+        cursor = page["next_cursor"]
+    assert remainder == [item["forecast_id"] for item in expected[limit:]]
+    assert repo.path.read_bytes() == before_reads
+
+
+def test_forecast_cursor_cannot_be_reused_for_another_sensor(client):
+    test_client, data_dir = client
+    for sensor_id in ("sensor-a", "sensor-b"):
+        _seed_batch(
+            OperationalRepository(data_dir, sensor_id),
+            as_of_date=date(2026, 9, 1),
+            slots=_all_available(),
+            idempotency_key="seed",
+        )
+    first = test_client.get("/api/v2/sensors/sensor-a/forecasts", params={"limit": 1}).json()
+    response = test_client.get(
+        "/api/v2/sensors/sensor-b/forecasts", params={"cursor": first["next_cursor"]}
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "invalid_cursor"
+
+
+def test_forecast_inverted_date_range_is_explicit_error(client):
+    test_client, _ = client
+    response = test_client.get(
+        "/api/v2/sensors/sensor-a/forecasts",
+        params={"target_from": "2026-09-10", "target_to": "2026-09-01"},
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "invalid_date_range"

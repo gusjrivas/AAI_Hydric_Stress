@@ -1,5 +1,15 @@
 # Seguimiento de tareas — plan de proyecto vs. estado real del repo
 
+## 2026-09-21 — Robustez de paginación operacional (HU5/HU6)
+
+Corrección aislada desde main 2079d03: continuación por clave aunque la revisión
+quite el ancla del filtro, cursores ligados al sensor y 422 para fechas invertidas.
+Pruebas reproducen el fallo previo y verifican contadores/GET sin mutaciones.
+Capacidades human-feedback/architecture-integration, CRISP-DM integración.
+Sin cambios científicos, de arquitectura, modelos, manifiestos ni datasets;
+worktrees de Claude y demo Docker preservados. Evidencia y compatibilidad:
+[backend-producer-pagination-hardening.md](design/backend-producer-pagination-hardening.md).
+
 ## 2026-09-21 — Cierre acotado de integración para PR #207 (HU6)
 
 Por aprobación explícita del autor se separa el merge funcional de Mi cultivo del

@@ -236,3 +236,17 @@ No devolver rutas locales ni permitir acceso arbitrario a archivos.
 La identidad exacta, transacciones y reserva demo- se rigen por
 [decisiones de emisiones y feedback](../../../docs/design/backend-producer-ui-emission-dependencies.md).
 La reserva permanente reemplaza la comprobacion de demo activa para mutaciones v2.
+
+## Robustez de listados (corrección posterior al PR #207)
+
+Los cursores de pronósticos están ligados también al sensor de la ruta. Reusar
+un cursor en otro sensor devuelve 422 invalid_cursor. Cursores anteriores sin
+esa asociación deben descartarse y reiniciar la consulta desde la primera página;
+no se requiere migración de datos persistidos.
+
+El orden continúa siendo target_date DESC, issued_at DESC, forecast_id ASC.
+La continuación compara esa clave aunque el registro ancla haya cambiado de
+estado. El corte congela las emisiones incluidas, no las opiniones: filtros de
+revisión y contadores reflejan el estado actual en cada lectura. Para recuperar
+cambios anteriores al cursor se inicia otra consulta; no es un snapshot de reviews.
+Un rango target_from > target_to devuelve 422 invalid_date_range.

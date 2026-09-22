@@ -1,6 +1,7 @@
+import { ForecastReviewsProvider } from "./ForecastReviewsContext";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ForecastCard } from "./ForecastCard";
 import * as forecastsApi from "./forecastsApi";
 import {
@@ -87,7 +88,7 @@ describe("ForecastCard", () => {
     await userEvent.click(screen.getByRole("button", { name: /guardar opinión/i }));
 
     await screen.findByText(/tu opinión quedó guardada/i);
-    expect(screen.getByText(/no significa que ya se haya usado para entrenar/i)).toBeInTheDocument();
+    expect(screen.getByText(/los próximos resultados no cambian automáticamente/i)).toBeInTheDocument();
     expect(spy).toHaveBeenCalledWith(
       "sensor-a",
       "fc-1",
@@ -178,7 +179,7 @@ describe("ForecastCard", () => {
     render(<ForecastCard sensorId="sensor-a" forecast={baseForecast} />);
     await userEvent.click(screen.getByRole("button", { name: /confirmar resultado/i }));
     await userEvent.click(screen.getByRole("button", { name: /guardar opinión/i }));
-    await screen.findByText(/se registró otra opinión mientras completabas este formulario/i);
+    await screen.findByText(/se registró otra opinión/i);
     await waitFor(() => expect(screen.getByText(/rechazado por vos/i)).toBeInTheDocument());
   });
 
@@ -207,3 +208,28 @@ describe("ForecastCard", () => {
     expect(screen.queryByLabelText(/comentario/i)).not.toBeInTheDocument();
   });
 });
+
+it("reflects a newer server review passed by the parent", () => {
+  const { rerender } = render(<ForecastCard sensorId="sensor-a" forecast={baseForecast} />);
+  rerender(<ForecastCard sensorId="sensor-a" forecast={{ ...baseForecast, review: { ...baseForecast.review, status: "confirmed", revision: 1 } }} />);
+  expect(screen.getByText(/confirmado por vos/i)).toBeInTheDocument();
+});
+
+it("shares a saved opinion between two copies of an emission", async () => {
+  vi.spyOn(forecastsApi, "submitReview").mockResolvedValue({ ...baseForecast.review, status: "confirmed", revision: 1 });
+  render(<ForecastReviewsProvider><ForecastCard sensorId="sensor-a" forecast={baseForecast} /><ForecastCard sensorId="sensor-a" forecast={baseForecast} /></ForecastReviewsProvider>);
+  await userEvent.click(screen.getAllByRole("button", { name: /confirmar resultado/i })[0]);
+  await userEvent.click(screen.getByRole("button", { name: /guardar opinión/i }));
+  await waitFor(() => expect(screen.getAllByText(/confirmado por vos/i)).toHaveLength(2));
+});
+
+it("does not claim refreshed data when conflict recovery fails", async () => {
+  vi.spyOn(forecastsApi, "submitReview").mockRejectedValue(new RevisionConflictError(2));
+  vi.spyOn(forecastsApi, "getForecast").mockRejectedValue(new Error("offline"));
+  render(<ForecastCard sensorId="sensor-a" forecast={baseForecast} />);
+  await userEvent.click(screen.getByRole("button", { name: /confirmar resultado/i }));
+  await userEvent.click(screen.getByRole("button", { name: /guardar opinión/i }));
+  expect(await screen.findByText(/no pudimos recuperar la última opinión/i)).toBeInTheDocument();
+  expect(screen.queryByText(/ya estás viendo el resultado actualizado/i)).not.toBeInTheDocument();
+});
+afterEach(() => vi.restoreAllMocks());

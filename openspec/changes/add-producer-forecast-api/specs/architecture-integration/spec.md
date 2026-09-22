@@ -28,6 +28,19 @@ resumen y MUST distinguir feedback registrado de revisiones aplicadas a modelos.
 - **WHEN** se lista feedback pendiente sin filtro de fechas
 - **THEN** también se incluye una emisión anterior a los últimos treinta días.
 
+#### Scenario: Revisión del último registro entre páginas
+- **GIVEN** una página de pendientes y su cursor de continuación
+- **WHEN** el registro que ancla ese cursor deja de estar pendiente por una revisión
+- **THEN** la siguiente página continúa después de su clave ordenada sin repetir
+  resultados previos; los contadores reflejan el estado actual del sensor.
+
+#### Scenario: Cursor de otro sensor
+- **WHEN** se usa un cursor de pronósticos de otro sensor
+- **THEN** se rechaza con 422 invalid_cursor sin modificar datos.
+
+#### Scenario: Ventana de fechas invertida
+- **WHEN** target_from es posterior a target_to
+- **THEN** se rechaza con 422 invalid_date_range en vez de simular un listado vacío.
 ### Requirement: Identidad durable y reserva operacional de sensores demo
 El sistema MUST aplicar la identidad, persistencia transaccional e idempotencia
 especificadas en docs/design/backend-producer-ui-emission-dependencies.md.

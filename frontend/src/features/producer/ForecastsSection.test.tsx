@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ForecastsSection } from "./ForecastsSection";
 import * as forecastsApi from "./forecastsApi";
 import type { Forecast, ForecastListResult } from "./forecastsApi";
@@ -96,6 +96,7 @@ describe("ForecastsSection", () => {
     render(<ForecastsSection sensorId="sensor-a" />);
     await screen.findByRole("button", { name: "Ver más" });
     expect(screen.getAllByRole("article")).toHaveLength(1);
+    await userEvent.click(screen.getByText("Ver historial de pronósticos"));
     await userEvent.click(screen.getByRole("button", { name: "Ver más" }));
     await waitFor(() => expect(screen.getAllByRole("article")).toHaveLength(2));
     expect(spy).toHaveBeenLastCalledWith("sensor-a", expect.objectContaining({ cursor: "page-2" }));
@@ -137,3 +138,31 @@ describe("ForecastsSection", () => {
     await waitFor(() => expect(within(pendingSection).getByText(/no tenés pronósticos pendientes de revisar/i)).toBeInTheDocument());
   });
 });
+
+it("offers an explicit restart when backend rejects an old cursor", async () => {
+  const spy = vi.spyOn(forecastsApi, "listForecasts").mockImplementation(async (_sensorId, filters) => {
+    if (filters?.reviewStatus === "pending") return listResult([]);
+    if (filters?.cursor) throw new forecastsApi.ForecastCursorExpiredError();
+    return listResult([makeForecast()], { next_cursor: "old-cursor" });
+  });
+  render(<ForecastsSection sensorId="sensor-a" />);
+  await screen.findByText("Ver historial de pronósticos");
+  await userEvent.click(screen.getByText("Ver historial de pronósticos"));
+  await userEvent.click(await screen.findByRole("button", { name: "Ver más" }));
+  await userEvent.click(await screen.findByRole("button", { name: "Volver a cargar la lista" }));
+  await waitFor(() => expect(spy.mock.calls.filter(([, filters]) => !filters?.cursor && !filters?.reviewStatus)).toHaveLength(2));
+});
+
+it("shows a recoverable pagination failure without discarding the page", async () => {
+  vi.spyOn(forecastsApi, "listForecasts").mockImplementation(async (_sensorId, filters) => {
+    if (filters?.reviewStatus === "pending") return listResult([]);
+    if (filters?.cursor) throw new Error("network");
+    return listResult([makeForecast()], { next_cursor: "page-2" });
+  });
+  render(<ForecastsSection sensorId="sensor-a" />);
+  await userEvent.click(screen.getByText("Ver historial de pronósticos"));
+  await userEvent.click(await screen.findByRole("button", { name: "Ver más" }));
+  expect(await screen.findByRole("button", { name: "Reintentar carga" })).toBeInTheDocument();
+  expect(screen.getAllByRole("article")).toHaveLength(1);
+});
+afterEach(() => vi.restoreAllMocks());

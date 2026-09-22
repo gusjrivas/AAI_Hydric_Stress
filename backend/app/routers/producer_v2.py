@@ -294,7 +294,12 @@ def list_forecasts(
         raise OperationalRepositoryError(
             "invalid_review_status", "review_status debe ser pending, confirmed o rejected.", 422
         )
+    if target_from is not None and target_to is not None and target_from > target_to:
+        raise OperationalRepositoryError(
+            "invalid_date_range", "target_from debe ser anterior o igual a target_to.", 422
+        )
     filters: dict[str, Any] = {
+        "sensor_id": sensor_id,
         "target_from": target_from.isoformat() if target_from else None,
         "target_to": target_to.isoformat() if target_to else None,
         "horizon_days": horizon_days,

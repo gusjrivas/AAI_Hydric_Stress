@@ -3,6 +3,7 @@ import { ProducerV2UnavailableError } from "./catalogApi";
 import {
   DemoWriteLockedError,
   ForecastNotFoundError,
+  ForecastCursorExpiredError,
   ReviewIdempotencyConflictError,
   ReviewNotOpenError,
   RevisionConflictError,
@@ -186,4 +187,14 @@ describe("displayProbability", () => {
   it("renders the published probability as a rounded percentage", () => {
     expect(displayProbability({ ...forecast, display_probability: 0.723 })).toBe("72 %");
   });
+});
+
+it("maps the backend invalid_cursor response to a recoverable list restart", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { code: "invalid_cursor", message: "internal details" } }), { status: 422 })));
+  await expect(listForecasts("sensor-a", { cursor: "old" })).rejects.toBeInstanceOf(ForecastCursorExpiredError);
+});
+
+it("explains an invalid date range without exposing backend terminology", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { code: "invalid_date_range", message: "target_from invalid" } }), { status: 422 })));
+  await expect(listForecasts("sensor-a", { targetFrom: "2026-09-10", targetTo: "2026-09-01" })).rejects.toThrow("La fecha inicial debe ser anterior o igual a la fecha final.");
 });
