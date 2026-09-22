@@ -345,17 +345,40 @@ tabla requisito → tarea → prueba → evidencia del encabezado.
 | **SC-GOV-022** | PASS_WITH_LIMITATIONS | Complemento H ejecutado una sola vez, con contrato anclado en git antes de la intervención, y auditado de forma independiente. **Limitaciones vivas:** la pista humana sólo ejercitó la ACEPTACIÓN; rechazo y recalibración sucesiva no fueron ejercitados por ninguna pista científica; cegamiento PARCIAL y declarado; detección humana **0/4** frente a 4/4 del oráculo simulado sobre los mismos eventos; INV-10 y la reproducción estricta 18/18 **no** fueron verificados de forma independiente (AUD-H-09). Sin cambio. |
 | **SC-GOV-023** | NOT_APPLICABLE | **Cambia desde BLOCKED, misma causa resuelta que SC-GOV-021.** `auxiliary/N/review.json` existe. No se afirma detección reservada de corrupciones (CL-07) ni se convierten anomalías simuladas en fallas reales (CL-04). **Limitación:** no hay métrica de detección reservada en v4, y la detección humana 0/4 de H **no** es una tasa de detección de anomalías y no se cita como tal. |
 | **SC-GOV-024** | NOT_APPLICABLE | **Cambia desde BLOCKED, misma causa resuelta.** `auxiliary/S/review.json` existe. La robustez citable se limita a etiquetas escasas y ruido documentados en v3 (CL-08). **Limitación:** escasez de etiquetas no equivale a sensores ausentes; no se afirma degradación con gracia ante mediciones faltantes, que es trabajo futuro. La imputación causal de entradas de v4 es una regla de causalidad, no un ensayo de robustez. |
-| **SC-GOV-025** | PASS_WITH_LIMITATIONS | **Cambia desde BLOCKED.** Los cinco conjuntos de su criterio de aceptación se evalúan uno por uno abajo. La auditoría final requisito por requisito sobre el snapshot posterior a la campaña existe (`scientific-closure-audit.json`, esta sesión), la síntesis de resultados existe, los complementos están justificados y auditados, y la trazabilidad a los capítulos 2 y 3 existe. **Limitaciones que impiden un PASS pleno:** las de SC-GOV-003, 006, 008, 015, 016, 017, 018, 019 y 022, todas declaradas, ninguna atenuada. |
+| **SC-GOV-025** | PASS_WITH_LIMITATIONS | **Cambia desde BLOCKED.** Los cinco conjuntos de su criterio de aceptación se evalúan uno por uno abajo. La auditoría final requisito por requisito sobre el snapshot posterior a la campaña es el informe del auditor independiente preservado verbatim en `evidence-finalization-2026-09-22/reviews/review-audit-final.md`, emitido sobre el snapshot `7e63d1c`; `scientific-closure-audit.json` se emitió **a partir de** ese informe y no antes. La síntesis de resultados existe, los complementos están justificados y auditados, y la trazabilidad a los capítulos 2 y 3 existe. **Corrección tras el hallazgo `F-01`:** la redacción anterior de esta fila afirmaba en presente que `scientific-closure-audit.json` «existe», **antes de que la auditoría se realizara**. Era falso y prejuzgaba al auditor, que es exactamente el hallazgo `AUD-F-01` del 2026-09-20, reincidido en esta misma fila. El auditor lo levantó y por eso su primer veredicto fue **FAIL**. **Limitaciones que impiden un PASS pleno:** las de SC-GOV-003, 006, 008, 015, 016, 017, 018, 019 y 022, todas declaradas, ninguna atenuada. |
 
-**Recuento final: PASS 11, PASS_WITH_LIMITATIONS 11, NOT_APPLICABLE 3, BLOCKED 0**
-(total 25). El recuento anterior, del 2026-09-21 tras la campaña, era 14 / 6 / 5
-sin `NOT_APPLICABLE`. Los cambios son ocho y están justificados fila por fila:
-SC-GOV-005 sube a PASS; SC-GOV-021, 023 y 024 pasan de BLOCKED a NOT_APPLICABLE;
-SC-GOV-025 pasa de BLOCKED a PASS_WITH_LIMITATIONS; SC-GOV-003, 008, 016 y 018
-bajan de PASS a PASS_WITH_LIMITATIONS porque esta revisión encontró que sus
-limitaciones estaban registradas en otros documentos y no en su propia fila.
-Bajar cuatro filas no es un tecnicismo: es lo que impide que el recuento final
-parezca mejor de lo que la evidencia sostiene.
+**Recuento final: PASS 12, PASS_WITH_LIMITATIONS 10, NOT_APPLICABLE 3, BLOCKED 0**
+(total 25).
+
+**Corrección tras los hallazgos `F-03` y `F-04`.** La primera versión de este
+párrafo declaraba 11 / 11 / 3 y «ocho cambios» sobre una línea de base de
+14 / 6 / 5. Las tres cifras eran defectuosas y el auditor independiente las
+refutó contando la tabla por su cuenta. El error tenía dos causas que se
+compensaban en el total: contaba a SC-GOV-016 como un descenso que **no**
+ocurrió —ya figuraba PASS_WITH_LIMITATIONS desde el 2026-09-21— y omitía el
+ascenso de SC-GOV-022, que la sección del complemento H ya había fijado. Al
+compensarse, 11+11+3 seguía sumando 25 y el defecto no saltaba a la vista. Es la
+reincidencia del hallazgo `EV-02` del 2026-09-21, que fue exactamente esto.
+
+La línea de base correcta es la del 2026-09-21 **posterior al complemento H**:
+PASS 14, PASS_WITH_LIMITATIONS 7, BLOCKED 4, NOT_APPLICABLE 0. Contra ella los
+cambios son **ocho**:
+
+| Cambio | Transición | Motivo |
+| --- | --- | --- |
+| **SC-GOV-005** | PASS_WITH_LIMITATIONS → PASS | Sus dos causas declaradas —CL-06 sin evidencia y CL-10 inalcanzable— están resueltas |
+| **SC-GOV-021** | BLOCKED → NOT_APPLICABLE | `auxiliary/R/review.json`, criticado y auditado |
+| **SC-GOV-023** | BLOCKED → NOT_APPLICABLE | `auxiliary/N/review.json`, criticado y auditado |
+| **SC-GOV-024** | BLOCKED → NOT_APPLICABLE | `auxiliary/S/review.json`, criticado y auditado |
+| **SC-GOV-025** | BLOCKED → PASS_WITH_LIMITATIONS | Los cinco conjuntos de su criterio, evaluados abajo |
+| **SC-GOV-003** | PASS → PASS_WITH_LIMITATIONS | Su limitación estaba en `decisions.md` y no en su fila |
+| **SC-GOV-008** | PASS → PASS_WITH_LIMITATIONS | La revisión de pasada única es una limitación real |
+| **SC-GOV-018** | PASS → PASS_WITH_LIMITATIONS | `AUD-H-02`: los resultados no tienen ancla en git |
+
+SC-GOV-016 **no** cuenta como cambio de estado: cambia de base, no de estado, y
+su fila lo dice. Bajar tres filas en la misma sesión en que se cierran cinco
+bloqueos no es un tecnicismo: es lo que impide que el recuento final parezca
+mejor de lo que la evidencia sostiene.
 
 ### Requisitos condicionales: por qué el estado del requisito y el del change difieren
 
@@ -401,10 +424,10 @@ hoy.
 | Entrada exigida | Terminal científico auditado y obligaciones aplicables cumplidas |
 | Condición de avance | Auditor final PASS sobre suficiencia del alcance **completo** |
 | Salida exigida | Afirmaciones trazadas, límites y pendientes, memoria; no sólo software verde |
-| Evidencia primaria | Campaña A→B→C auditada y respaldada (91/91 hashes verificados de forma independiente); complemento H auditado; síntesis 2026-09-22; matriz final; claims finales; trazabilidad a capítulos 2 y 3; `scientific-closure-audit.json` de esta sesión |
-| Limitación | Las nueve limitaciones vivas de la tabla por requisito. Ninguna exige evidencia científica nueva; todas quedan declaradas |
+| Evidencia primaria | Campaña A→B→C auditada y respaldada (91/91 hashes verificados de forma independiente); complemento H auditado (100/100 hashes); síntesis 2026-09-22; matriz final; claims finales; trazabilidad a capítulos 2 y 3; y el informe del auditor independiente preservado verbatim en `evidence-finalization-2026-09-22/reviews/review-audit-final.md`, del que se deriva `scientific-closure-audit.json` |
+| Limitación | Diez requisitos quedan en `PASS_WITH_LIMITATIONS`, nueve de ellos distintos de `SC-GOV-025` mismo. Ninguna de esas limitaciones exige evidencia científica nueva; todas quedan declaradas y ninguna se atenúa |
 | **Estado final** | **PASS_WITH_LIMITATIONS** |
-| Justificación breve | Los cinco obstáculos que el auditor de H enumeró eran documentales y de revisión, y ninguno exigía reabrir el holdout ni reejecutar A, B o C. Los cinco están resueltos. `GF` **no** es PASS pleno porque nueve requisitos conservan limitaciones materiales no subsanadas, y porque el cierre científico del alcance HU7/HU8 no certifica HU1 ni la tesis completa |
+| Justificación breve | Los cinco obstáculos que el auditor de H enumeró eran documentales y de revisión, y ninguno exigía reabrir el holdout ni reejecutar A, B o C. Los cinco están resueltos. El auditor independiente de esta sesión emitió el PASS de suficiencia que la condición de avance exige, **con limitaciones y para el alcance aprobado**, y lo hizo tras recomputar por su cuenta cerca de sesenta cifras desde la evidencia, no por el color de las pruebas. `GF` **no** es PASS pleno porque nueve requisitos distintos de `SC-GOV-025` conservan limitaciones materiales no subsanadas, y porque el cierre científico del alcance HU7/HU8 no certifica HU1 ni la tesis completa |
 
 ### Los cinco conjuntos del criterio de aceptación de SC-GOV-025
 
@@ -412,9 +435,9 @@ hoy.
 | --- | --- | --- | --- |
 | 1 | Todas las afirmaciones tienen evidencia o limitación aceptada | SATISFECHO | 10 de 10. CL-10 se cierra con la síntesis, la matriz final y la trazabilidad a la memoria producidas hoy |
 | 2 | Terminal negativo válido documentado | SATISFECHO | `SIN_GANADOR_ESTABLE` en A, no inferioridad en B y `NO_RECALIBRATION` en H están documentados como resultados válidos, no como defectos |
-| 3 | Complementos justificados | SATISFECHO | R, N y S con revisión propia, criticada y auditada; H ejecutado y auditado |
+| 3 | Complementos justificados | SATISFECHO | R, N y S con revisión propia, criticada y auditada por el lector independiente cuyo informe se preserva en `reviews/review-audit-final.md`, y con su veredicto registrado en el campo `independent_review` de cada artefacto; H ejecutado y auditado. **Corrección tras el hallazgo `F-02`:** en el snapshot `7e63d1c` este conjunto se declaraba SATISFECHO mientras los cuatro artefactos decían `independent_review: PENDING`. Se satisface desde que el informe existe y quedó registrado en ellos, no antes |
 | 4 | Memoria caps. 2/3 trazada | SATISFECHO | `openspec/scientific-closure/evidence-finalization-2026-09-22/thesis-traceability.md` |
-| 5 | Ningún obligatorio sin resolver | SATISFECHO CON LIMITACIONES | Cero requisitos `BLOCKED`. Once conservan limitaciones declaradas; ninguna se atenúa y ninguna requiere evidencia científica nueva |
+| 5 | Ningún obligatorio sin resolver | SATISFECHO CON LIMITACIONES | Cero requisitos `BLOCKED`. Diez quedan en `PASS_WITH_LIMITATIONS`; ninguna de sus limitaciones se atenúa y ninguna requiere evidencia científica nueva |
 
 ### Lo que esta sesión no hizo y no puede afirmar
 

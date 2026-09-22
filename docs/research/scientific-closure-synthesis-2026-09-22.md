@@ -189,10 +189,12 @@ después.
 | Precisión | 0,603175 | 0,648438 |
 | Recall | 0,890625 | 0,648438 |
 | Brier | 0,097512 | 0,123626 |
-| ROC-AUC | 0,939049 | — |
-| `episode_recall` | 0,900000 | — |
+| ROC-AUC | 0,939049 | 0,786719 |
+| `episode_recall` | 0,900000 | 0,500000 |
 | Tasa de alerta | 0,259615 | 0,175824 |
 | Matriz de confusión | [[525, 75], [14, 114]] | [[555, 45], [45, 83]] |
+
+*Corrección tras el hallazgo `F-08`: la primera versión de esta tabla imprimía «—» en el ROC-AUC y el `episode_recall` de la persistencia. La evidencia sí los publica (0,786719 y 0,500000) y ambos favorecen al candidato, de modo que omitirlos no inflaba nada; pero «—» se lee como «no disponible» y no lo estaban.*
 
 **Δ MCC puntual = 0,091333, con intervalo al 95 % [0,022658; 0,178418].** El
 intervalo **excluye** el cero. Éste es el único resultado de la campaña en el que
@@ -287,9 +289,28 @@ MCC por semilla y brazo:
 
 El contraste que **aísla las correcciones** es `refit_with_corrections` menos
 `refit_no_corrections`: −0,033937 / +0,008351 / +0,007091 / +0,004388 / −0,001271.
-**Signo mixto: tres positivos y dos negativos.** El contraste que **mezcla la
-actualización temporal** con las correcciones da +0,056971 / −0,043723 / +0,002619
-/ +0,056470 / +0,005466, también de signo mixto.
+**Signo mixto: tres positivos y dos negativos.**
+
+El segundo contraste, `refit_no_corrections` menos `frozen`, mide la
+**actualización temporal sin ninguna corrección**: +0,056971 / −0,043723 /
++0,002619 / +0,056470 / +0,005466, también de signo mixto. Es el efecto de
+reentrenar con un año más de datos, y **no contiene aporte alguno de las
+correcciones**. *Corrección tras el hallazgo `F-07` de la revisión
+independiente: la redacción anterior lo describía como «el contraste que mezcla
+la actualización temporal con las correcciones». Los cinco números eran
+correctos; el rótulo era falso y atribuía a las correcciones una contribución
+—+0,056971 en la semilla 0— que no tienen. El artefacto de origen lo nombra
+`delta_temporal_update_mcc`, aunque el campo del propio `track_simulated.json` lleva la
+etiqueta ambigua `combines_temporal_update`; recomputé los tres contrastes desde
+los valores por brazo y confirmé que ese campo es, en efecto,
+`refit_no_corrections − frozen`. En esa recomputación el valor de la semilla 4
+resulta **+0,005466**, no +0,005467 como figuraba en la lista del informe: es un
+redondeo del transcriptor, no un error de la evidencia, y se corrige aquí sin
+tocar el informe, que se preserva verbatim.*
+
+Para completitud, el contraste `refit_with_corrections` menos `frozen`, que sí
+mezcla ambos efectos, da +0,023034 / −0,035372 / +0,009711 / +0,060857 /
++0,004195.
 
 **No hay intervalos, y no por omisión.** El diseño congelado de H **no**
 predeclara bootstrap, y los propios artefactos lo dicen: «deltas puntuales sin

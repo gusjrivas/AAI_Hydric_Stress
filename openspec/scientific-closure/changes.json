@@ -513,6 +513,30 @@
           "timestamp_utc": "2026-09-22T01:15:00Z",
           "reason": "Snapshot congelado para la revision independiente final. Checker exit 0, OpenSpec estricto 11/11, pruebas de gobernanza 15/15 y del checker 33/33. El change NO se cierra con tests verdes: espera el veredicto del lector independiente.",
           "evidence": "openspec/scientific-closure/evidence-finalization-2026-09-22/review-final-independent.md (pendiente en este snapshot)"
+        },
+        {
+          "from": "REVIEW",
+          "to": "FAIL",
+          "actor": "/scientific_auditor_independiente_cierre_documental",
+          "timestamp_utc": "2026-09-22T02:05:00Z",
+          "reason": "FAIL documental del auditor independiente sobre el snapshot 7e63d1c. Tres hallazgos materiales de REGISTRO, no de ciencia: F-01, la matriz acreditaba scientific-closure-audit.json como existente y fijaba el estado de SC-GOV-025 antes de que la auditoria se realizara, reincidiendo en AUD-F-01; F-02, se declaraba criticada y auditada una revision que los cuatro artefactos marcaban PENDING; F-03, el recuento 11/11/3 lo desmiente la propia tabla, que da 12/10/3, reincidiendo en EV-02. El auditor recomputo cerca de sesenta cifras con cero discrepancias: la ciencia se sostiene.",
+          "evidence": "openspec/scientific-closure/evidence-finalization-2026-09-22/reviews/review-audit-final.md"
+        },
+        {
+          "from": "FAIL",
+          "to": "IN_PROGRESS",
+          "actor": "/orquestador_cierre_documental",
+          "timestamp_utc": "2026-09-22T02:20:00Z",
+          "reason": "Correccion acotada de F-01 a F-08, sin discutir el veredicto (GD-36). Se emite scientific-closure-audit.json A PARTIR del informe; se registra el veredicto en los cuatro artefactos de revision; se corrige el recuento a 12/10/3/0 y la tabla de transiciones; se unifican las cifras de limitaciones; se marca la supersesion en claims.md; se corrige el rotulo del segundo contraste de H y se imprimen las dos metricas de persistencia de C. No se toca src/, ni el checker, ni resultados, ni evidencia.",
+          "evidence": "openspec/scientific-closure/evidence-finalization-2026-09-22/audit.json; openspec/scientific-closure/evidence-finalization-2026-09-22/scientific-closure-audit.json"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "REVIEW",
+          "actor": "/orquestador_cierre_documental",
+          "timestamp_utc": "2026-09-22T02:35:00Z",
+          "reason": "Snapshot de correccion congelado para la re-revision, que por encargo alcanza UNICAMENTE a la correccion y no reabre la revision completa.",
+          "evidence": "openspec/scientific-closure/evidence-finalization-2026-09-22/reviews/review-audit-final-correction.md (pendiente en este snapshot)"
         }
       ]
     },

@@ -74,6 +74,24 @@
       "command": "git diff --check; git rev-parse origin/main; git merge-base --is-ancestor origin/main HEAD",
       "exit_code": 0,
       "result": "diff --check sin errores. origin/main = 2079d03dded19e0229e34873aa98eb4ed0c757ae y NO es ancestro de HEAD. Registrado como hecho, no resuelto: integrarlo seria un merge, prohibido por el encargo."
+    },
+    {
+      "id": "V-11",
+      "command": "recuento de estados de la matriz final con expresion regular sobre la seccion 2026-09-22 de traceability.md",
+      "exit_code": 0,
+      "result": "25 filas: PASS 12, PASS_WITH_LIMITATIONS 10, NOT_APPLICABLE 3, BLOCKED 0. Coincide con el recuento declarado tras corregir el hallazgo F-03. Se verifico ademas que cada '| SC-GOV-0NN |' sin negrita aparece exactamente una vez en el archivo, como exige el checker."
+    },
+    {
+      "id": "V-12",
+      "command": "lectura de C/metrics.json y de track_simulated.json para verificar las correcciones F-07 y F-08",
+      "exit_code": 0,
+      "result": "baseline_persistence.roc_auc = 0.78671875 y operational.episode_recall = 0.5, ambos status=defined: la evidencia SI los publica y la tabla ya no imprime '—'. Los tres contrastes de H recomputados desde los valores por brazo: el campo combines_temporal_update es, en efecto, refit_no_corrections menos frozen. El valor de la semilla 4 es +0,005466; la lista del informe decia +0,005467. Se corrige en la sintesis y NO en el informe, que se preserva verbatim."
+    },
+    {
+      "id": "V-13",
+      "command": "revalidacion posterior a la correccion: checker; pytest gobernanza+checker; OpenSpec estricto; git diff --check",
+      "exit_code": 0,
+      "result": "checker exit 0; 48 passed y 14 subtests; 11/11 exit 0; diff --check limpio. Se reejecutan porque la correccion toco documentos de gobernanza; NO se reejecuta la suite completa, que no fue afectada."
     }
   ],
   "not_executed_and_why": [
@@ -85,6 +103,8 @@
   "limitations": [
     "Esta validacion cubre estructura, integridad y formato. No juzga ciencia.",
     "El checker se ejecuto SIN modificarse. La transicion BLOCKED -> NOT_APPLICABLE que habria hecho falta para los changes condicionales no se habilito (GD-31).",
-    "La divergencia con origin/main (PR #207, 2079d03) queda ABIERTA y declarada. No se integra en esta fase. Quien integre este trabajo en main debera resolverla, y hasta entonces ninguna afirmacion de identidad debe apoyarse en la referencia movil origin/main."
+    "La divergencia con origin/main (PR #207, 2079d03) queda ABIERTA y declarada. No se integra en esta fase. Quien integre este trabajo en main debera resolverla, y hasta entonces ninguna afirmacion de identidad debe apoyarse en la referencia movil origin/main.",
+    "AF-05 y AF-06 quedan BLOCKED por punto y NO PASS por confianza: INV-10 y la reproduccion estricta 18/18 de H siguen sin verificacion independiente, y el auditor solo pudo leer 14 de los archivos originales de evidence/{A,B,C} en su ubicacion, con 75 ilegibles por ser root:600; la imagen sha256:55bc923e… tampoco fue inspeccionada.",
+    "El primer veredicto de la revision independiente sobre esta fase fue FAIL, por tres hallazgos materiales de registro. Se conserva en reviews/review-audit-final.md y no se sustituye por el resultado favorable posterior."
   ]
 }

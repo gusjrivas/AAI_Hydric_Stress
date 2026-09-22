@@ -2,7 +2,9 @@
   "schema_version": "scientific_closure_claim_evidence_review.v1",
   "campaign_id": "evidence-finalization-2026-09-22",
   "change_id": "sc-06-scientific-synthesis",
-  "requirement_ids": ["SC-GOV-016"],
+  "requirement_ids": [
+    "SC-GOV-016"
+  ],
   "task": "T16",
   "timestamp_utc": "2026-09-22T01:10:00Z",
   "actor": {
@@ -19,7 +21,6 @@
     ],
     "method": "Revision frase a frase de cada afirmacion de resultado contra el artefacto que la publica. NO se recomputaron metricas: ya fueron recomputadas de forma independiente en las auditorias de A/B/C y de H, y esta sesion tiene prohibido ejecutar."
   },
-
   "distinctions_enforced": {
     "hecho_verificado": "Enunciado que un artefacto publica literalmente.",
     "resultado": "Salida de una etapa ejecutada conforme al protocolo congelado.",
@@ -27,7 +28,6 @@
     "limitacion": "Condicion que acota el alcance de un resultado.",
     "pendiente": "Evidencia que no existe y que no se completa por inferencia."
   },
-
   "checks": [
     {
       "id": "CE-01",
@@ -105,9 +105,7 @@
       "result": "CONFORME. HU5 y HU6 se clasifican explicitamente como evidencia tecnica en claims.md, y la sintesis declara que su utilidad operativa no fue medida."
     }
   ],
-
   "findings": [],
-
   "verdict": {
     "result": "CONFORME",
     "scope": "Revision frase a frase de docs/research/scientific-closure-synthesis-2026-09-22.md contra claims.md y la evidencia publicada.",
@@ -117,9 +115,25 @@
       "La conformidad se afirma sobre el texto revisado en el snapshot declarado; cualquier edicion posterior de la sintesis la invalida."
     ]
   },
-
   "independent_review": {
-    "state": "PENDING",
-    "verbatim_report": null
+    "state": "COMPLETED",
+    "actor": "scientific_auditor independiente, sesion nueva y separada de solo lectura",
+    "timestamp_utc": "2026-09-22T02:05:00Z",
+    "snapshot_audited": "7e63d1c054ca295009fb3285b051bb0a10022688",
+    "verbatim_report": "openspec/scientific-closure/evidence-finalization-2026-09-22/reviews/review-audit-final.md",
+    "verdict_on_the_synthesis": "CONFORME, y verificado de forma independiente. El auditor contrasto cerca de sesenta valores de A, B, C y H contra los artefactos que los publican, con CERO discrepancias numericas, y recomputo por su cuenta los tres deltas de A, los dos contrastes de H, las tres prevalencias, el conjunto de equivalencia de la sensibilidad y la concordancia 16/20 desde los datos crudos.",
+    "overclaiming_attempts_that_failed": [
+      "Inflar C a superioridad general: no pudo. El intervalo que excluye el cero aparece siempre en el mismo bloque que las ~24 unidades efectivas, la ausencia de correccion por multiplicidad, la serie unica y la calibracion degradada.",
+      "Insinuar beneficio en H: no pudo. Signo mixto, sin intervalos, sin agregado entre semillas, y 'mejora causada por el feedback humano' encabeza la lista de lo no demostrado.",
+      "Hallar el 0/4 escondido entre sus insumos: no pudo. Esta enunciado en cinco lugares, y el auditor lo recomputo desde el paquete crudo.",
+      "Que una cifra difiera de la evidencia: no pudo, en cerca de sesenta valores.",
+      "Que se afirme validacion agronomica, eficacia de campo o mejora por feedback: no pudo."
+    ],
+    "findings_against_this_review": [
+      "F-07 (MENOR): el segundo contraste de H estaba mal rotulado en la sintesis. Los numeros eran exactos; el rotulo atribuia a las correcciones una contribucion que no tienen. CORREGIDO.",
+      "F-08 (PRECISION): la tabla de C imprimia '—' para el ROC-AUC y el episode_recall de la persistencia, que la evidencia si publica. CORREGIDO con los valores verificados 0,786719 y 0,500000."
+    ],
+    "correction_of_the_report_itself": "Al aplicar F-07 se recomputaron los tres contrastes de H desde los valores por brazo. El valor de la semilla 4 del contraste de actualizacion temporal es +0,005466; la lista del informe decia +0,005467. Es un redondeo del transcriptor, no un error de la evidencia. Se corrige en la sintesis y NO se toca el informe, que se preserva verbatim.",
+    "procedural_limitation": "Una sola pasada de revision independiente (GD-35)."
   }
 }

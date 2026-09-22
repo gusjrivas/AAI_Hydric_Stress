@@ -45,6 +45,15 @@ Decisión vigente previa a ejecución: R `NOT_REQUIRED`, H `REQUIRED`, N
 `NOT_REQUIRED`, S `NOT_REQUIRED`. Esta decisión permanece pendiente de crítica
 y auditoría independiente; no autoriza ejecutar H, A, B, C ni abrir holdouts.
 
+> **Superseded el 2026-09-22 (hallazgo `F-06`).** El párrafo anterior y el bloque
+> fechado que le sigue se conservan **sin reescribir** como registro de su
+> momento, pero sus dos afirmaciones en presente dejaron de ser ciertas: la
+> decisión **ya no** está pendiente de crítica y auditoría independiente
+> (`GD-30`), y los artefactos `auxiliary/{R,N,S}/review.json` **ya existen**, en
+> `evidence-finalization-2026-09-22/auxiliary/`. El estado vigente lo fija la
+> sección «Clasificación final de afirmaciones — 2026-09-22» de este archivo y
+> la «Matriz final de requisitos — 2026-09-22» de `traceability.md`.
+
 **Consecuencia registrada el 2026-09-20 (hallazgo C-09, decisión GD-23).**
 Mientras esa auditoría independiente no exista, los requisitos SC-GOV-021,
 SC-GOV-023 y SC-GOV-024 **no** pueden figurar como `NOT_APPLICABLE`, porque ese
@@ -100,7 +109,9 @@ por el propio operador.
 
 ## Clasificación final de afirmaciones — 2026-09-22
 
-Esta sección **no reescribe** las anteriores: las cierra. Clasifica cada
+Esta sección **supersede** a todas las anteriores de este archivo para el
+estado de las afirmaciones, sin reescribirlas: se conservan íntegras como
+registro histórico. Clasifica cada
 afirmación del cierre en una de cuatro categorías y fija qué puede decirse en la
 memoria técnica y qué no. Producida sin ejecutar A, B, C ni H, sin abrir el
 holdout y sin evidencia científica nueva.

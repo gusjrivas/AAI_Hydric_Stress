@@ -86,7 +86,7 @@ estado alcanzado. Ninguna compuerta se relaja.
 | GA A | SATISFECHO | `SIN_GANADOR_ESTABLE` con desempate de simplicidad predeclarado; candidato transferible y soporte válido |
 | GB B | SATISFECHO | `CANDIDATE_VALIDATED` por **no inferioridad**; intervalo que incluye el cero; custodia de intento único |
 | GC C | SATISFECHO | Apertura única, nominal e irreversible; ledger `CONFIRMADA` |
-| **GF Cierre** | **PASS_WITH_LIMITATIONS** | Terminal científico auditado, complemento H auditado, `GD-12` criticada y auditada, síntesis de resultados, matriz final, claims finales y trazabilidad a los capítulos 2 y 3. **No es PASS pleno:** once requisitos conservan limitaciones declaradas y no subsanadas (GD-33) |
+| **GF Cierre** | **PASS_WITH_LIMITATIONS** | Terminal científico auditado, complemento H auditado, `GD-12` criticada y auditada, síntesis de resultados, matriz final, claims finales y trazabilidad a los capítulos 2 y 3. El PASS de suficiencia lo emitió el auditor independiente cuyo informe se preserva verbatim en `evidence-finalization-2026-09-22/reviews/review-audit-final.md`, tras un primer veredicto **FAIL** por tres defectos documentales que fueron corregidos. **No es PASS pleno:** diez requisitos quedan en `PASS_WITH_LIMITATIONS`, nueve de ellos distintos de `SC-GOV-025` mismo, con limitaciones declaradas y no subsanadas (GD-33) |
 
 La cláusula de `sc-06` que exige «todos los REQUIRED con PASS» se cumple: H es el
 único complemento `REQUIRED` y está en `PASS_WITH_LIMITATIONS` con PASS del

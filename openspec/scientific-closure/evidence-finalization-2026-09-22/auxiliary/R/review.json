@@ -2,7 +2,10 @@
   "schema_version": "scientific_closure_auxiliary_review.v1",
   "campaign_id": "evidence-finalization-2026-09-22",
   "change_id": "sc-07-aux-regression",
-  "requirement_ids": ["SC-GOV-021", "SC-GOV-005"],
+  "requirement_ids": [
+    "SC-GOV-021",
+    "SC-GOV-005"
+  ],
   "complement": "R",
   "complement_design": "auxiliary_soil_regression_v1",
   "timestamp_utc": "2026-09-22T00:45:00Z",
@@ -18,7 +21,6 @@
     "executable_sha_of_the_campaign": "214735e42ee04f018156cd630591e798aadd8bf3",
     "sha_kind": "documental; este artefacto no se produjo ejecutando ningun runner"
   },
-
   "decision_under_review": {
     "id": "GD-12",
     "text": "R NOT_REQUIRED para clasificacion P20",
@@ -26,7 +28,6 @@
     "declared_before_execution": true,
     "anchored_in_git_before_campaign": "Si. GD-12 figura en openspec/scientific-closure/decisions.md desde la preparacion del 2026-09-19, dos dias antes de ejecutar A/B/C el 2026-09-21. La anterioridad es verificable con git log sobre ese archivo y NO depende de este artefacto."
   },
-
   "condition_of_activation": {
     "normative_text": "R DEBE activarse solo si se pretende sostener desempeno sobre humedad continua y la evidencia existente no lo cubre.",
     "source": "openspec/specs/scientific-closure/spec.md, requisito SC-GOV-021",
@@ -34,7 +35,6 @@
     "second_conjunct_evidence_gap": "NO EVALUADO, y no hace falta evaluarlo: la condicion es una conjuncion y el primer conjunto ya es falso.",
     "why_first_conjunct_is_false": "Ninguna afirmacion del alcance aprobado sostiene desempeno sobre humedad continua. CL-05 dice literalmente que el error continuo de humedad t+3 permanece registrado pero NO se sostiene como afirmacion de la campana P20. La variable de respuesta de todo el protocolo v4 es binaria (episodio P20 a t+3) y las metricas de decision son MCC, F1 y episode_recall, ninguna de ellas continua."
   },
-
   "evidence_examined": [
     {
       "path": "openspec/scientific-closure/claims.md",
@@ -57,7 +57,6 @@
       "inspection": "referenciado; no se modifica"
     }
   ],
-
   "what_REQUIRED_would_have_demanded": [
     "Diseno R congelado y preinscripto antes de ver resultados.",
     "Runner auxiliary_soil_regression_v1 implementado y validado con fixtures sustantivos.",
@@ -71,7 +70,6 @@
     "tests/test_auxiliary_soil_regression_v1.py",
     "cualquier metrica MAE/RMSE en m3/m3 producida por esta campana"
   ],
-
   "verdict": {
     "sufficiency": "NOT_REQUIRED",
     "requirement_state_proposed": "NOT_APPLICABLE",
@@ -79,23 +77,31 @@
     "why_the_two_states_differ": "El requisito SC-GOV-021 es una obligacion condicional: al no darse su condicion de activacion, no aplica al alcance aprobado, y ese es el estado terminal correcto para el requisito. El change sc-07-aux-regression permanece BLOCKED porque nunca se implementa ni se ejecuta; su propio registro de estado ya dice que una decision NOT_REQUIRED auditada no equivale a ejecucion ni cierre individual del change. La maquina de estados del checker tampoco admite la transicion BLOCKED -> NOT_APPLICABLE, y NO se modifica el checker para forzarla: se deja constancia de la asimetria en lugar de relajar la herramienta.",
     "reversibility": "Si en el futuro se pretendiera sostener desempeno sobre humedad continua, esta decision queda sin efecto y SC-GOV-021 vuelve a estar abierto. No es una exencion permanente."
   },
-
   "limitations_that_must_remain_declared": [
     "El error continuo de humedad a t+3 NO fue medido en esta campana. No existe MAE ni RMSE en m3/m3 para Pergamino v4.",
     "NOT_REQUIRED no significa que la regresion sea innecesaria para el problema agronomico: significa que ninguna afirmacion del alcance aprobado la necesita.",
     "El diseno congelado auxiliary_soil_regression_v1 se preserva sin ejecutar; su ausencia de resultados no es un resultado negativo.",
     "Esta revision es documental. No ejecuta, no reproduce y no verifica numeros, porque no hay numeros que verificar."
   ],
-
   "prohibited_claims": [
     "Afirmar desempeno sobre humedad continua.",
     "Presentar MCC como si acreditara error continuo.",
     "Presentar la ausencia de R como evidencia de que la regresion no aportaria."
   ],
-
   "independent_review": {
-    "state": "PENDING",
-    "note": "Se completa con el veredicto del revisor independiente final. Hasta entonces este artefacto es una propuesta del implementador y NO cierra SC-GOV-021.",
-    "verbatim_report": null
+    "state": "COMPLETED",
+    "actor": "scientific_auditor independiente, sesion nueva y separada de solo lectura",
+    "timestamp_utc": "2026-09-22T02:05:00Z",
+    "snapshot_audited": "7e63d1c054ca295009fb3285b051bb0a10022688",
+    "verbatim_report": "openspec/scientific-closure/evidence-finalization-2026-09-22/reviews/review-audit-final.md",
+    "verdict_on_this_artifact": "SUFICIENTE. El auditor verifico por su cuenta que la condicion de activacion no se da, contra el texto literal del criterio de aceptacion y contra la evidencia, y no contra lo que este documento afirma.",
+    "auditor_quote": "Verifiqué el primer término por mi cuenta: el contrato congelado define un objetivo binario (p20, horizonte 3) y las métricas de decisión son MCC, F1, episode_recall y onset; no existe NINGÚN artefacto con MAE ni RMSE en m3/m3 en toda la campaña. [...] No es una interpretación favorable: es el texto congelado aplicado a un hecho que comprobé. Suficiente.",
+    "overall_report_verdict": "FAIL documental sobre el snapshot 7e63d1c, por tres hallazgos materiales de registro (F-01, F-02, F-03) ajenos a este artefacto. El auditor declaro expresamente que los tres review.json de R, N y S son honestos y que el defecto estaba en la matriz y en decisions.md, no en la evidencia. Corregidos esos hallazgos, sostiene NOT_APPLICABLE para este requisito.",
+    "procedural_limitation": "Una sola pasada de revision independiente por instruccion del responsable (GD-35). El mismo lector ejercio critica y auditoria. NO fueron dos lectores distintos y no se presenta como si lo fueran. El propio auditor lo confirma: 'Lo confirmo: soy un solo lector'.",
+    "weaknesses_the_auditor_required_to_record": [
+      "El argumento es, por construccion, un argumento sobre lo que NO se afirma: su validez es contingente a que la memoria tecnica no amplie las afirmaciones. Si el texto de la tesis cruza esa linea, NOT_REQUIRED caduca.",
+      "El segundo termino de la conjuncion NO fue evaluado, y se declara. Nadie debe leer despues que la evidencia existente 'cubre' lo que este complemento habria medido: no la cubre, y no hace falta que la cubra."
+    ],
+    "requirement_state_after_review": "SC-GOV-021 = NOT_APPLICABLE, procedente desde el registro de este informe y no antes."
   }
 }
