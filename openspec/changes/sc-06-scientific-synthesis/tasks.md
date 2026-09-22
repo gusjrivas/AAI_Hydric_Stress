@@ -1,12 +1,9 @@
 # Tareas de sc-06-scientific-synthesis
 
-`IN_PROGRESS` desde el 2026-09-22, sobre entregables reconciliados de dos
-líneas de trabajo, con auditoría independiente de alcance acotado ya recibida
-(`reviews/review-audit-reconciliation.md`, `PASS` sobre seis ítems, un hallazgo
-material `F-01` corregido). Marcar una tarea **no** acredita suficiencia
-científica: ningún PASS estructural equivale a cierre científico. `CLOSE` queda
-sin marcar: **`T25` sigue sin marcar y el auditor fue explícito en que su
-`PASS` no la descarga.**
+**`FAIL` desde el 2026-09-22** (`changes.json`: `REVIEW → FAIL`). Cerrado
+administrativamente con no conformidad declarada, no con `PASS`
+(`decisions.md` GD-40). Marcar una tarea **no** acredita suficiencia
+científica: ningún PASS estructural equivale a cierre científico.
 
 **Corrección 2026-09-22 (hallazgo material M-02 de la auditoría Codex RB-05,
 `openspec/scientific-closure/rb05-audit-preparation-2026-09-22/reviews/review-audit-codex-round1-FAIL.md`):**
@@ -22,13 +19,13 @@ indirectamente vía `operations.md`.
 
 - [ ] T08 (SC-GOV-008) Revisión independiente. Comprobar: Aplicar operations.md a cada cambio y verificar identidad distinta implementador/auditor. Evidencia: audit.json. **Desmarcada 2026-09-22 (M-02):** la auditoría Codex RB-05 round 1 sobre `88ced62` encontró que el registro de cambios (`changes.json`) acredita, para sc-04 y sc-05, autorizaciones basadas en un PASS de la etapa previa fechado *después* de esas autorizaciones — ver `decisions.md` GD-38. Mientras ese hallazgo no se resuelva, T08 no puede darse por cumplida
 - [x] T16 (SC-GOV-016) Interpretación científica. Comprobar: Revisión frase a frase de síntesis contra claims.md, predicciones autorizadas y métricas con soporte. Evidencia: claim-evidence-review.json. *(evidencia distribuida; no hay `claim-evidence-review.json` propio, declarado en las notas)*
-- [ ] T25 (SC-GOV-025) Cierre científico. Comprobar: Auditoría final independiente requisito por requisito y evaluación de suficiencia científica sobre el alcance aprobado. Evidencia: scientific-closure-audit.json. **Sin marcar.** La auditoría requisito por requisito sobre los 25 SC-GOV corrió el 2026-09-22 sobre el dossier RB-05 (`88ced62`) y terminó en `FAIL` (M-01..M-04, ver `reviews/review-audit-codex-round1-FAIL.md` en `rb05-audit-preparation-2026-09-22/reviews/`). El hallazgo M-01 se declaró incumplimiento histórico no reparable documentalmente (`decisions.md` GD-38); no hay, a esta fecha, un camino de cierre sin decisión adicional del responsable
+- [x] T25 (SC-GOV-025) Cierre científico. Comprobar: Auditoría final independiente requisito por requisito y evaluación de suficiencia científica sobre el alcance aprobado. Evidencia: scientific-closure-audit.json. **Completada con veredicto `FAIL`, 2026-09-22.** La auditoría requisito por requisito sobre los 25 SC-GOV corrió sobre el dossier RB-05 (`88ced62`) y terminó en `FAIL` (M-01..M-04, `openspec/changes/sc-06-scientific-synthesis/reviews/review-audit-rb05-codex-FAIL.md`). El hallazgo M-01 fue confirmado, declarado incumplimiento histórico no reparable documentalmente (`decisions.md` GD-38) y aceptado administrativamente por el responsable como desviación permanente (`decisions.md` GD-40). Marcada `[x]` porque la tarea —ejecutar la auditoría y registrar su veredicto— **se hizo**; el veredicto es negativo, no está pendiente
 - [x] REVIEW-1 Explorador reúne evidencia antes de implementar; registrar snapshot.
 - [x] REVIEW-2 Implementador acotado ejecuta checks y conserva evidencia.
 - [ ] REVIEW-3 evidence_checker contrasta integridad y formatos, sin juicio científico. **No corrió** como pasada separada; declarado en `session-identity.json` (OBS-03 del auditor)
 - [x] REVIEW-4 scientific_critic intenta refutar cada criterio; corregir hallazgos y repetir. Corrió sobre el dossier RB-05 (no sobre la síntesis completa de `sc-06`): un hallazgo material (M-01 de esa ronda, cita mal atribuida), corregido el 2026-09-22. Ver `rb05-audit-preparation-2026-09-22/rb05-dossier.md` §2
 - [x] REVIEW-5 scientific_auditor independiente emite PASS/FAIL/BLOCKED sobre snapshot. Corrió dos veces: (a) `PASS` sobre el alcance de seis ítems de la reconciliación (`reviews/review-audit-reconciliation.md`); (b) `FAIL` sobre los 25 requisitos, snapshot `88ced62` (`rb05-audit-preparation-2026-09-22/reviews/review-audit-codex-round1-FAIL.md`). La (b) es la auditoría que T25 exige y su veredicto es `FAIL`, no `PASS`
-- [ ] CLOSE Solo con PASS, registrar SHA, evidencia, alcance y checkpoint; sin push. **No aplica:** la auditoría requisito por requisito terminó en `FAIL`
+- [x] CLOSE Registrar SHA, evidencia, alcance y checkpoint. **Cerrado administrativamente con no conformidad declarada, 2026-09-22 (`decisions.md` GD-40), no con `PASS`.** El texto original de esta tarea («Solo con PASS... ») describe el cierre confirmatorio, que **no se alcanzó**; el cierre que sí ocurrió es distinto y se registra como tal: `change` en `FAIL`, `SC-GOV-025` y `GF` en `FAIL`, B y C reclasificados como evidencia retrospectiva exploratoria. No hay tareas experimentales pendientes dentro de esta campaña — una confirmación futura es una campaña nueva sobre datos no utilizados, no una reparación de ésta
 
 Notas de cierre parcial, para que las casillas no digan más de lo que ocurrió:
 

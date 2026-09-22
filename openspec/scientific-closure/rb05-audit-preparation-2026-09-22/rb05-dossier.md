@@ -243,3 +243,17 @@ extendido explícitamente a los 25 requisitos por ser éste el objeto de RB-05:
    presenta aquí como `PASS`.
 6. No repite recómputo de hashes, métricas ni suites completas salvo que
    encuentre una razón concreta para dudar de un valor citado.
+
+## Cierre administrativo, 2026-09-22 (posterior a §7)
+
+La auditoría del §7 **sí ocurrió** (`reviews/review-audit-codex-round1-FAIL.md`,
+veredicto `FAIL`). El responsable aceptó administrativamente el hallazgo M-01
+como desviación permanente e irreparable (`decisions.md` GD-40). Esto
+**supersede** las referencias a `PENDIENTE` que quedan más arriba en este
+documento (§0, §3 fila `SC-GOV-025`, §5): `SC-GOV-025`, el gate `GF` y el
+change `sc-06-scientific-synthesis` cierran en **`FAIL`**, no en `PASS`, no en
+`PASS_WITH_LIMITATIONS` y no en `PENDIENTE` — la auditoría que faltaba ya no
+falta. Se preservan sin editar por ser narrativa histórica de lo que se sabía
+en cada momento; el estado vigente es el de `traceability.md`, sección
+«2026-09-22, cierre administrativo con no conformidad declarada», y
+`decisions.md` GD-40.

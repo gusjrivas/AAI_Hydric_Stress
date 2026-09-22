@@ -141,7 +141,17 @@ no demuestra equivalencia: demuestra que el soporte disponible no separa.
 
 ---
 
-## 4. Resultado — Etapa B (validación temporal, 2023)
+## 4. Resultado — Etapa B (evaluación retrospectiva exploratoria, validación temporal 2023)
+
+**Corrección 2026-09-22 (`decisions.md` GD-40, tras el hallazgo M-01/RK-20 de
+la auditoría RB-05).** Los números de esta sección no cambian y siguen siendo
+evidencia real. Lo que cambia es su estatus epistémico: la auditoría
+independiente que debía preceder a esta etapa (Gate A `PASS`) se registró
+*después* de que B ya hubiera corrido, de modo que B **no** puede
+presentarse como validación confirmatoria gobernada por el protocolo
+secuencial predeclarado. Se presenta aquí como **evaluación retrospectiva
+exploratoria**. Detalle en la §7.4 de este documento y en
+`openspec/scientific-closure/decisions.md` GD-38/GD-40.
 
 **Resultado: `CANDIDATE_VALIDATED` por no inferioridad.** Las dos condiciones
 predeclaradas se cumplen: MCC del candidato estrictamente positivo (0,701363) y
@@ -187,7 +197,18 @@ autocorrelacionadas. El intervalo incluye el cero. La precisión del candidato
 
 ---
 
-## 5. Resultado — Etapa C (holdout final, 2024–2025)
+## 5. Resultado — Etapa C (evaluación retrospectiva exploratoria, holdout final 2024–2025)
+
+**Corrección 2026-09-22 (`decisions.md` GD-40, tras el hallazgo M-01/RK-20 de
+la auditoría RB-05).** Mismo tratamiento que la Etapa B: los números no
+cambian, pero la auditoría independiente de la Etapa B se registró *después*
+de que C ya hubiera corrido, de modo que C tampoco puede presentarse como
+validación confirmatoria del holdout gobernada por el protocolo secuencial.
+Se presenta como **evaluación retrospectiva exploratoria**. El holdout
+2024–2025 **no se reabre** por esta corrección ni por ninguna otra razón —
+sigue siendo una apertura única, nominal e irreversible; lo que se corrige
+es únicamente cómo se describe epistémicamente el resultado ya obtenido.
+Detalle en la §7.4 y en `decisions.md` GD-38/GD-40.
 
 **Resultado: favorable frente a la persistencia en MCC, con el intervalo pareado
 excluyendo el cero.** El holdout se abrió **una única vez**, de forma nominal,
@@ -466,6 +487,43 @@ ninguna afirmación cuantitativa.**
   cargables en este runtime; las revisiones independientes se ejecutaron con otro
   runtime en sesiones separadas de sólo lectura. Se documenta la sustitución y
   **no** se la presenta como equivalencia.
+
+### 7.4 Gobernanza de gates: hallazgo M-01/RK-20 (2026-09-22)
+
+**Añadido 2026-09-22, tras la auditoría independiente RB-05
+(`openspec/changes/sc-06-scientific-synthesis/reviews/review-audit-rb05-codex-FAIL.md`,
+veredicto `FAIL`) y la aceptación administrativa del responsable
+(`decisions.md` GD-38, GD-40).** El protocolo predeclarado exige que cada
+etapa sea auditada independientemente **antes** de autorizar la siguiente
+(Gate A → autoriza B; Gate B → autoriza C). El registro de gobernanza
+(`changes.json`) y las marcas de tiempo de sistema de archivos de los
+artefactos de auditoría muestran que, en la ejecución real del
+2026-09-21, **B se ejecutó antes de que existiera el veredicto de auditoría
+independiente de A, y C se ejecutó antes de que existiera el veredicto de
+auditoría independiente de B** — verificado por dos fuentes primarias
+independientes entre sí. La secuencia *computacional* fue A→B→C, cada etapa
+corrida una sola vez, con custodia técnica y exit 0 verificados; lo que no
+puede certificarse es que la compuerta de auditoría *gobernó* esa secuencia
+como el protocolo exige.
+
+**Qué significa esto para los resultados.** Los números de las secciones 3, 4
+y 5 no cambian y no están invalidados: son evidencia numérica real,
+recomputada de forma independiente. Lo que cambia es su lectura: B y C
+**dejan de poder presentarse como validación confirmatoria gobernada por el
+protocolo secuencial** y se presentan en este documento como **evaluación
+retrospectiva exploratoria**. Esta distinción no es cosmética — es la
+diferencia entre "el candidato superó una compuerta que sólo se abre si la
+etapa anterior fue aprobada de forma independiente" y "el candidato produjo
+estos números en una ejecución donde esa compuerta no operó como estaba
+diseñada".
+
+**Qué no cambia.** El holdout 2024–2025 no se reabre por este hallazgo ni por
+ningún otro motivo derivado de él. No se reejecuta B ni C. `SC-GOV-025` y el
+gate `GF` cierran en `FAIL`, no en `PASS_WITH_LIMITATIONS`: la aceptación
+administrativa de esta desviación (`GD-40`) no equivale a su reparación
+científica. Una confirmación futura del alcance de HU7/HU8 requiere una
+campaña nueva, con gates verificados en tiempo real, sobre datos no
+utilizados previamente por `controlled_daily_v4`.
 
 ---
 

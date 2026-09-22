@@ -468,7 +468,7 @@
         "T16",
         "T25"
       ],
-      "status": "IN_PROGRESS",
+      "status": "FAIL",
       "approved_for_implementation": true,
       "scientific_execution_authorized": false,
       "extra_gate": "Audited terminal A or B or C AND all REQUIRED auxiliaries audited; UNRESOLVED blocks closure",
@@ -481,7 +481,25 @@
         "scope": "Reconciliar y redactar los entregables documentales de RB-04 (síntesis científica) y RB-06 (trazabilidad a memoria), portados y corregidos desde feat/scientific-evidence-finalization (PR #211), más la revisión de SC-GOV-016. NO autoriza declarar PASS de sc-06, NO autoriza declarar SC-GOV-025 ni GF, y NO autoriza ejecutar ninguna campaña. El PASS de este change depende exclusivamente del veredicto de una auditoría independiente única sobre el snapshot reconciliado.",
         "source": "openspec/scientific-closure/reconciliation-2026-09-22/session-identity.json"
       },
-      "audit": null,
+      "audit": {
+        "verdict": "FAIL",
+        "scope": "Auditoria final requisito por requisito sobre los 25 SC-GOV-001..025 (T25), snapshot 88ced622dd653cf6e6f892fd8212a2857acb77b7",
+        "auditor": "Codex, sesion externa independiente de la preparacion",
+        "report": "openspec/changes/sc-06-scientific-synthesis/reviews/review-audit-rb05-codex-FAIL.md",
+        "material_findings": [
+          "M-01",
+          "M-02",
+          "M-03",
+          "M-04"
+        ],
+        "material_findings_resolution": {
+          "M-01": "CONFIRMADO E IRREPARABLE DOCUMENTALMENTE. Aceptado administrativamente como desviacion permanente (decisions.md GD-40). NO equivale a PASS ni PASS_WITH_LIMITATIONS.",
+          "M-02": "CORREGIDO 2026-09-22 (sc-06/tasks.md T08 desmarcada)",
+          "M-03": "CORREGIDO 2026-09-22 (thesis-traceability.md fila 3.5)",
+          "M-04": "CORREGIDO 2026-09-22 (SC-GOV-003 degradado a PASS_WITH_LIMITATIONS, decisions.md GD-39)"
+        },
+        "administrative_closure": "Expediente v4 cerrado administrativamente con no conformidad declarada (decisions.md GD-40). Cierre confirmatorio del alcance cientifico de HU7/HU8 NO alcanzado."
+      },
       "state_events": [
         {
           "from": "PLANNED",
@@ -506,6 +524,22 @@
           "timestamp_utc": "2026-09-22T12:27:30Z",
           "reason": "Escritor único: el orquestador. Se producen los tres artefactos de evidencia: docs/research/scientific-closure-synthesis-2026-09-22.md (T16/T25), reconciliation-2026-09-22/thesis-traceability.md, y la sección 'Clasificación final de afirmaciones' de claims.md (T16). Portados desde f355272 con tres correcciones documentadas en reconciliation-table.md: rutas de auxiliary/{R,N,S}/review.json apuntando a los artefactos de RB-03; limitación de imputación causal (~24%, causal_ffill) agregada en CL-04/CL-08 y en hu8-resultados-discusion-conclusiones.md §8.4; CL-10 degradada de DEMOSTRADA a RESPALDADA CON LIMITACIONES hasta la auditoría única. Los dos informes de auditoría de f355272 (ambos FAIL) se preservan verbatim en reviews/, marcados como historia y no como aprobación.",
           "evidence": "openspec/scientific-closure/reconciliation-2026-09-22/reconciliation-table.md; docs/research/scientific-closure-synthesis-2026-09-22.md; openspec/scientific-closure/reconciliation-2026-09-22/thesis-traceability.md"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "REVIEW",
+          "actor": "orquestador, dossier RB-05 preparado sobre el snapshot 88ced62",
+          "timestamp_utc": "2026-09-22T21:25:33Z",
+          "reason": "Dossier RB-05 (openspec/scientific-closure/rb05-audit-preparation-2026-09-22/rb05-dossier.md) preparado y sometido a auditoria independiente externa (Codex) requisito por requisito sobre los 25 SC-GOV, per T25.",
+          "evidence": "openspec/scientific-closure/rb05-audit-preparation-2026-09-22/rb05-dossier.md; openspec/scientific-closure/rb05-audit-preparation-2026-09-22/session-identity.json"
+        },
+        {
+          "from": "REVIEW",
+          "to": "FAIL",
+          "actor": "auditor externo independiente (Codex), sesion separada de la preparacion",
+          "timestamp_utc": "2026-09-22T21:25:33Z",
+          "reason": "Auditoria requisito por requisito sobre los 25 SC-GOV, snapshot 88ced622dd653cf6e6f892fd8212a2857acb77b7. Veredicto FAIL: cuatro hallazgos materiales M-01..M-04. M-02, M-03 y M-04 corregidos el mismo dia (ver decisions.md GD-38/GD-39). M-01 (contradiccion cronologica comprobada en la secuencia de gates A-B-C: sc-04-stage-b y sc-05-stage-c autorizadas citando el PASS de la etapa previa antes de que ese PASS existiera en el registro, verificado por dos fuentes primarias independientes) confirmado e irreparable documentalmente. Aceptado administrativamente por el responsable como desviacion permanente (decisions.md GD-40); esa aceptacion NO convierte esto en PASS ni en PASS_WITH_LIMITATIONS.",
+          "evidence": "openspec/changes/sc-06-scientific-synthesis/reviews/review-audit-rb05-codex-FAIL.md"
         }
       ],
       "gate_evaluation": {

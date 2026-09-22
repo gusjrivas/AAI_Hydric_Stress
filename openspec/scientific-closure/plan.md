@@ -87,11 +87,14 @@ trabajo divergentes; detalle en `reconciliation-2026-09-22/reconciliation-table.
 | GA A | SATISFECHO | Sin cambio |
 | GB B | SATISFECHO | Sin cambio |
 | GC C | SATISFECHO | Sin cambio |
-| **GF Cierre** | **PENDIENTE** | RB-03 (GD-12 sobre R/N/S) tiene `PASS` de su auditor independiente y **no se reabre**. RB-04 (síntesis) y RB-06 (trazabilidad a memoria) están redactados y reconciliados. **RB-05 (auditoría final requisito por requisito) no tiene un veredicto formal `PASS`**: las dos rondas disponibles, sobre el snapshot de `feat/scientific-evidence-finalization`, terminaron en `FAIL`; su corrección final nunca fue reauditada. `GF` se actualizará en un commit separado, exclusivamente con el veredicto de la auditoría independiente única solicitada sobre el snapshot reconciliado de esta sesión |
+| **GF Cierre** | **FAIL** | **Actualizado 2026-09-22.** RB-03 (GD-12 sobre R/N/S) tiene `PASS` de su auditor independiente y **no se reabre**. RB-04 (síntesis) y RB-06 (trazabilidad a memoria) están redactados y reconciliados. **RB-05 (auditoría final requisito por requisito) corrió sobre el snapshot `88ced62` y terminó en `FAIL`**: hallazgo material M-01, contradicción cronológica comprobada en la secuencia de gates A→B→C, declarada incumplimiento histórico no reparable documentalmente (`decisions.md` GD-38) y aceptada administrativamente por el responsable como desviación permanente (`decisions.md` GD-40). `GF` cierra en `FAIL`, no en `PASS_WITH_LIMITATIONS`: la aceptación administrativa de la desviación no equivale a su cumplimiento |
 
-`GF` alcanzaría, como máximo, al **alcance aprobado de HU7/HU8**. No certificaría
-HU1 ni el cierre total del Trabajo Final, y un PASS estructural del checker no
-equivale a cierre científico.
+`GF` en `FAIL` corresponde, como máximo, al **alcance aprobado de HU7/HU8**;
+no certifica ni descarta HU1 ni el Trabajo Final completo. `controlled_daily_v4`
+queda cerrado administrativamente con no conformidad declarada, no con un
+PASS estructural travestido de cierre científico. No hay tareas
+experimentales pendientes dentro de esta campaña: una confirmación futura
+requiere una campaña nueva sobre datos no utilizados previamente.
 
 ### Validación de esta fase
 

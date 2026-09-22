@@ -61,10 +61,29 @@ archivos acreditan es el contenido de sus informes tal como fueron recibidos.
 
 La auditoría que `T25` exige —requisito por requisito sobre los 25 SC-GOV,
 no de alcance acotado— corrió sobre el dossier
-`openspec/scientific-closure/rb05-audit-preparation-2026-09-22/`, snapshot
-`88ced62`. Informe preservado en
-`../../../scientific-closure/rb05-audit-preparation-2026-09-22/reviews/review-audit-codex-round1-FAIL.md`,
-ver ese directorio para el detalle completo. **Veredicto: `FAIL`** (M-01,
-contradicción cronológica en la secuencia de gates A→B→C, declarada
-incumplimiento histórico no reparable documentalmente, `decisions.md` GD-38).
-`T25` sigue sin marcar.
+`openspec/scientific-closure/rb05-audit-preparation-2026-09-22/`. Copia
+idéntica (mismo sha256) también preservada en
+`openspec/scientific-closure/rb05-audit-preparation-2026-09-22/reviews/review-audit-codex-round1-FAIL.md`,
+junto con el dossier que audita.
+
+| Archivo | Rol | Objeto | Veredicto |
+| --- | --- | --- | --- |
+| `review-audit-rb05-codex-FAIL.md` | `scientific_auditor` (Codex, sesión externa independiente de la preparación) | Snapshot `88ced622dd653cf6e6f892fd8212a2857acb77b7` | **`FAIL`** — cuatro hallazgos materiales `M-01`..`M-04` |
+
+**Hallazgos.** `M-02` (tarea T08 marcada sin cadena de revisión real), `M-03`
+(contradicción sobre alcanzabilidad de Docker en `thesis-traceability.md`) y
+`M-04` (`SC-GOV-003` sin declarar la limitación de `RK-14` que `SC-GOV-019`
+ya tenía) quedaron **corregidos** el 2026-09-22. `M-01` (contradicción
+cronológica comprobada en la secuencia de gates A→B→C: `sc-04-stage-b` y
+`sc-05-stage-c` fueron autorizadas citando el PASS de la etapa previa antes
+de que ese PASS existiera en el registro, verificado por dos fuentes
+primarias independientes) quedó **confirmado e irreparable**
+(`decisions.md` GD-38, `risks.md` RK-20).
+
+**Este informe no constituye PASS de RB-05 ni de `GF`.** Es, exactamente al
+revés: la auditoría requisito por requisito que `T25` exigía corrió y
+terminó en `FAIL`. `T25` queda **completada con veredicto `FAIL`**, no
+«sin marcar por falta de auditoría» — la auditoría ya no falta, lo que falta
+es un veredicto favorable, y no lo hay. Ver `decisions.md` GD-40 para la
+aceptación administrativa de `M-01`/`RK-20` como desviación permanente, que
+tampoco convierte esto en un `PASS`.

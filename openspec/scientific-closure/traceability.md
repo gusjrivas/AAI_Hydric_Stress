@@ -426,12 +426,32 @@ los resultados científicos que produjeron son reales y no están en duda; lo
 que M-01 pone en duda es si el protocolo de compuertas secuenciales se
 respetó como está escrito, que es una pregunta distinta.
 
-**`SC-GOV-025` y el gate `GF` siguen `PENDIENTE`** — no avanzan a
-`PASS_WITH_LIMITATIONS` ni a ningún otro estado. La causa ya no es sólo «falta
-la auditoría única»: la auditoría única **corrió** y terminó en `FAIL`. No hay,
-a esta fecha, un camino de cierre para `SC-GOV-025`/`GF` que no dependa de una
-decisión del responsable sobre M-01 (`decisions.md` GD-38): aceptarlo como
-desviación declarada y permanente (como se hizo con `RK-14`), o alguna otra
-resolución que el orquestador no tiene autoridad para elegir por su cuenta.
-Ninguna de las dos rutas exige reabrir el holdout ni reejecutar A, B, C, H, R,
-N o S.
+**Actualización — cierre administrativo con no conformidad declarada
+(2026-09-22, `decisions.md` GD-40).** El responsable del trabajo tomó, en
+primera persona, la decisión que la sección anterior dejaba fuera de la
+autoridad del orquestador: **aceptar M-01/RK-20 como desviación histórica
+permanente e irreparable**, sin convertirla en cumplimiento. Consecuencia
+directa:
+
+| Requisito / entidad | Estado final | Fundamento |
+| --- | --- | --- |
+| **`SC-GOV-025`** | **`FAIL`** | Terminal negativo, no `PASS` ni `PASS_WITH_LIMITATIONS`. `RB-05` (T25) se ejecutó y terminó en `FAIL`; la aceptación administrativa de `GD-40` no lo convierte en aprobación — lo cierra como lo que es |
+| Gate **`GF`** | **`FAIL`** | Mismo fundamento. `GF` no alcanzado para el alcance de HU7/HU8. Ninguna de las dos rutas (aceptar como desviación declarada u otra resolución) exigía reabrir el holdout ni reejecutar A, B, C, H, R, N o S, y ninguna lo hizo |
+| `sc-06-scientific-synthesis` | `FAIL` (change) | `changes.json`: `REVIEW → FAIL`, con `audit.verdict = FAIL`. Transición legal según la máquina de estados (`REVIEW: {PASS, FAIL, BLOCKED}`); no se modificó el esquema ni los tests para permitirla |
+
+**Qué NO cambia por esta actualización.** `SC-GOV-021`, `SC-GOV-023`,
+`SC-GOV-024` (RB-03) y `sc-07`/`sc-09`/`sc-10` no se tocan. Los resultados
+numéricos de A, B, C y H no se invalidan: siguen siendo evidencia real,
+recomputada de forma independiente. Lo que cambia es su **estatus
+epistémico**: B y C dejan de poder presentarse como validación confirmatoria
+gobernada por el protocolo secuencial y deben presentarse como **evidencia
+retrospectiva exploratoria** (`decisions.md` GD-40; síntesis científica y
+`thesis-traceability.md` actualizadas en consecuencia). No se reejecuta nada,
+no se reabre el holdout, y no se reescribe ningún evento histórico de
+`changes.json` — los nuevos eventos `IN_PROGRESS → REVIEW → FAIL` de `sc-06`
+se **añaden**, no reemplazan los anteriores.
+
+`controlled_daily_v4` queda cerrado **administrativamente**, con no
+conformidad declarada. No hay tareas experimentales pendientes dentro de
+esta campaña; una campaña de confirmación futura sobre datos no utilizados
+es trabajo nuevo, no una reparación de ésta.

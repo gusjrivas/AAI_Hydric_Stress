@@ -42,9 +42,15 @@ independiente autorizado. No reescribir documentos históricos.
 - [Dossier RB-05](rb05-audit-preparation-2026-09-22/): estado documental de
   los 25 SC-GOV con evidencia exacta. Auditado por Codex sobre `88ced62`;
   **veredicto `FAIL`** (`reviews/review-audit-codex-round1-FAIL.md`), por una
-  contradicción cronológica en la secuencia de gates A→B→C declarada
-  incumplimiento histórico no reparable documentalmente (`decisions.md`
-  GD-38). `SC-GOV-025` y `GF` siguen `PENDIENTE`.
+  contradicción cronológica en la secuencia de gates A→B→C. **Cierre
+  administrativo, 2026-09-22 (`decisions.md` GD-40):** el responsable aceptó
+  M-01/RK-20 como desviación histórica permanente e irreparable, sin
+  convertirla en cumplimiento. `SC-GOV-025`, `GF` y `sc-06-scientific-synthesis`
+  cierran en `FAIL`, no en `PASS` ni `PASS_WITH_LIMITATIONS`.
+  `controlled_daily_v4` queda cerrado con no conformidad declarada; B y C se
+  presentan como evidencia retrospectiva exploratoria. No hay tareas
+  experimentales pendientes dentro de esta campaña — una confirmación futura
+  es trabajo nuevo sobre datos no utilizados, no una reparación de ésta.
 
 Fuentes preservadas: openspec/project.md; openspec/specs/experiment-runner/spec.md;
 docs/research/protocolo-experimental-v3.md;
