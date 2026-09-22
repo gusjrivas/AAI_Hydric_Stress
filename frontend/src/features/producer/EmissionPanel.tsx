@@ -44,19 +44,21 @@ export function EmissionPanel({ sensorId, onChanged }: { sensorId: string; onCha
         ? { ...forecast, status: "available" } : slot) } : current);
     onChanged();
   }
-  return <section aria-labelledby="next-days-heading">
+  return <section className="producer-outlook" aria-labelledby="next-days-heading">
+    <p className="producer-eyebrow">02 / QUÉ SE ESPERA</p>
     <h3 id="next-days-heading">Los próximos tres días del cultivo</h3>
     <p>Consultá qué se espera para cada día a partir de la última medición disponible.</p>
     <button type="button" disabled={busy} onClick={() => void generate()}>
       {busy ? "Preparando pronósticos…" : error ? "Reintentar consulta" : "Consultar próximos tres días"}
     </button>
     {error && <p role="alert">{error}</p>}
+    {!batch && !error && <div className="producer-outlook-placeholder"><span aria-hidden="true">1 → 2 → 3</span><p>Consultá para ver cada fecha por separado. Si faltan datos, te lo vamos a indicar.</p></div>}
     {batch && <>
       {batch.as_of_date && <p>Mediciones hasta el <strong>{displayForecastDate(batch.as_of_date)}</strong>. Fechas en UTC.</p>}
       {batch.data_age_days !== null && batch.data_age_days > 0 && <p role="status">
         La última medición tiene {batch.data_age_days} días de antigüedad. Los resultados corresponden a esas fechas; no describen necesariamente la situación de hoy.
       </p>}
-      <ul className="forecast-list">
+      <ul className="forecast-list forecast-outlook-grid">
         {batch.slots.map((slot) => <li key={slot.horizon_days}>
           {slot.status === "available" ? <ForecastCard key={slot.forecast_id} sensorId={sensorId} forecast={slot} onChanged={reviewed} /> : <article className="forecast-card">
             <h4>{slot.target_date ? displayForecastDate(slot.target_date) : `Día ${slot.horizon_days}`}</h4>

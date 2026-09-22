@@ -155,6 +155,10 @@ async function readErrorEnvelope(response: Response): Promise<ErrorEnvelope | nu
   return null;
 }
 
+export class ForecastCursorExpiredError extends Error {
+  constructor() { super("La lista cambió. Volvé a cargarla para seguir viendo resultados."); this.name = "ForecastCursorExpiredError"; }
+}
+
 function forecastsPath(sensorId: string): string {
   return `${API_BASE_URL}/api/v2/sensors/${encodeURIComponent(sensorId)}/forecasts`;
 }
@@ -176,7 +180,9 @@ export async function listForecasts(
 
   const error = await readErrorEnvelope(response);
   if (response.status === 404 && !error) throw new ProducerV2UnavailableError();
-  throw new Error(error?.message ?? "No se pudieron consultar los pronósticos. Intentá nuevamente.");
+  if (error?.code === "invalid_cursor") throw new ForecastCursorExpiredError();
+  if (error?.code === "invalid_date_range") throw new Error("La fecha inicial debe ser anterior o igual a la fecha final.");
+  throw new Error("No se pudieron consultar los pronósticos. Intentá nuevamente.");
 }
 
 export async function getForecast(sensorId: string, forecastId: string): Promise<Forecast> {

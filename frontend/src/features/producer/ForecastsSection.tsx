@@ -1,7 +1,8 @@
+import { useForecastReviews } from "./useForecastReviews";
 import { useEffect, useState } from "react";
 import { ForecastCard } from "./ForecastCard";
 import { ProducerV2UnavailableError } from "./catalogApi";
-import { listForecasts } from "./forecastsApi";
+import { ForecastCursorExpiredError, listForecasts } from "./forecastsApi";
 import type { Forecast, ReviewStatus } from "./forecastsApi";
 import "./ForecastsSection.css";
 
@@ -29,6 +30,7 @@ function useForecastFeed(sensorId: string, reviewStatus?: ReviewStatus) {
   const key = `${feedKey}:${resetToken}`;
   const [state, setState] = useState<FeedState>({ key, status: "loading" });
   const [loadingMore, setLoadingMore] = useState(false);
+  const [pageError, setPageError] = useState<{ key: string; restart: boolean; message: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,6 +67,7 @@ function useForecastFeed(sensorId: string, reviewStatus?: ReviewStatus) {
   async function loadMore() {
     if (!current || current.status !== "ready" || !current.nextCursor || loadingMore) return;
     setLoadingMore(true);
+    setPageError(null);
     try {
       const result = await listForecasts(sensorId, { reviewStatus, limit: 20, cursor: current.nextCursor });
       setState((prev) =>
@@ -73,14 +76,14 @@ function useForecastFeed(sensorId: string, reviewStatus?: ReviewStatus) {
           : {
               key,
               status: "ready",
-              items: [...prev.items, ...result.items],
+              items: [...new Map([...prev.items, ...result.items].map((item) => [item.forecast_id, item])).values()],
               nextCursor: result.next_cursor,
               pendingTotal: result.pending_total,
               reviewablePendingTotal: result.reviewable_pending_total,
             },
       );
-    } catch {
-      // El estado no cambia: "Ver más" queda disponible para reintentar.
+    } catch (error) {
+      setPageError({ key, restart: error instanceof ForecastCursorExpiredError, message: error instanceof ForecastCursorExpiredError ? error.message : "No pudimos cargar más resultados. Tus datos siguen guardados." });
     } finally {
       setLoadingMore(false);
     }
@@ -92,7 +95,7 @@ function useForecastFeed(sensorId: string, reviewStatus?: ReviewStatus) {
 
   function updateItem(updated: Forecast) {
     setState((prev) =>
-      prev.status !== "ready"
+      prev.status !== "ready" || !prev.items.some((item) => item.forecast_id === updated.forecast_id && item.review.revision < updated.review.revision)
         ? prev
         : { ...prev, items: prev.items.map((item) => (item.forecast_id === updated.forecast_id ? updated : item)) },
     );
@@ -111,7 +114,7 @@ function useForecastFeed(sensorId: string, reviewStatus?: ReviewStatus) {
     });
   }
 
-  return { current, loadingMore, loadMore, retry, updateItem, removeFromPending };
+  return { current, loadingMore, loadMore, retry, updateItem, removeFromPending, pageError: pageError?.key === key ? pageError : null };
 }
 
 function ForecastList({
@@ -119,13 +122,15 @@ function ForecastList({
   feed,
   emptyMessage,
   onItemChanged,
+  prioritizeReview = false,
 }: {
   sensorId: string;
   feed: ReturnType<typeof useForecastFeed>;
   emptyMessage: string;
   onItemChanged: (updated: Forecast) => void;
+  prioritizeReview?: boolean;
 }) {
-  const { current, loadingMore, loadMore, retry } = feed;
+  const { current, loadingMore, loadMore, retry, pageError } = feed;
 
   if (!current) return <p role="status">Cargando pronósticos…</p>;
   if (current.status === "loading") return <p role="status">Cargando pronósticos…</p>;
@@ -142,13 +147,15 @@ function ForecastList({
   return (
     <>
       <ul className="forecast-list">
-        {current.items.map((item) => (
+        {current.items.filter((item) => !prioritizeReview || item.review.reviewable).map((item) => (
           <li key={item.forecast_id}>
             <ForecastCard sensorId={sensorId} forecast={item} onChanged={onItemChanged} />
           </li>
         ))}
       </ul>
-      {current.nextCursor && (
+      {prioritizeReview && current.items.some((item) => !item.review.reviewable) && <details className="producer-future-disclosure"><summary>Fechas que todavía no se pueden revisar</summary><p>Se habilitan en su fecha indicada. Después siguen disponibles, sin vencimiento.</p><ul className="forecast-list">{current.items.filter((item) => !item.review.reviewable).map((item) => <li key={item.forecast_id}><ForecastCard sensorId={sensorId} forecast={item} onChanged={onItemChanged} /></li>)}</ul></details>}
+      {pageError && <p role="alert">{pageError.message} <button type="button" onClick={() => pageError.restart ? retry() : void loadMore()}>{pageError.restart ? "Volver a cargar la lista" : "Reintentar carga"}</button></p>}
+      {current.nextCursor && !pageError && (
         <button type="button" onClick={() => void loadMore()} disabled={loadingMore}>
           {loadingMore ? "Cargando más…" : "Ver más"}
         </button>
@@ -171,10 +178,21 @@ export function ForecastsSection({ sensorId }: { sensorId: string }) {
     }
   }
 
+  const { updates } = useForecastReviews();
+  useEffect(() => {
+    for (const updated of Object.values(updates)) {
+      historyFeed.updateItem(updated);
+      if (updated.review.status !== "pending") pendingFeed.removeFromPending(updated.forecast_id);
+    }
+    // Updates come only from successful server responses, shared across cards.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updates, historyFeed.current, pendingFeed.current]);
+
   const counts = pendingFeed.current?.status === "ready" ? pendingFeed.current : null;
 
   return (
     <section className="forecasts-section" aria-label="Pronósticos y revisión">
+      <p className="producer-eyebrow">04 / TU MIRADA EN EL CAMPO</p>
       <div className="forecasts-subsection" role="group" aria-label="Pendientes de revisar">
         <div className="forecasts-heading">
           <h3>Pendientes de revisar</h3>
@@ -193,18 +211,20 @@ export function ForecastsSection({ sensorId }: { sensorId: string }) {
         <ForecastList
           sensorId={sensorId}
           feed={pendingFeed}
+          prioritizeReview
           emptyMessage="No tenés pronósticos pendientes de revisar."
           onItemChanged={handleHistoryChanged}
         />
       </div>
 
+      <details className="producer-history-disclosure"><summary>Ver historial de pronósticos</summary>
       <div className="forecasts-subsection" role="group" aria-label="Historial de pronósticos">
         <div className="forecasts-heading">
           <h3>Historial de pronósticos</h3>
         </div>
         <p>
-          Cada emisión es independiente aunque coincida la fecha objetivo: se distinguen por la fecha de emisión y el
-          horizonte con el que se calcularon.
+          Podés encontrar varios pronósticos para la misma fecha si se consultaron en distintos días.
+          Cada uno conserva los datos con los que se preparó y tu opinión.
         </p>
         <ForecastList
           sensorId={sensorId}
@@ -212,7 +232,7 @@ export function ForecastsSection({ sensorId }: { sensorId: string }) {
           emptyMessage="Todavía no hay pronósticos disponibles. La ausencia de pronósticos no significa ausencia de riesgo: seguí observando el cultivo."
           onItemChanged={handleHistoryChanged}
         />
-      </div>
+      </div></details>
     </section>
   );
 }

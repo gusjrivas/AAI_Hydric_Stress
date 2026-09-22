@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useForecastReviews } from "./useForecastReviews";
 import {
   DemoWriteLockedError,
   ForecastNotFoundError,
@@ -47,7 +48,11 @@ export function ForecastCard({
   forecast: Forecast;
   onChanged?: (forecast: Forecast) => void;
 }) {
-  const [forecast, setForecast] = useState(initialForecast);
+  const [localForecast, setForecast] = useState(initialForecast);
+  const { updates, publish } = useForecastReviews();
+  const shared = updates[initialForecast.forecast_id];
+  const candidates = [localForecast, initialForecast, ...(shared ? [shared] : [])];
+  const forecast = candidates.reduce((latest, value) => value.review.revision >= latest.review.revision ? value : latest);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [requestId, setRequestId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -88,8 +93,9 @@ export function ForecastCard({
       setRequestId(null);
       setSubmitting(false);
       setNotice(
-        "Tu opinión quedó guardada. El pronóstico original se conserva; guardar una opinión no significa que ya se haya usado para entrenar el modelo.",
+        "Tu opinión quedó guardada. El pronóstico original se conserva. Los próximos resultados no cambian automáticamente.",
       );
+      publish(updated);
       onChanged?.(updated);
       return;
     } catch (error) {
@@ -97,13 +103,15 @@ export function ForecastCard({
       if (error instanceof RevisionConflictError) {
         setDraft(null);
         setRequestId(null);
-        setNotice("Se registró otra opinión mientras completabas este formulario. Te mostramos el resultado actualizado.");
+        setNotice("Se registró otra opinión mientras completabas este formulario.");
         try {
           const fresh = await getForecast(sensorId, forecast.forecast_id);
           setForecast(fresh);
+          setNotice("Se registró otra opinión. Ya estás viendo el resultado actualizado.");
+          publish(fresh);
           onChanged?.(fresh);
         } catch {
-          // Sin refresco disponible: se conserva el aviso, sin sobrescribir con datos locales.
+          setNotice("No pudimos recuperar la última opinión. Recargá la página antes de volver a revisar este resultado.");
         }
         return;
       }
@@ -138,21 +146,22 @@ export function ForecastCard({
   }
 
   return (
-    <article className="forecast-card" aria-label={`Pronóstico para el ${displayForecastDate(forecast.target_date)}`}>
+    <article className={`forecast-card ${forecast.alert ? "forecast-card-alert" : "forecast-card-clear"}`} aria-label={`Pronóstico para el ${displayForecastDate(forecast.target_date)}`}>
       <header className="forecast-card-header">
         <div>
           <p className="forecast-card-target">{displayForecastDate(forecast.target_date)}</p>
-          <p className="forecast-card-meta">
+          <details className="forecast-card-details"><summary>Ver de cuándo son los datos</summary><p className="forecast-card-meta">
             {HORIZON_LABELS[forecast.horizon_days]} · Emitido el {displayIssuedAt(forecast.issued_at)} a partir de
             datos del {displayForecastDate(forecast.as_of_date)}
-          </p>
+          </p></details>
         </div>
         <span className={`forecast-card-badge ${forecast.alert ? "is-alert" : ""}`}>
           {forecast.alert ? "Alerta" : "Sin alerta"}
         </span>
       </header>
 
-      <p>Probabilidad publicada: {displayProbability(forecast)}</p>
+      <p className="forecast-card-guidance">{forecast.alert ? "Puede haber falta de agua. Revisá cómo está el cultivo." : "No se anticipa una alerta para esta fecha. Seguí observando el cultivo."}</p>
+      <p className="forecast-probability">{forecast.display_probability === null ? "Probabilidad no disponible: todavía no hay un porcentaje respaldado para mostrar." : `Posibilidad de alerta: ${displayProbability(forecast)}`}</p>
       <p className="forecast-card-review-status">Revisión: {reviewStatusLabel(review.status)}</p>
 
       {review.latest_review && (

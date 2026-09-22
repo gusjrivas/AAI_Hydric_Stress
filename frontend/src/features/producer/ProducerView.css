@@ -1,35 +1,52 @@
-.producer-picker {
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
-}
-
-.producer-picker-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  min-width: 14rem;
-}
-
-.producer-picker-field select {
-  min-height: 44px;
-  font-size: 1rem;
-}
-
-.producer-sensor-tag {
-  display: inline-block;
-  padding: 0.15rem 0.6rem;
-  border-radius: 0.5rem;
-  background: #e8efe4;
-  color: #275f43;
-  font-size: 0.8rem;
-  margin-left: 0.5rem;
-}
-
-.producer-forecast-note {
-  border: 1px solid #dce4d9;
-  border-radius: 0.75rem;
-  padding: 1rem;
-  margin-top: 1.25rem;
-}
+/* Producer workspace: scoped tokens preserve the legacy screens. */
+.app-producer { --color-bg: #f2f6f3; --color-surface: #fff; --color-ink: #173b31; --color-action: #176449; --color-border: #dbe7de; background: #f2f6f3; }
+.app-producer .app-sensor-header { border-bottom: 1px solid #d3e3d9; padding-bottom: 18px; }
+.app-producer .app-sensor-header h1 { font-size: 1.4rem; letter-spacing: -.04em; }
+.app-producer .app-intro { font-size: .87rem; color: #4d675c; }
+.producer-view { display: grid; gap: 22px; color: #173b31; }
+.producer-view h3 { letter-spacing: -.025em; }
+.producer-view button { min-height: 44px; border: 1px solid #c8dacf; border-radius: 12px; padding: 10px 17px; background: #fff; color: #174d38; font: inherit; font-weight: 650; cursor: pointer; transition: background .15s, border-color .15s; }
+.producer-view button:hover:not(:disabled) { background: #edf6df; border-color: #658461; }
+.producer-view button:disabled { opacity: .6; cursor: wait; }
+.producer-view :is(button, select, textarea, summary):focus-visible { outline: 3px solid #6d50b8; outline-offset: 3px; }
+.producer-view select, .producer-view textarea { color: #173b31; background: #fff; border: 1px solid #b8cec1; border-radius: 10px; padding: 12px; font: inherit; max-width: 100%; }
+.producer-view [role="alert"] { border-left: 4px solid #b55c1c; background: #fff4e7; color: #6b360e; padding: 14px; border-radius: 8px; }
+.producer-hero { position: relative; overflow: hidden; display: grid; grid-template-columns: 1fr 180px; align-items: center; gap: 20px; padding: clamp(26px, 5vw, 48px); background: #123f32; color: #fff; border-radius: 28px; }
+.producer-hero h3 { font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.1; max-width: 16ch; margin: 12px 0 18px; color: #fff; }
+.producer-hero p:not(.producer-eyebrow) { max-width: 52ch; color: #dae9df; line-height: 1.65; margin: 0; }
+.producer-eyebrow { font-size: .72rem; letter-spacing: .12em; font-weight: 750; color: #466f58; margin: 0 0 16px; }
+.producer-hero .producer-eyebrow { color: #d3f380; }
+.producer-hero-art { background: #23553d; border-radius: 50%; padding: 15px; aspect-ratio: 1; display: grid; place-items: center; }
+.producer-hero-art svg { width: 100%; fill: #c6ed75; stroke: #c6ed75; stroke-width: 4; stroke-linecap: round; }
+.producer-hero-art path:first-child { fill: none; }
+.producer-context, .producer-outlook, .producer-view .history-panel, .producer-view .forecasts-section { background: #fff; padding: clamp(18px, 3vw, 30px); border: 1px solid #dbe7de; border-radius: 22px; box-shadow: 0 5px 24px #123f3205; margin: 0; }
+.producer-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.producer-picker-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.producer-picker-field label { font-size: .85rem; font-weight: 650; }
+.producer-context-caption { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 20px; color: #496558; font-size: .88rem; }
+.producer-sensor-tag { display: inline-flex; padding: 5px 10px; background: #f3ebff; color: #603796; border: 1px solid #e3d4f6; border-radius: 999px; font-size: .75rem; font-weight: 700; }
+.producer-outlook h3 { margin: 0 0 10px; font-size: clamp(1.3rem, 3vw, 1.75rem); }
+.producer-outlook > p { color: #496558; max-width: 70ch; }
+.producer-outlook > button { background: #c6ed75; color: #183d2d; border-color: #c6ed75; margin: 8px 0 16px; }
+.producer-outlook > button:hover:not(:disabled) { background: #b5df62; }
+.producer-outlook-placeholder { display: flex; align-items: center; gap: 24px; padding: 24px; background: #f5f8f1; border-radius: 16px; margin-top: 10px; color: #526752; }
+.producer-outlook-placeholder span { font-size: 1.5rem; font-weight: 700; white-space: nowrap; color: #628237; }
+.producer-section-label { display: flex; justify-content: space-between; gap: 12px; padding: 8px 4px 0; font-size: .75rem; color: #4b695a; letter-spacing: .08em; font-weight: 700; }
+.producer-view .history-metrics > div { padding: 18px; background: #eff6ed; border-radius: 14px; }
+.producer-view .history-metrics > div:nth-child(2) { background: #fff4e6; }
+.producer-view .history-metrics > div:nth-child(3) { background: #ebf4fc; }
+.producer-view .history-metrics dd { font-size: clamp(1.4rem, 3vw, 2rem); letter-spacing: -.04em; }
+.producer-view .history-chart { background: #fafcf9; border: 1px solid #e5ece3; border-radius: 16px; padding: 14px; }
+.producer-view .history-chart figcaption { font-size: .8rem; color: #55705d; }
+.producer-view .history-table { max-width: 100%; }
+.producer-empty { padding: 40px; border: 1px dashed #a6c0af; border-radius: 20px; text-align: center; }
+.producer-footnote { font-size: .82rem; text-align: center; color: #53685d; padding: 10px; }
+@media (max-width: 640px) { .producer-hero { grid-template-columns: 1fr; border-radius: 20px; } .producer-hero-art { display: none; } .producer-picker { grid-template-columns: 1fr; } .producer-outlook-placeholder { flex-direction: column; align-items: flex-start; gap: 4px; } .producer-section-label { flex-direction: column; gap: 4px; } }
+@media (prefers-reduced-motion: reduce) { .producer-view button { transition: none; } }
+.app-producer .producer-tools { max-width: 72rem; margin: 0 auto 22px; }
+.app-producer .producer-tools > summary { cursor: pointer; color: #24583e; font-size: .86rem; font-weight: 650; min-height: 44px; padding: 10px 0; box-sizing: border-box; }
+.app-producer .producer-tools[open] > summary { margin-bottom: 10px; }
+.app-producer .producer-tools > summary:focus-visible { outline: 3px solid #6d50b8; outline-offset: 3px; }
+.app-producer .producer-tools nav a { border-radius: 999px; }
+.producer-future-disclosure { padding: 16px 0; }
+.producer-future-disclosure > summary { cursor: pointer; min-height: 44px; font-weight: 650; color: #456651; }

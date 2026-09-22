@@ -2,7 +2,7 @@ name: aai-producer-preview
 
 services:
   prepare:
-    image: aai-producer-preview-backend:local
+    image: ${PRODUCER_PREVIEW_BACKEND_IMAGE:-aai-producer-preview-backend:local}
     build:
       context: .
       dockerfile: docker/producer-preview/backend.Dockerfile
@@ -16,7 +16,7 @@ services:
     restart: "no"
 
   backend:
-    image: aai-producer-preview-backend:local
+    image: ${PRODUCER_PREVIEW_BACKEND_IMAGE:-aai-producer-preview-backend:local}
     depends_on:
       prepare:
         condition: service_completed_successfully

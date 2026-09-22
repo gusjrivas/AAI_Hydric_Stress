@@ -86,7 +86,7 @@ function App() {
   }
 
   return (
-    <div className="app-page">
+    <div className={`app-page ${route === "productor" ? "app-producer" : ""}`}>
       <a href="#main-content" className="skip-link">
         Saltar al contenido
       </a>
@@ -127,7 +127,7 @@ function App() {
         )}
       </header>
 
-      <DestinationNav active={route} />
+      {route === "productor" ? <details className="producer-tools"><summary>Más herramientas y antecedentes</summary><DestinationNav active={route} /></details> : <DestinationNav active={route} />}
       {demo.configured && (
         <p className="app-demo-link">
           <a href={DEMO_HASH} aria-current={isDemoRoute ? "page" : undefined}>
