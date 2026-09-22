@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0",
+  "record": "session_identity_and_preflight",
+  "campaign_id": "sufficiency-review-2026-09-22",
+  "campaign_id_note": "No es una campana cientifica. Es una sesion de revision documental de la decision de suficiencia GD-12. No ejecuta ningun runner, no abre datos y no produce ninguna metrica.",
+  "change_id": [
+    "sc-07-aux-regression",
+    "sc-09-aux-anomalies",
+    "sc-10-aux-robustness"
+  ],
+  "requirement_ids": [
+    "SC-GOV-021",
+    "SC-GOV-023",
+    "SC-GOV-024"
+  ],
+  "captured_at_utc": "2026-09-22T02:08:58Z",
+  "actor": "orchestrator",
+  "role": "orchestrator",
+  "runtime": "Claude Code CLI (claude-opus-5, contexto 1M). Los cinco perfiles de .codex/agents NO son cargables en este runtime; ver agent_substitution.",
+  "worktree": "/home/gus/work/AAI_Hydric_Stress_scientific_closure",
+  "branch": "feat/scientific-closure",
+  "head_at_session_start": "1c33aad8cbee765e2968bd164b5d4890743eea0a",
+  "upstream": "origin/feat/scientific-closure",
+  "tree_state_at_session_start": "clean (git status --porcelain=v1 --untracked-files=all sin salida)",
+  "expected_head_in_session_instruction": "1c33aad",
+  "expected_head_discrepancy": "NINGUNA. La instruccion de sesion declaro worktree, rama, HEAD 1c33aad y arbol limpio, y los cuatro coinciden con lo observado.",
+  "agent_substitution": {
+    "reason": "Los perfiles nominales de .codex/agents (scientific_explorer gpt-5.6-terra/medium, scientific_implementer gpt-5.6-sol/medium, scientific_critic gpt-5.6-sol/high, scientific_auditor gpt-5.6-sol/xhigh, evidence_checker gpt-5.6-luna/low) pertenecen a otro runtime de agentes y no pueden cargarse aqui. Es la misma no cargabilidad ya registrada en agent-capabilities.json y repetida en las sesiones del 2026-09-20 y 2026-09-21.",
+    "substitutes_used": [
+      {
+        "nominal_role": "scientific_explorer",
+        "substitute": "NONE como rol separado - el orquestador reunio la evidencia por si mismo",
+        "limitation": "Registrado, no defendido. La instruccion vigente del responsable ordena expresamente trabajo acotado y economico y reutilizar las verificaciones existentes, de modo que la lectura previa se hizo sobre documentos ya congelados y auditados, sin abrir datos ni recomputar metricas."
+      },
+      {
+        "nominal_role": "scientific_implementer",
+        "substitute": "NONE - el orquestador escribio los artefactos",
+        "limitation": "Implementador y orquestador no son independientes en esta sesion. La independencia se preserva solo para critico y auditor. Es la misma limitacion de las sesiones anteriores."
+      },
+      {
+        "nominal_role": "evidence_checker",
+        "substitute": "NONE como rol separado",
+        "limitation": "No hay evidencia cientifica nueva que verificar mecanicamente: esta sesion no produce metricas, hashes de artefactos cientificos ni predicciones. La verificacion mecanica aplicable (tests documentales, lint, formato, validacion OpenSpec) la ejecuta el orquestador y la reverifica el auditor por su cuenta."
+      },
+      {
+        "nominal_role": "scientific_critic",
+        "substitute": "Claude Code subagente de contexto separado",
+        "model_requested": "opus",
+        "model_effective_declared_by_runtime": "claude-opus-5",
+        "context": "separate",
+        "sandbox_mode_nominal": "read-only",
+        "sandbox_mode_effective": "INSTRUCTED_ONLY - el harness no coloca el proceso del subagente dentro de un sandbox de solo lectura; la instruccion prohibio escribir y no se observo escritura, lo cual es conducta, no enforcement"
+      },
+      {
+        "nominal_role": "scientific_auditor",
+        "substitute": "Claude Code subagente de contexto separado",
+        "model_requested": "opus",
+        "model_effective_declared_by_runtime": "claude-opus-5",
+        "context": "separate",
+        "sandbox_mode_nominal": "read-only",
+        "sandbox_mode_effective": "INSTRUCTED_ONLY"
+      }
+    ],
+    "effective_model_introspection": null,
+    "effective_model_introspection_status": "NOT_INTROSPECTABLE - el runtime informa el nombre de modelo que se le pidio; no existe atestacion independiente del backend. No se afirma verificado.",
+    "max_concurrent_children": 1,
+    "max_concurrent_children_limit_source": "autolimitacion del orquestador: critico y auditor deben correr en secuencia, no en paralelo, porque el auditor solo interviene sin hallazgos materiales abiertos (operations.md, paso 8). AGENTS.md permite hasta cuatro."
+  },
+  "scientific_execution_in_this_session": {
+    "runners_executed": "NINGUNO",
+    "holdout_touched": false,
+    "ledgers_touched": false,
+    "frozen_artifacts_modified": "NINGUNO",
+    "metrics_produced": "NINGUNA",
+    "statement": "Esta sesion no ejecuta R, N, S, A, B, C ni H, no abre datos y no genera ningun resultado experimental. Su producto es una decision de suficiencia documentada y revisada."
+  }
+}

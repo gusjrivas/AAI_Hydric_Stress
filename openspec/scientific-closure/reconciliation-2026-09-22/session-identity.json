@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0",
+  "record": "session_identity_and_preflight",
+  "campaign_id": "reconciliation-2026-09-22",
+  "campaign_id_note": "No es una campana cientifica. Reconcilia dos lineas de trabajo documentales que divergieron desde 1c33aad: feat/scientific-closure (RB-03, esta rama) y feat/scientific-evidence-finalization (RB-04/05/06, PR #211). No ejecuta ningun runner, no abre datos y no produce ninguna metrica.",
+  "requirement_ids": ["SC-GOV-016", "SC-GOV-025"],
+  "captured_at_utc": "2026-09-22T12:27:30Z",
+  "actor": "orchestrator",
+  "role": "orchestrator",
+  "runtime": "Claude Code CLI (claude-sonnet-5). Los cinco perfiles de .codex/agents NO son cargables en este runtime.",
+  "worktree": "/home/gus/work/AAI_Hydric_Stress_scientific_closure",
+  "branch_base": "feat/scientific-closure",
+  "head_at_reconciliation_start": "65ca85241b2d640a4a0de7d67b47be7f40e1ca68",
+  "divergent_branch_reconciled_from": "feat/scientific-evidence-finalization",
+  "divergent_branch_head": "f355272b5e520f9f897d6c11d7e83abba926a54e",
+  "divergent_branch_pr": "#211 (base feat/scientific-closure, head feat/scientific-evidence-finalization), OPEN al inicio de esta sesion",
+  "upstream": "origin/feat/scientific-closure",
+  "upstream_sha_at_start": "1c33aad8cbee765e2968bd164b5d4890743eea0a",
+  "tree_state_at_start": "clean",
+  "authority": "instruccion explicita del responsable del 2026-09-22, tras diagnostico de la duplicacion de trabajo sobre RB-03/RB-04/RB-05/RB-06",
+  "decision_verified_before_writing": {
+    "issue": "La instruccion inicial del responsable declaraba que en 65ca852 'sc-07/sc-09/sc-10 = PASS'. Se verifico que es factualmente incorrecto: en 65ca852 los tres changes estan BLOCKED, con applicability_decision, tal como lo dejo explicitamente el auditor independiente de RB-03 (hallazgo C-08/GD-31).",
+    "resolution": "Se pregunto al responsable antes de escribir nada. Respuesta: mantener BLOCKED, no reabrir ni reauditar RB-03. Ver decisions.md GD-33."
+  },
+  "agent_substitution": {
+    "reason": "Los perfiles nominales de .codex/agents no son cargables en este runtime, la misma no cargabilidad registrada en sesiones anteriores.",
+    "substitutes_used": [
+      {
+        "nominal_role": "scientific_auditor",
+        "substitute": "Claude Code subagente de contexto separado",
+        "model_requested": "opus",
+        "context": "separate",
+        "sandbox_mode_nominal": "read-only",
+        "sandbox_mode_effective": "INSTRUCTED_ONLY"
+      }
+    ],
+    "max_concurrent_children": 1
+  },
+  "scientific_execution_in_this_session": {
+    "runners_executed": "NINGUNO",
+    "holdout_touched": false,
+    "ledgers_touched": false,
+    "frozen_artifacts_modified": "NINGUNO",
+    "metrics_produced": "NINGUNA",
+    "statement": "Esta sesion reconcilia documentacion y gobernanza de dos ramas. No ejecuta A, B, C, H, R, N ni S. No repite hashes ni suites completas: los reutiliza de las auditorias preservadas de RB-03 y de las dos rondas de f355272."
+  }
+}

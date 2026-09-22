@@ -30,6 +30,15 @@ independiente autorizado. No reescribir documentos históricos.
 - [Cambios](changes.json): dependencias y aplicabilidad.
 - [Registro de preparación](preparation-validation.md).
 - [Prompt siguiente](next-session.txt): reanuda preparación, no abre A/B/C.
+- [Síntesis científica canónica](../../docs/research/scientific-closure-synthesis-2026-09-22.md):
+  resultados efectivamente obtenidos en A, B, C y H, con sus limitaciones (RB-04).
+- [Reconciliación 2026-09-22](reconciliation-2026-09-22/): trazabilidad a la
+  memoria (RB-06), tabla de reconciliación entre `65ca852` y `f355272`,
+  identidad de sesión. **`SC-GOV-025` y `GF` siguen `PENDIENTE`** hasta el
+  veredicto de una auditoría independiente única; ningún `PASS` estructural ni
+  ningún veredicto `FAIL` histórico se presenta aquí como cierre científico.
+- [Suficiencia de R/N/S — RB-03](sufficiency-review-2026-09-22/): `PASS` del
+  auditor independiente sobre `65ca852`. Fuente autoritativa; no se reabre.
 
 Fuentes preservadas: openspec/project.md; openspec/specs/experiment-runner/spec.md;
 docs/research/protocolo-experimental-v3.md;

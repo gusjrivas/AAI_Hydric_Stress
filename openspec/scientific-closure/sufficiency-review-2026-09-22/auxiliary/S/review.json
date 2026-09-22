@@ -1,0 +1,120 @@
+{
+  "schema_version": "scientific_closure_gate_artifact.v1",
+  "campaign_id": "sufficiency-review-2026-09-22",
+  "version": 2,
+  "version_note": "Versión 2, corregida tras la primera crítica independiente sobre el snapshot 2185ed4, que emitió siete hallazgos materiales. El informe del crítico se conserva verbatim en openspec/changes/sc-0{7,9,10}-*/reviews/review-critic-gd12.md y la resolución de cada hallazgo en findings-resolution.json. Los veredictos de clasificación de la versión 1 fueron confirmados; lo corregido es la estructura del argumento, la exactitud de cuatro citas y la gobernanza de las transiciones de estado.",
+  "produced_at_utc": "2026-09-22T03:05:00Z",
+  "produced_by": "orquestador de la sesión sufficiency-review-2026-09-22, bajo AUTH-SUFF-2026-09-22",
+  "snapshot_of_inputs": "1c33aad8cbee765e2968bd164b5d4890743eea0a",
+  "nature_of_this_artifact": "Artefacto de DECISIÓN DE SUFICIENCIA, no de ejecución. El complemento no se implementó ni se ejecutó, y este archivo no contiene ninguna métrica, predicción ni resultado experimental. Registra por qué el complemento no es necesario para el alcance científico aprobado, qué queda por eso fuera de lo afirmable, y bajo qué condición volvería a ser REQUIRED.",
+  "dossier": "openspec/scientific-closure/sufficiency-review-2026-09-22/gd12-sufficiency-dossier.md",
+  "decision_record": "openspec/scientific-closure/decisions.md, GD-12 (decisión de fondo), GD-23 (degradación a BLOCKED), GD-30 (esta revisión), GD-31 y GD-32 (gobernanza del estado)",
+  "artifact": "auxiliary/S/review.json",
+  "change_id": "sc-10-aux-robustness",
+  "requirement_ids": [
+    "SC-GOV-024"
+  ],
+  "task": "T24",
+  "design_id": "auxiliary_robustness_v1",
+  "subject": "Complemento S (robustez condicional ante escasez, ruido y ausencia de mediciones), diseño congelado auxiliary_robustness_v1",
+  "norm_verbatim": "S DEBE activarse si se sostendrá robustez ante ausencia de mediciones/ruido más allá de evidencia ya válida.",
+  "acceptance_criterion_verbatim": "Cuatro condiciones fijas, cinco seeds, target limpio común, máscaras e imputación registradas; escasez de etiquetas no equivale a sensores ausentes.",
+  "check_verbatim": "Fixtures de grilla causal, perturbaciones y fechas comunes del diseño auxiliary_robustness_v1.",
+  "decision": "NOT_REQUIRED bajo el límite expreso de CL-08",
+  "decision_rule": "Corregido tras el hallazgo material C-01. La norma usa «si», que es condición SUFICIENTE: fija cuándo hay que activar el complemento y CALLA sobre el caso negativo. Inferir NOT_REQUIRED de que el antecedente no se cumple sería negar el antecedente, una falacia, y es lo que hacía la versión 1. La clasificación se sostiene en cambio por una demostración POSITIVA sobre fuentes independientes de la decisión: ninguna fuente de obligación del trabajo —título y propósito de project.md, su lista «Incluye», la hipótesis canónica de ADR-0001, los criterios de aceptación reales de HU8 (CA1-CA4) y los criterios de aceptación verbatim de los propios requisitos— exige una afirmación que sólo este complemento podría sostener. Ver sección 6 del dossier.",
+  "trigger_first_term": {
+    "question": "¿Se sostendrá robustez más allá de la evidencia ya válida?",
+    "answer": "NO — no se sostiene robustez de ninguna clase",
+    "basis_independent_of_the_decision": [
+      "HU8 §8.3, conclusión científica vigente: la evidencia «no permite sostener una mejora general de la arquitectura para la detección temprana de estrés hídrico». No se puede exceder una afirmación que no se hace.",
+      "Criterio de aceptación verbatim de SC-GOV-024: «escasez de etiquetas no equivale a sensores ausentes». La norma manda DISTINGUIR los mecanismos, que es lo que la decisión hace.",
+      "Diseño congelado de S: «no confundir intensidad hipotética con ruido real ni coverage/recent históricos con falta de mediciones».",
+      "openspec/project.md excluye del alcance el hardware IoT propio y el despliegue en explotaciones reales, que es el contexto donde la caída de un sensor sería la amenaza dominante. Exclusión anterior a los resultados."
+    ],
+    "registered_but_not_used_as_proof": "claims.md CL-08 fija la misma frontera. claims.md NO se invoca como fundamento. Hallazgo material C-04: git log muestra que GD-12 y la redacción limitante de CL-04, CL-05, CL-07 y CL-08 entraron en el mismo commit a0d8bf7 (2026-09-19), del mismo autor, y la quinta columna de esa tabla se llama «Decisión sobre complementos» y ya dice «R/N/S NOT_REQUIRED». claims.md es el registro de la misma decisión que aquí se evalúa, no una fuente independiente. Se cita como registro, nunca como prueba."
+  },
+  "trigger_second_term": {
+    "question": "¿Qué cubre y qué no cubre realmente la evidencia?",
+    "answer": "Corregido tras el hallazgo material C-11: la partición de la versión 1 era falsa como descripción de los datos",
+    "coverage_table": [
+      {
+        "condition": "Base",
+        "v3": "base",
+        "state": "condición controlada"
+      },
+      {
+        "condition": "Etiquetas escasas",
+        "v3": "coverage_fraction_0.5, recent_fraction_0.5",
+        "state": "condición controlada, una sola fracción (0.5) por mecanismo"
+      },
+      {
+        "condition": "Ruido en entradas",
+        "v3": "noise_test_only_0.3, noise_both_0.3",
+        "state": "condición controlada, intensidad única, ruido no calibrado"
+      },
+      {
+        "condition": "Mediciones ausentes",
+        "v3": "ninguna condición controlada",
+        "state": "PRESENTES E IMPUTADAS EN TODA LA EVIDENCIA, SIN CONTROL NI MEDICIÓN DEL EFECTO: el dataset melchor_romero_2024_consolidado tiene 75,96 % de cobertura en humedad de suelo, es decir ~24 % de días son huecos reales del producto satelital imputados con causal_ffill, y la tercera auditoría registra que cuatro de las 71 etiquetas provenían de humedad imputada"
+      }
+    ],
+    "why_it_matters": "La versión 1 decía que la evidencia «no cubre» mediciones ausentes. Lo correcto es que no hay una CONDICIÓN EXPERIMENTAL de mediciones ausentes, pero tampoco hay un régimen limpio con el que compararla, porque el 24 % de huecos atraviesa las ocho configuraciones por igual. La exclusión de CL-08 sigue siendo correcta; el motivo que se daba, no."
+  },
+  "strongest_counterargument": {
+    "statement": "La hipótesis canónica y el propósito completo de project.md hablan de «escenarios de disponibilidad limitada, ruido y alta variabilidad de datos» (la versión 1 truncaba la cita justo antes de esa cláusula — hallazgo C-10). Si «disponibilidad limitada» debe leerse como MEDICIONES QUE FALTAN, la condición 3 del diseño S es la única que la operacionaliza y S sería REQUIRED.",
+    "response": [
+      "«Disponibilidad limitada» es una caracterización del CONTEXTO en el que se evaluaría una mejora, no un tratamiento obligatorio. El plan la operacionalizó de dos maneras declaradas y la matriz de HU8 §8.2 le da fila propia: evidencia coverage_fraction_0.5 (mixta) y recent_fraction_0.5 (mejora consistente), resultado «Mixto: depende del mecanismo», ALCANCE «una fracción (0.5) por mecanismo», LIMITACIÓN «explicación causal de recent no demostrada». Corregido tras C-12: la versión 1 presentaba el alcance como si fuera la limitación y omitía que recent_fraction_0.5 es calificado de mejora consistente y, en §8.3, del único efecto consistente y de mayor magnitud del estudio.",
+      "La norma manda distinguir, no unificar: el criterio de aceptación de SC-GOV-024 y el diseño congelado de S lo ordenan expresamente.",
+      "Las exclusiones de alcance de project.md son anteriores a los resultados.",
+      "Si un revisor independiente sostiene la lectura contraria, la conclusión correcta NO es recortar CL-08: es declarar S REQUIRED, detener y reportar el conflicto al responsable, conforme a la condición de parada de AUTH-SUFF-2026-09-22."
+    ]
+  },
+  "preexecution_risk": {
+    "id": "SC11",
+    "verbatim": "Escasez de etiquetas confundida con sensores — alta",
+    "status": "LIMITACIÓN VIVA, NO RESUELTA",
+    "mitigation_verbatim": "Diseño S distingue etiquetas, mediciones y ruido; runner/evidencia pendientes."
+  },
+  "acceptance_clause_by_clause": [
+    {
+      "clause": "Cuatro condiciones fijas, cinco seeds, target limpio común, máscaras e imputación registradas",
+      "status": "NO APLICA",
+      "evidence": "Cláusulas condicionales a la rama REQUIRED. El diseño S se preserva congelado; no hay runner y no se implementa ninguno."
+    },
+    {
+      "clause": "escasez de etiquetas no equivale a sensores ausentes",
+      "status": "CUMPLIDA POR DECLARACIÓN, y es la cláusula operativa de esta decisión",
+      "evidence": "Es la distinción que el riesgo preejecución SC11 protege. Se preserva declarando qué condiciones están controladas en v3 y cuál no lo está, y declarando además que las mediciones ausentes están presentes e imputadas sin caracterizar en toda la evidencia."
+    }
+  ],
+  "check_clause_by_clause": [
+    {
+      "clause": "Fixtures de grilla causal, perturbaciones y fechas comunes",
+      "status": "NO APLICA",
+      "evidence": "No hay fixtures porque no hay implementación ni ejecución. Cláusula condicional a la rama REQUIRED. Se declara en lugar de omitirse."
+    }
+  ],
+  "limitations_that_must_remain_declared": [
+    "No puede afirmarse robustez, tolerancia ni degradación graceful ante AUSENCIA DE MEDICIONES, caída de sensores, huecos de datos o interrupciones de telemetría.",
+    "No puede extrapolarse coverage_fraction/recent_fraction a falta de mediciones: son mecanismos distintos y la norma manda distinguirlos.",
+    "No puede presentarse el ruido gaussiano de v3 como ruido real de sensor: HU8 §8.2 lo declara no representativo.",
+    "No puede presentarse ningún resultado de v3 sin declarar que ~24 % de los días de humedad del dataset son huecos imputados con causal_ffill, en todas las configuraciones, sin caracterización de su efecto.",
+    "Tampoco puede afirmarse lo inverso —que el sistema no tolera mediciones ausentes—. No se midió.",
+    "RETIRADA tras el hallazgo C-03: la versión 1 anclaba una limitación en que la escasez tenía «el MCC más negativo de todo el estudio (-0.1103, peor incluso que persistencia)». La tercera auditoría retractó esa frase por escrito (-0.1103 es menos negativo que -0.1113, y los escenarios no compartían el mismo target), y la cifra pertenece además a train_fraction=0.5, un escenario PRE-FORMAL que no integra las 8 configuraciones formales. La formulación vigente es: los resultados de escasez de v3 son mixtos, dependen del mecanismo, cubren una sola fracción y su explicación causal no está demostrada.",
+    "El riesgo preejecución SC11 queda declarado como limitación viva, no resuelto."
+  ],
+  "reopens_if": "Se pretenda afirmar robustez ante ausencia de mediciones, caída de sensores o huecos de telemetría. Y ADEMÁS, por observación del crítico independiente, en cuanto la síntesis científica pendiente (RB-04) enuncie CUALQUIER resultado de robustez. Requiere change aprobado, autorización propia, runner validado y evidencia auditada.",
+  "proposed_states": {
+    "requirement": "SC-GOV-024: NOT_APPLICABLE en traceability.md, sólo con auditoría independiente favorable. Es lo que GD-23 degradó y prometió devolver, y lo que operations.md reserva para «complementos NOT_REQUIRED con decisión de suficiencia auditada».",
+    "change": "sc-10-aux-robustness: permanece BLOCKED, sin moverse. Corregido tras los hallazgos materiales C-05, C-06 y C-08: su extra_gate exige la condición REQUIRED, que no se cumple y no se cumplirá, y plan.md prohíbe despachar un change con gate negativo. BLOCKED no describe aquí un defecto removible sino un complemento condicional que no hay que ejecutar."
+  },
+  "what_this_artifact_does_not_claim": [
+    "No afirma que el complemento sea innecesario para el problema científico: es trabajo futuro pertinente y su diseño congelado se preserva intacto.",
+    "No afirma nada sobre los resultados que el complemento habría producido. No se ejecutó; no hay resultado, ni positivo ni negativo.",
+    "No convierte la ausencia de ejecución en una conclusión experimental.",
+    "No resuelve el riesgo preejecución asociado: queda como limitación viva.",
+    "No desbloquea SC-GOV-025 ni el gate GF: RB-04, RB-05 y RB-06 siguen abiertos.",
+    "No se apoya en el holdout 2024-2025 para nada."
+  ],
+  "independent_review_status": "COMPLETA. Crítica independiente sobre 2185ed4: confirma NOT_REQUIRED y emite 7 hallazgos materiales, todos remediados. Auditoría final independiente sobre 6878184: PASS sobre RB-03, con cuatro hallazgos propios (A-01..A-04) y cinco condiciones documentales, todas aplicadas. El PASS es de suficiencia documental sobre RB-03 y NO es cierre científico: no desbloquea SC-GOV-025 ni el gate GF, y RB-04, RB-05 y RB-06 siguen abiertos."
+}
