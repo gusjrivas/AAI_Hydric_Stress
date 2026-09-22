@@ -345,3 +345,46 @@ capítulos 2 y 3 de la memoria). El auditor lo dijo expresamente: este `PASS`
 amenazas a la validez de HU8 §8.4 ni en `claims.md`. Incorporarlo corresponde a
 `RB-04`. Se suma la inconsistencia de recuento de `claims.md` —su prosa dice
 «9 de 10» y su tabla marca **diez** filas `CUBIERTA`—, también diferida.
+
+## Estado por requisito — 2026-09-22, reconciliación RB-04/05/06
+
+Esta sección **no reescribe** las anteriores: las complementa. La sección RB-03
+inmediatamente anterior **no cambia** — `SC-GOV-021`, `SC-GOV-023` y
+`SC-GOV-024` siguen `NOT_APPLICABLE` y no se tocan aquí.
+
+**Origen del trabajo portado.** RB-04 (síntesis) y RB-06 (trazabilidad a la
+memoria) se redactaron originalmente en `feat/scientific-evidence-finalization`
+(PR #211, commit `7e63d1c`, corregido hasta `f355272`) y se incorporan aquí
+como entregables reconciliados. Detalle completo de qué se portó, qué se
+corrigió y qué se descartó en
+`openspec/scientific-closure/reconciliation-2026-09-22/reconciliation-table.md`.
+
+| Requisito | Estado | Fundamento |
+| --- | --- | --- |
+| **SC-GOV-016** | PASS_WITH_LIMITATIONS | **Cambia de base, no cambia de sentido.** Hasta hoy la revisión sólo podía cubrir afirmaciones de no ejecución, porque no existía ninguna afirmación de resultado que revisar. Hoy existe `docs/research/scientific-closure-synthesis-2026-09-22.md`, la síntesis de los resultados efectivamente obtenidos en A, B, C y H. **Limitación:** la revisión de esta reconciliación es documental — contrasta la síntesis contra `claims.md` y contra los valores que las auditorías de A/B/C/H y de RB-03 ya recomputaron; no recomputa métricas nuevas. Pendiente de la auditoría única solicitada más abajo para su verificación final |
+| **RB-04** (síntesis científica) | CUBIERTO, pendiente de auditoría única | `docs/research/scientific-closure-synthesis-2026-09-22.md`. Trece secciones: pregunta e hipótesis, identidad del objeto, resultados de A/B/C/H con sus limitaciones, validez interna y externa, catorce limitaciones consolidadas, trabajo futuro y lo que la campaña explícitamente no afirma. Incorpora, como corrección de esta reconciliación, la limitación de imputación causal en la evidencia v3 (~24 %, `causal_ffill`), ausente en la versión original |
+| **RB-06** (trazabilidad a memoria) | CUBIERTO, pendiente de auditoría única | `openspec/scientific-closure/reconciliation-2026-09-22/thesis-traceability.md`. Traza evidencia hacia capítulos 2 y 3, con resultado utilizable, afirmación permitida, límite obligatorio, figura recomendada y ajuste pendiente por fila; separa explícitamente qué resultados pertenecen al capítulo 4 bajo la plantilla TTFA. Incorpora la fila `2.12` sobre imputación causal, nueva en esta reconciliación |
+| **RB-05** (auditoría final requisito por requisito) | **NO CUBIERTO como PASS formal — dos precedentes `FAIL`, ninguno re-auditado** | Dos rondas de auditoría independiente sobre el snapshot de `f355272` (`7e63d1c` y `0dbc976`), preservadas verbatim en `openspec/changes/sc-06-scientific-synthesis/reviews/review-audit-final-round{1,2}-FAIL.md`. **Las dos terminaron en `FAIL`** por defectos documentales (la matriz acreditaba una auditoría antes de que existiera; el recuento no coincidía con su propia tabla; una corrección de la ronda 1 reincidió en el mismo patrón). El auditor de la ronda 2 declaró por escrito un veredicto de fondo `PASS_WITH_LIMITATIONS` y **renunció expresamente a una tercera ronda**, pero ninguna auditoría verificó la corrección resultante. **Esa renuncia no se trata aquí como un `PASS`.** RB-05 queda cubierto por una **auditoría única nueva**, sobre el snapshot reconciliado, solicitada a continuación |
+| **SC-GOV-025** | **PENDIENTE — no se declara `PASS_WITH_LIMITATIONS` todavía** | De sus cinco términos de aceptación: «afirmaciones con evidencia o limitación aceptada» y «terminal negativo válido documentado» están cubiertos desde A/B/C/H; «complementos justificados» está cubierto por RB-03 (`PASS` del auditor independiente, intocado); «memoria caps. 2/3 trazada» está cubierto por RB-06. **«Ningún obligatorio sin resolver» no está cubierto**: RB-05 no tiene un `PASS` formal. El estado se actualizará en un commit separado, exclusivamente sobre el veredicto de la auditoría única de esta reconciliación |
+| Gate **GF** | **PENDIENTE, no evaluable como PASS todavía** | Su condición de avance es el `PASS` del auditor final sobre la suficiencia del alcance completo. Ese `PASS` no existe todavía para el snapshot reconciliado. Ninguno de los cinco obstáculos exige reabrir el holdout ni reejecutar A, B, C, H, R, N o S |
+
+**Amenaza a la validez declarada, no evidencia de robustez.** El dataset
+`melchor_romero_2024_consolidado`, que produce toda la evidencia formal de
+`controlled_daily_v3` citada por `CL-04` y `CL-08`, tiene 75,96 % de cobertura
+real en humedad de suelo: ~24 % de sus días son huecos del producto satelital,
+imputados con `causal_ffill`, en las ocho configuraciones formales por igual,
+sin condición limpia de comparación. Declarado en
+`hu8-resultados-discusion-conclusiones.md` §8.4, en `claims.md` (`CL-04`,
+`CL-08`) y en `thesis-traceability.md` (fila `2.12`). **No** se afirma que S se
+haya ejecutado ni que exista evidencia de robustez ante mediciones ausentes; la
+campaña A/B/C/H (Pergamino, no Melchor Romero) declara imputación causal sólo
+sobre entradas, con target nunca imputado, y esto no cambia.
+
+**Auditoría independiente única solicitada.** Sobre el snapshot que congela
+esta reconciliación, con el alcance exacto: (1) que RB-03 siga conforme al
+`PASS` de su propio auditor, sin reabrirlo; (2) que RB-04, RB-05 y RB-06 estén
+realmente cubiertos por lo portado y lo añadido aquí; (3) que no existan
+sobreafirmaciones; (4) que el estado que se proponga para `SC-GOV-025` y `GF`
+se derive de evidencia vigente; (5) que la limitación de imputación causal esté
+declarada donde corresponde; (6) que ningún `FAIL` histórico se presente como
+`PASS`. No repite recómputo de hashes, métricas ni suites completas.

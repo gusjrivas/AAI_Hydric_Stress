@@ -453,7 +453,8 @@
       "paths": [
         "openspec/scientific-closure/inventory.md",
         "openspec/scientific-closure/claims.md",
-        "openspec/scientific-closure/risks.md"
+        "openspec/scientific-closure/risks.md",
+        "docs/research/scientific-closure-synthesis-2026-09-22.md"
       ],
       "tests": [
         "tests/test_scientific_closure_governance.py"
@@ -467,14 +468,19 @@
         "T16",
         "T25"
       ],
-      "status": "BLOCKED",
-      "approved_for_implementation": false,
+      "status": "IN_PROGRESS",
+      "approved_for_implementation": true,
       "scientific_execution_authorized": false,
       "extra_gate": "Audited terminal A or B or C AND all REQUIRED auxiliaries audited; UNRESOLVED blocks closure",
       "orchestrator_paths": [
         "openspec/scientific-closure/changes.json"
       ],
-      "approval": null,
+      "approval": {
+        "actor": "responsable del trabajo (dueño del repositorio), por instrucción de sesión del 2026-09-22; registrado por el orquestador",
+        "timestamp_utc": "2026-09-22T12:27:30Z",
+        "scope": "Reconciliar y redactar los entregables documentales de RB-04 (síntesis científica) y RB-06 (trazabilidad a memoria), portados y corregidos desde feat/scientific-evidence-finalization (PR #211), más la revisión de SC-GOV-016. NO autoriza declarar PASS de sc-06, NO autoriza declarar SC-GOV-025 ni GF, y NO autoriza ejecutar ninguna campaña. El PASS de este change depende exclusivamente del veredicto de una auditoría independiente única sobre el snapshot reconciliado.",
+        "source": "openspec/scientific-closure/reconciliation-2026-09-22/session-identity.json"
+      },
       "audit": null,
       "state_events": [
         {
@@ -484,8 +490,46 @@
           "timestamp_utc": "2026-09-19T08:38:20.773053Z",
           "reason": "Dependencias sc-01-evidence-scope, sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas.",
           "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "orquestador, sobre instrucción explícita del responsable del 2026-09-22",
+          "timestamp_utc": "2026-09-22T12:27:30Z",
+          "reason": "Se acredita la resolución del motivo del bloqueo original (dependencias sc-01/sc-02 sin PASS): ambas están PASS desde 2026-09-19 y 2026-09-21. El extra_gate está satisfecho (ver gate_evaluation). El responsable autoriza expresamente redactar los entregables documentales, condicionado a auditoría única antes de PASS.",
+          "evidence": "openspec/scientific-closure/reconciliation-2026-09-22/session-identity.json"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "orquestador de la sesión reconciliation-2026-09-22",
+          "timestamp_utc": "2026-09-22T12:27:30Z",
+          "reason": "Escritor único: el orquestador. Se producen los tres artefactos de evidencia: docs/research/scientific-closure-synthesis-2026-09-22.md (T16/T25), reconciliation-2026-09-22/thesis-traceability.md, y la sección 'Clasificación final de afirmaciones' de claims.md (T16). Portados desde f355272 con tres correcciones documentadas en reconciliation-table.md: rutas de auxiliary/{R,N,S}/review.json apuntando a los artefactos de RB-03; limitación de imputación causal (~24%, causal_ffill) agregada en CL-04/CL-08 y en hu8-resultados-discusion-conclusiones.md §8.4; CL-10 degradada de DEMOSTRADA a RESPALDADA CON LIMITACIONES hasta la auditoría única. Los dos informes de auditoría de f355272 (ambos FAIL) se preservan verbatim en reviews/, marcados como historia y no como aprobación.",
+          "evidence": "openspec/scientific-closure/reconciliation-2026-09-22/reconciliation-table.md; docs/research/scientific-closure-synthesis-2026-09-22.md; openspec/scientific-closure/reconciliation-2026-09-22/thesis-traceability.md"
         }
-      ]
+      ],
+      "gate_evaluation": {
+        "evaluated_at_utc": "2026-09-22T12:27:30Z",
+        "extra_gate_verbatim": "Audited terminal A or B or C AND all REQUIRED auxiliaries audited; UNRESOLVED blocks closure",
+        "clauses": [
+          {
+            "clause": "Audited terminal A or B or C",
+            "satisfied": true,
+            "note": "A, B y C auditados en closure-campaign-2026-09-21; C es el terminal, holdout CONFIRMADA."
+          },
+          {
+            "clause": "all REQUIRED auxiliaries audited",
+            "satisfied": true,
+            "note": "H es el único complemento REQUIRED (GD-12, criticado y auditado por RB-03). SC-GOV-022 = PASS_WITH_LIMITATIONS desde 2026-09-21, sin cambio."
+          },
+          {
+            "clause": "UNRESOLVED blocks closure",
+            "satisfied": true,
+            "note": "R, N y S son NOT_REQUIRED (auditado, RB-03), no UNRESOLVED. No hay complemento UNRESOLVED."
+          }
+        ],
+        "conclusion": "Gate satisfecho para HABILITAR el trabajo documental. No implica PASS del change: SC-GOV-025 exige además 'ningún obligatorio sin resolver', y RB-05 (auditoría final requisito por requisito) no tiene todavía un veredicto formal PASS sobre ningún snapshot. Ese veredicto es lo único que puede mover este change a PASS."
+      }
     },
     {
       "id": "sc-07-aux-regression",

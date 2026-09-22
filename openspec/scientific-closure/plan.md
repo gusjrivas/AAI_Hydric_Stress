@@ -73,3 +73,30 @@ auditor independiente. No reentrenar para verificar un holdout ni recalcular con
 otro candidato. La revisión de métricas usa exclusivamente artefactos autorizados.
 Los nuevos runners auxiliares, si REQUIRED, necesitan fixtures sustantivos
 temporales y de perturbación antes de ejecutar su diseño congelado.
+
+## Estado de los gates — 2026-09-22 (reconciliación)
+
+Esta sección **no** modifica la tabla de gates ni el protocolo A→B→C: registra
+el estado alcanzado. Ninguna compuerta se relaja. Reconcilia dos líneas de
+trabajo divergentes; detalle en `reconciliation-2026-09-22/reconciliation-table.md`.
+
+| Gate | Estado | Base |
+| --- | --- | --- |
+| G0 Preparación | PASS | Sin cambio desde 2026-09-19/20 |
+| G1 Campaña | PASS | Sin cambio desde 2026-09-21 |
+| GA A | SATISFECHO | Sin cambio |
+| GB B | SATISFECHO | Sin cambio |
+| GC C | SATISFECHO | Sin cambio |
+| **GF Cierre** | **PENDIENTE** | RB-03 (GD-12 sobre R/N/S) tiene `PASS` de su auditor independiente y **no se reabre**. RB-04 (síntesis) y RB-06 (trazabilidad a memoria) están redactados y reconciliados. **RB-05 (auditoría final requisito por requisito) no tiene un veredicto formal `PASS`**: las dos rondas disponibles, sobre el snapshot de `feat/scientific-evidence-finalization`, terminaron en `FAIL`; su corrección final nunca fue reauditada. `GF` se actualizará en un commit separado, exclusivamente con el veredicto de la auditoría independiente única solicitada sobre el snapshot reconciliado de esta sesión |
+
+`GF` alcanzaría, como máximo, al **alcance aprobado de HU7/HU8**. No certificaría
+HU1 ni el cierre total del Trabajo Final, y un PASS estructural del checker no
+equivale a cierre científico.
+
+### Validación de esta fase
+
+Documental y de gobernanza, sin ejecución científica: pruebas de gobernanza,
+OpenSpec 1.13.1 estricto y `git diff --check`. **No** se recomputan hashes,
+métricas ni la suite completa: se reutilizan las auditorías preservadas en
+`sufficiency-review-2026-09-22/` (RB-03) y en
+`openspec/changes/sc-06-scientific-synthesis/reviews/` (RB-05, histórico).

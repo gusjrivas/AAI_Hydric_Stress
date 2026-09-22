@@ -30,6 +30,9 @@ Gate adicional obligatorio: Audited terminal A or B or C AND all REQUIRED auxili
 - `openspec/scientific-closure/inventory.md`
 - `openspec/scientific-closure/claims.md`
 - `openspec/scientific-closure/risks.md`
+- `docs/research/scientific-closure-synthesis-2026-09-22.md` (síntesis canónica, sigue la convención de `scientific-closure-synthesis-2026-09-20.md`)
+- `docs/research/hu8-resultados-discusion-conclusiones.md`, exclusivamente para declarar amenazas a la validez ya existentes en su §8.4; no recalcula ni reinterpreta resultados
+- `openspec/scientific-closure/reconciliation-2026-09-22/` (trazabilidad a memoria, tabla de reconciliación, identidad de sesión)
 - Este directorio OpenSpec: tasks.md y registros de revisión nuevos identificados.
 - Gobernanza externa futura: evidence/governance/<campaign-id>/sc-06-scientific-synthesis/, solo con autorización de campaña.
 
