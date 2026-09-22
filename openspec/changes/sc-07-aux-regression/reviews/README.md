@@ -27,7 +27,7 @@ revisión. La identidad de las copias es verificable con `sha256sum`.
 | Archivo | Rol | Objeto | Veredicto |
 | --- | --- | --- | --- |
 | `review-critic-gd12.md` | `scientific_critic` | Snapshot `2185ed4` del dossier de suficiencia | Confirma `NOT_REQUIRED` en R, N y S; **7 hallazgos materiales** abiertos sobre el snapshot (C-01..C-06, C-08) |
-| `review-audit-gd12.md` | `scientific_auditor` | Snapshot remediado | Ver el archivo |
+| `review-audit-gd12.md` | `scientific_auditor` | Snapshot remediado `6878184` | **`PASS`** sobre RB-03, con 4 hallazgos propios (A-01..A-04) y 5 condiciones documentales, todas aplicadas. No es cierre científico |
 
 **Limitaciones declaradas.** Cada revisor corrió en una sesión de contexto
 separado, con instrucción de solo lectura. El enforcement es **instruido, no

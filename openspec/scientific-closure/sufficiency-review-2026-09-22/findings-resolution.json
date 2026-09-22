@@ -73,7 +73,7 @@
       "status": "ACEPTADO",
       "finding": "Tensión entre las cláusulas (3) y (7) de AUTH-SUFF-2026-09-22: la (7) condiciona actualizar changes.json a una auditoría favorable, y se actualizó antes.",
       "verification_by_orchestrator": "El hallazgo es correcto y la versión 1 resolvió la tensión a su favor sin discutirla.",
-      "resolution": "La reversión de C-05 deja el registro conforme a la cláusula (7): lo único escrito antes de la auditoría son los eventos que documentan y revierten la transición indebida, que no pueden borrarse. Se declara expresamente en la sección 7 del dossier."
+      "resolution": "La reversión de C-05 deja el registro conforme a lo que la cláusula (7) protege: ningún estado normativo se adelantó, traceability.md y requirements.json no se tocaron y las tres filas siguen BLOCKED. CORREGIDO tras el hallazgo A-01 de la auditoría independiente: la redacción anterior decía que «lo único que se escribe antes de la auditoría son los eventos», y era inexacta. Se añadieron además dos claves nuevas a los tres changes, gate_evaluation y applicability_decision, ausentes en 1c33aad, que no son eventos irreversibles. Ninguna afirma un veredicto: applicability_decision.independent_audit decía PENDIENTE hasta que la auditoría existió. Se declara en lugar de omitirse, aquí y en la sección 7 del dossier."
     },
     {
       "id": "C-08",
@@ -147,5 +147,49 @@
       "how_it_was_handled": "El dossier la usa explícitamente como PRECEDENTE DE MÉTODO con su referente declarado, y no como pronunciamiento sobre R, N o S. El informe del crítico se conserva sin alterar; esta precisión vive aquí."
     }
   ],
-  "material_findings_still_open": "NINGUNO. Los siete se remediaron. La auditoría independiente puede intervenir, conforme a operations.md paso 8."
+  "material_findings_still_open": "NINGUNO. Los siete de la crítica y los cuatro propios de la auditoría están cerrados.",
+  "auditor_own_findings": {
+    "reviewed_snapshot": "6878184d2753257a48bb31c5a18d79b1d8338872",
+    "verdict": "PASS sobre RB-03, con cinco condiciones documentales",
+    "report_preserved_verbatim_at": [
+      "openspec/changes/sc-07-aux-regression/reviews/review-audit-gd12.md",
+      "openspec/changes/sc-09-aux-anomalies/reviews/review-audit-gd12.md",
+      "openspec/changes/sc-10-aux-robustness/reviews/review-audit-gd12.md"
+    ],
+    "findings": [
+      {
+        "id": "A-01",
+        "severity": "MENOR",
+        "status": "ACEPTADO Y CORREGIDO",
+        "finding": "La resolución de C-07 y el dossier §7 afirmaban que sólo se escribieron eventos antes de la auditoría; también se añadieron gate_evaluation y applicability_decision.",
+        "verification_by_orchestrator": "Verificado comparando las claves del objeto sc-07 entre 1c33aad y HEAD: ambas claves son nuevas; gate_evaluation estaba AUSENTE, no null. El hallazgo es correcto y el auditor lo describe con más precisión que la versión 2.",
+        "resolution": "Corregidas ambas redacciones, nombrando las dos claves."
+      },
+      {
+        "id": "A-02",
+        "severity": "OBSERVACIÓN",
+        "status": "ACEPTADO Y CORREGIDO",
+        "finding": "El dossier §5 punto 3 citaba «despliegue en explotaciones reales» omitiendo «de gran escala», y la omisión acotaba la exclusión a favor del argumento de S.",
+        "verification_by_orchestrator": "Verificado contra openspec/project.md línea 17: «despliegue en explotaciones agrícolas reales de gran escala». El hallazgo es correcto y es el mismo modo de falla que C-10, sobreviviendo en la misma sección.",
+        "resolution": "Cita completa restituida, con el punto 3 declarado como el más débil de los cuatro y subordinado."
+      },
+      {
+        "id": "A-03",
+        "severity": "MENOR con arista material",
+        "status": "ACEPTADO Y CORREGIDO",
+        "finding": "Las correcciones de C-01, C-04 y C-08 vivían en la tercera columna de decisions.md mientras la celda de DECISIÓN de GD-30 y GD-31 conservaba intactas las formulaciones refutadas; GD-31 llegaba a enunciar «Cerrar como PASS de change», desenlace revertido que nunca existió.",
+        "verification_by_orchestrator": "Verificado leyendo por separado la segunda celda de ambas filas. El hallazgo es correcto y es, en forma, el mismo defecto que el crítico calificó de material en C-06: un campo que afirma lo que la prosa contigua niega.",
+        "resolution": "Ambas celdas de decisión reescritas con la formulación vigente. El texto superado se conserva dentro de la misma celda, marcado como superado y con su motivo, conforme a la convención del repositorio de no reescribir el registro."
+      },
+      {
+        "id": "A-04",
+        "severity": "OBSERVACIÓN",
+        "status": "ACEPTADO Y CORREGIDO",
+        "finding": "El dossier §4 insertaba un «la» dentro de la cita entrecomillada de la mitigación de SC10.",
+        "verification_by_orchestrator": "Verificado contra docs/research/scientific-closure-preexecution-audit.md línea 49. El hallazgo es correcto.",
+        "resolution": "Cita restituida verbatim, incluida la cláusula final «runner/evidencia pendientes» que también faltaba."
+      }
+    ],
+    "conditions_status": "Las cinco condiciones del auditor se aplican en el mismo commit que la transición de las tres filas de traceability.md a NOT_APPLICABLE, como el propio informe exige."
+  }
 }

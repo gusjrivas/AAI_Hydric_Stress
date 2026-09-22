@@ -253,7 +253,7 @@ corrupciones:
 
 El riesgo preejecución **SC10 — «Anomalías evaluadas sin reserva independiente
 — alta»** queda como **limitación viva, no resuelta**: su propia mitigación dice
-«Diseño N separado; la demostración previa **queda limitada**».
+«Diseño N separado; demostración previa queda limitada; runner/evidencia pendientes» *(cita restituida verbatim tras el hallazgo A-04 de la auditoría: la versión 2 insertaba un «la» dentro de las comillas)*.
 
 **Límites que quedan obligatorios y permanentes.** Mientras N no se ejecute, el
 cierre científico y la memoria **no pueden**:
@@ -334,9 +334,13 @@ La respuesta, que sigue siendo la parte más refutable del documento:
    y el diseño congelado de S ordena «no confundir … coverage/recent históricos
    con falta de mediciones». Distinguirlas es cumplir la norma, no eludirla.
 3. **Las exclusiones de alcance son anteriores a los resultados.**
-   `project.md` excluye hardware IoT propio y despliegue en explotaciones
-   reales, que es el contexto donde la caída de un sensor sería la amenaza
-   dominante.
+   `project.md` excluye hardware IoT propio y «despliegue en explotaciones
+   agrícolas reales **de gran escala**», que es el contexto donde la caída de un
+   sensor sería la amenaza dominante. *(Corrección tras el hallazgo A-02 de la
+   auditoría: la versión 2 omitía «de gran escala», y la omisión acotaba la
+   exclusión en la dirección que favorece este argumento. Con la cita completa,
+   este punto 3 es el más débil de los cuatro y queda subordinado; la exclusión
+   se sostiene además por ADR-0001.)*
 4. **Si un revisor independiente sostiene la lectura contraria**, la conclusión
    correcta **no** es recortar `CL-08`: es declarar S `REQUIRED`, detener y
    reportar el conflicto al responsable, conforme a la condición de parada de
@@ -465,9 +469,16 @@ terminal se atribuye a un experimento que no se ejecutó.
 auditoría independiente favorable, actualizar `changes.json`…», y la versión 1
 lo actualizó antes de cualquier veredicto. La corrección de esta sección
 restituye el estado anterior de los tres changes y deja el registro conforme a
-esa cláusula: lo único que se escribe antes de la auditoría son los eventos que
-**documentan y revierten** la transición indebida, que no pueden borrarse porque
-`operations.md` prohíbe borrar eventos.)*
+esa cláusula en lo que la cláusula protege: **ningún estado normativo se
+adelantó** —`traceability.md` y `requirements.json` no se tocaron y las tres
+filas siguen `BLOCKED`—. **Corrección tras el hallazgo A-01 de la auditoría
+independiente:** decir que «lo único que se escribe antes de la auditoría son
+los eventos» era **inexacto**. Los tres changes reciben además dos claves
+nuevas, `gate_evaluation` y `applicability_decision`, ausentes en `1c33aad`, que
+no son eventos irreversibles. Se declaran aquí en lugar de omitirse; ninguna
+afirma un veredicto, y `applicability_decision.independent_audit` dice
+`PENDIENTE` hasta que la auditoría exista. Los eventos, ésos sí, no pueden
+borrarse porque `operations.md` lo prohíbe.)*
 
 ---
 

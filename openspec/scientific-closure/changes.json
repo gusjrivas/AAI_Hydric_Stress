@@ -594,9 +594,10 @@
         "basis": "openspec/scientific-closure/sufficiency-review-2026-09-22/gd12-sufficiency-dossier.md",
         "artifact": "openspec/scientific-closure/sufficiency-review-2026-09-22/auxiliary/R/review.json",
         "independent_critique": "openspec/changes/sc-07-aux-regression/reviews/review-critic-gd12.md (hallazgos C-05, C-06, C-08)",
-        "independent_audit": "PENDIENTE",
+        "independent_audit": "openspec/changes/sc-07-aux-regression/reviews/review-audit-gd12.md — PASS sobre RB-03 (snapshot 6878184), con cinco condiciones documentales aplicadas; el PASS no es cierre científico, no desbloquea SC-GOV-025 ni el gate GF, y RB-04/RB-05/RB-06 siguen abiertos.",
         "why_the_change_status_is_not_NOT_APPLICABLE": "La tabla de transiciones que verifica tests/test_scientific_closure_governance.py admite NOT_APPLICABLE únicamente desde PLANNED, y este change dejó PLANNED el 2026-09-19. Modificar esa tabla para que el registro encaje sería hacer que una regla deje de regir por redacción en vez de por evidencia. La restricción se informa, no se esquiva: ver GD-31.",
-        "limitations_that_must_remain_declared": "Ver limitations_that_must_remain_declared en el artefacto auxiliary/R/review.json. NOT_REQUIRED no es evidencia de ausencia de efecto y no autoriza ninguna afirmación sobre lo que el complemento habría mostrado."
+        "limitations_that_must_remain_declared": "Ver limitations_that_must_remain_declared en el artefacto auxiliary/R/review.json. NOT_REQUIRED no es evidencia de ausencia de efecto y no autoriza ninguna afirmación sobre lo que el complemento habría mostrado.",
+        "audited_snapshot": "6878184d2753257a48bb31c5a18d79b1d8338872"
       }
     },
     {
@@ -794,9 +795,10 @@
         "basis": "openspec/scientific-closure/sufficiency-review-2026-09-22/gd12-sufficiency-dossier.md",
         "artifact": "openspec/scientific-closure/sufficiency-review-2026-09-22/auxiliary/N/review.json",
         "independent_critique": "openspec/changes/sc-09-aux-anomalies/reviews/review-critic-gd12.md (hallazgos C-05, C-06, C-08)",
-        "independent_audit": "PENDIENTE",
+        "independent_audit": "openspec/changes/sc-09-aux-anomalies/reviews/review-audit-gd12.md — PASS sobre RB-03 (snapshot 6878184), con cinco condiciones documentales aplicadas; el PASS no es cierre científico, no desbloquea SC-GOV-025 ni el gate GF, y RB-04/RB-05/RB-06 siguen abiertos.",
         "why_the_change_status_is_not_NOT_APPLICABLE": "La tabla de transiciones que verifica tests/test_scientific_closure_governance.py admite NOT_APPLICABLE únicamente desde PLANNED, y este change dejó PLANNED el 2026-09-19. Modificar esa tabla para que el registro encaje sería hacer que una regla deje de regir por redacción en vez de por evidencia. La restricción se informa, no se esquiva: ver GD-31.",
-        "limitations_that_must_remain_declared": "Ver limitations_that_must_remain_declared en el artefacto auxiliary/N/review.json. NOT_REQUIRED no es evidencia de ausencia de efecto y no autoriza ninguna afirmación sobre lo que el complemento habría mostrado."
+        "limitations_that_must_remain_declared": "Ver limitations_that_must_remain_declared en el artefacto auxiliary/N/review.json. NOT_REQUIRED no es evidencia de ausencia de efecto y no autoriza ninguna afirmación sobre lo que el complemento habría mostrado.",
+        "audited_snapshot": "6878184d2753257a48bb31c5a18d79b1d8338872"
       }
     },
     {
@@ -906,9 +908,10 @@
         "basis": "openspec/scientific-closure/sufficiency-review-2026-09-22/gd12-sufficiency-dossier.md",
         "artifact": "openspec/scientific-closure/sufficiency-review-2026-09-22/auxiliary/S/review.json",
         "independent_critique": "openspec/changes/sc-10-aux-robustness/reviews/review-critic-gd12.md (hallazgos C-05, C-06, C-08)",
-        "independent_audit": "PENDIENTE",
+        "independent_audit": "openspec/changes/sc-10-aux-robustness/reviews/review-audit-gd12.md — PASS sobre RB-03 (snapshot 6878184), con cinco condiciones documentales aplicadas; el PASS no es cierre científico, no desbloquea SC-GOV-025 ni el gate GF, y RB-04/RB-05/RB-06 siguen abiertos.",
         "why_the_change_status_is_not_NOT_APPLICABLE": "La tabla de transiciones que verifica tests/test_scientific_closure_governance.py admite NOT_APPLICABLE únicamente desde PLANNED, y este change dejó PLANNED el 2026-09-19. Modificar esa tabla para que el registro encaje sería hacer que una regla deje de regir por redacción en vez de por evidencia. La restricción se informa, no se esquiva: ver GD-31.",
-        "limitations_that_must_remain_declared": "Ver limitations_that_must_remain_declared en el artefacto auxiliary/S/review.json. NOT_REQUIRED no es evidencia de ausencia de efecto y no autoriza ninguna afirmación sobre lo que el complemento habría mostrado."
+        "limitations_that_must_remain_declared": "Ver limitations_that_must_remain_declared en el artefacto auxiliary/S/review.json. NOT_REQUIRED no es evidencia de ausencia de efecto y no autoriza ninguna afirmación sobre lo que el complemento habría mostrado.",
+        "audited_snapshot": "6878184d2753257a48bb31c5a18d79b1d8338872"
       }
     }
   ]

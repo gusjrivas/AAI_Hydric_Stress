@@ -86,5 +86,5 @@
     "No desbloquea SC-GOV-025 ni el gate GF: RB-04, RB-05 y RB-06 siguen abiertos.",
     "No se apoya en el holdout 2024-2025 para nada."
   ],
-  "independent_review_status": "Crítica independiente RECIBIDA sobre el snapshot 2185ed4: confirma NOT_REQUIRED y emite 7 hallazgos materiales, todos remediados en esta versión 2. Auditoría independiente PENDIENTE; su veredicto es lo único que puede mover el estado del requisito."
+  "independent_review_status": "COMPLETA. Crítica independiente sobre 2185ed4: confirma NOT_REQUIRED y emite 7 hallazgos materiales, todos remediados. Auditoría final independiente sobre 6878184: PASS sobre RB-03, con cuatro hallazgos propios (A-01..A-04) y cinco condiciones documentales, todas aplicadas. El PASS es de suficiencia documental sobre RB-03 y NO es cierre científico: no desbloquea SC-GOV-025 ni el gate GF, y RB-04, RB-05 y RB-06 siguen abiertos."
 }

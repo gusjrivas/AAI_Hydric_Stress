@@ -303,3 +303,45 @@ corrigió sobre los mismos eventos. Detección humana 0/4 frente a 4/4 del
 oráculo. Eso fija el alcance real de la pista humana y es lo que hace
 imprescindible la validación de campo que el propio operador declaró como
 trabajo futuro.
+
+## Estado por requisito — 2026-09-22, decisión de suficiencia GD-12 (RB-03)
+
+Esta sección **no reescribe** las tablas anteriores: las supersede para los tres
+requisitos que la decisión de suficiencia toca. El resto conserva el estado que
+fijaron las secciones del 2026-09-21. El movimiento lo habilita el **PASS de la
+auditoría final independiente** sobre el snapshot `6878184`, no el orquestador.
+
+| Requisito | Estado | Fundamento |
+| --- | --- | --- |
+| **SC-GOV-021** | NOT_APPLICABLE | **Supersede la fila degradada por el hallazgo C-09 el 2026-09-20.** Aquella decía «`NOT_APPLICABLE` es terminal y su única base era una decisión autodeclarada no auditada» y «el artefacto `auxiliary/R/review.json` no existe». **Las dos causas están resueltas**: la decisión GD-12 pasó por crítica y por auditoría independientes, ambas favorables, y el artefacto existe en `openspec/scientific-closure/sufficiency-review-2026-09-22/auxiliary/R/review.json`. `operations.md` reserva `NOT_APPLICABLE` a «complementos `NOT_REQUIRED` con **decisión de suficiencia auditada**», que es exactamente este caso. La norma lo respalda sola: `SC-GOV-021` usa «**solo si**», condición necesaria, de modo que la falla del primer término impone `NOT_REQUIRED`; y su propio criterio de aceptación dice «`NOT_REQUIRED` para sola clasificación P20». **Límites permanentes:** no puede afirmarse que el sistema predice, estima o pronostica el **valor** de humedad de suelo; no puede reportarse MAE, RMSE ni R² como desempeño predictivo de humedad de la campaña P20 o de la arquitectura de detección temprana; no puede traducirse MCC/AP/Brier/F1 a exactitud sobre humedad; y no puede presentarse la ausencia de esos números como evidencia en ningún sentido. El riesgo preejecución **SC08 sigue siendo limitación viva, no resuelta** |
+| **SC-GOV-023** | NOT_APPLICABLE | **Supersede la fila degradada por C-09**, por las mismas dos causas ya resueltas, con `auxiliary/N/review.json`. **La norma NO alcanza por sí sola:** `SC-GOV-023` usa «si», condición suficiente que calla sobre el caso negativo, de modo que `NOT_REQUIRED` **no** se infiere de ella —hacerlo sería negar el antecedente— sino de una demostración positiva sobre fuentes independientes de la decisión: CA2 de HU8 pide «el **aporte** de los componentes», y la lista «Incluye» de `project.md` junto con ADR-0001 enumeran cuatro configuraciones comparativas y nada más. La afirmación que el cierre sí sostiene —aporte de las anomalías como predictoras— tiene evidencia formal v3 y su lectura vigente es «evidencia mixta (F1/MCC débil-positivo, AP negativo en 5/5 semillas)». **Límites permanentes:** no puede afirmarse que el sistema **detecta** anomalías, corrupciones o fallas de sensor, con ninguna cifra de detección; ni lo inverso; la demostración de HU3 es **funcional** y así debe llamarse; y el aporte no puede presentarse como «mejora». **SC10 sigue siendo limitación viva** |
+| **SC-GOV-024** | NOT_APPLICABLE **bajo el límite expreso de `CL-08`** | **Supersede la fila degradada por C-09**, con `auxiliary/S/review.json`. Misma forma «si» que `SC-GOV-023`, con la misma demostración positiva: la conclusión científica vigente (HU8 §8.3) **no sostiene robustez de ninguna clase**, así que no hay afirmación que exceder, y el criterio de aceptación del propio requisito manda **distinguir** escasez de etiquetas de sensores ausentes, que es lo que la decisión hace. **Hecho incorporado por el hallazgo material C-11 y confirmado por la auditoría:** las mediciones ausentes **no están fuera de la evidencia, están dentro y sin caracterizar** — el dataset `melchor_romero_2024_consolidado` tiene **75,96 % de cobertura en humedad de suelo**, es decir ~24 % de días son huecos reales del producto satelital imputados con `causal_ffill`, en las **ocho** configuraciones formales. **Límites permanentes:** no puede afirmarse robustez ante ausencia de mediciones, caída de sensores o huecos de telemetría; no puede extrapolarse `coverage_fraction`/`recent_fraction` a falta de mediciones; el ruido gaussiano de v3 no es ruido real de sensor; y **ningún resultado de v3 puede presentarse sin declarar ese ~24 % de huecos imputados**. **SC11 sigue siendo limitación viva.** **Reapertura vinculante:** S vuelve a `REQUIRED` en cuanto la síntesis científica pendiente (`RB-04`) enuncie **cualquier** resultado de robustez |
+
+**Los tres changes NO se mueven.** `sc-07`, `sc-09` y `sc-10` permanecen
+`BLOCKED`, cada uno con su campo `applicability_decision`. Su `extra_gate` exige
+la condición `REQUIRED`, que no se cumple y no se cumplirá, y su propio campo
+`block` asigna `BLOCKED` a `NOT_REQUIRED`. `BLOCKED` no describe aquí un defecto
+removible: describe correctamente un complemento condicional que no hay que
+ejecutar. Ver GD-31.
+
+**Incumplimiento registrado, no ocultado.** Esta misma sesión movió los tres
+changes a `APPROVED` y a `IN_PROGRESS` con la compuerta negativa, contra
+`plan.md` y `operations.md`, y lo revirtió tras los hallazgos materiales C-05 y
+C-06 de la crítica independiente. Los eventos indebidos **se conservan** en
+`changes.json`, conforme a la prohibición de borrarlos. Ver GD-32, que sigue el
+precedente de GD-19.
+
+**Qué NO cambia.** `SC-GOV-025` sigue `BLOCKED` y el gate `GF` sigue sin ser
+evaluable como `PASS`. De los cinco términos del criterio de aceptación de
+`SC-GOV-025`, esta decisión atiende **uno solo**, «complementos justificados».
+Siguen abiertos e intactos **RB-04** (síntesis científica de los resultados
+efectivamente obtenidos), **RB-05** (auditoría final requisito por requisito
+sobre el snapshot posterior a la campaña) y **RB-06** (trazabilidad a los
+capítulos 2 y 3 de la memoria). El auditor lo dijo expresamente: este `PASS`
+**no los acerca**.
+
+**Obligación hacia adelante, señalada por la auditoría y no resuelta aquí.** El
+~24 % de días de humedad imputados con `causal_ffill` **no figura** entre las
+amenazas a la validez de HU8 §8.4 ni en `claims.md`. Incorporarlo corresponde a
+`RB-04`. Se suma la inconsistencia de recuento de `claims.md` —su prosa dice
+«9 de 10» y su tabla marca **diez** filas `CUBIERTA`—, también diferida.
