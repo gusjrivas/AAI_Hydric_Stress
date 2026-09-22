@@ -1,0 +1,83 @@
+{
+  "schema_version": "scientific_closure_gate_artifact.v1",
+  "campaign_id": "sufficiency-review-2026-09-22",
+  "produced_at_utc": "2026-09-22T02:08:58Z",
+  "produced_by": "orquestador de la sesión sufficiency-review-2026-09-22, bajo AUTH-SUFF-2026-09-22",
+  "snapshot_of_inputs": "1c33aad8cbee765e2968bd164b5d4890743eea0a",
+  "nature_of_this_artifact": "Artefacto de DECISIÓN DE SUFICIENCIA, no de ejecución. El complemento no se implementó ni se ejecutó, y este archivo no contiene ninguna métrica, predicción ni resultado experimental. Registra por qué el complemento no es necesario para el alcance científico aprobado, qué queda por eso fuera de lo afirmable, y bajo qué condición volvería a ser REQUIRED.",
+  "dossier": "openspec/scientific-closure/sufficiency-review-2026-09-22/gd12-sufficiency-dossier.md",
+  "decision_record": "openspec/scientific-closure/decisions.md, GD-12 (decisión de fondo), GD-23 (degradación a BLOCKED), GD-30 (esta revisión)",
+  "artifact": "auxiliary/R/review.json",
+  "change_id": "sc-07-aux-regression",
+  "requirement_ids": [
+    "SC-GOV-021"
+  ],
+  "task": "T21",
+  "design_id": "auxiliary_soil_regression_v1",
+  "subject": "Complemento R (regresión condicional de humedad continua), diseño congelado auxiliary_soil_regression_v1",
+  "norm_verbatim": "R DEBE activarse solo si se pretende sostener desempeño sobre humedad continua y la evidencia existente no lo cubre.",
+  "acceptance_criterion_verbatim": "NOT_REQUIRED para sola clasificación P20; REQUIRED exige diseño R, runner validado, MAE/RMSE en m3/m3 y comparación contra persistencia; sin confundir con MCC.",
+  "check_verbatim": "Revisión claims-assessment y fixtures específicos del diseño auxiliary_soil_regression_v1 antes de cualquier ejecución.",
+  "decision": "NOT_REQUIRED",
+  "decision_rule": "La norma tiene forma condicional con dos términos: una intención de afirmar algo, y una insuficiencia de la evidencia para afirmarlo. El complemento es REQUIRED cuando se cumplen ambos. Es NOT_REQUIRED cuando falla el primero. El disparador es la afirmación, no el hueco de evidencia.",
+  "trigger_first_term": {
+    "question": "¿Alguna afirmación del alcance aprobado pretende sostener desempeño sobre humedad continua?",
+    "answer": "NO",
+    "basis": [
+      "claims.md CL-05: «Error continuo de humedad t+3 permanece registrado, pero no se sostiene como afirmación de la campaña P20». La brecha está enunciada y condicionada a una ampliación de alcance que no ocurrió.",
+      "openspec/project.md: el propósito es la detección temprana de estrés hídrico; HU4 es modelado predictivo y generación de alertas tempranas. La salida del sistema es una alerta, no un valor de humedad.",
+      "Protocolo v4 y etapas A, B y C ejecutadas el 2026-09-21: clasificación binaria P20 a t+3, MCC como métrica primaria.",
+      "docs/research/scientific-closure-preexecution-audit.md: «MCC primaria; MAE/RMSE pertenecen al auxiliar continuo».",
+      "Ninguna de CL-01..CL-10 requiere una cifra en m3/m3."
+    ]
+  },
+  "trigger_second_term": {
+    "question": "Si se pretendiera sostenerlo, ¿lo cubriría la evidencia existente?",
+    "answer": "NO — y por eso la primera respuesta es la que decide",
+    "verified_negative_fact": "Búsqueda de MAE/RMSE sobre docs/research/reference-v3-formal-results.json: 0 ocurrencias. No existe ningún artefacto de regresión en la evidencia de A, B, C ni H. Hecho verificado por búsqueda directa, no inferido."
+  },
+  "acceptance_clause_by_clause": [
+    {
+      "clause": "NOT_REQUIRED para sola clasificación P20",
+      "status": "CUMPLIDA",
+      "evidence": "El alcance ejecutado es exclusivamente clasificación P20 a t+3 (A, B, C). No hay afirmación de regresión."
+    },
+    {
+      "clause": "REQUIRED exige diseño R, runner validado, MAE/RMSE en m3/m3 y comparación contra persistencia",
+      "status": "NO APLICA",
+      "evidence": "Cláusula condicional a la rama REQUIRED, que no se toma. El diseño R se preserva congelado en docs/research/scientific-closure-decisions.md; no hay runner y no se implementa ninguno."
+    },
+    {
+      "clause": "sin confundir con MCC",
+      "status": "CUMPLIDA POR DECLARACIÓN",
+      "evidence": "Prohibición que rige incondicionalmente y se declara en las limitaciones de abajo: no se traduce MCC, AP, Brier ni F1 a exactitud sobre humedad."
+    }
+  ],
+  "check_clause_by_clause": [
+    {
+      "clause": "Revisión claims-assessment",
+      "status": "EJECUTADA",
+      "evidence": "Sección 3 del dossier; revisión de CL-01..CL-10 y del propósito/alcance de project.md."
+    },
+    {
+      "clause": "fixtures específicos del diseño auxiliary_soil_regression_v1 antes de cualquier ejecución",
+      "status": "NO APLICA",
+      "evidence": "No hay fixtures porque no hay implementación ni ejecución. La cláusula es condicional a la rama REQUIRED. Se declara en lugar de omitirse."
+    }
+  ],
+  "limitations_that_must_remain_declared": [
+    "No puede afirmarse que el sistema predice, estima o pronostica el VALOR de humedad de suelo.",
+    "No puede reportarse error en m3/m3, MAE, RMSE ni R2, de ninguna procedencia.",
+    "No puede traducirse MCC, AP, Brier o F1 a exactitud sobre humedad.",
+    "No puede presentarse la ausencia de estos números como evidencia de que la regresión funcionaría, ni de que no funcionaría. No se midió."
+  ],
+  "reopens_if": "Se pretenda sostener desempeño sobre el valor de humedad de suelo (m3/m3) en cualquier horizonte. Requiere change aprobado, autorización propia, runner validado y evidencia auditada.",
+  "what_this_artifact_does_not_claim": [
+    "No afirma que el complemento sea innecesario para el problema científico: es trabajo futuro pertinente y su diseño congelado se preserva intacto.",
+    "No afirma nada sobre los resultados que el complemento habría producido. No se ejecutó; no hay resultado, ni positivo ni negativo.",
+    "No convierte la ausencia de ejecución en una conclusión experimental.",
+    "No desbloquea SC-GOV-025 ni el gate GF: RB-04, RB-05 y RB-06 siguen abiertos.",
+    "No se apoya en el holdout 2024-2025 para nada."
+  ],
+  "independent_review_status": "PENDIENTE al emitirse este artefacto. La crítica y la auditoría independientes se registran en los directorios reviews/ del change correspondiente y su veredicto es lo único que puede mover el estado del requisito."
+}

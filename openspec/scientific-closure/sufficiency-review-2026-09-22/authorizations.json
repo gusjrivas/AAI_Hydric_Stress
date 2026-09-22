@@ -1,0 +1,55 @@
+{
+  "schema_version": "1.0",
+  "record": "authorizations",
+  "campaign_id": "sufficiency-review-2026-09-22",
+  "change_id": [
+    "sc-07-aux-regression",
+    "sc-09-aux-anomalies",
+    "sc-10-aux-robustness"
+  ],
+  "requirement_ids": [
+    "SC-GOV-021",
+    "SC-GOV-023",
+    "SC-GOV-024"
+  ],
+  "requirement_ids_note": "Los tres estan BLOCKED desde GD-23. Esta autorizacion habilita el trabajo documental que puede devolverlos a NOT_APPLICABLE, y no anticipa ese resultado: solo una auditoria independiente favorable lo produce.",
+  "captured_at_utc": "2026-09-22T02:08:58Z",
+  "authorizations": [
+    {
+      "id": "AUTH-SUFF-2026-09-22",
+      "scope": "Resolver RB-03 en alcance estrictamente documental: (1) evaluar y documentar formalmente la decision GD-12 sobre los complementos R (auxiliary_soil_regression_v1), N (auxiliary_anomalies_v1) y S (auxiliary_robustness_v1); (2) determinar, con fundamento en el plan aprobado, en CL-04, CL-05, CL-07 y CL-08, en la evidencia efectivamente obtenida en A, B, C y H, y en los criterios vigentes de cierre cientifico, si cada complemento puede clasificarse como NOT_REQUIRED/NOT_APPLICABLE sin dejar una afirmacion obligatoria sin respaldo; (3) registrar la autorizacion explicita del responsable para la transicion documental de sc-07, sc-09 y sc-10; (4) preparar el dossier independiente y trazable; (5) someter cada decision a critica independiente y a auditoria independiente, con lectura unicamente sobre evidencia ya congelada; (6) preservar literalmente y sin reescritura los informes en los directorios reviews/ correspondientes; (7) solo con auditoria independiente favorable, actualizar changes.json, requirements.json, traceability.md y los registros de gobernanza relacionados al estado normativo exacto que corresponda.",
+      "actor": "responsable del trabajo (duenio del repositorio), por instruccion de sesion del 2026-09-22",
+      "date_utc": "2026-09-22",
+      "source": "session prompt del 2026-09-22 (autorizacion acotada a RB-03)",
+      "status": "ACTIVE",
+      "explicit_prohibitions_in_the_same_instruction": [
+        "implementar runners para R, N o S",
+        "ejecutar R, N o S",
+        "repetir A, B, C o H",
+        "abrir, reinicializar o modificar el holdout",
+        "modificar metricas, predicciones, hashes, ledgers, manifests o artefactos cientificos congelados",
+        "alterar el PASS ya obtenido por H",
+        "declarar GF o SC-GOV-025 como PASS",
+        "avanzar con RB-04, RB-05 o RB-06",
+        "merge, push o PR sin autorizacion",
+        "convertir la ausencia de ejecucion en una conclusion experimental"
+      ],
+      "stop_condition_in_the_same_instruction": "Si alguno de los complementos resulta necesario para una afirmacion obligatoria del plan, detenerse y reportar el conflicto; no cambiar el plan ni suavizar el requisito.",
+      "exception_to": [],
+      "exception_to_note": "Esta autorizacion NO necesita excepcion a ninguna clausula de AGENTS.md, README.md ni plan.md. El trabajo autorizado es documental y de revision, exactamente lo que esos documentos permiten. No hay push, merge, PR, tag, release, ejecucion cientifica ni apertura de holdout en su alcance.",
+      "basis_in_the_governance_record": "openspec/changes/sc-08-aux-hitl/reviews/review-audit-final.md, bloqueo RB-03: la decision de suficiencia GD-12 sigue sin critica ni auditoria independiente y los artefactos auxiliary/R|N|S/review.json no existen. El auditor final de H lo declaro fuera de su alcance y no resoluble en solo lectura.",
+      "decision_record": "openspec/scientific-closure/decisions.md, GD-30 y GD-31",
+      "limitation": "Este registro es la transcripcion estructurada de una instruccion de sesion, no una firma criptografica ni un artefacto externo verificable. Un auditor posterior debe contrastarlo con el responsable. Se crea siguiendo el precedente de AUTH-MERGE-2026-09-21, que existe por el hallazgo N6 de la critica independiente del 2026-09-21."
+    }
+  ],
+  "still_not_authorized": [
+    "Implementar o ejecutar R, N o S",
+    "Repetir A, B, C o H",
+    "Abrir, reinicializar o modificar el holdout 2024-2025",
+    "Avanzar con RB-04 (sintesis cientifica), RB-05 (auditoria final requisito por requisito) o RB-06 (trazabilidad a la memoria)",
+    "Declarar PASS de SC-GOV-025 o del gate GF",
+    "Modificar, mergear o reescribir main",
+    "push, merge o PR",
+    "Crear tags o releases"
+  ]
+}

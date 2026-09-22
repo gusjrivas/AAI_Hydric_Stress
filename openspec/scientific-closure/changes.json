@@ -510,14 +510,19 @@
       "tasks": [
         "T21"
       ],
-      "status": "BLOCKED",
-      "approved_for_implementation": false,
+      "status": "IN_PROGRESS",
+      "approved_for_implementation": true,
       "scientific_execution_authorized": false,
       "extra_gate": "R REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization R; NOT_REQUIRED/UNRESOLVED blocks execution",
       "orchestrator_paths": [
         "openspec/scientific-closure/changes.json"
       ],
-      "approval": null,
+      "approval": {
+        "actor": "responsable del trabajo (dueño del repositorio), por instrucción de sesión del 2026-09-22; registrado por el orquestador",
+        "timestamp_utc": "2026-09-22T02:08:58Z",
+        "scope": "RAMA DOCUMENTAL ÚNICAMENTE del criterio de aceptación de este change: «Si NOT_REQUIRED: solo decisión motivada, sin implementación». Autoriza evaluar y documentar la suficiencia de R, someterla a crítica y auditoría independientes sobre evidencia ya congelada, y registrar el estado normativo que resulte. NO autoriza implementar el runner de R, NO autoriza ejecutarlo, NO autoriza ejecución científica de ninguna clase, NO autoriza abrir el holdout y NO autoriza modificar artefactos científicos congelados.",
+        "source": "openspec/scientific-closure/sufficiency-review-2026-09-22/authorizations.json (AUTH-SUFF-2026-09-22)"
+      },
       "audit": null,
       "state_events": [
         {
@@ -527,8 +532,56 @@
           "timestamp_utc": "2026-09-19T08:38:20.773053Z",
           "reason": "Dependencias sc-01-evidence-scope, sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas. Su decisión NOT_REQUIRED auditada no equivale a ejecución ni cierre individual del change.",
           "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "orquestador, sobre instrucción explícita del responsable del 2026-09-22",
+          "timestamp_utc": "2026-09-22T02:08:58Z",
+          "reason": "Se acredita la resolución del motivo del bloqueo en lo que depende de esta rama. El change quedó BLOCKED el 2026-09-19 por dependencias y gates no satisfechos, y SC-GOV-021 fue degradado a BLOCKED por GD-23 el 2026-09-20 porque la decisión de suficiencia GD-12 no tenía crítica ni auditoría independiente. Las dependencias sc-01 y sc-02 están PASS, y el responsable autoriza expresamente la rama documental. No se renuevan derechos de intento científico: scientific_execution_authorized sigue false.",
+          "evidence": "openspec/scientific-closure/sufficiency-review-2026-09-22/authorizations.json (AUTH-SUFF-2026-09-22)"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "orquestador de la sesión sufficiency-review-2026-09-22",
+          "timestamp_utc": "2026-09-22T02:08:58Z",
+          "reason": "Compuertas contrastadas cláusula por cláusula en gate_evaluation: la de implementación NO se satisface y no se declara satisfecha. Se ejecuta la rama documental: dossier de suficiencia GD-12 y artefacto auxiliary/R/review.json para SC-GOV-021. Escritor único: el orquestador. Ningún archivo de src/ ni de tests/ se toca.",
+          "evidence": "openspec/scientific-closure/sufficiency-review-2026-09-22/gd12-sufficiency-dossier.md; openspec/scientific-closure/sufficiency-review-2026-09-22/auxiliary/R/review.json"
         }
-      ]
+      ],
+      "gate_evaluation": {
+        "evaluated_at_utc": "2026-09-22T02:08:58Z",
+        "extra_gate_verbatim": "R REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization R; NOT_REQUIRED/UNRESOLVED blocks execution",
+        "clauses": [
+          {
+            "clause": "R REQUIRED",
+            "satisfied": false,
+            "note": "NO se satisface, y no se pretende satisfacerla: la decisión de suficiencia clasifica R como NOT_REQUIRED. Por eso esta aprobación NO habilita implementación ni ejecución, sino exclusivamente la rama documental del criterio de aceptación."
+          },
+          {
+            "clause": "sc-01/sc-02 PASS",
+            "satisfied": true,
+            "note": "sc-01-evidence-scope PASS (2026-09-19) y sc-02-runtime-readiness PASS (2026-09-21), ambos con auditoría independiente registrada en este mismo archivo."
+          },
+          {
+            "clause": "implementation approved",
+            "satisfied": false,
+            "note": "Deliberadamente NO aprobada. approved_for_implementation es true porque el validador documental lo exige para los estados APPROVED/IN_PROGRESS, y su alcance efectivo es el que fija approval.scope: decisión motivada sin implementación. Ningún archivo de src/ ni de tests/ se crea o modifica en este change."
+          },
+          {
+            "clause": "scientific execution additionally requires validated runner and authorization",
+            "satisfied": false,
+            "note": "No hay runner y no se autoriza ejecución. scientific_execution_authorized permanece false."
+          },
+          {
+            "clause": "NOT_REQUIRED/UNRESOLVED blocks execution",
+            "satisfied": true,
+            "note": "Se respeta literalmente: R es NOT_REQUIRED y por eso la ejecución está bloqueada. Esta sesión no la intenta."
+          }
+        ],
+        "conclusion": "La compuerta de IMPLEMENTACIÓN no está satisfecha y no se declara satisfecha. Lo que esta transición habilita es la rama documental que el propio criterio de aceptación del change prevé para el caso NOT_REQUIRED."
+      }
     },
     {
       "id": "sc-08-aux-hitl",
@@ -641,14 +694,19 @@
       "tasks": [
         "T23"
       ],
-      "status": "BLOCKED",
-      "approved_for_implementation": false,
+      "status": "IN_PROGRESS",
+      "approved_for_implementation": true,
       "scientific_execution_authorized": false,
       "extra_gate": "N REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization N; NOT_REQUIRED/UNRESOLVED blocks execution",
       "orchestrator_paths": [
         "openspec/scientific-closure/changes.json"
       ],
-      "approval": null,
+      "approval": {
+        "actor": "responsable del trabajo (dueño del repositorio), por instrucción de sesión del 2026-09-22; registrado por el orquestador",
+        "timestamp_utc": "2026-09-22T02:08:58Z",
+        "scope": "RAMA DOCUMENTAL ÚNICAMENTE del criterio de aceptación de este change: «Si NOT_REQUIRED: solo decisión motivada, sin implementación». Autoriza evaluar y documentar la suficiencia de N, someterla a crítica y auditoría independientes sobre evidencia ya congelada, y registrar el estado normativo que resulte. NO autoriza implementar el runner de N, NO autoriza ejecutarlo, NO autoriza ejecución científica de ninguna clase, NO autoriza abrir el holdout y NO autoriza modificar artefactos científicos congelados.",
+        "source": "openspec/scientific-closure/sufficiency-review-2026-09-22/authorizations.json (AUTH-SUFF-2026-09-22)"
+      },
       "audit": null,
       "state_events": [
         {
@@ -658,8 +716,56 @@
           "timestamp_utc": "2026-09-19T08:38:20.773053Z",
           "reason": "Dependencias sc-01-evidence-scope, sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas. Su decisión NOT_REQUIRED auditada no equivale a ejecución ni cierre individual del change.",
           "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "orquestador, sobre instrucción explícita del responsable del 2026-09-22",
+          "timestamp_utc": "2026-09-22T02:08:58Z",
+          "reason": "Se acredita la resolución del motivo del bloqueo en lo que depende de esta rama. El change quedó BLOCKED el 2026-09-19 por dependencias y gates no satisfechos, y SC-GOV-023 fue degradado a BLOCKED por GD-23 el 2026-09-20 porque la decisión de suficiencia GD-12 no tenía crítica ni auditoría independiente. Las dependencias sc-01 y sc-02 están PASS, y el responsable autoriza expresamente la rama documental. No se renuevan derechos de intento científico: scientific_execution_authorized sigue false.",
+          "evidence": "openspec/scientific-closure/sufficiency-review-2026-09-22/authorizations.json (AUTH-SUFF-2026-09-22)"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "orquestador de la sesión sufficiency-review-2026-09-22",
+          "timestamp_utc": "2026-09-22T02:08:58Z",
+          "reason": "Compuertas contrastadas cláusula por cláusula en gate_evaluation: la de implementación NO se satisface y no se declara satisfecha. Se ejecuta la rama documental: dossier de suficiencia GD-12 y artefacto auxiliary/N/review.json para SC-GOV-023. Escritor único: el orquestador. Ningún archivo de src/ ni de tests/ se toca.",
+          "evidence": "openspec/scientific-closure/sufficiency-review-2026-09-22/gd12-sufficiency-dossier.md; openspec/scientific-closure/sufficiency-review-2026-09-22/auxiliary/N/review.json"
         }
-      ]
+      ],
+      "gate_evaluation": {
+        "evaluated_at_utc": "2026-09-22T02:08:58Z",
+        "extra_gate_verbatim": "N REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization N; NOT_REQUIRED/UNRESOLVED blocks execution",
+        "clauses": [
+          {
+            "clause": "N REQUIRED",
+            "satisfied": false,
+            "note": "NO se satisface, y no se pretende satisfacerla: la decisión de suficiencia clasifica N como NOT_REQUIRED. Por eso esta aprobación NO habilita implementación ni ejecución, sino exclusivamente la rama documental del criterio de aceptación."
+          },
+          {
+            "clause": "sc-01/sc-02 PASS",
+            "satisfied": true,
+            "note": "sc-01-evidence-scope PASS (2026-09-19) y sc-02-runtime-readiness PASS (2026-09-21), ambos con auditoría independiente registrada en este mismo archivo."
+          },
+          {
+            "clause": "implementation approved",
+            "satisfied": false,
+            "note": "Deliberadamente NO aprobada. approved_for_implementation es true porque el validador documental lo exige para los estados APPROVED/IN_PROGRESS, y su alcance efectivo es el que fija approval.scope: decisión motivada sin implementación. Ningún archivo de src/ ni de tests/ se crea o modifica en este change."
+          },
+          {
+            "clause": "scientific execution additionally requires validated runner and authorization",
+            "satisfied": false,
+            "note": "No hay runner y no se autoriza ejecución. scientific_execution_authorized permanece false."
+          },
+          {
+            "clause": "NOT_REQUIRED/UNRESOLVED blocks execution",
+            "satisfied": true,
+            "note": "Se respeta literalmente: N es NOT_REQUIRED y por eso la ejecución está bloqueada. Esta sesión no la intenta."
+          }
+        ],
+        "conclusion": "La compuerta de IMPLEMENTACIÓN no está satisfecha y no se declara satisfecha. Lo que esta transición habilita es la rama documental que el propio criterio de aceptación del change prevé para el caso NOT_REQUIRED."
+      }
     },
     {
       "id": "sc-10-aux-robustness",
@@ -684,14 +790,19 @@
       "tasks": [
         "T24"
       ],
-      "status": "BLOCKED",
-      "approved_for_implementation": false,
+      "status": "IN_PROGRESS",
+      "approved_for_implementation": true,
       "scientific_execution_authorized": false,
       "extra_gate": "S REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization S; NOT_REQUIRED/UNRESOLVED blocks execution",
       "orchestrator_paths": [
         "openspec/scientific-closure/changes.json"
       ],
-      "approval": null,
+      "approval": {
+        "actor": "responsable del trabajo (dueño del repositorio), por instrucción de sesión del 2026-09-22; registrado por el orquestador",
+        "timestamp_utc": "2026-09-22T02:08:58Z",
+        "scope": "RAMA DOCUMENTAL ÚNICAMENTE del criterio de aceptación de este change: «Si NOT_REQUIRED: solo decisión motivada, sin implementación». Autoriza evaluar y documentar la suficiencia de S, someterla a crítica y auditoría independientes sobre evidencia ya congelada, y registrar el estado normativo que resulte. NO autoriza implementar el runner de S, NO autoriza ejecutarlo, NO autoriza ejecución científica de ninguna clase, NO autoriza abrir el holdout y NO autoriza modificar artefactos científicos congelados.",
+        "source": "openspec/scientific-closure/sufficiency-review-2026-09-22/authorizations.json (AUTH-SUFF-2026-09-22)"
+      },
       "audit": null,
       "state_events": [
         {
@@ -701,8 +812,56 @@
           "timestamp_utc": "2026-09-19T08:38:20.773053Z",
           "reason": "Dependencias sc-01-evidence-scope, sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas. Su decisión NOT_REQUIRED auditada no equivale a ejecución ni cierre individual del change.",
           "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "orquestador, sobre instrucción explícita del responsable del 2026-09-22",
+          "timestamp_utc": "2026-09-22T02:08:58Z",
+          "reason": "Se acredita la resolución del motivo del bloqueo en lo que depende de esta rama. El change quedó BLOCKED el 2026-09-19 por dependencias y gates no satisfechos, y SC-GOV-024 fue degradado a BLOCKED por GD-23 el 2026-09-20 porque la decisión de suficiencia GD-12 no tenía crítica ni auditoría independiente. Las dependencias sc-01 y sc-02 están PASS, y el responsable autoriza expresamente la rama documental. No se renuevan derechos de intento científico: scientific_execution_authorized sigue false.",
+          "evidence": "openspec/scientific-closure/sufficiency-review-2026-09-22/authorizations.json (AUTH-SUFF-2026-09-22)"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "orquestador de la sesión sufficiency-review-2026-09-22",
+          "timestamp_utc": "2026-09-22T02:08:58Z",
+          "reason": "Compuertas contrastadas cláusula por cláusula en gate_evaluation: la de implementación NO se satisface y no se declara satisfecha. Se ejecuta la rama documental: dossier de suficiencia GD-12 y artefacto auxiliary/S/review.json para SC-GOV-024. Escritor único: el orquestador. Ningún archivo de src/ ni de tests/ se toca.",
+          "evidence": "openspec/scientific-closure/sufficiency-review-2026-09-22/gd12-sufficiency-dossier.md; openspec/scientific-closure/sufficiency-review-2026-09-22/auxiliary/S/review.json"
         }
-      ]
+      ],
+      "gate_evaluation": {
+        "evaluated_at_utc": "2026-09-22T02:08:58Z",
+        "extra_gate_verbatim": "S REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization S; NOT_REQUIRED/UNRESOLVED blocks execution",
+        "clauses": [
+          {
+            "clause": "S REQUIRED",
+            "satisfied": false,
+            "note": "NO se satisface, y no se pretende satisfacerla: la decisión de suficiencia clasifica S como NOT_REQUIRED. Por eso esta aprobación NO habilita implementación ni ejecución, sino exclusivamente la rama documental del criterio de aceptación."
+          },
+          {
+            "clause": "sc-01/sc-02 PASS",
+            "satisfied": true,
+            "note": "sc-01-evidence-scope PASS (2026-09-19) y sc-02-runtime-readiness PASS (2026-09-21), ambos con auditoría independiente registrada en este mismo archivo."
+          },
+          {
+            "clause": "implementation approved",
+            "satisfied": false,
+            "note": "Deliberadamente NO aprobada. approved_for_implementation es true porque el validador documental lo exige para los estados APPROVED/IN_PROGRESS, y su alcance efectivo es el que fija approval.scope: decisión motivada sin implementación. Ningún archivo de src/ ni de tests/ se crea o modifica en este change."
+          },
+          {
+            "clause": "scientific execution additionally requires validated runner and authorization",
+            "satisfied": false,
+            "note": "No hay runner y no se autoriza ejecución. scientific_execution_authorized permanece false."
+          },
+          {
+            "clause": "NOT_REQUIRED/UNRESOLVED blocks execution",
+            "satisfied": true,
+            "note": "Se respeta literalmente: S es NOT_REQUIRED y por eso la ejecución está bloqueada. Esta sesión no la intenta."
+          }
+        ],
+        "conclusion": "La compuerta de IMPLEMENTACIÓN no está satisfecha y no se declara satisfecha. Lo que esta transición habilita es la rama documental que el propio criterio de aceptación del change prevé para el caso NOT_REQUIRED."
+      }
     }
   ]
 }
