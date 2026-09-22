@@ -1,0 +1,126 @@
+{
+  "schema_version": "auxiliary_hitl_v1_package_freeze.v1",
+  "purpose": "Ancla externa e inmutable del paquete de intervención humana. Responde al hallazgo C-13 de la crítica independiente: el hash del paquete se autoancla y su única ancla previa vivía en el mismo montaje escribible. Este registro se compromete a git ANTES de que el operador responda, de modo que el paquete queda fijado en un objeto que no puede reescribirse sin reescribir la historia publicada.",
+  "campaign_id": "hitl-complement-2026-09-21",
+  "change": "sc-08-aux-hitl",
+  "requirement": "SC-GOV-022",
+  "package_id": "auxiliary_hitl_v1/H/human-package/2026-09-21",
+  "package_version": 4,
+  "package_sha256": "6f2143e0680cfde452f9a0f509a12e39f1087e45b6fbcd7de7a045a51233b6de",
+  "package_canonicalization": "json.dumps(payload sin el campo package_sha256, sort_keys=True, separators=(',',':'), ensure_ascii=False, allow_nan=False), UTF-8, SHA-256",
+  "n_scenarios": 20,
+  "presentation_order": [
+    "H-SC-001",
+    "H-SC-002",
+    "H-SC-003",
+    "H-SC-004",
+    "H-SC-005",
+    "H-SC-006",
+    "H-SC-007",
+    "H-SC-008",
+    "H-SC-009",
+    "H-SC-010",
+    "H-SC-011",
+    "H-SC-012",
+    "H-SC-013",
+    "H-SC-014",
+    "H-SC-015",
+    "H-SC-016",
+    "H-SC-017",
+    "H-SC-018",
+    "H-SC-019",
+    "H-SC-020"
+  ],
+  "seed": 0,
+  "blinding_level": "PARCIAL",
+  "evidence_class": "controlled_human_feedback",
+  "evidence_class_is_not": "expert_agronomic_feedback",
+  "expected_operator": {
+    "operator_id": "Gustavo Julián Rivas",
+    "operator_role": "authorized_experimental_operator",
+    "role_is_not": [
+      "agronomist",
+      "domain_expert",
+      "field_validator"
+    ]
+  },
+  "contract_sha256": "2ebd6732046a5716f69ac3026e96de7ab8030beb67ff71653fb4b931691be901",
+  "contract_version": 4,
+  "executable_identity": {
+    "commit": "742d9592daec3bd981061f6321187fae28fe00c3",
+    "image_id": "sha256:1d710ab5d26790f8c1fa4f966c9aeef736267f66405de4a8801a684de3a04145",
+    "image_tag": "experiment-v4-hitl-complement",
+    "note": "Identidad ejecutable PROPIA de H (GD-27). NO es la de A/B/C: la imagen histórica sha256:55bc923e… es anterior al runner de H y no lo contiene. Mismo Dockerfile y mismas constraints; pip freeze verificado idéntico al histórico."
+  },
+  "input_hashes": {
+    "era5_sha256": "318edffb89c64d5f500e35b5530e6064cb02f68b89bd28a71262c2ebb01f485f",
+    "nasa_power_sha256": "415b4f71abb78e419b765110f4a42c3f32587b204d12897812df9573c5c2202b"
+  },
+  "external_backup": "/mnt/scientific-backup/AAI_Hydric_Stress/hitl-complement-2026-09-21",
+  "reproduction_before_freezing": {
+    "performed": true,
+    "result": "El paquete se regeneró desde las mismas entradas congeladas y resultó idéntico byte a byte (cmp)."
+  },
+  "frozen_at_utc": "2026-09-21T16:57:46.217992Z",
+  "state": "FROZEN_AWAITING_HUMAN_RESPONSE",
+  "declaration": "Al momento de este registro no se le mostró nada al operador y no se observó ningún resultado de H. El cegamiento del paquete es PARCIAL y está declarado como tal.",
+  "superseded_packages": [
+    {
+      "package_version": 1,
+      "package_sha256": "a9d0ee2d57d5212794ae2ac9e976212cbabd81c38fabd01073cc626d7e3cef29"
+    },
+    {
+      "package_version": 2,
+      "package_sha256": "29afedc9d951b332f61ed48bd8aada2bb30467b0c082db24489b5f9bcd9cdea8"
+    },
+    {
+      "package_version": 3,
+      "package_sha256": "e1c3eb70aa15532b3318ac7dcd16fa9070f81d516a8322671ddbc6b77e8d42c9"
+    },
+    {
+      "package_version": "3-bis",
+      "package_sha256": "c369c862adef33cd049d88f0ff1ffd6f0641cb76be469a9763309d95580361a8",
+      "note": "Producido con el contrato v4 pero con PACKAGE_VERSION=3 en el runner; descartado por la desalineación de versión antes de mostrarse."
+    }
+  ],
+  "superseded_packages_note": "Ninguna versión anterior se mostró al operador ni produjo evidencia: todas quedaron descartadas por hallazgos de crítica independiente antes de la pausa humana. Se listan sus hashes para que sea verificable que no se usó ninguna de ellas.",
+  "independent_reviews_before_freezing": [
+    {
+      "round": 1,
+      "verdict": "NO_APTO",
+      "material_findings": [
+        "C-01",
+        "C-02",
+        "C-03",
+        "C-04",
+        "C-05"
+      ]
+    },
+    {
+      "round": 2,
+      "verdict": "NO_APTO",
+      "material_findings": [
+        "D-01",
+        "D-02",
+        "D-03",
+        "D-04"
+      ]
+    },
+    {
+      "round": 3,
+      "verdict": "APTO_PARA_MOSTRAR",
+      "material_findings": [],
+      "minor_findings_applied": [
+        "E-01",
+        "E-02",
+        "E-03",
+        "E-04",
+        "E-05",
+        "E-06",
+        "E-07",
+        "E-08",
+        "E-09"
+      ]
+    }
+  ]
+}

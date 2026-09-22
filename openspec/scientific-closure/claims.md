@@ -55,3 +55,45 @@ estado es terminal para el checker normativo, tan definitivo como `PASS`, y su
 es atribuirle un estado terminal. Los artefactos `auxiliary/R/review.json`,
 `auxiliary/N/review.json` y `auxiliary/S/review.json` no existen, y esa ausencia
 se declara aquí en lugar de omitirse.
+
+## Estado de las afirmaciones tras la campaña A→B→C y el complemento H — 2026-09-21
+
+Esta sección **no reescribe** la tabla anterior: registra cómo quedaron sus
+`PENDING` una vez ejecutados A, B, C y H. El recuento lo rehizo el auditor final
+independiente del complemento H, no el orquestador.
+
+**9 de 10** afirmaciones tienen hoy evidencia o limitación aceptada, frente a
+**4 de 10** el 2026-09-20. `PENDING` designaba evidencia futura faltante, no un
+límite aceptado; esa era la razón del recuento anterior.
+
+| ID | Estado | Qué lo cambió |
+| --- | --- | --- |
+| CL-01 | CUBIERTA | Etapa A ejecutada. `SIN_GANADOR_ESTABLE` con desempate por simplicidad predeclarada, soporte 3/3 folds y 5000/5000 réplicas. Resultado negativo válido, no defecto |
+| CL-02 | CUBIERTA | Etapa B ejecutada. `CANDIDATE_VALIDATED` por **no inferioridad**: el intervalo pareado incluye el cero y no demuestra superioridad |
+| CL-03 | CUBIERTA | Etapa C abierta **una sola vez**, ledger `CONFIRMADA` |
+| CL-04 | CUBIERTA por limitación aceptada | v3 `REFERENCED`, preservada y no recalculada |
+| CL-05 | CUBIERTA por limitación aceptada | La afirmación de regresión no se sostiene en esta campaña; la brecha es condicional a ampliar el alcance |
+| **CL-06** | **CUBIERTA CON LIMITACIONES** | **Es la que movió el complemento H.** Comparación predeclarada y auditada de los tres brazos, con el contrato anclado en git **antes** de ejecutar. Reporta el aporte cuantitativo de correcciones supervisadas **simuladas** sin afirmar beneficio y sin intervalos, y **nunca** beneficio de una persona real, como exige la propia redacción de CL-06. La pista humana controlada **no** sostiene ninguna afirmación cuantitativa |
+| CL-07 | CUBIERTA por limitación aceptada | No se afirma detección reservada |
+| CL-08 | CUBIERTA por limitación aceptada | Robustez limitada a lo documentado en v3, sin extrapolar a sensores ausentes |
+| CL-09 | CUBIERTA | Métricas de onset, episodios, censura y soporte presentes en la evidencia de A, B y C |
+| **CL-10** | **CUBIERTA** al registrarse la auditoría de H | Exige «Terminal A/B/C auditado, H auditado, trazabilidad y límites». Los cuatro términos se cumplen: la trazabilidad la provee la sección del 2026-09-21 de `traceability.md`, que supersede la fila obsoleta de SC-GOV-022 |
+
+**Lo que sigue sin cubrir, y no depende de las afirmaciones.** `SC-GOV-025`
+permanece `BLOCKED` y el gate `GF` no es evaluable como PASS. El auditor fue
+explícito: la cobertura de afirmaciones es **uno solo** de los cinco conjuntos
+del criterio de aceptación de `SC-GOV-025`. Faltan la auditoría final requisito
+por requisito sobre el snapshot posterior a la campaña, la síntesis científica
+de los resultados efectivamente obtenidos, la crítica y auditoría
+independientes de la decisión de suficiencia GD-12 sobre R/N/S —que mantiene
+`SC-GOV-021`, `023` y `024` en `BLOCKED`— y la trazabilidad a los capítulos 2 y
+3 de la memoria.
+
+**Límite que debe acompañar a CL-06 en cualquier lectura.** La intervención
+humana controlada demostró el mecanismo en su camino de **aceptación**, con
+cegamiento **parcial** y declarado, y el operador **no detectó ninguna** de las
+cuatro etiquetas corrompidas que se le presentaron. La corrección y la
+recalibración quedan demostradas por la pista **simulada**; el rechazo y la
+recalibración sucesiva, por **ninguna** pista científica. No hubo intervención
+de un agrónomo ni validación agronómica de campo: es trabajo futuro, declarado
+por el propio operador.

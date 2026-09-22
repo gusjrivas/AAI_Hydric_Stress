@@ -255,3 +255,51 @@ citados en las filas anteriores dejaron de ser ciertos tras integrar
 
 No se ejecutó A, B ni C, no se abrió el holdout 2024–2025 y no se inicializó el
 ledger definitivo. Ninguna compuerta se relaja por esta actualización.
+
+## Estado por requisito — 2026-09-21, complemento H (HITL)
+
+Esta sección **no reescribe** las tablas anteriores: las supersede para los dos
+requisitos que el complemento H toca. El resto conserva el estado que fijó la
+sesión del 2026-09-21 tras la campaña A→B→C.
+
+| Requisito | Estado | Fundamento |
+| --- | --- | --- |
+| **SC-GOV-022** | PASS_WITH_LIMITATIONS | **Supersede la fila anterior, que hoy es factualmente falsa.** Aquella decía «H (HITL) está declarado `REQUIRED` y no tiene runner implementado ni evidencia alguna. No se ejecutó» y «no existe runner para el diseño H». Ambas proposiciones dejaron de ser ciertas el 2026-09-21: el runner `src/experiment_runner/scientific_auxiliary/auxiliary_hitl_v1.py` está en la rama, H se ejecutó **una sola vez** y el artefacto `auxiliary/H/review.json` existe. El auditor final independiente verificó por su cuenta el criterio de aceptación congelado —tres brazos y maduración separados sobre las mismas 362 filas, 20 eventos por semilla en las cinco semillas congeladas con estratificación 10/10 en las seis agrupaciones, simulación identificada, sin afirmación de beneficio— y recomputó 72 métricas desde las predicciones en Python puro, sin `sklearn`, con 0 discrepancias. **No es PASS pleno:** la pista humana sólo ejercitó la aceptación; RECHAZO y recalibración sucesiva no fueron ejercitados por ninguna pista científica; el cegamiento fue PARCIAL y declarado; y dos puntos del expediente (INV-10 y la reproducción estricta 18/18) **no** fueron verificados de forma independiente por la auditoría, por indisponibilidad de herramientas — no deben presentarse como auditados. Ver `openspec/changes/sc-08-aux-hitl/reviews/` |
+| **SC-GOV-025** | BLOCKED | **Mismo estado, causa distinta.** La causa anterior —«el plan exige todos los `REQUIRED` con PASS y H no lo está»— quedó resuelta: H es el único complemento `REQUIRED` y pasa a PASS_WITH_LIMITATIONS. Lo que hoy lo mantiene bloqueado es ajeno a H y el auditor final lo enumeró: no existe la auditoría final **requisito por requisito** sobre el snapshot posterior a la campaña (la disponible audita `5b40a55`, anterior a toda ejecución); no existe síntesis científica de los resultados efectivamente obtenidos; la decisión de suficiencia GD-12 sobre R/N/S sigue sin crítica ni auditoría independiente, de modo que SC-GOV-021, 023 y 024 continúan BLOCKED; y no hay artefacto de trazabilidad de las afirmaciones a los capítulos 2 y 3 de la memoria |
+
+**Gate GF: no evaluable como PASS.** Su condición de avance es el PASS del
+auditor final sobre la suficiencia del alcance **completo**, y ese PASS no
+existe para el estado actual. H deja de ser el obstáculo nombrado, pero GF no
+puede autoconcederse con la auditoría de un complemento. El auditor añadió una
+precisión que conviene conservar: la distancia real al gate es menor de lo que
+sugiere la matriz —tres obstáculos son documentales, dos son de revisión y uno
+es remediación—, y **ninguno exige reabrir el holdout ni reejecutar A, B o C**.
+La campaña científica está hecha; lo que falta es el cierre y su revisión.
+
+**Recuento de afirmaciones.** El auditor rehízo el recuento de `CL-01..CL-10`:
+**9 de 10** tienen hoy evidencia o limitación aceptada, frente a 4 de 10 el
+2026-09-20. La décima, `CL-10`, exige «trazabilidad», que esta misma sección
+provee; se cierra al registrarse la auditoría.
+
+**Limitación de procedimiento registrada.** La auditoría final levantó el
+hallazgo material **AUD-H-01**: ninguna de las cuatro rondas de crítica
+independiente sobre H conservaba el informe de su autor, sólo resúmenes del
+implementador — la forma exacta que `AUD-F-02` condenó el 2026-09-20. Se
+remedió preservándolos verbatim en
+`openspec/changes/sc-08-aux-hitl/reviews/`. Segundo hallazgo material,
+**AUD-H-02**: los **resultados** de H no tienen ancla en git y viven en un
+montaje escribible; las **entradas** —contrato, paquete y respuesta— sí la
+tienen. Es una exposición estructural preexistente, idéntica a la de A/B/C, y
+permanece declarada.
+
+**Resultado nulo, válido y predeclarado.** El operador experimental autorizado
+aceptó los veinte registros y la pista humana terminó en `NO_RECALIBRATION`. El
+contrato declaraba `no_change_is_a_valid_outcome` **antes** de que el operador
+viera nada, y el auditor verificó esa anterioridad en git. No es un fallo. Y
+debe enunciarse junto a su consecuencia, sin atenuar: el operador **no detectó
+ninguna** de las cuatro etiquetas corrompidas —`H-SC-004`, `H-SC-008`,
+`H-SC-009`, `H-SC-020`—, que son exactamente las cuatro que el revisor simulado
+corrigió sobre los mismos eventos. Detección humana 0/4 frente a 4/4 del
+oráculo. Eso fija el alcance real de la pista humana y es lo que hace
+imprescindible la validación de campo que el propio operador declaró como
+trabajo futuro.

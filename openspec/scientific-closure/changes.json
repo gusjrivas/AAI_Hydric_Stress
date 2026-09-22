@@ -553,15 +553,28 @@
       "tasks": [
         "T22"
       ],
-      "status": "BLOCKED",
-      "approved_for_implementation": false,
-      "scientific_execution_authorized": false,
+      "status": "PASS",
+      "approved_for_implementation": true,
+      "scientific_execution_authorized": true,
       "extra_gate": "H REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization H; NOT_REQUIRED/UNRESOLVED blocks execution",
       "orchestrator_paths": [
         "openspec/scientific-closure/changes.json"
       ],
-      "approval": null,
-      "audit": null,
+      "approval": {
+        "actor": "Gustavo Julián Rivas, responsable técnico y científico del Trabajo Final",
+        "timestamp_utc": "2026-09-21T11:46:00Z",
+        "scope": "Implementar, validar y ejecutar UNA vez el complemento H (auxiliary_hitl_v1) sobre Pergamino 2015-2022, en la rama feat/scientific-closure-hitl-complement. NO autoriza reejecutar A, B ni C, NO autoriza reabrir el holdout 2024-2025, NO autoriza tocar main ni la evidencia histórica, y NO autoriza afirmar validación agronómica.",
+        "source": "AUTH-HITL-2026-09-21, transcripción de la instrucción de sesión del responsable; no es una firma verificable externamente"
+      },
+      "audit": {
+        "verdict": "PASS",
+        "actor": "scientific_auditor independiente, sesión separada de solo lectura",
+        "timestamp_utc": "2026-09-21T21:45:00Z",
+        "snapshot": "5aec15d4d75234384f2d54ebdfdae57d0c9d3291",
+        "scope": "Complemento H (auxiliary_hitl_v1): contrato, paquete, intervención humana, ejecución, evidencia, gobernanza y respaldo externo, más pronunciamiento sobre GF y SC-GOV-025.",
+        "evidence": "openspec/changes/sc-08-aux-hitl/reviews/review-audit-final.md",
+        "verdict_qualification": "El vocabulario cerrado del checker sólo admite PASS/FAIL/BLOCKED en este campo. El veredicto literal del auditor es PASS a nivel REQUISITO SC-GOV-022 y sujeto a condiciones, NO PASS de gate, y con scientific_sufficiency_for_GF = INSUFFICIENT. El requisito queda PASS_WITH_LIMITATIONS en la matriz. Las condiciones que el auditor puso fueron cumplidas antes de registrar este PASS: preservación verbatim de los cuatro informes de crítica (AUD-H-01), declaración de la ausencia de ancla en git para los resultados (AUD-H-02), corrección del recuento de diferencias (AUD-H-03), enunciado sin atenuar de la detección 0/4 del operador (AUD-H-04), enumeración completa de las 13 afirmaciones prohibidas (AUD-H-05), corrección de la cita de GD-29 (AUD-H-08) y actualización de la matriz (AUD-H-10). Dos puntos quedan declarados como NO verificados de forma independiente: INV-10 y la reproducción estricta 18/18 (AUD-H-09). GF y SC-GOV-025 permanecen BLOCKED por causas ajenas a H."
+      },
       "state_events": [
         {
           "from": "PLANNED",
@@ -570,6 +583,38 @@
           "timestamp_utc": "2026-09-19T08:38:20.773053Z",
           "reason": "Dependencias sc-01-evidence-scope, sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas.",
           "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "orquestador del complemento H (Claude Opus 5, sesión autónoma del responsable)",
+          "timestamp_utc": "2026-09-21T11:46:00Z",
+          "reason": "Resuelta la causa del bloqueo: sc-01-evidence-scope y sc-02-runtime-readiness están en PASS desde la campaña del 2026-09-21, H sigue REQUIRED en claims.md (CL-06, CL-10) y el responsable emitió autorización expresa de implementación y ejecución. La reapertura no renueva derechos sobre A, B, C ni sobre el holdout.",
+          "evidence": "openspec/scientific-closure/changes.json (approval AUTH-HITL-2026-09-21); openspec/scientific-closure/current-execution-checkpoint.md"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "scientific_implementer del complemento H",
+          "timestamp_utc": "2026-09-21T12:14:00Z",
+          "reason": "Contrato predeclarado congelado antes de observar resultados, runner auxiliary_hitl_v1 implementado y 60 pruebas focalizadas en verde. Commit 5f30880.",
+          "evidence": "openspec/changes/sc-08-aux-hitl/contract-H-frozen.json; src/experiment_runner/scientific_auxiliary/auxiliary_hitl_v1.py; tests/test_auxiliary_hitl_v1.py"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "REVIEW",
+          "actor": "orquestador del complemento H",
+          "timestamp_utc": "2026-09-21T20:00:00Z",
+          "reason": "Snapshot congelado tras la ejecución única de H, su reproducción bit a bit, el respaldo verificado y el ensayo de recuperación. Se somete a crítica independiente y a auditoría final.",
+          "evidence": "evidence/governance/hitl-complement-2026-09-21/sc-08-aux-hitl/execution-record.json; reproduction-record.json; recovery-rehearsal.json"
+        },
+        {
+          "from": "REVIEW",
+          "to": "PASS",
+          "actor": "orquestador, sobre el veredicto del scientific_auditor independiente",
+          "timestamp_utc": "2026-09-21T21:50:00Z",
+          "reason": "El auditor final independiente emitió PASS sobre el requisito SC-GOV-022 en el snapshot 5aec15d4, tras verificar por su cuenta el criterio de aceptación congelado y recomputar 72 métricas sin sklearn con 0 discrepancias. Sus dos hallazgos materiales fueron remediados antes de este cierre: AUD-H-01 preservando verbatim los cuatro informes de crítica independiente, y AUD-H-02 declarándolo como limitación viva. La suficiencia científica para el gate GF es INSUFFICIENT por causas ajenas a H, y GF permanece bloqueado.",
+          "evidence": "openspec/changes/sc-08-aux-hitl/reviews/review-audit-final.md; evidence/governance/hitl-complement-2026-09-21/auxiliary/H/review.json; sc-08-aux-hitl/findings-resolution.json"
         }
       ]
     },
