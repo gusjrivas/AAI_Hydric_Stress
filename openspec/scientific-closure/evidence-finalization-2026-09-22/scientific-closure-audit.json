@@ -2,37 +2,49 @@
   "schema_version": "scientific_closure_final_audit.v1",
   "campaign_id": "evidence-finalization-2026-09-22",
   "change_id": "sc-06-scientific-synthesis",
-  "requirement_ids": ["SC-GOV-025"],
+  "requirement_ids": [
+    "SC-GOV-025"
+  ],
   "task": "T25",
   "emitted_at_utc": "2026-09-22T02:20:00Z",
-
   "provenance_of_this_artifact": {
     "derived_from": "openspec/scientific-closure/evidence-finalization-2026-09-22/reviews/review-audit-final.md",
     "rule": "Este archivo se emite A PARTIR del informe del auditor independiente, NUNCA antes. No lo resume con el veredicto que convendria: transcribe el que el auditor emitio, incluido su primer FAIL.",
     "why_the_rule_exists": "El hallazgo AUD-F-01 del 2026-09-20 condeno exactamente la practica contraria: acreditar este artefacto como existente y enunciar su veredicto antes de que la auditoria se realizara. El snapshot 7e63d1c reincidio en ese defecto y el auditor lo levanto como F-01, lo que forzo su FAIL. Este artefacto es la remediacion.",
     "author_of_this_file": "orquestador (scientific_implementer). El auditor NO escribe archivos."
   },
-
   "audit_history": [
     {
       "round": 1,
       "snapshot": "7e63d1c054ca295009fb3285b051bb0a10022688",
       "verdict": "FAIL",
       "verdict_scope": "Documental, acotado y corregible sin evidencia cientifica nueva. El auditor fue explicito: 'El FAIL no es sobre la ciencia: es sobre el registro'.",
-      "material_findings": ["F-01", "F-02", "F-03"],
-      "minor_findings": ["F-04", "F-05", "F-06", "F-07"],
-      "precision_findings": ["F-08", "F-09"],
+      "material_findings": [
+        "F-01",
+        "F-02",
+        "F-03"
+      ],
+      "minor_findings": [
+        "F-04",
+        "F-05",
+        "F-06",
+        "F-07"
+      ],
+      "precision_findings": [
+        "F-08",
+        "F-09"
+      ],
       "report": "reviews/review-audit-final.md"
     },
     {
       "round": 2,
-      "snapshot": "pendiente de fijar en el commit de correccion",
+      "snapshot": "0dbc976363d08c5b8c1015afbca0785b5abedb88",
       "scope": "SOLO la correccion de F-01..F-08. No se reabre la revision completa, conforme al encargo del responsable.",
-      "verdict": "ver reviews/review-audit-final-correction.md",
-      "report": "reviews/review-audit-final-correction.md"
+      "verdict": "FAIL por ND-01 (MATERIAL), con ND-02 (MENOR) y ND-03 (PRECISION). Los nueve hallazgos de la ronda 1 fueron verificados como RESUELTOS por el auditor.",
+      "report": "openspec/scientific-closure/evidence-finalization-2026-09-22/reviews/review-audit-final-correction.md",
+      "auditor_waiver_of_a_third_round": true
     }
   ],
-
   "what_the_auditor_verified_himself": {
     "numeric_reconciliation": "Cerca de sesenta valores de A, B, C y H contrastados contra los artefactos que los publican: CERO discrepancias numericas. Recomputo por su cuenta los tres deltas de A, los seis intervalos pareados, los dos contrastes de H, las tres prevalencias, el conjunto de equivalencia de la sensibilidad 7-28 cm y la concordancia 16/20 desde los datos crudos del paquete humano.",
     "integrity": "91/91 hashes de A/B/C OK, 0 FAILED. 100/100 hashes de H OK, 0 FAILED. Ningun archivo de evidencia modificado despues de la campana (find -newermt vacio).",
@@ -41,42 +53,103 @@
     "checker_not_relaxed": "El auditor comprobo que scripts/check_scientific_closure.py esta SIN MODIFICAR y da exit 0 con la asimetria requisito/change intacta. Cita suya: 'pudiendo anadir una arista al checker para evitarla, no la anadieron'.",
     "mechanical_validation": "checker exit 0; 48 passed y 14 subtests; OpenSpec estricto 11/11. Advertencia expresa del auditor: 'ninguna de ellas es suficiencia cientifica'."
   },
-
   "five_sets_of_the_acceptance_criterion": {
-    "1_all_claims_have_evidence_or_accepted_limitation": {"state": "SATISFECHO", "auditor_basis": "10 de 10, recontadas por el auditor. CL-10 se cierra con la sintesis, la matriz final y la trazabilidad a la memoria; su circularidad es admisible porque su criterio es, por diseno, documental."},
-    "2_valid_negative_terminal_documented": {"state": "SATISFECHO", "auditor_basis": "SIN_GANADOR_ESTABLE, la no inferioridad de B y NO_RECALIBRATION de H, verificados en origen y documentados como resultados validos. 'La ausencia de mejora general no es un error a corregir, y el expediente no la trata como tal'."},
-    "3_complements_justified": {"state": "SATISFECHO", "auditor_basis": "Las condiciones de activacion de R, N y S no se dan, verificado contra el texto literal de cada requisito. H es el unico REQUIRED, ejecutado y auditado.", "condition": "Satisfecho DESDE que este informe quedo registrado en los cuatro artefactos (hallazgo F-02), no antes."},
-    "4_thesis_chapters_2_3_traced": {"state": "SATISFECHO", "auditor_basis": "thesis-traceability.md leido entero: artefacto sustantivo, no un gesto. Permite solo afirmaciones respaldadas, cada fila lleva su limite en la misma fila, y eleva al responsable el conflicto de ubicacion de los resultados en vez de resolverlo por su cuenta."},
-    "5_no_mandatory_unresolved": {"state": "SATISFECHO CON LIMITACIONES", "auditor_basis": "Cero requisitos BLOCKED. Diez en PASS_WITH_LIMITATIONS, nueve de ellos distintos de SC-GOV-025. Ninguna de esas limitaciones requiere evidencia cientifica nueva y ninguna se atenua."}
+    "1_all_claims_have_evidence_or_accepted_limitation": {
+      "state": "SATISFECHO",
+      "auditor_basis": "10 de 10, recontadas por el auditor. CL-10 se cierra con la sintesis, la matriz final y la trazabilidad a la memoria; su circularidad es admisible porque su criterio es, por diseno, documental."
+    },
+    "2_valid_negative_terminal_documented": {
+      "state": "SATISFECHO",
+      "auditor_basis": "SIN_GANADOR_ESTABLE, la no inferioridad de B y NO_RECALIBRATION de H, verificados en origen y documentados como resultados validos. 'La ausencia de mejora general no es un error a corregir, y el expediente no la trata como tal'."
+    },
+    "3_complements_justified": {
+      "state": "SATISFECHO",
+      "auditor_basis": "Las condiciones de activacion de R, N y S no se dan, verificado contra el texto literal de cada requisito. H es el unico REQUIRED, ejecutado y auditado.",
+      "condition": "Satisfecho DESDE que este informe quedo registrado en los cuatro artefactos (hallazgo F-02), no antes."
+    },
+    "4_thesis_chapters_2_3_traced": {
+      "state": "SATISFECHO",
+      "auditor_basis": "thesis-traceability.md leido entero: artefacto sustantivo, no un gesto. Permite solo afirmaciones respaldadas, cada fila lleva su limite en la misma fila, y eleva al responsable el conflicto de ubicacion de los resultados en vez de resolverlo por su cuenta."
+    },
+    "5_no_mandatory_unresolved": {
+      "state": "SATISFECHO CON LIMITACIONES",
+      "auditor_basis": "Cero requisitos BLOCKED. Diez en PASS_WITH_LIMITATIONS, nueve de ellos distintos de SC-GOV-025. Ninguna de esas limitaciones requiere evidencia cientifica nueva y ninguna se atenua."
+    }
   },
-
   "verdict": {
     "SC-GOV-025": "PASS_WITH_LIMITATIONS",
     "gate_GF": "PASS_WITH_LIMITATIONS",
     "scope": "Alcance aprobado de HU7/HU8. NO certifica HU1 ni el Trabajo Final completo.",
     "auditor_quote": "La emito, con limitaciones y para el alcance aprobado de HU7/HU8 [...] Lo que sostiene mi PASS_WITH_LIMITATIONS es haber recomputado los numeros desde la evidencia y haber comprobado que el alcance esta honestamente delimitado, no el color de las pruebas.",
     "why_not_BLOCKED": "Las seis causas que el auditor final del complemento H enumero para mantenerlo BLOCKED estan resueltas, y ninguna exigia reabrir el holdout ni reejecutar A, B, C o H. Mantener el bloqueo seria sostener uno cuya causa ya fue resuelta.",
-    "why_not_full_PASS": "Diez requisitos conservan limitaciones materiales no subsanadas. Forzar PASS pleno seria falso."
+    "why_not_full_PASS": "Diez requisitos conservan limitaciones materiales no subsanadas. Forzar PASS pleno seria falso.",
+    "condition_under_which_it_was_issued": "El auditor lo emitio condicionado. Ronda 1: «Corregidos AF-01, AF-02 y AF-03, y declarados AF-05 y AF-06, el estado que sostengo para el snapshot resultante es PASS_WITH_LIMITATIONS». Ronda 2: verifico esos cinco terminos uno por uno, los dio por cumplidos y emitio el estado sobre el snapshot 0dbc976, renunciando a una tercera ronda a condicion de corregir ND-01, ND-02 y ND-03, que son las tres ediciones de este commit.",
+    "limitation_of_the_final_snapshot": "NINGUN lector independiente reviso el snapshot final que resulta de corregir ND-01..ND-03. El cierre descansa en la renuncia expresa del auditor y en que su condicion es verificable por inspeccion del diff. Se declara en lugar de presentarse como un PASS sobre el snapshot final."
   },
-
   "requirement_states_final": {
-    "PASS": ["SC-GOV-001","SC-GOV-002","SC-GOV-004","SC-GOV-005","SC-GOV-007","SC-GOV-009","SC-GOV-010","SC-GOV-011","SC-GOV-012","SC-GOV-013","SC-GOV-014","SC-GOV-020"],
-    "PASS_WITH_LIMITATIONS": ["SC-GOV-003","SC-GOV-006","SC-GOV-008","SC-GOV-015","SC-GOV-016","SC-GOV-017","SC-GOV-018","SC-GOV-019","SC-GOV-022","SC-GOV-025"],
-    "NOT_APPLICABLE": ["SC-GOV-021","SC-GOV-023","SC-GOV-024"],
+    "PASS": [
+      "SC-GOV-001",
+      "SC-GOV-002",
+      "SC-GOV-004",
+      "SC-GOV-005",
+      "SC-GOV-007",
+      "SC-GOV-009",
+      "SC-GOV-010",
+      "SC-GOV-011",
+      "SC-GOV-012",
+      "SC-GOV-013",
+      "SC-GOV-014",
+      "SC-GOV-020"
+    ],
+    "PASS_WITH_LIMITATIONS": [
+      "SC-GOV-003",
+      "SC-GOV-006",
+      "SC-GOV-008",
+      "SC-GOV-015",
+      "SC-GOV-016",
+      "SC-GOV-017",
+      "SC-GOV-018",
+      "SC-GOV-019",
+      "SC-GOV-022",
+      "SC-GOV-025"
+    ],
+    "NOT_APPLICABLE": [
+      "SC-GOV-021",
+      "SC-GOV-023",
+      "SC-GOV-024"
+    ],
     "BLOCKED": [],
-    "counts": {"PASS": 12, "PASS_WITH_LIMITATIONS": 10, "NOT_APPLICABLE": 3, "BLOCKED": 0, "total": 25},
+    "counts": {
+      "PASS": 12,
+      "PASS_WITH_LIMITATIONS": 10,
+      "NOT_APPLICABLE": 3,
+      "BLOCKED": 0,
+      "total": 25
+    },
     "note": "El recuento 11/11/3 del snapshot 7e63d1c era falso (hallazgo F-03) y esta corregido. La tabla autoritativa vive en traceability.md, seccion 'Matriz final de requisitos — 2026-09-22'."
   },
-
   "points_the_auditor_could_not_verify_and_refuses_to_pass_on_trust": [
-    {"id": "AF-05", "point": "INV-10 (74 pruebas focalizadas de H) y la reproduccion estricta 18/18", "why": "Ni la auditoria de H (AUD-H-09) ni esta pudieron ejecutarlas. BLOCKED por punto. NO deben presentarse como auditadas.", "blocks": "nada; debe quedar declarado"},
-    {"id": "AF-06", "point": "75 de los 91 archivos originales de evidence/{A,B,C} y la imagen sha256:55bc923e...b297af", "why": "Los originales son root:600 y solo 14 fueron legibles en origen; la verificacion de los 75 restantes descansa en el respaldo, verificado entero. La imagen no es inspeccionable desde esta distro (GD-21). BLOCKED por punto.", "blocks": "nada; debe quedar declarado"}
+    {
+      "id": "AF-05",
+      "point": "INV-10 (74 pruebas focalizadas de H) y la reproduccion estricta 18/18",
+      "why": "Ni la auditoria de H (AUD-H-09) ni esta pudieron ejecutarlas. BLOCKED por punto. NO deben presentarse como auditadas.",
+      "blocks": "nada; debe quedar declarado"
+    },
+    {
+      "id": "AF-06",
+      "point": "75 de los 91 archivos originales de evidence/{A,B,C} y la imagen sha256:55bc923e...b297af",
+      "why": "Los originales son root:600 y solo 14 fueron legibles en origen; la verificacion de los 75 restantes descansa en el respaldo, verificado entero. La imagen no es inspeccionable desde esta distro (GD-21). BLOCKED por punto.",
+      "blocks": "nada; debe quedar declarado"
+    },
+    {
+      "id": "BF-04",
+      "point": "La fidelidad literal de la transcripcion verbatim de los dos informes",
+      "why": "No existe copia independiente contra la cual diferenciarlos: se incorporaron al arbol en el mismo commit que la correccion. El propio README de reviews/ lo declara. Lo que si es verificable, y el auditor lo verifico, es que el veredicto NO fue alterado y que cada frase que los demas artefactos atribuyen al auditor aparece literalmente en su informe. BLOCKED por punto.",
+      "blocks": "nada; debe quedar declarado"
+    }
   ],
-
   "remaining_scientific_blockers": [],
   "remaining_scientific_blockers_note": "Ninguno. Cita del auditor: 'No queda ninguna pregunta cientifica sin responder dentro del alcance aprobado, ninguna afirmacion sin evidencia o sin limite aceptado, y ningun obligatorio irresuelto'. Nada de lo pendiente exige reabrir el holdout, reejecutar A, B, C ni H, ni producir evidencia cientifica nueva.",
-
   "limitations_that_must_remain_declared": "Las diecinueve del apartado 9 del informe verbatim. NO se transcriben aqui en forma abreviada para no debilitarlas: viven en reviews/review-audit-final.md, en la matriz final de traceability.md y en la seccion 9 de docs/research/scientific-closure-synthesis-2026-09-22.md.",
-
   "explicit_warning_preserved": "No se acepta como cierre cientifico que el checker de exit 0, que las 48 pruebas pasen, que OpenSpec valide 11/11 ni que la suite de verde. El propio criterio de SC-GOV-020 lo dice: ningun PASS estructural equivale a cierre cientifico."
 }

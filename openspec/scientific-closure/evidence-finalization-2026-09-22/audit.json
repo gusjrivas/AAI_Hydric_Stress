@@ -2,13 +2,13 @@
   "schema_version": "scientific_closure_audit.v1",
   "campaign_id": "evidence-finalization-2026-09-22",
   "change_id": "sc-06-scientific-synthesis",
-  "requirement_ids": ["SC-GOV-008"],
+  "requirement_ids": [
+    "SC-GOV-008"
+  ],
   "task": "T08",
   "emitted_at_utc": "2026-09-22T02:20:00Z",
   "author_of_this_file": "orquestador (scientific_implementer). El auditor no escribe archivos; su informe se preserva verbatim aparte.",
-
   "object": "Revision independiente del change sc-06-scientific-synthesis, conforme a operations.md.",
-
   "identity_separation": {
     "implementer": "orquestador de esta sesion (Claude Opus 5). Escribio los documentos y la gobernanza.",
     "auditor": "scientific_auditor independiente, sesion NUEVA y SEPARADA, de solo lectura, sin acceso al contexto del implementador.",
@@ -16,7 +16,6 @@
     "how_it_is_evidenced": "El informe se preserva verbatim en reviews/review-audit-final.md, en las palabras de su autor, con su veredicto FAIL intacto. Es la remediacion permanente de AUD-H-01, que a su vez reproducia AUD-F-02: un resumen escrito por el implementador NO acredita identidad separada.",
     "limitation": "El archivo es la transcripcion que el orquestador hace de la respuesta del lector. NO es una firma verificable externamente. Lo verificable es que el orquestador no altero el veredicto: el FAIL se conserva, junto con los tres hallazgos materiales que obligaron a rehacer parte del trabajo."
   },
-
   "procedure_and_its_declared_deviation": {
     "operations_md_prescribes": "checker -> critico -> auditor independiente, en pasadas separadas.",
     "what_was_done": "UNA sola pasada de revision independiente, que cubrio critica y auditoria.",
@@ -25,43 +24,106 @@
     "limitation_not_remedied": "No fueron dos lectores distintos y no se presenta como si lo fueran. El propio auditor lo confirma: 'Lo confirmo: soy un solo lector'. Por eso SC-GOV-008 queda PASS_WITH_LIMITATIONS y no PASS pleno.",
     "scope_of_the_exception": "Acotada a esta operacion. NO enmienda operations.md ni deroga la secuencia para futuras sesiones."
   },
-
   "rounds": [
     {
       "round": 1,
       "snapshot": "7e63d1c054ca295009fb3285b051bb0a10022688",
       "verdict": "FAIL",
       "material_findings": [
-        {"id": "F-01", "summary": "La matriz final acreditaba scientific-closure-audit.json como existente y fijaba el estado de SC-GOV-025 sobre esa base, ANTES de que la auditoria se realizara. Recurrencia literal de AUD-F-01, en la misma fila de requisito, dos dias despues.", "resolution": "CORREGIDO. Las dos filas citan ahora el informe real por su ubicacion, y scientific-closure-audit.json se emitio a partir de el."},
-        {"id": "F-02", "summary": "El conjunto 3, GD-30 y plan.md declaraban 'criticada y auditada' una revision que los cuatro artefactos marcaban independent_review: PENDING.", "resolution": "CORREGIDO. Los cuatro artefactos llevan el veredicto del auditor y su ubicacion; el conjunto 3 y GD-30 registran que solo rigen desde ese momento."},
-        {"id": "F-03", "summary": "El recuento final declaraba 11/11/3 y la propia tabla da 12/10/3. Reincidencia de EV-02. Dos errores que se compensaban en el total 25.", "resolution": "CORREGIDO a 12/10/3/0, con la tabla de transiciones rehecha contra la linea de base correcta (14/7/4, post-H)."}
+        {
+          "id": "F-01",
+          "summary": "La matriz final acreditaba scientific-closure-audit.json como existente y fijaba el estado de SC-GOV-025 sobre esa base, ANTES de que la auditoria se realizara. Recurrencia literal de AUD-F-01, en la misma fila de requisito, dos dias despues.",
+          "resolution": "CORREGIDO. Las dos filas citan ahora el informe real por su ubicacion, y scientific-closure-audit.json se emitio a partir de el."
+        },
+        {
+          "id": "F-02",
+          "summary": "El conjunto 3, GD-30 y plan.md declaraban 'criticada y auditada' una revision que los cuatro artefactos marcaban independent_review: PENDING.",
+          "resolution": "CORREGIDO. Los cuatro artefactos llevan el veredicto del auditor y su ubicacion; el conjunto 3 y GD-30 registran que solo rigen desde ese momento."
+        },
+        {
+          "id": "F-03",
+          "summary": "El recuento final declaraba 11/11/3 y la propia tabla da 12/10/3. Reincidencia de EV-02. Dos errores que se compensaban en el total 25.",
+          "resolution": "CORREGIDO a 12/10/3/0, con la tabla de transiciones rehecha contra la linea de base correcta (14/7/4, post-H)."
+        }
       ],
       "minor_findings": [
-        {"id": "F-04", "summary": "«Los cambios son ocho» encabezaba una lista de nueve, y atribuia a SC-GOV-016 un descenso que no ocurrio.", "resolution": "CORREGIDO en la matriz y en GD-34: son tres descensos, no cuatro, y ocho cambios contra la linea de base post-H."},
-        {"id": "F-05", "summary": "Tres cifras distintas para el mismo conjunto de requisitos con limitaciones: 'once' en GD-33 y plan.md, 'nueve' en la matriz.", "resolution": "CORREGIDO y unificado: diez en PASS_WITH_LIMITATIONS, nueve de ellos distintos de SC-GOV-025."},
-        {"id": "F-06", "summary": "claims.md conservaba en presente y sin marca de supersesion dos afirmaciones hoy falsas.", "resolution": "CORREGIDO con un bloque de supersesion que NO reescribe el texto historico, y con la palabra 'supersede' en la seccion nueva."},
-        {"id": "F-07", "summary": "La sintesis rotulaba el segundo contraste de H como 'mezcla la actualizacion temporal con las correcciones'; es la actualizacion temporal SIN correcciones.", "resolution": "CORREGIDO. Se publican los tres contrastes con sus nombres. Al recomputarlos se hallo ademas que el valor de la semilla 4 es +0,005466 y no +0,005467 como decia la lista del informe: redondeo del transcriptor, corregido en la sintesis y NO en el informe, que se preserva verbatim."},
-        {"id": "F-08", "summary": "La tabla de C imprimia '—' para el ROC-AUC y el episode_recall de la persistencia, que la evidencia si publica.", "resolution": "CORREGIDO con los valores verificados por el orquestador en C/metrics.json: 0,786719 y 0,500000."},
-        {"id": "F-09", "summary": "El encargo describia el diff como de 12 archivos; son 13.", "resolution": "REGISTRADO. No es un defecto del artefacto auditado sino del enunciado del encargo."}
+        {
+          "id": "F-04",
+          "summary": "«Los cambios son ocho» encabezaba una lista de nueve, y atribuia a SC-GOV-016 un descenso que no ocurrio.",
+          "resolution": "CORREGIDO en la matriz y en GD-34: son tres descensos, no cuatro, y ocho cambios contra la linea de base post-H."
+        },
+        {
+          "id": "F-05",
+          "summary": "Tres cifras distintas para el mismo conjunto de requisitos con limitaciones: 'once' en GD-33 y plan.md, 'nueve' en la matriz.",
+          "resolution": "CORREGIDO y unificado: diez en PASS_WITH_LIMITATIONS, nueve de ellos distintos de SC-GOV-025."
+        },
+        {
+          "id": "F-06",
+          "summary": "claims.md conservaba en presente y sin marca de supersesion dos afirmaciones hoy falsas.",
+          "resolution": "CORREGIDO con un bloque de supersesion que NO reescribe el texto historico, y con la palabra 'supersede' en la seccion nueva."
+        },
+        {
+          "id": "F-07",
+          "summary": "La sintesis rotulaba el segundo contraste de H como 'mezcla la actualizacion temporal con las correcciones'; es la actualizacion temporal SIN correcciones.",
+          "resolution": "CORREGIDO. Se publican los tres contrastes con sus nombres. Al recomputarlos se hallo ademas que el valor de la semilla 4 es +0,005466 y no +0,005467 como decia la lista del informe: redondeo del transcriptor, corregido en la sintesis y NO en el informe, que se preserva verbatim."
+        },
+        {
+          "id": "F-08",
+          "summary": "La tabla de C imprimia '—' para el ROC-AUC y el episode_recall de la persistencia, que la evidencia si publica.",
+          "resolution": "CORREGIDO con los valores verificados por el orquestador en C/metrics.json: 0,786719 y 0,500000."
+        },
+        {
+          "id": "F-09",
+          "summary": "El encargo describia el diff como de 12 archivos; son 13.",
+          "resolution": "REGISTRADO. No es un defecto del artefacto auditado sino del enunciado del encargo."
+        }
       ]
     },
     {
       "round": 2,
-      "snapshot": "pendiente de fijar en el commit de correccion",
+      "snapshot": "0dbc976363d08c5b8c1015afbca0785b5abedb88",
       "scope": "SOLO la correccion de F-01..F-08, conforme al encargo: 'Si encuentra un defecto documental material, corregilo y revisa solamente esa correccion'.",
-      "verdict": "ver reviews/review-audit-final-correction.md"
+      "verdict": "FAIL",
+      "verdict_scope": "FAIL de dos frases. El auditor verifico que los NUEVE hallazgos de la ronda 1 estan resueltos, que el recuento cierra en 12/10/3/0, que la tabla de transiciones cierra contra 14/7/4, que la evidencia esta intacta (91/91 y 100/100) y que su propio informe se preservo con el FAIL sin alterar. El FAIL lo causa UN defecto nuevo del propio orquestador.",
+      "new_findings": [
+        {
+          "id": "ND-01",
+          "severity": "MATERIAL",
+          "summary": "audit.json declaraba «PASS tras la correccion» y los hallazgos «corregidos y re-revisados» ANTES de que existiera la re-revision. Cuarta reincidencia del patron AUD-F-01 / F-01 en este expediente, y esta vez en el artefacto creado para remediarlo.",
+          "resolution": "CORREGIDO en este mismo archivo: la ronda 2 registra su FAIL real y el veredicto del change se emite citando el informe de la ronda 2, que ya existe."
+        },
+        {
+          "id": "ND-02",
+          "severity": "MENOR",
+          "summary": "reviews/README.md listaba review-audit-final-correction.md como informe preservado cuando el archivo no existia.",
+          "resolution": "CORREGIDO: el informe existe y la fila lo describe con su veredicto real."
+        },
+        {
+          "id": "ND-03",
+          "severity": "PRECISION",
+          "summary": "El bloque verdict de scientific-closure-audit.json omitia que el PASS_WITH_LIMITATIONS se emitia bajo la condicion de corregir F-01, F-02 y F-03; y audit_history[1].report nombraba un informe inexistente sin marcarlo pendiente.",
+          "resolution": "CORREGIDO: se anadio el campo condition y la ronda 2 apunta a su informe real."
+        }
+      ],
+      "report": "openspec/scientific-closure/evidence-finalization-2026-09-22/reviews/review-audit-final-correction.md",
+      "auditor_waiver": "El auditor renuncio expresamente a una tercera ronda: «Corregidos ND-01, ND-02 y ND-03 —tres ediciones de una o dos frases cada una, sin tocar la matriz, la sintesis ni la evidencia—, no exijo otra ronda de auditoria: el estado que sostengo para el snapshot resultante es SC-GOV-025 y GF en PASS_WITH_LIMITATIONS»."
     }
   ],
-
   "self_detected_before_the_report": {
-    "findings": ["F-03", "F-04", "F-05"],
+    "findings": [
+      "F-03",
+      "F-04",
+      "F-05"
+    ],
     "declaration": "El orquestador habia detectado estos tres defectos ANTES de recibir el informe y los dejo deliberadamente en el snapshot auditado, para no alterar el arbol mientras el lector trabajaba sobre el commit 7e63d1c. Se declara en lugar de omitirse (GD-37): la revision independiente NO es la unica fuente que los detecto. Los otros seis, incluidos los dos materiales F-01 y F-02, los encontro el auditor y solo el."
   },
-
   "verdict": {
     "change": "sc-06-scientific-synthesis",
-    "result": "PASS tras la correccion de los hallazgos materiales",
+    "result": "PASS",
+    "what_the_two_rounds_actually_said": "Ronda 1: FAIL por F-01, F-02 y F-03. Ronda 2: FAIL por ND-01, con ND-02 y ND-03. Los dos veredictos fueron FAIL y ninguno se sustituye por el resultado favorable.",
+    "basis_of_the_PASS": "El auditor independiente emitio, en el informe de la ronda 2 y por escrito, el veredicto de fondo PASS_WITH_LIMITATIONS para SC-GOV-025 y para el gate GF sobre el snapshot 0dbc976, y renuncio expresamente a una tercera ronda condicionando el cierre a corregir ND-01, ND-02 y ND-03. Esas tres correcciones son las de este commit y NO tocan la matriz, la sintesis ni la evidencia.",
+    "limitation_of_this_PASS": "NINGUN lector independiente reviso el snapshot final. El cierre descansa en la renuncia expresa del auditor y en que la condicion que puso es verificable por inspeccion del diff. Se declara en lugar de presentarse como un tercer PASS que no existe.",
     "requirement": "SC-GOV-008 = PASS_WITH_LIMITATIONS",
-    "basis": "Auditor independiente distinto del implementador, informe preservado verbatim, hallazgos materiales corregidos y re-revisados. La limitacion es la pasada unica en lugar de la secuencia checker -> critico -> auditor."
+    "requirement_basis": "Auditor independiente distinto del implementador, dos informes preservados verbatim con sus dos FAIL intactos, hallazgos corregidos. Limitaciones: la pasada unica en lugar de la secuencia checker -> critico -> auditor (GD-35), y que la fidelidad literal de la transcripcion no es auditable desde este repositorio (BF-04)."
   }
 }

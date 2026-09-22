@@ -467,7 +467,7 @@
         "T16",
         "T25"
       ],
-      "status": "REVIEW",
+      "status": "PASS",
       "approved_for_implementation": true,
       "scientific_execution_authorized": false,
       "extra_gate": "Audited terminal A or B or C AND all REQUIRED auxiliaries audited; UNRESOLVED blocks closure",
@@ -480,7 +480,21 @@
         "scope": "Consolidar documentalmente el cierre cientifico: matriz final de requisitos, sintesis cientifica canonica de los resultados obtenidos, clasificacion final de afirmaciones y trazabilidad a los capitulos 2 y 3 de la memoria. NO autoriza ejecutar A, B, C ni H, NO autoriza abrir el holdout, NO autoriza generar evidencia cientifica nueva ni modificar codigo cientifico, contratos o resultados.",
         "source": "Encargo del responsable del 2026-09-22 sobre la rama feat/scientific-evidence-finalization, base origin/feat/scientific-closure, HEAD inicial 1c33aad8cbee765e2968bd164b5d4890743eea0a."
       },
-      "audit": null,
+      "audit": {
+        "verdict": "PASS",
+        "verdict_qualification": "PASS del change sobre el veredicto de fondo del auditor independiente, que fue PASS_WITH_LIMITATIONS para SC-GOV-025 y para el gate GF. Las dos rondas de revision terminaron en FAIL y los dos informes se preservan verbatim con su veredicto intacto.",
+        "actor": "scientific_auditor independiente, dos sesiones separadas de solo lectura, distintas del implementador",
+        "timestamp_utc": "2026-09-22T03:05:00Z",
+        "snapshot": "0dbc976363d08c5b8c1015afbca0785b5abedb88",
+        "scope": "Cierre documental del alcance aprobado HU7/HU8: suficiencia de GD-12 y de R/N/S, estados de gobernanza, ausencia de sobreafirmaciones, coherencia entre evidencia, claims y trazabilidad, y pronunciamiento sobre GF y SC-GOV-025.",
+        "evidence": "openspec/scientific-closure/evidence-finalization-2026-09-22/reviews/review-audit-final-correction.md; openspec/scientific-closure/evidence-finalization-2026-09-22/reviews/review-audit-final.md; openspec/scientific-closure/evidence-finalization-2026-09-22/scientific-closure-audit.json",
+        "limitations": [
+          "Una sola pasada de revision por ronda, en lugar de la secuencia checker -> critico -> auditor de operations.md, por instruccion expresa del responsable (GD-35). Un solo lector, confirmado por el.",
+          "NINGUN lector independiente reviso el snapshot final posterior a la correccion de ND-01..ND-03. El cierre descansa en la renuncia expresa del auditor y en que su condicion es verificable por inspeccion del diff (GD-39).",
+          "La fidelidad literal de la transcripcion verbatim no es auditable desde este repositorio: no existe copia independiente (BF-04, GD-40).",
+          "El change cierra el alcance aprobado de HU7/HU8. NO certifica HU1 ni el Trabajo Final completo."
+        ]
+      },
       "state_events": [
         {
           "from": "PLANNED",
@@ -537,6 +551,38 @@
           "timestamp_utc": "2026-09-22T02:35:00Z",
           "reason": "Snapshot de correccion congelado para la re-revision, que por encargo alcanza UNICAMENTE a la correccion y no reabre la revision completa.",
           "evidence": "openspec/scientific-closure/evidence-finalization-2026-09-22/reviews/review-audit-final-correction.md (pendiente en este snapshot)"
+        },
+        {
+          "from": "REVIEW",
+          "to": "FAIL",
+          "actor": "/scientific_auditor_independiente_cierre_documental",
+          "timestamp_utc": "2026-09-22T03:05:00Z",
+          "reason": "Segundo FAIL, sobre el snapshot 0dbc976. El auditor verifico los NUEVE hallazgos de la ronda 1 como RESUELTOS, reconto la matriz (12/10/3/0), reconstruyo la linea de base 14/7/4, recomputo la semilla 4 de H dandole la razon al implementador contra su propio informe, y confirmo 91/91 y 100/100 hashes. El FAIL lo causa UN defecto nuevo: ND-01, audit.json declaraba «PASS tras la correccion» y «re-revisados» antes de que existiera esta re-revision. Cuarta reincidencia del patron AUD-F-01, en el archivo creado para remediarlo.",
+          "evidence": "openspec/scientific-closure/evidence-finalization-2026-09-22/reviews/review-audit-final-correction.md"
+        },
+        {
+          "from": "FAIL",
+          "to": "IN_PROGRESS",
+          "actor": "/orquestador_cierre_documental",
+          "timestamp_utc": "2026-09-22T03:15:00Z",
+          "reason": "Correccion de ND-01, ND-02 y ND-03: tres ediciones de una o dos frases en audit.json, reviews/README.md y scientific-closure-audit.json. NO tocan la matriz, la sintesis, la evidencia, src/ ni el checker (GD-39).",
+          "evidence": "openspec/scientific-closure/evidence-finalization-2026-09-22/audit.json; openspec/scientific-closure/evidence-finalization-2026-09-22/scientific-closure-audit.json; openspec/scientific-closure/evidence-finalization-2026-09-22/reviews/README.md"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "REVIEW",
+          "actor": "/orquestador_cierre_documental",
+          "timestamp_utc": "2026-09-22T03:20:00Z",
+          "reason": "Snapshot de cierre. El auditor renuncio EXPRESAMENTE a una tercera ronda condicionando el cierre a corregir ND-01, ND-02 y ND-03, condicion verificable por inspeccion del diff. LIMITACION DECLARADA: ningun lector independiente reviso este snapshot final.",
+          "evidence": "openspec/scientific-closure/evidence-finalization-2026-09-22/reviews/review-audit-final-correction.md (renuncia expresa a una tercera ronda, apartado 10)"
+        },
+        {
+          "from": "REVIEW",
+          "to": "PASS",
+          "actor": "/orquestador_cierre_documental, sobre el veredicto de fondo del auditor independiente",
+          "timestamp_utc": "2026-09-22T03:25:00Z",
+          "reason": "Cierre del change. El auditor independiente emitio por escrito PASS_WITH_LIMITATIONS para SC-GOV-025 y para el gate GF sobre el snapshot 0dbc976, tras verificar uno por uno los cinco terminos que el mismo habia puesto como condicion. Los dos FAIL previos se conservan sin alterar en reviews/. El PASS del change NO se apoya en tests verdes: el propio auditor escribio que corrio las cuatro validaciones, que dan verde, y que ninguna de ellas es suficiencia cientifica.",
+          "evidence": "openspec/scientific-closure/evidence-finalization-2026-09-22/audit.json; openspec/scientific-closure/evidence-finalization-2026-09-22/reviews/review-audit-final-correction.md"
         }
       ]
     },

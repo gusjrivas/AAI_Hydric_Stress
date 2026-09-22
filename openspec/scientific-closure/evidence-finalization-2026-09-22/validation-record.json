@@ -92,6 +92,12 @@
       "command": "revalidacion posterior a la correccion: checker; pytest gobernanza+checker; OpenSpec estricto; git diff --check",
       "exit_code": 0,
       "result": "checker exit 0; 48 passed y 14 subtests; 11/11 exit 0; diff --check limpio. Se reejecutan porque la correccion toco documentos de gobernanza; NO se reejecuta la suite completa, que no fue afectada."
+    },
+    {
+      "id": "V-14",
+      "command": "revalidacion tras la correccion de ND-01..ND-03: checker; pytest gobernanza+checker; OpenSpec estricto; git diff --check",
+      "exit_code": 0,
+      "result": "checker exit 0; 48 passed y 14 subtests; 11/11 exit 0; diff --check limpio. La correccion toca tres archivos de gobernanza, la matriz (una seccion nueva), decisions.md y tasks.md. NO toca src/, scripts/, tests/, docker/, frontend/, la sintesis, la evidencia ni los ledgers."
     }
   ],
   "not_executed_and_why": [
@@ -105,6 +111,9 @@
     "El checker se ejecuto SIN modificarse. La transicion BLOCKED -> NOT_APPLICABLE que habria hecho falta para los changes condicionales no se habilito (GD-31).",
     "La divergencia con origin/main (PR #207, 2079d03) queda ABIERTA y declarada. No se integra en esta fase. Quien integre este trabajo en main debera resolverla, y hasta entonces ninguna afirmacion de identidad debe apoyarse en la referencia movil origin/main.",
     "AF-05 y AF-06 quedan BLOCKED por punto y NO PASS por confianza: INV-10 y la reproduccion estricta 18/18 de H siguen sin verificacion independiente, y el auditor solo pudo leer 14 de los archivos originales de evidence/{A,B,C} en su ubicacion, con 75 ilegibles por ser root:600; la imagen sha256:55bc923e… tampoco fue inspeccionada.",
-    "El primer veredicto de la revision independiente sobre esta fase fue FAIL, por tres hallazgos materiales de registro. Se conserva en reviews/review-audit-final.md y no se sustituye por el resultado favorable posterior."
+    "El primer veredicto de la revision independiente sobre esta fase fue FAIL, por tres hallazgos materiales de registro. Se conserva en reviews/review-audit-final.md y no se sustituye por el resultado favorable posterior.",
+    "El segundo veredicto de la revision independiente tambien fue FAIL, por ND-01: el orquestador escribio «PASS» y «re-revisados» en audit.json antes de que la re-revision existiera. Se conserva en reviews/review-audit-final-correction.md.",
+    "NINGUN lector independiente reviso el snapshot final. El cierre descansa en la renuncia expresa del auditor a una tercera ronda y en que su condicion es verificable por inspeccion del diff (GD-39). No se presenta como un tercer PASS.",
+    "BF-04: la fidelidad literal de la transcripcion verbatim de los dos informes no es auditable desde este repositorio, por no existir copia independiente (GD-40)."
   ]
 }

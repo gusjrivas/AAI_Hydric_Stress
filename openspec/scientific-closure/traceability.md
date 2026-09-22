@@ -439,6 +439,30 @@ hoy.
 | 4 | Memoria caps. 2/3 trazada | SATISFECHO | `openspec/scientific-closure/evidence-finalization-2026-09-22/thesis-traceability.md` |
 | 5 | Ningún obligatorio sin resolver | SATISFECHO CON LIMITACIONES | Cero requisitos `BLOCKED`. Diez quedan en `PASS_WITH_LIMITATIONS`; ninguna de sus limitaciones se atenúa y ninguna requiere evidencia científica nueva |
 
+### Las dos rondas de revisión independiente, y su límite
+
+| Ronda | Snapshot | Veredicto | Hallazgos | Informe |
+| --- | --- | --- | --- | --- |
+| 1 | `7e63d1c` | **FAIL** | `F-01`, `F-02`, `F-03` materiales; `F-04`–`F-07` menores; `F-08`, `F-09` de precisión | `reviews/review-audit-final.md` |
+| 2 | `0dbc976` | **FAIL** | `ND-01` material, `ND-02` menor, `ND-03` de precisión. Los nueve de la ronda 1 verificados como resueltos | `reviews/review-audit-final-correction.md` |
+
+**Los dos veredictos fueron `FAIL` y los dos se conservan sin atenuar.** Los
+cuatro hallazgos materiales del conjunto son de la misma familia —afirmar en el
+registro más de lo verificado— y ninguno tocó la ciencia: el auditor recomputó
+cerca de sesenta cifras de A, B, C y H contra la evidencia con **cero
+discrepancias numéricas**, verificó 91/91 y 100/100 hashes y leyó los ledgers en
+modo `ro`. `ND-01` fue el peor: el orquestador escribió «PASS» en el archivo
+creado para remediar `F-01`, antes de que la re-revisión existiera.
+
+**Límite del cierre, declarado en lugar de disimularse.** Ningún lector
+independiente revisó el snapshot **final**. El auditor renunció expresamente a
+una tercera ronda condicionando el cierre a corregir `ND-01`, `ND-02` y `ND-03`
+—tres ediciones de una o dos frases que no tocan esta matriz, ni la síntesis, ni
+la evidencia—, y esa condición es verificable por inspección del diff. El cierre
+descansa en esa renuncia, no en un tercer PASS (`GD-39`). Se añade que la
+fidelidad literal de la transcripción verbatim tampoco es auditable desde este
+repositorio, por no existir copia independiente (`BF-04`, `GD-40`).
+
 ### Lo que esta sesión no hizo y no puede afirmar
 
 No se ejecutó A, B, C ni H. No se abrió ni se releyó el holdout 2024–2025 para
