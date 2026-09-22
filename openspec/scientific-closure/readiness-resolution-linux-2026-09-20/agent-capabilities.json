@@ -1,0 +1,131 @@
+{
+  "schema_version": "1.0",
+  "record": "agent_capabilities_and_role_separation",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": [
+    "SC-GOV-006",
+    "SC-GOV-007"
+  ],
+  "captured_at_utc": "2026-09-20T04:34:00Z",
+  "runtime": {
+    "harness": "Claude Code",
+    "orchestrator_model_declared_by_runtime": "claude-opus-5",
+    "effective_model_introspectable": false,
+    "effective_reasoning_effort_introspectable": false,
+    "permission_mode": "bypassPermissions",
+    "subagent_mechanism": "Agent tool; each subagent runs in a separate context with its own transcript"
+  },
+  "substitution_notice": {
+    "configured_profiles_source": ".codex/agents/*.toml",
+    "configured_models": {
+      "scientific_explorer": "gpt-5.6-terra / medium / read-only",
+      "scientific_implementer": "gpt-5.6-sol / medium / workspace-write",
+      "evidence_checker": "gpt-5.6-luna / low / read-only",
+      "scientific_critic": "gpt-5.6-sol / high / read-only",
+      "scientific_auditor": "gpt-5.6-sol / xhigh / read-only"
+    },
+    "effective_models_used_in_this_session": "claude-opus-5 for every role",
+    "reason": "The .codex/agents profiles target a different runtime (Codex). This session runs under Claude Code, where those profiles are not loadable. The substitution is declared here and is NOT presented as compliance with the configured profiles.",
+    "explicit_non_claim": "No statement in this record asserts that a gpt-5.6 profile, its reasoning effort, or its nominal sandbox_mode was effectively in force."
+  },
+  "role_separation_as_practised": {
+    "explorer": {
+      "independent_context": true,
+      "wrote_files": false,
+      "note": "Read-only by instruction and by observed behaviour."
+    },
+    "implementer": {
+      "independent_context": true,
+      "wrote_files": true,
+      "assigned_paths_exclusive": [
+        "docs/research/scientific-closure-runbook.md",
+        "openspec/scientific-closure/inventory.md",
+        "openspec/scientific-closure/traceability.md",
+        "openspec/scientific-closure/current-execution-checkpoint.md"
+      ]
+    },
+    "orchestrator_acting_as_implementer": {
+      "declared": true,
+      "assigned_paths_exclusive": [
+        "scripts/readonly_role_sandbox.sh",
+        "scripts/verify_readonly_sandbox.sh",
+        "tests/test_readonly_role_sandbox.py",
+        "scripts/check_scientific_closure.py",
+        "tests/test_scientific_closure_checker.py",
+        "tests/test_scientific_closure_governance.py",
+        "openspec/scientific-closure/decisions.md",
+        "openspec/scientific-closure/risks.md",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/*",
+        "docs/research/scientific-closure-synthesis-2026-09-20.md",
+        "openspec/scientific-closure/changes.json (owner by operations.md; NOT modified in this session)"
+      ],
+      "note": "Declared explicitly because the orchestrator must not approve its own work. Its artefacts WERE submitted to an independent evidence checker and an independent adversarial critic, both of which reported (see observed_readers), and are submitted to an independent auditor on the final snapshot."
+    },
+    "single_writer_per_file": "Enforced by explicit path assignment; no two writers were assigned the same path. EXCEPTION, declared: openspec/scientific-closure/traceability.md was written first by the implementer and then, after the implementer had finished and reported, by the orchestrator, to close two non-terminal states and to apply critic findings F-01 and F-04. Ownership transfer was sequential, never concurrent.",
+    "observed_readers": {
+      "scientific_explorer": {
+        "dispatched": true,
+        "reported": true,
+        "independent_context": true,
+        "wrote_files": false,
+        "enforced_sandbox_used": false,
+        "note": "Dispatched before the enforcement wrapper existed; read-only by instruction and by observed behaviour only."
+      },
+      "evidence_checker": {
+        "dispatched": true,
+        "reported": true,
+        "independent_context": true,
+        "wrote_files": false,
+        "enforced_sandbox_used": true,
+        "verified_independently": "Reported that a write probe inside the repository returned 'Read-only file system' (exit 1) and that DNS/curl failed, i.e. it confirmed the enforcement from inside, rather than taking it on trust.",
+        "outcome": "All mechanical sections COINCIDE except one documented discrepancy about checkpoints.json coverage."
+      },
+      "scientific_critic": {
+        "dispatched": true,
+        "reported": true,
+        "independent_context": true,
+        "wrote_files": false,
+        "enforced_sandbox_used": true,
+        "verified_independently": "Attempted eight sandbox escape vectors (repo write, $HOME write, symlink, /proc/self/cwd, git config/checkout, mount -o remount,rw, nested bwrap --bind, unshare -Urm); all failed. Network unreachable.",
+        "outcome": "11 material findings, all in governance-state handling; no finding of covert execution, holdout reading, weakened tests or modified historic evidence. Verified by AST comparison that the ruff/black commit changed only import ordering."
+      },
+      "scientific_auditor": {
+        "dispatched": true,
+        "reported": true,
+        "independent_context": true,
+        "wrote_files": false,
+        "enforced_sandbox_used": true,
+        "reviewed_snapshot": "ccd3a9c5fdbc58b403edf44a0989351e0d642203",
+        "verified_independently": "Defeated the first version of the enforcement mechanism via WSL interop (finding A-01), recomputed all 27 manifest hashes, proved the formal checker is not trivially satisfiable by mutating a copy in ephemeral /tmp, and read the full synthesis line by line.",
+        "outcome": "PASS_WITH_LIMITATIONS on the audited readiness work; BLOCKED on global scientific closure.",
+        "self_disclosed_contamination": "Created and removed AUDIT_ESCAPE.txt while probing; declared it."
+      },
+      "scientific_auditor_second_pass": {
+        "dispatched": true,
+        "reported": true,
+        "independent_context": true,
+        "wrote_files": false,
+        "enforced_sandbox_used": true,
+        "reviewed_snapshot": "8e31f7800b351b76f2ec65b8673499c66234b91b",
+        "scope": "Bounded re-audit of the published snapshot: verification that A-01..A-07 were genuinely applied, plus non-regression.",
+        "outcome": "All seven corrections independently verified as applied; none declared-but-not-applied. PASS_WITH_LIMITATIONS / BLOCKED, snapshot declared publishable. Five new record-accuracy findings NF-01..NF-05.",
+        "contamination": "None; repository verified unchanged."
+      }
+    },
+    "revision_history": [
+      "v1 (04:34): described readers in the past tense before dispatch. Critic finding F-03.",
+      "v2: split into observed and intended. Re-audit finding NF-02 showed the split was itself stale, because this file was edited again after the audit while still saying the auditor had done nothing.",
+      "v3 (this version): every reader that actually reported is recorded as observed, including both auditor passes."
+    ]
+  },
+  "enforcement_status": {
+    "previous_state": "AUD-READ03 / LNX-03 / CRIT-SUB-01: reader roles were read-only by BEHAVIOUR only; no technical isolation was accredited.",
+    "resolution": "A reproducible enforcement mechanism now exists in the repository (scripts/readonly_role_sandbox.sh) and is verified by scripts/verify_readonly_sandbox.sh and tests/test_readonly_role_sandbox.py (10 tests). Writes to the repository and to the real HOME fail with EROFS; DNS resolution is unavailable; the sandbox /tmp and /dev are ephemeral; no probe survives outside; and the WSL Windows-interop escape is closed (/mnt is emptied, the binfmt helper is neutralised and the WSL environment variables are cleared).",
+    "residual_limitation": "The harness does not place a subagent process inside the sandbox. Enforcement applies to the shell commands a reader role executes through the wrapper, which is where its filesystem access happens. Two independent readers confirmed the enforcement from inside and one actively attempted eight escape vectors without success. A reader's own non-shell tool calls remain behaviourally, not technically, constrained. Additionally: /dev and /dev/shm inside the sandbox are writable tmpfs; they are ephemeral and invisible outside, so they are not an escape, but the wrapper's header formerly overstated that ALL writes outside the ephemeral /tmp fail. Corrected.",
+    "status": "PASS_WITH_LIMITATIONS",
+    "audit_finding_a01": "The independent auditor DEFEATED the first version of this mechanism: it ran /mnt/c/Windows/System32/curl.exe from inside the sandbox and obtained HTTP 200, then created a file in the root of the audited repository through \\\\wsl.localhost. Windows PE binaries execute on the Windows host, outside every Linux namespace, so neither --unshare-net nor --ro-bind reaches them. The critic had tried eight escape vectors, all Linux-native, and missed this one. The escape was reproduced, then closed, then covered by a regression test. The claim is now qualified: read-only and no network FOR LINUX PROCESSES, with the known WSL interop path closed. It is not claimed as absolute isolation."
+  },
+  "revised_at_utc": "2026-09-20T04:55:04.981765+00:00",
+  "revision_note": "Revised after an adversarial critic found (F-03) that the first version of this record described the evidence checker, critic and auditor in the past tense although none had been dispatched at capture time. That was forward-looking intent recorded as observed conduct. The roles below are now split into OBSERVED and INTENDED, and only roles that actually reported are recorded as observed."
+}

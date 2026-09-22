@@ -1,0 +1,159 @@
+{
+  "schema_version": "1.0",
+  "record": "claim_evidence_review",
+  "campaign_id": "closure-verification-2026-09-20",
+  "change_id": "sc-06-scientific-synthesis",
+  "requirement_ids": [
+    "SC-GOV-016"
+  ],
+  "captured_at_utc": "2026-09-20T18:05:00Z",
+  "object_reviewed": {
+    "path": "docs/research/scientific-closure-synthesis-2026-09-20.md",
+    "snapshot_commit": "b9fefbf36037ca259f4b17b68642d330bc489d39",
+    "reviewed_against": [
+      "openspec/scientific-closure/claims.md",
+      "openspec/scientific-closure/requirements.json (SC-GOV-016)",
+      "docs/research/controlled-daily-v4-external-pergamino-protocol.md",
+      "src/experiment_runner/controlled_daily_v4/"
+    ]
+  },
+  "attribution_correction_2026_09_20": {
+    "finding": "AUD-F-02, raised by the independent auditor over snapshot 5b40a55.",
+    "what_was_wrong": "The first version of this artefact declared reviewer.exact_report = 'review-critic.md' and the traceability row said the review had been 'transcrita sin alterar su veredicto'. That was a misattribution: the sixteen CER items below were COMPOSED BY THE ORCHESTRATOR. The preserved critic report contains no sixteen-item structure and none of CER-06, CER-07, CER-08, CER-11, CER-12, CER-13 or CER-14.",
+    "what_is_true": "Two independent readers reached the same SUBSTANTIVE conclusion about the synthesis, each in its own words and its own context, and both are preserved verbatim. Neither produced this item list. The item list is the orchestrator's own sentence-by-sentence check, corroborated by those two independent conclusions - not a transcription of either.",
+    "status_effect": "SC-GOV-016 remains PASS_WITH_LIMITATIONS, because the requirement's check is that a sentence-by-sentence review exists and finds no overstatement, and that is satisfied and independently corroborated twice. What changes is who is credited with which part."
+  },
+  "reviewer": {
+    "composition_of_this_artefact": "ORCHESTRATOR-COMPOSED item list (CER-01..CER-16), corroborated by two independent readers whose exact reports are preserved. It is NOT a transcription of either reader.",
+    "independent_corroboration": [
+      {
+        "role": "scientific_critic (substitute: Claude Code general-purpose subagent, model requested opus, separate context, instructed read-only)",
+        "snapshot": "b9fefbf36037ca259f4b17b68642d330bc489d39",
+        "exact_report": "review-critic.md",
+        "note": "The critic reached this while trying to REFUTE the synthesis; it appears under its heading 'What I could not refute'.",
+        "quoted_conclusion": "The synthesis does not overstate. Read against claims.md: no result claimed, no fixture presented as science, no holdout implied touched. It pre-empts the subtlest custody point itself - that hashing the full CSV in Stage A touches 2024-2025 bytes - and correctly distinguishes hashing from reading values. Section 5 correctly labels the Stage C --validate-inputs-only prohibition as 'Regla implementada en codigo, NO en el protocolo'."
+      },
+      {
+        "role": "scientific_auditor (substitute: Claude Code general-purpose subagent, model requested opus, separate context, instructed read-only)",
+        "snapshot": "5b40a55ef62f19cfa9125aa29146e53976661692",
+        "exact_report": "review-audit.md",
+        "note": "The auditor re-derived this itself while simultaneously raising AUD-F-02 against this artefact's attribution. It separated the substance, which it upheld, from the credit, which it rejected.",
+        "quoted_conclusion": "its substance is sound: I re-read the synthesis against claims.md and found no overstatement, no result claimed, no fixture presented as science, no implication the holdout was touched."
+      }
+    ],
+    "independence_limit": "Both readers ran in separate contexts and read the snapshot directly rather than accepting the orchestrator's summary. They are NOT independent in the stronger senses: same vendor and model family, and read-only status instructed by prompt rather than enforced by a sandbox. See session-identity.json.",
+    "quotation_fidelity_note": "Correction RA-03: these quotations are FAITHFUL BUT NOT BYTE-EXACT. Markdown emphasis was stripped and some accents and dashes normalised for JSON transport. No verdict, qualifier or negation was altered. The byte-exact texts are in review-critic.md and review-audit.md and prevail over these excerpts. The field was renamed from 'verbatim_conclusion' because, in an artefact whose whole correction concerned attribution, calling a normalised quote verbatim was the same kind of small overstatement."
+  },
+  "method": "Sentence-by-sentence reading of the synthesis against claims.md by the ORCHESTRATOR, looking for: a conclusion stronger than its evidence; documentary evidence presented as execution evidence; synthetic or fixture results presented as scientific results; leakage risk; any statement implying a holdout was touched; and confusion between onset anticipation and episode coverage. Two independent readers checked the same object for the same defects in their own words; their conclusions are quoted above and their full reports are preserved.",
+  "scope_limit_declared_up_front": "The synthesis contains NO scientific result, because no campaign was executed. This review can therefore only verify that non-execution is stated honestly and that no result is implied. It cannot and does not certify any scientific claim. A PASS here is not a PASS of sc-06 and not a gate.",
+  "orchestrator_item_check": [
+    {
+      "id": "CER-01",
+      "checked": "Does any sentence assert a metric, a model comparison or a candidate on Pergamino?",
+      "result": "NO. Section 8.1 states A, B and C NO EJECUTADA with zero artefacts, and states explicitly that no metric, prediction, fitted model or comparison exists.",
+      "verdict": "COMPLIANT"
+    },
+    {
+      "id": "CER-02",
+      "checked": "Is the hypothesis presented as refuted, supported, or negative?",
+      "result": "NO. It is declared NO EVALUADA, with the explicit distinction: 'No es un resultado negativo: es ausencia de ejecucion.' This is exactly the distinction claims.md and the session instruction require.",
+      "verdict": "COMPLIANT"
+    },
+    {
+      "id": "CER-03",
+      "checked": "Are the 486/545 passing tests presented as scientific evidence?",
+      "result": "NO. Every occurrence is qualified: 'evidencia tecnica sobre el software, no evidencia cientifica sobre la hipotesis'. Limitation 8 of section 10 states it again.",
+      "verdict": "COMPLIANT"
+    },
+    {
+      "id": "CER-04",
+      "checked": "Is any fixture presented as a real result?",
+      "result": "NO. The fixture rehearsal is described as a rehearsal; the fixtures themselves self-declare fixture:true, scientific:false, mcc null, with predictions dated year 2000.",
+      "verdict": "COMPLIANT"
+    },
+    {
+      "id": "CER-05",
+      "checked": "Does anything imply the 2024-2025 holdout was touched?",
+      "result": "NO, and the synthesis pre-empts the subtlest form of this objection itself: it discloses that Stage A hashing covers the whole CSV including the 2024-2025 bytes, and correctly distinguishes hashing a file from reading reserved values. Verified mechanically: the ledger directory is empty, no stage artefact exists, no value was read.",
+      "verdict": "COMPLIANT_AND_PRE_EMPTIVE"
+    },
+    {
+      "id": "CER-06",
+      "checked": "Is the P20 proxy presented as physiological stress?",
+      "result": "NO. Limitation 1 of section 10 states P20 is a reanalysis percentile, not measured physiological stress, and that nothing authorises asserting physiological stress.",
+      "verdict": "COMPLIANT"
+    },
+    {
+      "id": "CER-07",
+      "checked": "Is operational anticipation asserted?",
+      "result": "NO. Limitation 4 states published latencies may consume or exceed the nominal 3-day horizon and that prospective operational anticipation cannot be asserted without further own evidence.",
+      "verdict": "COMPLIANT"
+    },
+    {
+      "id": "CER-08",
+      "checked": "Are onset and episode_recall differentiated, as SC-GOV-016 requires explicitly?",
+      "result": "YES, in the protocol section the synthesis cites and in the support-conditions section: episode_recall measures episode coverage, not anticipation at onset; onset metrics separately distinguish anticipation, detection at onset, late detection and omission, with boundary censoring.",
+      "verdict": "COMPLIANT"
+    },
+    {
+      "id": "CER-09",
+      "checked": "Is v4 presented as a replication of v3?",
+      "result": "NO. The synthesis states the eight-feature v4 contract is DISTINCT from v3 and warns that a v3 to v4 difference does not by itself identify site, period or model effects. This is also the correction that origin/main's protocol still lacks.",
+      "verdict": "COMPLIANT"
+    },
+    {
+      "id": "CER-10",
+      "checked": "Are reanalysis products presented as field sensors?",
+      "result": "NO. Stated in section 2 and repeated as limitation 7 of section 10.",
+      "verdict": "COMPLIANT"
+    },
+    {
+      "id": "CER-11",
+      "checked": "Is HITL presented as a benefit to a real person?",
+      "result": "NO. H is declared REQUIRED, not executed, with no runner, and CL-06's limit (simulated corrections only, never a real person's benefit) is preserved.",
+      "verdict": "COMPLIANT"
+    },
+    {
+      "id": "CER-12",
+      "checked": "Is NOT_REQUIRED presented as PASS or as an executed experiment?",
+      "result": "NO. Section 8.2 states verbatim that NOT_REQUIRED is not PASS and does not mean the experiment ran.",
+      "verdict": "COMPLIANT"
+    },
+    {
+      "id": "CER-13",
+      "checked": "Are the session's negative results presented as failures to fix?",
+      "result": "NO. Section 8.4 lists five negative results as results, including that NASA POWER publishes no licence and that no physically independent storage exists.",
+      "verdict": "COMPLIANT"
+    },
+    {
+      "id": "CER-14",
+      "checked": "Is the reconstructed environment presented as the approved image?",
+      "result": "NO. Section 9 states the environment is RECONSTRUCTED, that no container was built, that no digest exists for it, and that no equivalence with sha256:55bc923e is claimed.",
+      "verdict": "COMPLIANT"
+    },
+    {
+      "id": "CER-15",
+      "checked": "Is any inference presented as a cited fact?",
+      "result": "NO, and the one load-bearing inference is flagged as such: applying the NASA ESDIS CC0 clause to NASA POWER requires assuming that a NASA-funded project counts as a NASA-led mission. The synthesis labels this 'Paso inferencial, declarado como tal' and says no official document states it in those words.",
+      "verdict": "COMPLIANT"
+    },
+    {
+      "id": "CER-16",
+      "checked": "Do the protocol's normative support rules actually exist in the code the synthesis describes?",
+      "result": "YES, verified in source by the independent critic, whose report cites the exact files and lines: selection.py rejects a family with fewer than two folds of finite MCC as NO_VALID_SELECTION; bootstrap.py enforces the 0.8 valid-replicate floor; config.py carries delta=0.05 and seeds 20250109 and 42. The synthesis does not overstate the implementation.",
+      "verdict": "COMPLIANT"
+    }
+  ],
+  "corrections_required_of_the_synthesis": [],
+  "corrections_applied_to_the_synthesis_in_this_session": [
+    "An 'Actualizacion 2026-09-20' section was appended recording: the two pushes found by finding C-02; the image-reachability reconciliation of finding C-18; the OpenSpec PATH precondition E-01; the storage precision E-04; and the requirement-status changes. No existing statement of the synthesis was weakened, strengthened or deleted, because none was found to be wrong."
+  ],
+  "verdict": "COMPLIANT_WITHIN_A_NON_EXECUTION_SCOPE",
+  "verdict_meaning": "The synthesis does not overstate. Every claim it makes is either a verified fact, a labelled inference, or an explicit statement of absence. This closes the artefact gap of SC-GOV-016 and nothing more: it is not a PASS of sc-06-scientific-synthesis, whose gate additionally requires an audited terminal A/B/C stage that does not exist.",
+  "limitations": [
+    "A review of claims can only be as strong as the claims available to review. With no execution, the hardest category - a result stated more strongly than its support - could not be exercised at all.",
+    "The independent critic ran without network and could not re-verify the external provenance URLs cited in section 2; those remain single-source, single-observer evidence, as the synthesis itself declares.",
+    "The independent readers' read-only status was instructed by prompt, not enforced by a sandbox.",
+    "The sixteen-item structure is the orchestrator's, not a reader's. Its value rests on two independent readers reaching the same substantive conclusion about the same document, not on the item list being independently produced (finding AUD-F-02)."
+  ]
+}

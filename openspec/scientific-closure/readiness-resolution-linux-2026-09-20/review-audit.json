@@ -1,0 +1,103 @@
+{
+  "schema_version": "1.0",
+  "record": "independent_final_audit_and_correction_cycle_2",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "audited_snapshot": "ccd3a9c5fdbc58b403edf44a0989351e0d642203",
+  "auditor": {
+    "role": "scientific_auditor",
+    "independent_context": true,
+    "first_reviewer_of_the_final_snapshot": true,
+    "wrote_no_versioned_file": true,
+    "model_requested": "gpt-5.6-sol / xhigh (profile not loadable in this runtime)",
+    "model_effective": "claude-opus-5",
+    "substitution_declared": true,
+    "enforced_sandbox": "scripts/readonly_role_sandbox.sh",
+    "self_verified_enforcement": "Yes, and DEFEATED it. See finding A-01.",
+    "self_disclosed_contamination": "While probing escape vectors the auditor caused a Windows binary to create AUDIT_ESCAPE.txt in the repository root. It verified the file was untracked, that no versioned file was touched (git diff --stat HEAD empty), removed it, and declared the incident rather than omitting it. The orchestrator independently re-verified: the file does not exist and git status is empty."
+  },
+  "verdicts": {
+    "audited_work_readiness_resolution": "PASS_WITH_LIMITATIONS",
+    "global_scientific_closure": "BLOCKED",
+    "verdicts_are_independent": "The auditor stated explicitly that the second is not derivable from the first: green tests are not scientific closure."
+  },
+  "what_the_auditor_verified_itself": [
+    "Identity, clean tree, 8 commits in dc0d3f5..HEAD, no push (remote still at dc0d3f5), no merges, no new tags.",
+    "The formal checker returns PASS and is NOT trivially satisfiable: on a mutated copy in ephemeral /tmp it detected an illegal BLOCKED->PASS transition, an incomplete approval and a PASS without audit, exiting 1.",
+    "48 governance/checker tests passed in 0.67 s, matching the recorded V-02 exactly.",
+    "All 27 evidence-manifest hashes recomputed: 26 matched.",
+    "Both input CSVs matched by hash and size.",
+    "changes.json is BYTE-IDENTICAL to the base and all 12 state_events are dated 2026-09-19; none fabricated on 2026-09-20.",
+    "src/, docker/, frontend/, backend/, docs/adr/, openspec/specs/, protocol v3, protocol v4 and the manifest: zero files changed.",
+    "src/, docker/ and pyproject.toml byte-identical to 214735e.",
+    "Ledger and evidence directories empty; zero run artefacts; no 2024-2025 value present.",
+    "No raw CSV tracked in git.",
+    "The full 454-line synthesis read: no overstatement found; all 11 known limitations present and undiluted.",
+    "ADR-0011 condition 4 read literally: the NOT_SATISFIED verdict is correct, neither too strict nor too lax, because the section fixing the normative support thresholds is load-bearing and absent from main."
+  ],
+  "accepted_as_recorded_not_verified": [
+    "The 486-test controlled_daily_v4 suite and the final_snapshot_run, not re-executed by instruction (10 minutes)."
+  ],
+  "new_findings": [
+    {
+      "id": "A-01", "severity": "high",
+      "summary": "Complete escape of the read-only enforcement through WSL interop: a Windows PE binary invoked from inside the sandbox runs on the Windows host, outside every Linux namespace, with full network and full write access to the repository via \\\\wsl.localhost.",
+      "reproduction": "/mnt/c/Windows/System32/curl.exe -s -o /dev/null -w '%{http_code}' https://example.com -> 200; cmd.exe created a file in the audited repository root.",
+      "why_the_critic_missed_it": "The critic tried eight escape vectors, all Linux-native (mount, unshare, nested bwrap, symlink, /proc/self/cwd, git). None exercised WSL interop.",
+      "scientific_impact": "NONE. No execution, holdout closed, no artefacts, no leakage. The impact is on the accuracy of a governance claim presented as resolving AUD-READ03 / LNX-03 / CRIT-SUB-01.",
+      "resolution": "REPRODUCED, CLOSED AND REGRESSION-TESTED",
+      "how": "The orchestrator reproduced the escape (HTTP 200 confirmed), then hardened the wrapper: --tmpfs /mnt hides the Windows drives, --ro-bind /dev/null /init neutralises the binfmt_misc interop helper, WSL_INTEROP / WSL_DISTRO_NAME / WSLENV / WSL2_GUI_APPS_ENABLED are cleared and PATH is reset without Windows entries. Re-tested: /mnt is empty, curl.exe is 'No such file or directory', DNS still fails, repository writes still EROFS, no probe leaks. The verifier now asserts wsl_windows_binaries_unreachable and mnt_is_empty, and a tenth test covers it. The claim is now qualified as 'read-only and no network FOR LINUX PROCESSES, with the known WSL interop path closed', explicitly not absolute isolation."
+    },
+    {
+      "id": "A-02", "severity": "medium",
+      "summary": "evidence-manifest.json did not cover the published snapshot: its entry for validation-results.json was stale because that file changed in the commit after the manifest was generated.",
+      "resolution": "CORRECTED", "how": "The manifest is regenerated as the last content step of the session, after every other file is final, so every listed hash matches the published state. The manifest necessarily cannot hash itself; that is stated in the file."
+    },
+    {
+      "id": "A-03", "severity": "medium",
+      "summary": "The correction for critic finding F-02 introduced an anachronism: the evidence_checker dispatch event cited evidence-manifest.json and claimed the reviewer recomputed its hashes, but that file did not exist at the reviewed commit; it was created two commits later.",
+      "resolution": "CORRECTED", "how": "evidence_manifest set to null with status NOT_AVAILABLE_AT_REVIEW_TIME, the false claim removed, and what the reviewer actually recomputed stated instead. The review anchor is the commit SHA plus the clean tree."
+    },
+    {
+      "id": "A-04", "severity": "medium",
+      "summary": "checkpoints.json self_reference_limit claimed only the final commit was necessarily absent; in the published snapshot two were.",
+      "resolution": "CORRECTED", "how": "Regenerated over every commit and the declaration rewritten to describe exactly which commit is absent and why."
+    },
+    {
+      "id": "A-05", "severity": "medium",
+      "summary": "traceability.md row SC-GOV-019 said checkpoints.json held 'the four commits of this session'; the artefact held 6 and the session had 8. F-10 was fixed in the artefact but not in the row describing it.",
+      "resolution": "CORRECTED"
+    },
+    {
+      "id": "A-06", "severity": "low",
+      "summary": "Sandbox test count stale in three places (8 vs 9), making 486+48+8 inconsistent with the recorded total of 543.",
+      "resolution": "CORRECTED", "how": "Counts updated to 10 after closing A-01, with the history of 8 -> 9 -> 10 recorded and each increment tied to the finding that caused it."
+    },
+    {
+      "id": "A-07", "severity": "low",
+      "summary": "Two values persisted for one measurement (994.22 s and 995 s).",
+      "resolution": "CORRECTED", "how": "Unified to 994.22 s everywhere."
+    }
+  ],
+  "auditor_judgement_on_f11": "The ordering irregularity is real but NOT material: no state was transitioned, no event fabricated, no gate relaxed, changes.json byte-identical. The evidence produced is precisely the input needed to decide whether sc-02 can leave BLOCKED. Accepted as a declared process irregularity, not as a breach. Residual consequence correctly declared: the evidence directory and the synthesis belong to no change's declared paths.",
+  "auditor_limitations": [
+    "Did not run the 486-test v4 suite (accepted as recorded).",
+    "Could not run the sandbox tests unnested; 7 of 9 passed, the 2 failures being nesting artefacts of its own wrapper, not defects.",
+    "No network (except the escape it documented and did not exploit for auditing): could not verify the three licence URLs, origin/main beyond the local ref, the Docker daemon or the approved image.",
+    "Did not open the holdout; no 2024-2025 value read.",
+    "Cannot prove which model ran each subagent nor that contexts were independent.",
+    "Contaminated and reverted the repository (AUDIT_ESCAPE.txt), declared.",
+    "Did not audit HU1-HU6, the UI or the technical report: out of scope."
+  ],
+  "correction_cycle": {"number": 2, "of_max": 3, "findings_dismissed": 0, "gates_relaxed": 0, "verdicts_improved": 0},
+  "merge_conditions_stated_by_the_auditor": [
+    "Regenerate evidence-manifest.json over the published commit (A-02).",
+    "Fix the anachronistic reference in workflow-events.jsonl event 13 (A-03).",
+    "Fix checkpoints.json self_reference_limit (A-04) and the SC-GOV-019 row (A-05).",
+    "Qualify the enforcement claim to exclude the WSL interop bypass (A-01).",
+    "Unify the stale test counts and duration (A-06, A-07).",
+    "Then the merge to main IS desirable and necessary, because it is exactly the external action that resolves ADR-0011 condition 4 - but it must carry the current detailed protocol, including the section 'Condiciones de interpretacion y soporte previas a ejecucion', without which the condition remains unsatisfied.",
+    "Merging does NOT authorise execution: the approved image inspection and the physically independent backup remain open, and stage A must run once and be audited before B."
+  ],
+  "all_merge_conditions_addressed_in_this_cycle": true,
+  "note_on_re_audit": "These corrections were made after the audit. The auditor's PASS_WITH_LIMITATIONS applies to ccd3a9c. A re-audit of the published snapshot was not performed within this session's correction budget; that is declared here rather than implied, and the published snapshot differs from the audited one exactly by these corrections, every one of which either weakens a claim or closes a demonstrated defect."
+}

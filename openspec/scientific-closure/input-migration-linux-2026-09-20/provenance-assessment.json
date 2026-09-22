@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "assessed_at_utc": null,
+  "assessed_at_status": "UNKNOWN; 2026-09-20T03:21:52Z was a later date command, not the exact assessment time",
+  "classification_values": ["VERIFIED","PARTIALLY_VERIFIED","UNKNOWN","BLOCKING_UNKNOWN","NON_BLOCKING_UNKNOWN"],
+  "evidence_scope": "Versioned manifest/ADR/protocol/runbook in the two authorized project repositories plus metadata/hash of the two exact source files. No web browsing or download.",
+  "datasets": [
+    {
+      "id": "pergamino_era5land_soil_hourly_2015_2025.csv",
+      "publisher": {"value":"Open-Meteo Archive API; model ERA5-Land with Copernicus/ECMWF catalogue reference","status":"VERIFIED","basis":"publisher and product are explicitly preserved in the versioned manifest"},
+      "documented_source": {"value":"Open-Meteo Archive API acquisition URL and Copernicus catalogue DOI 10.24381/cds.e2161bac","status":"VERIFIED","basis":"exact strings preserved in manifest; this verifies documentation, not the historical request"},
+      "preserved_urls": {"value":["https://archive-api.open-meteo.com/v1/archive?latitude=-33.89101&longitude=-60.57462&start_date=2015-01-01&end_date=2025-12-31&hourly=soil_moisture_0_to_7cm%2Csoil_moisture_7_to_28cm%2Csoil_moisture_28_to_100cm%2Csoil_moisture_100_to_255cm&models=era5_land&timezone=America%2FArgentina%2FBuenos_Aires&format=csv","https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land?tab=overview","https://open-meteo.com/en/terms"],"status":"VERIFIED","basis":"already preserved verbatim; not fetched in this migration"},
+      "license_or_terms": {"value":"Manifest states CC-BY-4.0 for Open-Meteo data and links terms; historical terms at acquisition are not proven","status":"PARTIALLY_VERIFIED","basis":"current project documentation explicitly records official terms check while disclaiming historical proof"},
+      "acquisition_date": {"value":null,"status":"UNKNOWN","basis":"project-reported 2026-09-08 remains unverified; filesystem mtime was not substituted"},
+      "transformation": {"value":"hourly-to-daily arithmetic mean, civil-day alignment and inner join as predeclared in manifest","status":"VERIFIED","basis":"versioned protocol definition; no transformation executed here"},
+      "file_hash": {"value":"318edffb89c64d5f500e35b5530e6064cb02f68b89bd28a71262c2ebb01f485f","status":"VERIFIED","basis":"source bytes match documented size and SHA-256; primary and backup copies match byte-for-byte"},
+      "unknown_information": {"value":"independent evidence of the historical API transaction and exact acquisition time","status":"UNKNOWN","basis":"A missing acquisition date is not intrinsically blocking, but no admissibility decision may be inferred from that fact."}
+    },
+    {
+      "id": "pergamino_nasa_power_daily_2015_2025.csv",
+      "publisher": {"value":"NASA POWER API; historical MERRA-2 and CERES SYN1deg metadata","status":"VERIFIED","basis":"publisher and product are explicitly preserved in the versioned manifest"},
+      "documented_source": {"value":"NASA POWER daily point API, community AG","status":"VERIFIED","basis":"exact API and official documentation URLs preserved; this verifies documentation, not the historical request"},
+      "preserved_urls": {"value":["https://power.larc.nasa.gov/api/temporal/daily/point?parameters=RH2M%2CALLSKY_SFC_SW_DWN%2CT2M%2CPRECTOTCORR&community=AG&longitude=-60.57462&latitude=-33.89101&start=20150101&end=20251231&format=CSV","https://power.larc.nasa.gov/docs/services/api/temporal/daily/","https://power.larc.nasa.gov/docs/tutorials/service-data-request/api/","https://power.larc.nasa.gov/docs/referencing/"],"status":"VERIFIED","basis":"already preserved verbatim; not fetched in this migration"},
+      "license_or_terms": {"value":null,"status":"BLOCKING_UNKNOWN","basis":"manifest retains PENDING_CONFIRMATION and explicitly forbids inferring a file-specific historical license from public access or general attribution guidance"},
+      "acquisition_date": {"value":null,"status":"UNKNOWN","basis":"project-reported 2026-09-08 remains unverified; filesystem mtime was not substituted"},
+      "historical_service_version": {"value":null,"status":"UNKNOWN","basis":"manifest records downloaded_service_version UNKNOWN; the normative blocking item is the unresolved documented provenance/admissibility gate as a whole, not a newly invented independent version requirement"},
+      "transformation": {"value":"daily date reconstruction and inner join as predeclared in manifest","status":"VERIFIED","basis":"versioned protocol definition; no transformation executed here"},
+      "file_hash": {"value":"415b4f71abb78e419b765110f4a42c3f32587b204d12897812df9573c5c2202b","status":"VERIFIED","basis":"source bytes match documented size and SHA-256; primary and backup copies match byte-for-byte"},
+      "unknown_information": {"value":"historical transaction receipt, effective terms/license and downloaded service version","status":"BLOCKING_UNKNOWN","basis":"ADR-0011 condition 2 requires confirmation or explicit discard of exact acquisition URLs and licenses/terms; SC-GOV-017 requires documentary evidence or an explicit admissibility/discard decision. The license/terms component remains blocking; date and service version remain unknown without becoming separate invented gates."}
+    }
+  ],
+  "bounded_search": {
+    "roots": ["/mnt/c/Repo/AAI_Hydric_Stress","/mnt/c/Repo/AAI_Hydric_Stress_scientific_closure"],
+    "paths": "versioned docs, manifests, runbooks, OpenSpec and configuration files only",
+    "method_record": "command-recheck.json contains timestamped git ls-files and git grep argv/stdout/stderr over the explicit tracked path list with GIT_OPTIONAL_LOCKS=0.",
+    "result": "No additional acquisition receipt, historical license record, image export or custody record was identified within this bounded tracked-file scope. This is not a claim of global absence on C:."
+  },
+  "overall": "BLOCKED"
+}

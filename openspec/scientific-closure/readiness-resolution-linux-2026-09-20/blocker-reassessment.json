@@ -1,0 +1,154 @@
+{
+  "schema_version": "1.0",
+  "record": "blocker_reassessment",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "assessed_at_utc": "2026-09-20T04:40:00Z",
+  "assessed_by": "orchestrator (acting as implementer); submitted to independent critic and auditor",
+  "snapshot_basis": "feat/scientific-closure working tree at the commit produced by this session; see audit record for the exact SHA.",
+  "lnx": {
+    "LNX-01": {
+      "previous": "PARTIALLY_SATISFIED",
+      "now": "PARTIALLY_SATISFIED",
+      "resolved": "Input custody on Linux is verified: both CSVs match the versioned manifest by SHA-256 and size, the logical backup is byte-identical (cmp exit 0), and the runner's own provenance validation returns exit 0. A Linux runtime root is now declared (GD-18).",
+      "residual": "Historic custody of the original evidence/ledger/backups directories is still not accredited; those directories were observed empty at migration time and no historic scientific run exists to certify."
+    },
+    "LNX-02": {
+      "previous": "BLOCKED",
+      "now": "PARTIALLY_SATISFIED",
+      "resolved": "A reproducible environment now exists and was exercised: Python 3.11.16 with the exact constraints pins, dependency consistency check clean, 486/486 controlled_daily_v4 tests passing, ruff and black available and run. Ruff/black/OpenSpec CLI are no longer unavailable.",
+      "residual": "BLOCKED for the container dimension: the approved image sha256:55bc923e...b297af was NOT inspected, exported or rebuilt, because no Docker daemon is reachable. The reconstructed environment is NOT the historic image and no equivalence is claimed."
+    },
+    "LNX-03": {
+      "previous": "OPEN / not accredited",
+      "now": "PASS_WITH_LIMITATIONS",
+      "resolved": "A technical read-only enforcement mechanism now exists and is verified: writes to the repository and to the real HOME fail with EROFS, DNS is unavailable, the sandbox /tmp is ephemeral, and no probe survives outside. Covered by 8 tests.",
+      "residual": "The harness does not place a subagent process itself inside the sandbox; enforcement covers the shell commands a reader role runs through the wrapper. Recorded, not overstated."
+    },
+    "LNX-04": {
+      "previous": "BLOCKED",
+      "now": "BLOCKED",
+      "resolved": "Nothing. The assessment was re-verified against a freshly fetched origin/main (9fcbfd9f4dd4860a07f7e99d5b16d849ac81c4af) and made more precise: ADR-0011 itself IS merged and byte-identical; the detailed protocol in main is a superseded version; the runner implementation is not in main.",
+      "residual": "ADR-0011 condition 4 unmet. Resolution requires a merge to main, explicitly outside this session's authorization."
+    },
+    "LNX-05": {
+      "previous": "BLOCKED",
+      "now": "PASS_WITH_LIMITATIONS",
+      "resolved": "Licence admissibility decided (GD-13) on official-source evidence: NASA POWER's own pages publish citation requirements but no licence or use restriction (verified negative, two pages); NASA ESDIS policy states that absent a marked restriction, NASA Earth science data are CC0 with no restrictions on use. ERA5-Land terms were already verified as CC-BY-4.0.",
+      "residual": "Effective acquisition dates remain UNKNOWN and were NOT derived from mtimes. Terms in force at the unknown acquisition instant were NOT verified; only current terms were. downloaded_service_version for POWER remains UNKNOWN."
+    },
+    "LNX-06": {
+      "previous": "PARTIALLY_SATISFIED",
+      "now": "PARTIALLY_SATISFIED",
+      "resolved": "A fresh backup and restoration rehearsal was executed with synthetic fixtures, including a quiescent SQLite online-API backup with content verification. Non-SQLite files are hash-identical and cmp exit 0.",
+      "residual": "Physical independence NOT achieved. All copies share device 2128 (/dev/sdf). /dev/sdd (1 TiB, ext4) exists unmounted; mounting requires root and sudo demands interactive authentication. A logical copy is NOT presented as a physically independent backup."
+    }
+  },
+  "aud_read": {
+    "AUD-READ01": {
+      "now": "PARTIALLY_REMEDIATED",
+      "basis": "Inputs relocated and verified on Linux; a runtime root is declared. Historic runtime/raw roots under /home/gus/work remain absent and historic custody remains uncertifiable."
+    },
+    "AUD-READ02": {
+      "now": "PARTIALLY_REMEDIATED",
+      "basis": "Ruff, black, pytest and the OpenSpec CLI are now available and were run. Docker remains unreachable, so the approved image and the executable commit cannot be certified by image inspection. The executable code identity was, however, established by a different and stronger route: src/, docker/ and pyproject.toml at HEAD are byte-identical to the declared executable commit 214735e (empty git diff)."
+    },
+    "AUD-READ03": {
+      "now": "REMEDIATED_WITH_LIMITATION",
+      "basis": "See LNX-03. Enforcement mechanism exists, is reproducible and is tested; residual limitation recorded."
+    },
+    "AUD-READ04": {
+      "now": "REMEDIATED_WITH_LIMITATION",
+      "basis": "See LNX-05 and GD-13."
+    },
+    "AUD-READ05": {
+      "now": "PARTIALLY_REMEDIATED",
+      "basis": "Rehearsal executed and verified; physical independence still missing. See LNX-06."
+    },
+    "AUD-READ06": {
+      "now": "BLOCKED",
+      "basis": "See LNX-04. Unchanged in substance, sharpened in evidence."
+    },
+    "AUD-READ07": {
+      "now": "PARTIALLY_REMEDIATED",
+      "basis": "Seven of the artefacts sc-02 lacked now exist in this directory: authorizations.json, agent-capabilities.json, execution-manifest.json, provenance-and-licence-assessment.json, recovery-rehearsal.json, structural-validation.json, checkpoints.json, plus workflow-events.jsonl. sc-02 itself remains BLOCKED because its acceptance requires an independent copy and an unblocked ADR-0011, neither of which is satisfied. G1 is NOT satisfied. The ordering irregularity of producing this evidence while sc-02 is BLOCKED is recorded in authorizations.json.governance_attribution_note rather than defended."
+    },
+    "AUD-READ08": {
+      "now": "REMEDIATED",
+      "basis": "Ruff and black were run in the pinned environment. 48 violations in the files this branch owns were fixed; ruff and black now exit 0 over them. The formal checker exits 0. OpenSpec strict validation passes 11/11 in scope. Two residual lint findings and one format finding live in files that pre-exist in origin/main and are unrelated to scientific closure; they were deliberately left untouched to keep this closure isolated."
+    }
+  },
+  "gates": {
+    "G0": "PASS (preparation, previously audited; re-validated structurally here)",
+    "G1": "NOT_SATISFIED",
+    "GA": "NOT_REACHED",
+    "GB": "NOT_REACHED",
+    "GC": "NOT_REACHED",
+    "GF": "NOT_REACHED"
+  },
+  "residual_external_blockers": [
+    {
+      "id": "EXT-01",
+      "title": "ADR-0011 pre-execution condition 4",
+      "exact_missing_input": "A merge into main of the current detailed protocol (docs/research/controlled-daily-v4-external-pergamino-protocol.md, HEAD sha256 e3fa7b6644171d0f80cfca6f3088e3e1fec44a0a6e63990deb05c26af5f8218a) and of the stage A/B/C runner implementation, so that the criteria under which a run would be judged are the ones merged in main.",
+      "evidence_of_absence": "git merge-base --is-ancestor 214735e42ee04f018156cd630591e798aadd8bf3 refs/remotes/origin/main exits 1; git diff --numstat origin/main HEAD on the protocol reports 42 additions / 2 deletions; origin/main lacks the section titled 'Condiciones de interpretacion y soporte previas a ejecucion' (numbered 16 in the branch, duplicating '16. Provenance', which IS in main).",
+      "impact": "No execution of A, B or C may begin. This is the binding blocker for the whole scientific campaign.",
+      "minimal_external_action": "Open a pull request from feat/scientific-closure (or a protocol-only branch) to main and merge it, then re-verify condition 4. Explicitly outside this session's authorization.",
+      "why_not_derivable": "The condition is normative and refers to the state of another branch. It cannot be satisfied by any local computation, and plan.md forbids inferring an exception."
+    },
+    {
+      "id": "EXT-02",
+      "title": "Approved container image not inspectable",
+      "exact_missing_input": "Access to a Docker daemon (or an equivalent rootless container runtime) from this WSL distro, so that 'docker image inspect sha256:55bc923e...b297af' can demonstrate the exact image ID.",
+      "evidence_of_absence": "docker version exits 1 ('could not be found in this WSL 2 distro'); /var/run/docker.sock absent; all Docker Desktop proxy sockets return 'permission denied' for uid 1000; podman/nerdctl/buildah absent; sudo requires interactive authentication.",
+      "impact": "The historic image identity cannot be certified. SC-GOV-009 cannot reach PASS on its image dimension.",
+      "minimal_external_action": "Enable Docker Desktop WSL integration for this distro, or grant this user access to a daemon socket.",
+      "why_not_derivable": "Rebuilding an image would produce a different digest and is explicitly forbidden from being claimed equivalent."
+    },
+    {
+      "id": "EXT-03",
+      "title": "Physically independent backup",
+      "exact_missing_input": "A writable, persistent filesystem on a block device distinct from /dev/sdf.",
+      "evidence_of_absence": "Only / (/dev/sdf, ext4) is writable and persistent for this user; /mnt/c is read-only 9p; /tmp is tmpfs. /dev/sdd (1 TiB, ext4) is present but unmounted and 'mount /dev/sdd /mnt' exits 32 ('must be superuser'); 'sudo -n true' exits 1.",
+      "impact": "SC-GOV-018 cannot reach full PASS; the second copy remains logical.",
+      "minimal_external_action": "An operator with root mounts /dev/sdd (or an external volume) at a writable path and grants this user write access.",
+      "why_not_derivable": "Physical independence is a property of storage topology, not of file content."
+    }
+  ],
+  "non_blocking_defects_recorded": [
+    {
+      "id": "DEF-01",
+      "location": "src/experiment_runner/controlled_daily_v4/__init__.py and config.py",
+      "observed": "Docstrings still state that stages B and C are not implemented and that their bounds exist only so the runner can reject them. Contradicted by stage_b_runner.py, stage_c_runner.py and cli.py (--stage accepts A, B and C).",
+      "why_not_fixed_here": "Editing src/ would destroy the verified property that src/ at HEAD is byte-identical to the declared executable commit 214735e, which is itself gate-relevant evidence for SC-GOV-009. Recorded for correction in the same change that resolves ADR-0011 condition 4, which must touch main anyway. See GD-16."
+    },
+    {
+      "id": "DEF-02",
+      "location": "scripts/check_scientific_closure.py check_runbook",
+      "observed": "The formal checker validates the runbook by presence of headings and tokens only; it accepted a runbook whose stage commands were not invocable.",
+      "why_not_fixed_here": "Fixing it requires either executing the documented command (which for stages B/C is forbidden without authorization) or a syntactic invocability check. Recorded as a known limitation of the checker; the underlying runbook defect was corrected (GD-16)."
+    }
+  ],
+  "overall": {
+    "readiness_gate_G1": "BLOCKED",
+    "scientific_execution_authorized_and_exercisable": false,
+    "campaigns_executed": {
+      "A": "NOT_EXECUTED",
+      "B": "NOT_EXECUTED",
+      "C": "NOT_EXECUTED",
+      "auxiliaries": "NOT_EXECUTED"
+    },
+    "ledger": "NOT_INITIALISED",
+    "holdouts_opened": false,
+    "holdout_values_inspected": false
+  },
+  "corrections_after_independent_critique": {
+    "critic_snapshot": "a881207691812ab0a41ca0e2c447ed0274a2c2e5",
+    "material_findings": 11,
+    "non_material_observations": 6,
+    "dismissed": 0,
+    "gates_relaxed": 0,
+    "effect_on_this_record": "Two claims in this record were weakened: the reference to a missing 'section 16' is now by title, and the condition 4 reasoning no longer leans on the runner implementation. Neither change alters any verdict. Detail in review-critic.json.",
+    "net_effect": "No verdict improved. G1 remains NOT_SATISFIED."
+  }
+}

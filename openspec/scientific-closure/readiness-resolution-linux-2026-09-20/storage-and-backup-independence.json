@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0",
+  "record": "storage_topology_and_backup_independence",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": [
+    "SC-GOV-018"
+  ],
+  "captured_at_utc": "2026-09-20T04:27:27.030011+00:00",
+  "device_ids": {
+    "/home/gus": 2128,
+    "/home/gus/scientific-closure-inputs/migration-20260920": 2128,
+    "/home/gus/scientific-closure-backup/migration-20260920": 2128,
+    "/home/gus/scientific-closure-runtime": 2128,
+    "/mnt/c": 217
+  },
+  "checks": [
+    {
+      "command": "findmnt -n -o TARGET,SOURCE,FSTYPE,OPTIONS /mnt/c",
+      "exit_code": 0,
+      "stdout": "/mnt/c C: 9p ro,relatime,aname=drvfs;path=C:;symlinkroot=/mnt/,cache=5,access=client,msize=65536,trans=fd,rfd=3,wfd=3",
+      "stderr": ""
+    },
+    {
+      "command": "df -hT /home/gus /tmp",
+      "exit_code": 0,
+      "stdout": "Filesystem     Type   Size  Used Avail Use% Mounted on\n/dev/sdf       ext4  1007G  3.1G  953G   1% /\ntmpfs          tmpfs  7.7G  108M  7.6G   2% /tmp",
+      "stderr": ""
+    },
+    {
+      "command": "lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,FSTYPE",
+      "exit_code": 0,
+      "stdout": "NAME    SIZE TYPE MOUNTPOINT                                         FSTYPE\nloop0 828.3M loop /mnt/wsl/docker-desktop/cli-tools                  iso9660\nloop1 717.9M loop                                                    iso9660\nsda   364.8M disk                                                    ext4\nsdb   144.5M disk                                                    ext4\nsdc       4G disk [SWAP]                                             swap\nsdd       1T disk                                                    ext4\nsde     151M disk /mnt/wsl/docker-desktop/docker-desktop-user-distro ext4\nsdf       1T disk /mnt/wslg/distro                                   ext4",
+      "stderr": ""
+    },
+    {
+      "command": "findmnt -n -o TARGET,SOURCE,FSTYPE,OPTIONS | grep -v ' ro,' | grep -E 'ext4|9p' ",
+      "exit_code": 0,
+      "stdout": "/                                                         /dev/sdf                              ext4        rw,relatime,discard,errors=remount-ro,data=ordered\n│ ├─/mnt/wsl/docker-desktop/docker-desktop-user-distro    /dev/sde[/docker-desktop-user-distro] ext4        rw,relatime,discard,errors=remount-ro,data=ordered",
+      "stderr": ""
+    },
+    {
+      "command": "sudo -n true",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "sudo: interactive authentication is required"
+    },
+    {
+      "command": "mount /dev/sdd /mnt",
+      "exit_code": 32,
+      "stdout": "",
+      "stderr": "mount: /mnt: must be superuser to use mount.\n       dmesg(1) may have more information after failed mount system call."
+    }
+  ],
+  "findings": {
+    "mnt_c_readonly": "VERIFIED_READ_ONLY (9p, option ro). Not written to during this session.",
+    "writable_persistent_filesystems_available_to_this_user": "Exactly one: / on /dev/sdf (ext4). /tmp is tmpfs (non-persistent). /mnt/c is read-only.",
+    "unmounted_block_device_observed": "/dev/sdd (1 TiB, ext4) is present but not mounted.",
+    "mounting_requires_privilege": "VERIFIED: 'sudo -n true' exits 1 with 'interactive authentication is required'; 'mount /dev/sdd /mnt' exits 32 with 'must be superuser to use mount'. No privilege escalation was attempted beyond these two non-destructive probes.",
+    "second_copy_status": "LOGICAL_COPY_ONLY. Primary and backup roots share device id 2128 (/dev/sdf). Byte identity and a fixture restoration rehearsal were verified previously and re-verified here by hash.",
+    "physical_independence": "NOT_ACHIEVED",
+    "blocking_input_required": "Either (a) an operator with root privileges to mount a separate block device (e.g. /dev/sdd) or an external volume at a writable persistent path, or (b) an already-mounted, writable, physically distinct filesystem. Neither exists in this session.",
+    "explicit_non_claim": "A logical second copy on the same device is NOT presented as a physically independent backup."
+  }
+}

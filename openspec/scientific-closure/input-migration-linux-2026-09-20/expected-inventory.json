@@ -1,0 +1,76 @@
+{
+  "schema_version": "1.0",
+  "created_at_utc": "2026-09-20T03:19:25Z",
+  "purpose": "Predeclared bounded inventory before inspecting the Windows source paths",
+  "authority": [
+    "docs/research/scientific-closure-runbook.md",
+    "docs/research/controlled-daily-v4-external-pergamino-manifest.yaml",
+    "openspec/scientific-closure/readiness-linux-2026-09-19/report.md"
+  ],
+  "windows_roots": [
+    "/mnt/c/Repo/AAI_Hydric_Stress_external_data",
+    "/mnt/c/Repo/AAI_Hydric_Stress_scientific_runtime"
+  ],
+  "expected": [
+    {
+      "kind": "dataset",
+      "path": "/mnt/c/Repo/AAI_Hydric_Stress_external_data/raw/pergamino_era5land_soil_hourly_2015_2025.csv",
+      "expected_size_bytes": 3954003,
+      "expected_sha256": "318edffb89c64d5f500e35b5530e6064cb02f68b89bd28a71262c2ebb01f485f",
+      "role": "input to stages A, B and closed C; inventory must not parse values"
+    },
+    {
+      "kind": "dataset",
+      "path": "/mnt/c/Repo/AAI_Hydric_Stress_external_data/raw/pergamino_nasa_power_daily_2015_2025.csv",
+      "expected_size_bytes": 127568,
+      "expected_sha256": "415b4f71abb78e419b765110f4a42c3f32587b204d12897812df9573c5c2202b",
+      "role": "input to stages A, B and closed C; inventory must not parse values"
+    },
+    {
+      "kind": "runtime_directory",
+      "path": "/mnt/c/Repo/AAI_Hydric_Stress_scientific_runtime/evidence",
+      "handling": "metadata-only inventory; no scientific values; do not copy closed holdout outputs"
+    },
+    {
+      "kind": "runtime_directory",
+      "path": "/mnt/c/Repo/AAI_Hydric_Stress_scientific_runtime/ledger",
+      "handling": "metadata-only inventory; do not read or copy active SQLite/ledger custody"
+    },
+    {
+      "kind": "runtime_directory",
+      "path": "/mnt/c/Repo/AAI_Hydric_Stress_scientific_runtime/backups",
+      "handling": "metadata-only inventory; do not read scientific content"
+    },
+    {
+      "kind": "runtime_validation_file",
+      "path": "/mnt/c/Repo/AAI_Hydric_Stress_scientific_runtime/validation/v4-tests.xml",
+      "handling": "opaque hash/copy if regular file"
+    },
+    {
+      "kind": "runtime_validation_file",
+      "path": "/mnt/c/Repo/AAI_Hydric_Stress_scientific_runtime/validation/image-acceptance-tests.xml",
+      "handling": "opaque hash/copy if regular file"
+    },
+    {
+      "kind": "runtime_validation_file",
+      "path": "/mnt/c/Repo/AAI_Hydric_Stress_scientific_runtime/validation/preexecution-environment.json",
+      "handling": "opaque hash/copy if regular file"
+    },
+    {
+      "kind": "runtime_validation_file",
+      "path": "/mnt/c/Repo/AAI_Hydric_Stress_scientific_runtime/validation/pip-freeze.txt",
+      "handling": "opaque hash/copy if regular file"
+    },
+    {
+      "kind": "container_image",
+      "identity": "sha256:55bc923efac009b1b6de45acc634774b7910d4829fdfd0b2c963dd5748b297af",
+      "handling": "inspect only if available; never rebuild and claim equivalence"
+    }
+  ],
+  "excluded": [
+    "unreferenced paths on C:",
+    "scientific CSV parsing or value inspection",
+    "closed holdout result inspection",
+    "active ledger copying or initialization"
+  ]
+}

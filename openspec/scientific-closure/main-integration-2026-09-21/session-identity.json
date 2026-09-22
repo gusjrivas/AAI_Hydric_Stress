@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "record": "session-identity",
+  "campaign_id": "main-integration-2026-09-21",
+  "captured_at_utc": "2026-09-21T05:40:00Z",
+  "worktree": "/home/gus/work/AAI_Hydric_Stress_scientific_closure",
+  "branch": "feat/scientific-closure",
+  "upstream": "origin/feat/scientific-closure",
+  "merge": {
+    "parent_1_ours": "a83c09c3fbe5a029fc9c28f1be751c46a11ea1a9",
+    "parent_2_theirs": "a65701477b19ecad172fa613aea8b8dbf94bab9c",
+    "merge_base": "b82d445e74dacbe0d6d7a746d5426fcff5ba8f50",
+    "theirs_ref": "origin/main (PR #206, prerrequisitos científicos)",
+    "strategy": "merge --no-ff, resolución manual por comparación semántica",
+    "history_rewritten": false
+  },
+  "environment": {
+    "python": "Python 3.11.16",
+    "interpreter": "/home/gus/scientific-closure-runtime/env/venv-v4/bin/python",
+    "note": "Entorno reconstruido EV-21. NO es la imagen aprobada sha256:55bc923e...b297af, que sigue sin inspeccionarse en este host (EV-06). No se afirma equivalencia."
+  },
+  "scientific_execution": {
+    "stage_a": "NOT_EXECUTED",
+    "stage_b": "NOT_EXECUTED",
+    "stage_c": "NOT_EXECUTED",
+    "ledger_initialised": false,
+    "holdout_2024_2025": "CLOSED",
+    "scientific_results_produced": false,
+    "verified_at_utc": "2026-09-21T05:40:00Z",
+    "verification": "/home/gus/scientific-closure-runtime/evidence y .../ledger vacíos (ls -A sin salida); sin archivos sin seguimiento en el repositorio"
+  }
+}

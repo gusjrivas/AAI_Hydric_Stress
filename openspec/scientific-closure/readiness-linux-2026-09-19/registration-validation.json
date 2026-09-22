@@ -1,0 +1,171 @@
+{
+  "schema_version": "scientific_closure_registration_validation.v1",
+  "campaign_id": null,
+  "change_id": "sc-01-evidence-scope",
+  "requirement_ids": [
+    "SC-GOV-001",
+    "SC-GOV-003",
+    "SC-GOV-007",
+    "SC-GOV-020"
+  ],
+  "timestamp_utc": "2026-09-19T08:41:52.750468Z",
+  "actor": {
+    "session": "/root",
+    "role": "orchestrator",
+    "effective_model": null,
+    "effective_sandbox": "danger-full-access"
+  },
+  "object": {
+    "base_commit": "a0d8bf7412bbb68448cf3bcec262097cd1571ab3",
+    "branch": "feat/scientific-closure",
+    "scope": "Registro posterior a auditoría; snapshot de archivos modificados/nuevos antes de commit",
+    "snapshot": [
+      {
+        "path": "openspec/changes/sc-01-evidence-scope/tasks.md",
+        "sha256": "2c7b8aed83de2bf3b47232693cb741ef29dbf878f9bc91b00a94f7bd9a4689e1",
+        "size_bytes": 1718
+      },
+      {
+        "path": "openspec/scientific-closure/changes.json",
+        "sha256": "8d9bbbefbf59041374cae92a1d03c37763547b878d16842a2200faee2ca45a6d",
+        "size_bytes": 23557
+      },
+      {
+        "path": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json",
+        "sha256": "7ccf9b1075c79cac0be1bec1c85dcb64209e33b5443328ddaf254a2819f7014b",
+        "size_bytes": 8696
+      },
+      {
+        "path": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.md",
+        "sha256": "6532fc77034292595416bc243833da82cf423e4d6154515fbaedbcad74afaa69",
+        "size_bytes": 5335
+      },
+      {
+        "path": "openspec/scientific-closure/readiness-linux-2026-09-19/checker-final.md",
+        "sha256": "04ede02367bde09ebd31b2583b4d763382c3713e8af57b462271583a148adad1",
+        "size_bytes": 1400
+      },
+      {
+        "path": "openspec/scientific-closure/readiness-linux-2026-09-19/clean-checkout-reproduction.json",
+        "sha256": "7d134fbf6de37e2ccf096f39dbc5bdf6fb0958d5949fd099234fb334d0673d47",
+        "size_bytes": 9989
+      },
+      {
+        "path": "openspec/scientific-closure/readiness-linux-2026-09-19/critique-final-message.md",
+        "sha256": "d37122645803b48521ff320980ad7c1dab3fb2657364bf43da6d8e11d8502e34",
+        "size_bytes": 4337
+      },
+      {
+        "path": "openspec/scientific-closure/readiness-linux-2026-09-19/critique-final.md",
+        "sha256": "71f975fa7e47ffef2ce7d274b5597400f33247f39071cedceb9cc995109368b3",
+        "size_bytes": 2550
+      },
+      {
+        "path": "openspec/scientific-closure/readiness-linux-2026-09-19/registration-fixture.json",
+        "sha256": "c92eef14011cc9b9d48d667d2f4bc9eeac9e939ea465caad8518a6756d0d7c09",
+        "size_bytes": 4155
+      },
+      {
+        "path": "openspec/scientific-closure/readiness-linux-2026-09-19/report.md",
+        "sha256": "4c078e7835a08782906545e9ce549d25e68ab95ed637a925c31aede95e6bf43e",
+        "size_bytes": 12749
+      },
+      {
+        "path": "openspec/scientific-closure/readiness-linux-2026-09-19/review-archive.json",
+        "sha256": "27075b82d3b65c201ff4028a8e2a9cc4410cebff9a0b823d7a8746eabded27d2",
+        "size_bytes": 3548
+      },
+      {
+        "path": "tests/test_scientific_closure_governance.py",
+        "sha256": "b939730a1cd7447fa5a68fee85718d6d9ee5b12e1f6262abe6691c86abf0b2cd",
+        "size_bytes": 12303
+      }
+    ]
+  },
+  "command": "Validación local de registro y fixture; comandos exactos en checks",
+  "exit_code": 0,
+  "output": {
+    "checks": [
+      {
+        "argv": [
+          "git",
+          "rev-parse",
+          "HEAD"
+        ],
+        "exit_code": 0,
+        "stdout": "a0d8bf7412bbb68448cf3bcec262097cd1571ab3\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "status",
+          "--porcelain=v1",
+          "--untracked-files=all"
+        ],
+        "exit_code": 0,
+        "stdout": " M openspec/changes/sc-01-evidence-scope/tasks.md\n M openspec/scientific-closure/changes.json\n M openspec/scientific-closure/readiness-linux-2026-09-19/report.md\n M tests/test_scientific_closure_governance.py\n?? openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json\n?? openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.md\n?? openspec/scientific-closure/readiness-linux-2026-09-19/checker-final.md\n?? openspec/scientific-closure/readiness-linux-2026-09-19/clean-checkout-reproduction.json\n?? openspec/scientific-closure/readiness-linux-2026-09-19/critique-final-message.md\n?? openspec/scientific-closure/readiness-linux-2026-09-19/critique-final.md\n?? openspec/scientific-closure/readiness-linux-2026-09-19/registration-fixture.json\n?? openspec/scientific-closure/readiness-linux-2026-09-19/review-archive.json\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "python3",
+          "-m",
+          "unittest",
+          "tests/test_scientific_closure_checker.py",
+          "tests/test_scientific_closure_governance.py",
+          "-v"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "test_b_cannot_advance_without_a_pass (tests.test_scientific_closure_checker.CheckerTests.test_b_cannot_advance_without_a_pass) ... ok\ntest_contradictory_scientific_approval_fails (tests.test_scientific_closure_checker.CheckerTests.test_contradictory_scientific_approval_fails) ... ok\ntest_dependency_cycle_fails (tests.test_scientific_closure_checker.CheckerTests.test_dependency_cycle_fails) ... ok\ntest_disabled_multiagent_fails (tests.test_scientific_closure_checker.CheckerTests.test_disabled_multiagent_fails) ... ok\ntest_duplicate_requirement_fails (tests.test_scientific_closure_checker.CheckerTests.test_duplicate_requirement_fails) ... ok\ntest_invalid_agent_toml_fails (tests.test_scientific_closure_checker.CheckerTests.test_invalid_agent_toml_fails) ... ok\ntest_invalid_reference_fails (tests.test_scientific_closure_checker.CheckerTests.test_invalid_reference_fails) ... ok\ntest_json_wrong_types_fail_without_exception (tests.test_scientific_closure_checker.CheckerTests.test_json_wrong_types_fail_without_exception) ... ok\ntest_matrix_mismatch_fails (tests.test_scientific_closure_checker.CheckerTests.test_matrix_mismatch_fails) ... ok\ntest_missing_acceptance_fails (tests.test_scientific_closure_checker.CheckerTests.test_missing_acceptance_fails) ... ok\ntest_missing_agent_fails (tests.test_scientific_closure_checker.CheckerTests.test_missing_agent_fails) ... ok\ntest_missing_dependency_fails (tests.test_scientific_closure_checker.CheckerTests.test_missing_dependency_fails) ... ok\ntest_missing_stage_gate_fails (tests.test_scientific_closure_checker.CheckerTests.test_missing_stage_gate_fails) ... ok\ntest_repository_passes (tests.test_scientific_closure_checker.CheckerTests.test_repository_passes) ... ok\ntest_runtime_evidence_config_divergence_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_config_divergence_fails) ... ok\ntest_runtime_evidence_configuration_digest_and_replay_fail (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_configuration_digest_and_replay_fail) ... ok\ntest_runtime_evidence_duplicate_role_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_duplicate_role_fails) ... ok\ntest_runtime_evidence_duplicate_session_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_duplicate_session_fails) ... ok\ntest_runtime_evidence_effective_divergence_without_substitution_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_effective_divergence_without_substitution_fails) ... ok\ntest_runtime_evidence_explicit_model_substitution_passes (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_explicit_model_substitution_passes) ... ok\ntest_runtime_evidence_inconsistent_substitution_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_inconsistent_substitution_fails) ... ok\ntest_runtime_evidence_load_not_loaded_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_load_not_loaded_fails) ... ok\ntest_runtime_evidence_malformed_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_malformed_fails) ... ok\ntest_runtime_evidence_missing_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_missing_fails) ... ok\ntest_runtime_evidence_missing_forged_and_escape_output_fail (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_missing_forged_and_escape_output_fail) ... ok\ntest_runtime_evidence_missing_role_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_missing_role_fails) ... ok\ntest_runtime_evidence_non_string_role_fails_without_exception (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_non_string_role_fails_without_exception) ... ok\ntest_runtime_evidence_nonzero_exit_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_nonzero_exit_fails) ... ok\ntest_runtime_evidence_passes_api_and_cli (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_passes_api_and_cli) ... ok\ntest_runtime_evidence_sandbox_not_enforced_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_sandbox_not_enforced_fails) ... ok\ntest_runtime_evidence_schema_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_schema_fails) ... ok\ntest_title_norm_and_check_must_match_spec (tests.test_scientific_closure_checker.CheckerTests.test_title_norm_and_check_must_match_spec) ... ok\ntest_unknown_status_fails (tests.test_scientific_closure_checker.CheckerTests.test_unknown_status_fails) ... ok\ntest_accepts_documented_approval_without_scientific_permission (tests.test_scientific_closure_governance.GovernanceTests.test_accepts_documented_approval_without_scientific_permission) ... ok\ntest_agents_toml_fields_models_and_permissions (tests.test_scientific_closure_governance.GovernanceTests.test_agents_toml_fields_models_and_permissions) ... ok\ntest_auxiliaries_are_conditional (tests.test_scientific_closure_governance.GovernanceTests.test_auxiliaries_are_conditional) ... ok\ntest_change_contracts_and_no_authorization (tests.test_scientific_closure_governance.GovernanceTests.test_change_contracts_and_no_authorization) ... ok\ntest_dependencies_and_terminal_gate (tests.test_scientific_closure_governance.GovernanceTests.test_dependencies_and_terminal_gate) ... ok\ntest_document_links_resolve (tests.test_scientific_closure_governance.GovernanceTests.test_document_links_resolve) ... ok\ntest_evidence_paths_and_safe_resume (tests.test_scientific_closure_governance.GovernanceTests.test_evidence_paths_and_safe_resume) ... ok\ntest_existing_and_planned_paths (tests.test_scientific_closure_governance.GovernanceTests.test_existing_and_planned_paths) ... ok\ntest_not_applicable_is_not_a_shortcut_for_core_changes (tests.test_scientific_closure_governance.GovernanceTests.test_not_applicable_is_not_a_shortcut_for_core_changes) ... ok\ntest_pass_requires_independent_audit_evidence (tests.test_scientific_closure_governance.GovernanceTests.test_pass_requires_independent_audit_evidence) ... ok\ntest_project_toml_concurrency (tests.test_scientific_closure_governance.GovernanceTests.test_project_toml_concurrency) ... ok\ntest_rejects_fake_approval_and_non_object_events (tests.test_scientific_closure_governance.GovernanceTests.test_rejects_fake_approval_and_non_object_events) ... ok\ntest_rejects_illegal_or_incomplete_event_chains (tests.test_scientific_closure_governance.GovernanceTests.test_rejects_illegal_or_incomplete_event_chains) ... ok\ntest_requirement_ids_and_fields (tests.test_scientific_closure_governance.GovernanceTests.test_requirement_ids_and_fields) ... ok\ntest_spec_matrix_tasks_are_consistent (tests.test_scientific_closure_governance.GovernanceTests.test_spec_matrix_tasks_are_consistent) ... ok\n\n----------------------------------------------------------------------\nRan 48 tests in 0.531s\n\nOK\n"
+      },
+      {
+        "argv": [
+          "python3",
+          "scripts/check_scientific_closure.py"
+        ],
+        "exit_code": 0,
+        "stdout": "scientific-closure checker: PASS (estructura; runtime no verificado)\n",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "diff",
+          "--check"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "git",
+          "diff",
+          "--name-only",
+          "329cb60",
+          "--",
+          "frontend",
+          "backend",
+          "src",
+          "data",
+          "docs/research",
+          "docs/adr"
+        ],
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    ],
+    "archive_hashes": "PASS",
+    "states": "sc01 PASS; sc02..10 BLOCKED; ejecución científica no habilitada",
+    "json": "PASS"
+  },
+  "result": "SOFTWARE_AND_REGISTRATION_CHECKS_PASS; SCIENTIFIC_CLOSURE_BLOCKED",
+  "limitations": [
+    "Snapshot incluye solo archivos modificados/nuevos; este manifiesto se excluye a sí mismo. El resto está identificado por base_commit.",
+    "Estas comprobaciones no constituyen auditoría científica, lint/formato reproducible ni enforcement de sandbox.",
+    "La auditoría sc01/readiness corresponde al commit a0d8bf7; posteriores registros no amplían su alcance."
+  ]
+}

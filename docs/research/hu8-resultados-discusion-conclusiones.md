@@ -210,6 +210,24 @@ El único efecto consistente y de mayor magnitud (`recent_fraction_0.5`, entrena
 - **De constructo:** percentil 20 como proxy relativo de estrés (no validado agronómicamente); horizonte de 3 días razonado, no comparado contra alternativas; coverage/recent como proxies de escasez no equivalentes entre sí; F1/MCC/AP analizados conjuntamente, sin elegir retrospectivamente la métrica más favorable.
 - **De conclusión:** 5 semillas miden sensibilidad algorítmica del procedimiento, no son réplicas agronómicas independientes; resultados mixtos preservados sin armonización forzada.
 
+**Adición 2026-09-22 (amenaza a la validez incorporada, no un hallazgo nuevo).**
+El dataset `melchor_romero_2024_consolidado` que produce toda la evidencia formal
+de esta sección (`reference-v3-formal-results.json`, las 8 configuraciones de
+`8.2`) tiene **75,96 % de cobertura real en humedad de suelo**: aproximadamente
+**24 % de los días son huecos del producto satelital**, imputados por el
+contrato con `causal_ffill` (`docs/seguimiento-tareas.md`, verificación de
+cobertura). Esa imputación **atraviesa las ocho configuraciones formales por
+igual**, sin control experimental ni caracterización de su efecto: no existe una
+condición limpia con la que comparar el desempeño bajo huecos imputados. La
+auditoría independiente de la decisión de suficiencia GD-12
+(`openspec/scientific-closure/sufficiency-review-2026-09-22/gd12-sufficiency-dossier.md`,
+§5) lo estableció como amenaza a la validez del complemento **S** (robustez):
+las mediciones ausentes **no están fuera** de esta evidencia, están **dentro y
+sin caracterizar**. No se afirma por este hecho que exista evidencia de
+robustez ante sensores ausentes, ni que el complemento S se haya ejecutado: **no
+se ejecutó**. La amenaza se declara para que ningún resultado de las
+configuraciones de `8.2` se cite sin este límite.
+
 ### 8.5. Recomendaciones de trabajo futuro (vigentes, complementan la sección 4)
 
 1. Evaluar cuantitativamente el aporte de la retroalimentación humana (comparación diseñada en `protocolo-experimental-v3.md`: modelo congelado vs. reentrenamiento sin corrección vs. con corrección), todavía no ejecutada.

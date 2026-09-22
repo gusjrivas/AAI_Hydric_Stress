@@ -1,0 +1,103 @@
+{
+  "schema_version": "scientific_closure_preparation_observations.v1",
+  "campaign_id": null,
+  "change_id": "preparation-remediation",
+  "requirement_ids": [
+    "SC-GOV-001",
+    "SC-GOV-006",
+    "SC-GOV-009",
+    "SC-GOV-017",
+    "SC-GOV-018",
+    "SC-GOV-020"
+  ],
+  "actor": "/root",
+  "timestamp_utc": "2026-09-19 07:51:28 UTC",
+  "scope": "HU7/HU8; scientific-closure; CRISP-DM evaluación/documentación. Sin impacto en hipótesis, arquitectura, configuraciones experimentales ni resultados; memoria capítulos 2/3: trazabilidad.",
+  "initial_head": "329cb600deee0d75d48644b5cafa18e93999d134",
+  "branch": "feat/scientific-closure",
+  "upstream": "origin/feat/scientific-closure",
+  "initial_tree": "Único untracked: openspec/scientific-closure/validation-read-only-probe.tmp",
+  "preflight_tests": {
+    "status": "fulfilled",
+    "value": {
+      "chunk_id": "e2a0cd",
+      "wall_time_seconds": 0.42387511,
+      "exit_code": 0,
+      "original_token_count": 1137,
+      "output": "test_b_cannot_advance_without_a_pass (test_scientific_closure_checker.CheckerTests.test_b_cannot_advance_without_a_pass) ... ok\ntest_contradictory_scientific_approval_fails (test_scientific_closure_checker.CheckerTests.test_contradictory_scientific_approval_fails) ... ok\ntest_dependency_cycle_fails (test_scientific_closure_checker.CheckerTests.test_dependency_cycle_fails) ... ok\ntest_disabled_multiagent_fails (test_scientific_closure_checker.CheckerTests.test_disabled_multiagent_fails) ... ok\ntest_duplicate_requirement_fails (test_scientific_closure_checker.CheckerTests.test_duplicate_requirement_fails) ... ok\ntest_invalid_agent_toml_fails (test_scientific_closure_checker.CheckerTests.test_invalid_agent_toml_fails) ... ok\ntest_invalid_reference_fails (test_scientific_closure_checker.CheckerTests.test_invalid_reference_fails) ... ok\ntest_json_wrong_types_fail_without_exception (test_scientific_closure_checker.CheckerTests.test_json_wrong_types_fail_without_exception) ... ok\ntest_matrix_mismatch_fails (test_scientific_closure_checker.CheckerTests.test_matrix_mismatch_fails) ... ok\ntest_missing_acceptance_fails (test_scientific_closure_checker.CheckerTests.test_missing_acceptance_fails) ... ok\ntest_missing_agent_fails (test_scientific_closure_checker.CheckerTests.test_missing_agent_fails) ... ok\ntest_missing_dependency_fails (test_scientific_closure_checker.CheckerTests.test_missing_dependency_fails) ... ok\ntest_missing_stage_gate_fails (test_scientific_closure_checker.CheckerTests.test_missing_stage_gate_fails) ... ok\ntest_repository_passes (test_scientific_closure_checker.CheckerTests.test_repository_passes) ... ok\ntest_runtime_evidence_config_divergence_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_config_divergence_fails) ... ok\ntest_runtime_evidence_configuration_digest_and_replay_fail (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_configuration_digest_and_replay_fail) ... ok\ntest_runtime_evidence_duplicate_role_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_duplicate_role_fails) ... ok\ntest_runtime_evidence_duplicate_session_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_duplicate_session_fails) ... ok\ntest_runtime_evidence_effective_divergence_without_substitution_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_effective_divergence_without_substitution_fails) ... ok\ntest_runtime_evidence_explicit_model_substitution_passes (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_explicit_model_substitution_passes) ... ok\ntest_runtime_evidence_inconsistent_substitution_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_inconsistent_substitution_fails) ... ok\ntest_runtime_evidence_load_not_loaded_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_load_not_loaded_fails) ... ok\ntest_runtime_evidence_malformed_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_malformed_fails) ... ok\ntest_runtime_evidence_missing_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_missing_fails) ... ok\ntest_runtime_evidence_missing_forged_and_escape_output_fail (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_missing_forged_and_escape_output_fail) ... ok\ntest_runtime_evidence_missing_role_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_missing_role_fails) ... ok\ntest_runtime_evidence_non_string_role_fails_without_exception (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_non_string_role_fails_without_exception) ... ok\ntest_runtime_evidence_nonzero_exit_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_nonzero_exit_fails) ... ok\ntest_runtime_evidence_passes_api_and_cli (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_passes_api_and_cli) ... ok\ntest_runtime_evidence_sandbox_not_enforced_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_sandbox_not_enforced_fails) ... ok\ntest_runtime_evidence_schema_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_schema_fails) ... ok\ntest_title_norm_and_check_must_match_spec (test_scientific_closure_checker.CheckerTests.test_title_norm_and_check_must_match_spec) ... ok\ntest_unknown_status_fails (test_scientific_closure_checker.CheckerTests.test_unknown_status_fails) ... ok\n\n----------------------------------------------------------------------\nRan 33 tests in 0.472s\n\nOK\n"
+    }
+  },
+  "preflight_checker": {
+    "status": "fulfilled",
+    "value": {
+      "chunk_id": "e10cfe",
+      "wall_time_seconds": 0.000004673,
+      "exit_code": 0,
+      "original_token_count": 18,
+      "output": "scientific-closure checker: PASS (estructura; runtime no verificado)\n"
+    }
+  },
+  "blocked_validation": [
+    {
+      "command": "docker run --rm --network none --read-only --tmpfs /tmp --mount type=bind,source=/home/gus/work/AAI_Hydric_Stress_scientific_closure,target=/workspace,readonly -w /workspace sha256:55bc923efac009b1b6de45acc634774b7910d4829fdfd0b2c963dd5748b297af ruff check --no-cache scripts/check_scientific_closure.py tests/test_scientific_closure_checker.py",
+      "result": {
+        "status": "fulfilled",
+        "value": {
+          "chunk_id": "f15f08",
+          "wall_time_seconds": 0.000004525,
+          "exit_code": 127,
+          "original_token_count": 12,
+          "output": "/bin/bash: line 1: docker: command not found\n"
+        }
+      }
+    },
+    {
+      "command": "docker run --rm --network none --read-only --tmpfs /tmp --mount type=bind,source=/home/gus/work/AAI_Hydric_Stress_scientific_closure,target=/workspace,readonly -w /workspace sha256:55bc923efac009b1b6de45acc634774b7910d4829fdfd0b2c963dd5748b297af black --check scripts/check_scientific_closure.py tests/test_scientific_closure_checker.py",
+      "result": {
+        "status": "fulfilled",
+        "value": {
+          "chunk_id": "8638ee",
+          "wall_time_seconds": 0.000003815,
+          "exit_code": 127,
+          "original_token_count": 12,
+          "output": "/bin/bash: line 1: docker: command not found\n"
+        }
+      }
+    },
+    {
+      "command": "npx --yes @fission-ai/openspec@1.13.1 validate scientific-closure --type spec --strict --no-interactive",
+      "result": {
+        "status": "fulfilled",
+        "value": {
+          "chunk_id": "0a9bf5",
+          "wall_time_seconds": 0.000005244,
+          "exit_code": 127,
+          "original_token_count": 11,
+          "output": "/bin/bash: line 1: npx: command not found\n"
+        }
+      }
+    }
+  ],
+  "scientific_execution": {
+    "A": "NOT_EXECUTED_THIS_SESSION",
+    "B": "NOT_EXECUTED_THIS_SESSION",
+    "C": "NOT_EXECUTED_THIS_SESSION",
+    "ledger": "NOT_INITIALIZED_THIS_SESSION",
+    "historical_custody": "PROJECT_REPORTED_CLOSED_NOT_INDEPENDENTLY_REVALIDATED",
+    "seeds_used": null,
+    "image_used": null,
+    "metrics": null
+  },
+  "probe": {
+    "path": "openspec/scientific-closure/validation-read-only-probe.tmp",
+    "sha256": "5f32a4bf1e4462d70cd8d17d805e297d88629a9745c2a6459d32e5ed9b548976",
+    "bytes": 131,
+    "action": "Preservado sin editar y fuera de commits según checkpoint. Árbol no se declara limpio."
+  },
+  "limits": [
+    "No Docker ni socket local verificados; comandos de Ruff/Black no iniciaron.",
+    "No raíces raw/runtime Linux halladas; no se accedió a /mnt/c; no se sustituyeron CSV por nuevas descargas.",
+    "La configuración nominal no acredita aislamiento efectivo de los agentes; invocación codex doctor independiente no inspecciona overrides de esta sesión.",
+    "Sin auditoría PASS de readiness; ninguna etapa científica se despacha."
+  ]
+}

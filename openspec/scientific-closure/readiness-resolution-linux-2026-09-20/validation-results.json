@@ -1,0 +1,152 @@
+{
+  "schema_version": "1.0",
+  "record": "validation_results",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": [
+    "SC-GOV-006",
+    "SC-GOV-020"
+  ],
+  "environment": "reconstructed venv /home/gus/scientific-closure-runtime/env/venv-v4 (Python 3.11.16, constraints-pinned); NOT the historic image",
+  "results": [
+    {
+      "id": "V-01",
+      "scope": "controlled_daily_v4 suite (the same selection the frozen image CMD runs)",
+      "command": "PYTHONPATH=src python -m pytest -q tests/test_controlled_daily_v4_*.py --no-header",
+      "started_utc": "2026-09-20T04:17:56Z",
+      "duration_s": 994.22,
+      "exit_code": 0,
+      "result": "486 passed",
+      "interpretation": "The frozen stage A/B/C implementation passes its full synthetic test suite in the reconstructed environment. This is TECHNICAL evidence about software, not scientific evidence about the hypothesis."
+    },
+    {
+      "id": "V-02",
+      "scope": "governance + formal checker tests",
+      "command": "PYTHONPATH=src python -m pytest -q tests/test_scientific_closure_governance.py tests/test_scientific_closure_checker.py --no-header",
+      "exit_code": 0,
+      "result": "48 passed, 14 subtests passed"
+    },
+    {
+      "id": "V-03",
+      "scope": "read-only role sandbox enforcement tests (new)",
+      "command": "PYTHONPATH=src python -m pytest -q tests/test_readonly_role_sandbox.py --no-header",
+      "exit_code": 0,
+      "result": "11 passed",
+      "covers": [
+        "positive read",
+        "negative write to repository (EROFS)",
+        "negative write to real HOME",
+        "ephemeral /tmp not shared",
+        "ephemeral /dev does not escape",
+        "no network",
+        "WSL Windows interop closed (/mnt empty, PE binaries unreachable)",
+        "verifier PASS",
+        "explicit failure without arguments",
+        "wrapper and verifier are executable",
+        "WSL interop IPC endpoints unreachable (/run emptied)"
+      ],
+      "history": "8 tests at first commit; a ninth after critic finding N-01 (the header overstated /dev); a tenth after audit finding A-01 (demonstrated WSL PE-binary escape); an eleventh after re-audit finding NF-01 (interop sockets reachable). Each increment is tied to the finding that caused it."
+    },
+    {
+      "id": "V-04",
+      "scope": "formal scientific-closure checker",
+      "command": "PYTHONPATH=src python scripts/check_scientific_closure.py",
+      "exit_code": 0,
+      "result": "scientific-closure checker: PASS (estructura; runtime no verificado)"
+    },
+    {
+      "id": "V-05",
+      "scope": "lint (ruff 0.16.6) over the files this branch owns",
+      "command": "ruff check scripts/check_scientific_closure.py tests/test_scientific_closure_governance.py tests/test_scientific_closure_checker.py tests/test_readonly_role_sandbox.py",
+      "exit_code": 0,
+      "result": "All checks passed",
+      "note": "48 violations (45 E501 + 3 I001) were present and were fixed in this session. Two further E501 violations remain in scripts/run_hu7_experiments.py and scripts/run_hu7_scenarios.py; both files pre-exist in origin/main, are unrelated to scientific closure, and were deliberately NOT modified to keep this closure isolated."
+    },
+    {
+      "id": "V-06",
+      "scope": "format (black 26.5.1) over the files this branch owns",
+      "command": "black --check scripts/check_scientific_closure.py tests/test_scientific_closure_governance.py tests/test_scientific_closure_checker.py tests/test_readonly_role_sandbox.py",
+      "exit_code": 0,
+      "result": "4 files would be left unchanged",
+      "note": "scripts/export_hu7_reference.py also fails black --check; it pre-exists in origin/main and is out of scope."
+    },
+    {
+      "id": "V-07",
+      "scope": "OpenSpec strict validation, scientific-closure scope",
+      "command": "npx --yes @fission-ai/openspec@1.13.1 validate <item> --type <change|spec> --strict",
+      "exit_code": 0,
+      "result": "11/11 PASS (10 changes sc-* + spec/scientific-closure)",
+      "note": "See structural-validation.json. The repository-wide --all run exits 1 because of 42 unrelated pre-existing items (UI and other capabilities) that emit RFC-2119 warnings under --strict; those are out of scope and untouched."
+    },
+    {
+      "id": "V-08",
+      "scope": "dependency consistency",
+      "command": "uv pip check --python <venv>",
+      "exit_code": 0,
+      "result": "Checked 23 packages: all installed packages are compatible",
+      "note": "Package set is identical to the historic pip-freeze.txt recovered from the migrated runtime validation directory (23/23 after excluding pip/setuptools/wheel, which uv does not seed)."
+    },
+    {
+      "id": "V-09",
+      "scope": "dataset provenance identity against the versioned manifest",
+      "command": "PYTHONPATH=src python -m experiment_runner.controlled_daily_v4.cli --stage A --validate-inputs-only --era5-csv <...> --nasa-power-csv <...> --output-dir <probe> --input-mode scientific",
+      "exit_code": 0,
+      "result": "Provenance OK. --validate-inputs-only: no se entrena nada.",
+      "note": "Metadata-only. No model was fitted. Permitted on stage A only; the protocol forbids it on stage C because hashing the whole CSV would touch the 2024-2025 holdout."
+    }
+  ],
+  "not_run_and_why": [
+    {
+      "item": "reproducible container build (docker/experiment-v4/build.py)",
+      "reason": "No reachable Docker daemon; see container-runtime-and-image.json. No image was built and none is claimed."
+    },
+    {
+      "item": "tests/demo_simulation",
+      "reason": "Requires mlflow, which the frozen experiment-v4 constraints deliberately exclude. Out of the v4 scientific scope (the frozen image CMD runs only tests/test_controlled_daily_v4_*.py)."
+    },
+    {
+      "item": "stage A, B, C runners on Pergamino data",
+      "reason": "Gate G1 not satisfied (ADR-0011 condition 4). No command issued."
+    }
+  ],
+  "final_snapshot_run": {
+    "snapshot_commit": "619c8ef0be21345572f462425540566fb3edc448",
+    "command": "PYTHONPATH=src python -m pytest -q tests/test_controlled_daily_v4_*.py tests/test_scientific_closure_governance.py tests/test_scientific_closure_checker.py tests/test_readonly_role_sandbox.py --no-header",
+    "started_utc": "2026-09-20T05:00:23Z",
+    "ended_utc": "2026-09-20T05:10:47Z",
+    "duration_s": 623.71,
+    "exit_code": 0,
+    "result": "543 passed, 14 subtests passed",
+    "breakdown": "486 controlled_daily_v4 + 48 governance/checker + 9 read-only sandbox enforcement",
+    "environment": "reconstructed venv /home/gus/scientific-closure-runtime/env/venv-v4 (Python 3.11.16, constraints-pinned)",
+    "self_reference_note": "This record is itself committed after 619c8ef. The only difference between 619c8ef and the published commit is this JSON block; no code, test or specification changed. Verifiable with 'git diff --name-only 619c8ef HEAD', which must list only this file.",
+    "interpretation": "Technical evidence about software in a reconstructed environment. NOT evidence about the scientific hypothesis, and NOT a measurement of real scientific runtime: every test uses synthetic fixtures.",
+    "superseded": "This run predates audit finding A-01. Closing A-01 changed the wrapper and added a tenth sandbox test, so the published snapshot has 544 tests, not 543. A re-run on the published snapshot is recorded in final_snapshot_run_after_audit."
+  },
+  "final_snapshot_run_after_audit": {
+    "command": "PYTHONPATH=src python -m pytest -q tests/test_controlled_daily_v4_*.py tests/test_scientific_closure_governance.py tests/test_scientific_closure_checker.py tests/test_readonly_role_sandbox.py --no-header",
+    "started_utc": "2026-09-20T05:23:31Z",
+    "ended_utc": "2026-09-20T05:33:39Z",
+    "duration_s": 607.02,
+    "exit_code": 0,
+    "result": "544 passed, 14 subtests passed",
+    "breakdown": "486 controlled_daily_v4 + 48 governance/checker + 10 read-only sandbox enforcement",
+    "covers": "The working tree exactly as published, including the closure of audit finding A-01 and its regression test. This run is the one that corresponds to the published snapshot; the earlier 543-test run predates the A-01 fix.",
+    "self_reference_note": "Run at 05:23:31-05:33:39 UTC, before the commit that carries this record. The earlier wording of this note claimed the final commit touches 'only those three paths plus this JSON', which the re-audit showed to be false: that commit touches twelve paths, including scripts/ and tests/ (re-audit finding NF-04). The substantive claim stands and is what matters: no source, test or specification changed AFTER the run. It is verifiable by timestamp, not by file count - the run already counted 10 sandbox tests, i.e. it already included the A-01 fix, and the artefacts written afterwards are the JSON records stamped 05:34 or later.",
+    "interpretation": "Technical evidence about software in a reconstructed environment. NOT evidence about the scientific hypothesis, and NOT a measurement of real scientific runtime: every test uses synthetic fixtures.",
+    "superseded_by": "Correction cycle 3 closed re-audit finding NF-01 by adding --tmpfs /run and an eleventh sandbox test, so the published snapshot has 545 tests. See final_snapshot_run_cycle3."
+  },
+  "final_snapshot_run_cycle3": {
+    "command": "PYTHONPATH=src python -m pytest -q tests/test_controlled_daily_v4_*.py tests/test_scientific_closure_governance.py tests/test_scientific_closure_checker.py tests/test_readonly_role_sandbox.py --no-header",
+    "started_utc": "2026-09-20T05:42:49Z",
+    "ended_utc": "2026-09-20T05:53:03Z",
+    "duration_s": 613.82,
+    "exit_code": 0,
+    "result": "545 passed, 14 subtests passed",
+    "breakdown": "486 controlled_daily_v4 + 48 governance/checker + 11 read-only sandbox enforcement",
+    "covers": "The working tree as published, including the closure of re-audit finding NF-01.",
+    "is_the_published_run": true,
+    "self_reference_note": "Run before the commit that carries this record. Only JSON evidence records were written afterwards; no source, test or specification changed after 05:53:03 UTC.",
+    "interpretation": "Technical evidence about software in a reconstructed environment. NOT evidence about the scientific hypothesis, and NOT a measurement of real scientific runtime: every test uses synthetic fixtures."
+  }
+}

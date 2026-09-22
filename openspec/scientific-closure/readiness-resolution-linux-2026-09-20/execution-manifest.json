@@ -1,0 +1,69 @@
+{
+  "schema_version": "1.0",
+  "record": "execution_manifest",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": [
+    "SC-GOV-009"
+  ],
+  "captured_at_utc": "2026-09-20T04:35:27.412794+00:00",
+  "execution_status": "NOT_EXECUTED",
+  "execution_status_reason": "Gate G1 not satisfied: ADR-0011 pre-execution condition 4 is unmet and cannot be resolved without merging to main, which is not authorized. No stage A/B/C command was issued; no model was fitted on Pergamino data; no ledger was initialised; no holdout value was read.",
+  "identity_that_would_be_frozen_if_authorized": {
+    "documentary_commit": "dc0d3f5b4dbed235078c1bc93a3c863b6f65d3c6",
+    "branch": "feat/scientific-closure",
+    "tree_clean_at_capture": false,
+    "declared_historic_executable_commit": "214735e42ee04f018156cd630591e798aadd8bf3",
+    "runner_paths_identical_to_declared_executable_commit": true,
+    "container_image": {
+      "status": "NOT_AVAILABLE",
+      "approved_historic_image": "sha256:55bc923efac009b1b6de45acc634774b7910d4829fdfd0b2c963dd5748b297af",
+      "note": "Not inspected, not rebuilt, not claimed. No image digest exists for the reconstructed environment."
+    },
+    "reconstructed_environment": {
+      "kind": "python_virtualenv",
+      "path": "/home/gus/scientific-closure-runtime/env/venv-v4",
+      "python_version": "3.11.16",
+      "constraints_file": "docker/experiment-v4/constraints.txt",
+      "constraints_sha256_lf": "aa05b7b17ee4677839e724af7a768f532ba669514fb06ffe23f525cddd1efd6b",
+      "is_the_historic_image": false
+    },
+    "normative_seeds": {
+      "model_seed": 42,
+      "bootstrap_seed": 20250109,
+      "bootstrap_replicas": 5000
+    },
+    "inputs": {
+      "pergamino_nasa_power_daily_2015_2025.csv": {
+        "path": "/home/gus/scientific-closure-inputs/migration-20260920/AAI_Hydric_Stress_external_data/raw/pergamino_nasa_power_daily_2015_2025.csv",
+        "sha256": "415b4f71abb78e419b765110f4a42c3f32587b204d12897812df9573c5c2202b",
+        "size_bytes": 127568
+      },
+      "pergamino_era5land_soil_hourly_2015_2025.csv": {
+        "path": "/home/gus/scientific-closure-inputs/migration-20260920/AAI_Hydric_Stress_external_data/raw/pergamino_era5land_soil_hourly_2015_2025.csv",
+        "sha256": "318edffb89c64d5f500e35b5530e6064cb02f68b89bd28a71262c2ebb01f485f",
+        "size_bytes": 3954003
+      }
+    },
+    "evidence_root": "/home/gus/scientific-closure-runtime/evidence",
+    "ledger_path_that_would_be_used": "/home/gus/scientific-closure-runtime/ledger/holdout.sqlite",
+    "ledger_initialised": false
+  },
+  "artifacts_produced": {
+    "stage_A": [],
+    "stage_B": [],
+    "stage_C": [],
+    "auxiliary": []
+  },
+  "holdout": {
+    "period": "2024-01-01..2025-12-28 issuance / targets to 2025-12-31",
+    "opened": false,
+    "values_inspected": false,
+    "ledger_state": "NOT_INITIALISED"
+  },
+  "explicit_non_claims": [
+    "No metric, prediction or model exists from this session.",
+    "Historic metadata (preexecution-environment.json) is NOT presented as evidence of a live verified runtime.",
+    "The reconstructed environment is NOT presented as the approved historic image."
+  ]
+}

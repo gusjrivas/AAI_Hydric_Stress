@@ -1,0 +1,132 @@
+{
+  "schema_version": "1.0",
+  "record": "checkpoints",
+  "campaign_id": "closure-verification-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": [
+    "SC-GOV-019"
+  ],
+  "branch": "feat/scientific-closure",
+  "upstream": "origin/feat/scientific-closure",
+  "base_at_session_start": "b9fefbf36037ca259f4b17b68642d330bc489d39",
+  "tree_at_session_start": "clean",
+  "self_reference_limit": "A checkpoint record cannot contain the commit that introduces it. This record therefore states the RULE rather than a count of unlisted commits: every commit of this session from the base is listed EXCEPT the one that publishes this file, and any commit created after it. The previous session's checkpoints.json stated a count ('exactly ONE commit'), which a later commit falsified; that was independent findings C-04 and D-1, and this formulation is the correction. The authoritative, always-current list is: git log --oneline b9fefbf..HEAD",
+  "git_add_policy": "Explicit paths on every git add. 'git add -A' was never used. Verified by the commands recorded below.",
+  "git_diff_check": "exit 0 before each commit",
+  "commits": [
+    {
+      "sha": "495555c597467cb5fc5280c8d065ccdbb0b6c3e2",
+      "subject": "fix(science): apply independent critique C-01..C-20 on the published snapshot",
+      "purpose": "Apply every material and minor finding of the independent evidence checker and critic over the published snapshot b9fefbf; add this session's evidence package.",
+      "files": 14,
+      "paths_added": [
+        "openspec/scientific-closure/closure-verification-2026-09-20/{session-identity,independent-verification,claim-evidence-review,findings-resolution}.json",
+        "openspec/scientific-closure/closure-verification-2026-09-20/{review-critic,review-evidence-checker}.md"
+      ],
+      "paths_modified": [
+        "openspec/scientific-closure/{traceability,decisions,risks,claims,inventory,current-execution-checkpoint}.md",
+        "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/evidence-manifest.json",
+        "docs/research/scientific-closure-synthesis-2026-09-20.md"
+      ],
+      "diff_reviewed": true,
+      "validations_before_commit": "checker exit 0; governance+checker tests 48 passed with 14 subtests; every JSON parsed; OpenSpec --strict 11/11 with the Linux node on PATH; git diff --check exit 0; secret scan clean",
+      "state_changes": "SC-GOV-006, 019, 021, 023 and 024 degraded to BLOCKED; SC-GOV-016 raised to PASS_WITH_LIMITATIONS. No change to changes.json: every change keeps the status it had, so no state_event was added - the checker's transition graph does not admit BLOCKED to BLOCKED and fabricating one would have been an invented event."
+    },
+    {
+      "sha": "5b40a55ef62f19cfa9125aa29146e53976661692",
+      "subject": "docs(science): add the closure-verification checkpoint record and evidence manifest",
+      "purpose": "Record commit identity by rule rather than by a count, and hash the published governance set.",
+      "files": 2,
+      "paths_added": [
+        "openspec/scientific-closure/closure-verification-2026-09-20/{checkpoints,evidence-manifest}.json"
+      ],
+      "diff_reviewed": true,
+      "validations_before_commit": "JSON parsed; git diff --check exit 0",
+      "audited": "This is the snapshot the first independent final audit covered. Verdict BLOCKED (suspensive), with two material findings against this session's own work: AUD-F-01 and AUD-F-02."
+    },
+    {
+      "sha": "4940ffccbca34a2970a0eb4b54dcb7af03b2b62d",
+      "subject": "fix(science): close audit findings AUD-F-01..AUD-F-06",
+      "purpose": "Correct the two material defects the independent auditor found in this session's own output, add the SC-GOV-025 artefact, preserve the auditor's exact report, refresh the manifest and the next-session prompt.",
+      "files": 10,
+      "diff_reviewed": true,
+      "validations_before_commit": "checker exit 0; governance+checker tests 48 passed with 14 subtests; OpenSpec --strict 11/11; manifest 29/29 recomputed; git diff --check exit 0",
+      "audited": "Re-audited. Verdict BLOCKED (suspensive): all six prior findings CLOSED, one new material finding RA-01 plus RA-02..RA-05."
+    },
+    {
+      "sha": "88304765076cf51a21c059bcef0807c00609868d",
+      "subject": "fix(science): close re-audit findings RA-01..RA-05",
+      "files": 8,
+      "diff_reviewed": true,
+      "validations_before_commit": "checker exit 0; governance+checker tests 48 passed with 14 subtests; ruff and black exit 0; OpenSpec --strict 11/11; manifest 30/30 recomputed; git diff --check exit 0",
+      "audited": "Third and final audit cycle. Verdict BLOCKED (suspensive): all five cycle-2 findings CLOSED, five new findings FA-01..FA-05, none material, and an explicit recommendation to stop iterating."
+    },
+    {
+      "sha": "pending at the time this record was written; it is the commit that publishes this file",
+      "subject": "fix(science): close FA-01..FA-05 and record the recurring record defect as KL-01",
+      "purpose": "Generalise the remedy the third auditor recommended - replace stated cardinalities with derivation instructions or scope them to a named snapshot - and stop iterating, recording the class as a known limitation instead of chasing a fifth instance.",
+      "diff_reviewed": true,
+      "self_reference": "By the rule stated above, this record cannot carry its own publishing SHA. The authoritative list is: git log --oneline b9fefbf..HEAD"
+    }
+  ],
+  "push_policy": {
+    "this_session": "The operator's instruction of 2026-09-20 explicitly authorises push to origin/feat/scientific-closure and only to that ref. The intention is a single push at the end, on the snapshot the final re-audit covers. **Correction RA-05:** the first version of this field said the push 'is performed', present tense, in a record of facts, when no push had occurred. Whether it did occur is not established by this file: check `git ls-remote origin refs/heads/feat/scientific-closure` against the HEAD recorded by `git log`.",
+    "prior_breach_recorded": "Two pushes occurred during the preparation of 2026-09-20 under an authorisation that forbade push (finding C-02, decision GD-19, risk RK-14). They are recorded, not cured. SC-GOV-019 is BLOCKED because of them.",
+    "forbidden_and_not_used": [
+      "push --force",
+      "reset --hard",
+      "clean -fd",
+      "rebase onto main",
+      "merge to main",
+      "tag",
+      "release",
+      "pull request"
+    ]
+  },
+  "limitation": "A checkpoint is a recoverable commit of work. It is not acceptance, not an audit PASS, and not authorisation for any scientific stage.",
+  "audit_cycles": [
+    {
+      "cycle": 1,
+      "snapshot": "5b40a55ef62f19cfa9125aa29146e53976661692",
+      "verdict": "BLOCKED (suspensive)",
+      "material": [
+        "AUD-F-01",
+        "AUD-F-02"
+      ],
+      "action": "returned to implementer, corrected, re-tested, re-submitted for re-audit"
+    },
+    {
+      "cycle": 2,
+      "snapshot": "4940ffccbca34a2970a0eb4b54dcb7af03b2b62d",
+      "verdict": "BLOCKED (suspensive)",
+      "material": [
+        "RA-01"
+      ],
+      "minor": [
+        "RA-02"
+      ],
+      "observations": [
+        "RA-03",
+        "RA-04",
+        "RA-05"
+      ],
+      "action": "returned to implementer, corrected, re-tested, re-submitted",
+      "note": "The re-auditor ruled all six findings of cycle 1 CLOSED and confirmed the session-outcome ruling, while declining to sign a PASS on the preparation record because of RA-01."
+    },
+    {
+      "cycle": 3,
+      "snapshot": "88304765076cf51a21c059bcef0807c00609868d",
+      "verdict": "BLOCKED (suspensive)",
+      "material": [],
+      "other": [
+        "FA-01",
+        "FA-02",
+        "FA-03",
+        "FA-04",
+        "FA-05"
+      ],
+      "action": "corrected, and the recurring class recorded as KL-01 rather than pursued further, on the auditor's own recommendation and under the session rule that a cause persisting across three cycles is documented as a stable condition"
+    }
+  ],
+  "stopping_rule_applied": "Three correction cycles were run. Each closed every finding of the previous one and produced a new instance of the same structural class at lower severity. The third auditor recommended stopping and recording the class; that is what was done (KL-01 in findings-resolution.json). The three grounds that actually block closure are external and are untouched by any amount of further documentary correction."
+}

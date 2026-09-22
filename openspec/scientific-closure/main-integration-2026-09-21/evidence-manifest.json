@@ -1,0 +1,108 @@
+{
+  "schema_version": "1.0",
+  "record": "evidence-manifest",
+  "campaign_id": "main-integration-2026-09-21",
+  "captured_at_utc": "2026-09-21T05:45:00Z",
+  "scope": "Integración de origin/main (PR #206) en feat/scientific-closure. NO es evidencia científica: ninguna etapa se ejecutó.",
+  "conflicts_resolved": [
+    {
+      "path": "src/experiment_runner/controlled_daily_v4/bootstrap.py",
+      "criterion": "theirs",
+      "why": "Redacción auditada del mensaje y docstring del piso del 80 %. Piso y lógica idénticos en ambos lados."
+    },
+    {
+      "path": "src/experiment_runner/controlled_daily_v4/admissibility.py",
+      "criterion": "theirs",
+      "why": "Redacción auditada del rechazo por soporte de réplicas válidas (>= 80 %) en la compuerta B->C."
+    },
+    {
+      "path": "src/experiment_runner/controlled_daily_v4/metrics.py",
+      "criterion": "theirs",
+      "why": "Usa la constante HORIZON_DAYS en lugar del literal 3 en onset_metrics."
+    },
+    {
+      "path": "src/experiment_runner/controlled_daily_v4/stage_a_runner.py",
+      "criterion": "theirs",
+      "why": "Usa OUTCOME_NO_VALID_SELECTION en lugar del literal."
+    },
+    {
+      "path": "src/experiment_runner/controlled_daily_v4/stage_b_custody.py",
+      "criterion": "theirs",
+      "why": "Emite por stderr los motivos del preflight de procedencia fallido. Adición pura."
+    },
+    {
+      "path": "tests/test_controlled_daily_v4_scientific_closure.py",
+      "criterion": "theirs",
+      "why": "Adición pura, verificada 111/0: contrato de features congelado vs ejecutable y custodia del primer intento B."
+    },
+    {
+      "path": "tests/test_controlled_daily_v4_stage_b_runner.py",
+      "criterion": "theirs",
+      "why": "8 inserciones / 1 deleción, NO adición pura (corregido tras el hallazgo X2 de la crítica independiente). Adiciona las aserciones de bootstrap_not_executed en evaluación monoclase, y la única deleción es el renombre de test_run_stage_b_with_genuinely_monoclass_evaluation_data_has_no_predictions a ..._retains_predictions: el nombre anterior afirmaba lo contrario del comportamiento monoclase corregido, de modo que este renombre es de los cambios más significativos del merge."
+    },
+    {
+      "path": "docs/research/controlled-daily-v4-external-pergamino-protocol.md",
+      "criterion": "theirs (2 hunks en conflicto) + 1 hunk automergeado",
+      "why": "Hunks EN CONFLICTO, ambos resueltos a theirs: numeración correcta de la sección 19 (la rama duplicaba '16') y definición precisa de censura por izquierda de episodios (un episodio truncado por el final del segmento sigue siendo evaluable). TERCER HUNK, automergeado sin conflicto y con contenido normativo nuevo del PR #206, registrado aquí tras el hallazgo X1 de la crítica independiente: la tabla de convenciones de métricas adopta dos reglas adicionales — el MCC global también es INDEFINIDO si la PREDICCIÓN es constante (denominador nulo), y la exactitud balanceada es NaN explícito si y_true es monoclase, en lugar del valor degenerado de la implementación de referencia. Ambas reglas son estrictamente más exigentes."
+    },
+    {
+      "path": "docs/research/scientific-closure-decisions.md",
+      "criterion": "theirs",
+      "why": "Nota de integración que documenta la condición 4 de ADR-0011 sin alterar decisiones congeladas. Adición pura."
+    },
+    {
+      "path": "docs/research/scientific-closure-runbook.md",
+      "criterion": "mixto: theirs en 4 hunks, ours en 1",
+      "why": "theirs: rutas portables, docker/experiment-v4/build.py, creación previa de subdirectorios de runtime, redacción sobre montaje de CSV. ours: sección 'Variante Linux (2026-09-20)', evidencia verificada ausente en main."
+    }
+  ],
+  "silent_automerge_defects_found_and_fixed": [
+    {
+      "path": "src/experiment_runner/controlled_daily_v4/stage_b_runner.py",
+      "defect": "El automerge duplicó el bloque 'if evaluation_monoclass: verdict_reasons.append(REASON_EVALUATION_LABELS_MONOCLASS)' y la función evaluate_metrics. Habría agregado dos veces la misma razón de veredicto al artefacto.",
+      "fix": "Se dejó una sola copia. Ambos padres tenían exactamente una.",
+      "verification": "Tras la corrección, src/experiment_runner y los tests de controlled_daily_v4 son byte-idénticos a origin/main."
+    },
+    {
+      "path": "openspec/specs/experiment-runner/spec.md",
+      "defect": "El automerge unió ambas secciones 'Cierre científico v4': la auditada de 2026-09-20 (Requirements formales) y la prosa de 2026-09-17 de la rama, que quedó después y repetía la norma con menor precisión. Su redacción 'censurar fronteras/gaps' es la que el PR #206 corrigió a censura por izquierda.",
+      "fix": "La prosa duplicada se reemplazó por una nota SUPERSEDIDA que identifica la diferencia sustantiva y conserva lo que no estaba cubierto en otro lado.",
+      "found_by": "revisión crítica independiente, hallazgo 3"
+    }
+  ],
+  "validation": {
+    "environment": "/home/gus/scientific-closure-runtime/env/venv-v4 (Python 3.11.16); EV-21, no es la imagen aprobada",
+    "pytest_controlled_daily_v4": "491 passed",
+    "pytest_full_runnable_suite": "751 passed, 14 subtests (excluye 6 módulos que requieren mlflow/requests, ausentes del entorno fijado)",
+    "pytest_modules_needing_mlflow_requests": "117 passed, 1 skipped. Entorno auxiliar efímero, fuera del repositorio, en el scratchpad de la sesión (Python 3.11.16, con mlflow, requests, xarray y netCDF4 instalados offline) porque el entorno fijado venv-v4 no los contiene. NO es un entorno de evidencia científica y no se afirma equivalencia con la imagen aprobada ni con EV-21. Es corroborativo, no load-bearing: lo que importa de estos seis módulos es que el merge no los toca y que son byte-idénticos a origin/main, ambas cosas verificadas por diff.",
+    "check_scientific_closure": "PASS (estructura)",
+    "openspec_validate_strict_scientific_closure": "valid",
+    "openspec_validate_strict_experiment_runner": "FALLA por '## Purpose' ausente; verificado preexistente en base, HEAD y origin/main; no es defecto del merge",
+    "ruff_src_experiment_runner_and_tests": "clean",
+    "black_check_src_experiment_runner_and_tests": "clean",
+    "git_diff_check": "clean",
+    "preexisting_not_introduced_by_this_merge": [
+      "ruff: orden de imports en scripts/run_hu7_experiments.py y scripts/run_hu7_scenarios.py (presente en ambos padres)",
+      "black: reformateo pendiente en scripts/export_hu7_reference.py (presente en ambos padres)"
+    ]
+  },
+  "independent_review": {
+    "rounds": 3,
+    "round_1": "9 hallazgos: código y tests sin refutación (0 deleciones contra origin/main, byte-identidad, sin compuerta debilitada); 5 materiales en la capa documental.",
+    "round_2": "Hallazgos 2-9 cerrados y verificados contra evidencia primaria. Siete hallazgos nuevos, N1-N7. MATERIALES, ambos regresiones introducidas al corregir el hallazgo 1, ambos en next-session.txt: N1 (se borró la regla 'no modificar src/' junto con su fundamento falso, justo cuando GD-24b y RK-19 dependen de esa propiedad) y N2 (la prohibición de A/B/C quedó condicionada a que faltaran 'los tres' insumos externos, cuando ya faltan dos, de modo que se habría desactivado por aritmética). MENORES: N3 (encabezado 'TRES INSUMOS QUE FALTAN' numéricamente falso), N4 (dos fechas bajo un mismo sello en next-session.txt), N5 (el puntero de entrada dejó de resolver de forma única al haber dos secciones 'Estado vigente'), N6 (la autorización del merge constaba solo en prosa, por debajo del estándar probatorio de las sesiones previas de esta rama). N7 informativo (el preflight no conoce el directorio validation/). N1-N6 corregidos; este directorio fechado existe por N6.",
+    "reviewer_bottom_line_round_2": "Nada debilita una compuerta científica en el código; nada indica que A/B/C corrieran, que el holdout se abriera o que el ledger se inicializara.",
+    "round_3": "N1-N6 verificados como resueltos contra evidencia primaria, incluidos los tres SHA del merge, el escenario completo de la prohibición de A/B/C y la identidad byte a byte de src/ con origin/main. Sin bloqueos para commit ni push. Seis inexactitudes nuevas, todas DENTRO de estos artefactos de evidencia y ninguna en el árbol que describen: X1 (recuento de hunks del protocolo y contenido normativo del tercer hunk sin registrar), X2 ('adición pura' incorrecta para el test de la Etapa B), X3 (esta misma sección subregistraba la ronda 2), X4 (estado de la autorización), X5 (cita elidida del README), X6 (entorno auxiliar sin identificar). Las seis corregidas en esta versión."
+  },
+  "not_done": {
+    "stage_a": "NOT_EXECUTED",
+    "stage_b": "NOT_EXECUTED",
+    "stage_c": "NOT_EXECUTED",
+    "ledger_initialised": false,
+    "holdout_2024_2025": "CLOSED",
+    "scientific_results_produced": false,
+    "main_modified": false,
+    "pr_opened": false,
+    "tags_or_releases": false,
+    "history_rewritten": false
+  }
+}

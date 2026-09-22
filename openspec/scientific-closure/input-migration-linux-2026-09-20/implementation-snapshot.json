@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.1",
+  "frozen_at_utc": "2026-09-20T03:33:07.853804369Z",
+  "frozen_at_source": "date -u +%Y-%m-%dT%H:%M:%S.%6NZ immediately before writing this snapshot",
+  "git_base": "e669bf8d0034d0776464822d668c34208f0dd412",
+  "correction_cycle": 1,
+  "supersedes": {
+    "path": "snapshot-v1-superseded.json",
+    "initial_snapshot_sha256": "39f3d55ee0f161fed91e60374bb6aeca241257130fd932a26885fdcaa6c74226",
+    "reason": "Correct estimated timestamps, preserve exact probe evidence, qualify untracked diff checking, and add timestamped command/search rechecks."
+  },
+  "writer": {
+    "role": "scientific_implementer",
+    "requested_model": "gpt-5.6-sol",
+    "requested_reasoning_effort": "medium",
+    "effective_backend_model": "NOT_INTROSPECTABLE_NOT_ACCREDITED",
+    "nominal_sandbox": "workspace-write",
+    "effective_inherited_sandbox": "danger-full-access",
+    "scope_enforced_by_conduct": true
+  },
+  "files": [
+    {"path":"adr-0011-assessment.json","sha256":"07c14794f3916126235282376f1a7b6a930f9e0270aaa42768aef978a6860a7b"},
+    {"path":"blocker-definitions.json","sha256":"2a94fd7e2b2f793234d3a7bb0d346d036850fa775988ac0e623c0ad36e3d14ba"},
+    {"path":"command-recheck.json","sha256":"f961d09ac33239fd02a5ea2ad79d1864cf8081e5c6da682c6af71153370b5212"},
+    {"path":"expected-inventory.json","sha256":"897f9905ccbc0865278357201327f33cbf5d5a3ab92938092fb16cdcc13e442d"},
+    {"path":"mount-check.json","sha256":"dc2c880f3308088b0a74804faa49f76f346fd982252dc221c730e284b6b8d3d2"},
+    {"path":"provenance-assessment.json","sha256":"45ba2f90d03e4c09e83c38d8ec0505ece332a4d7004b046b75de695a79c5da8d"},
+    {"path":"recovery-rehearsal.json","sha256":"951821a1113e7e8d005820a3f7c057b6a44a724cb6c38f516fd6b18fa100d6d3"},
+    {"path":"report.md","sha256":"a1c0222b80411b31a652abf125470ae587c73725169fcdbc6204cc0e5d861aff"},
+    {"path":"runtime-image.json","sha256":"15ebd9c42e1af812101ed15bd68ff8b1397fb046ecd6b7c18c0f073bb502da17"},
+    {"path":"snapshot-v1-superseded.json","sha256":"0e13da72685353f643534c0753365585222ed7174c962e4c44985607bf5aabb3"},
+    {"path":"source-inventory.json","sha256":"cb77abcb74b79291e024fa1a35ad7c02bc1d7adef4d985fa4647a3fcbaf881fa"},
+    {"path":"transfer-manifest.json","sha256":"666c0a13f9897a7962c4ea5c839de1b4cd6da0aadd835277e976b333026f3456"},
+    {"path":"validation.json","sha256":"3ed6a17c0094087579781f620c3a78c3e027b5eab19f4faa435f33fe615ecebd"}
+  ],
+  "root_owned_excluded": ["orchestrator.json","review-*","audit-*"],
+  "self_excluded": "implementation-snapshot.json",
+  "external_copy_identity": "transfer-manifest.json",
+  "verification": {
+    "json_parse": "PASS",
+    "timestamped_read_only_recheck": "command-recheck.json",
+    "transfer_recheck": "PASS 12/12 destination files plus recovery fixture",
+    "untracked_content_whitespace_check": "PASS via git diff --no-index --check per file; exit 1 means differences and was accepted, exit >1 would fail",
+    "staged_validation": "PENDING_ORCHESTRATOR"
+  },
+  "independent_root_records": ["review-implementer-clarification.md","review-runtime-metadata.json","review-validation-recheck.json"],
+  "writer_released": true,
+  "change_closed": false,
+  "overall": "INPUT_MIGRATION_PARTIAL"
+}

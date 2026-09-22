@@ -1,0 +1,16 @@
+schema: spec-driven
+
+context: |
+  Scientific closure governance for FIUBA HU7/HU8, experiment-runner.
+  Read project.md and specs/scientific-closure/spec.md first.
+  The experimental authority remains the v4 protocol and preexecution decisions.
+  Preserve all historical evidence and controlled_daily_v3.
+  Preparation does not authorize scientific execution or holdout access.
+
+rules:
+  proposal:
+    - Identify HU, capability, CRISP-DM, experimental impact and scope exclusions.
+    - Declare dependencies, authorized files, blockers, risks and rollback.
+  tasks:
+    - Link stable requirement IDs to checks and expected evidence.
+    - Close only after independent auditor PASS; never infer missing evidence.

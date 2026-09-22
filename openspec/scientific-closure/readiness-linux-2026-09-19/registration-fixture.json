@@ -1,0 +1,58 @@
+{
+  "schema_version": "scientific_closure_registration_fixture.v1",
+  "campaign_id": null,
+  "change_id": "sc-01-evidence-scope",
+  "requirement_ids": [
+    "SC-GOV-007",
+    "SC-GOV-020"
+  ],
+  "timestamp_utc": "2026-09-19 08:41:09 UTC",
+  "actor": {
+    "session": "/root",
+    "role": "orchestrator",
+    "effective_model": null,
+    "effective_sandbox": "danger-full-access"
+  },
+  "object": {
+    "base_commit": "a0d8bf7412bbb68448cf3bcec262097cd1571ab3",
+    "scope": "Fixture negativa después del registro de auditoría real; sin modificar validadores"
+  },
+  "command": "Recolección del fallo y respuestas originales de explorador/implementador",
+  "exit_code": 0,
+  "output": {
+    "failure": {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "tests/test_scientific_closure_checker.py",
+        "tests/test_scientific_closure_governance.py",
+        "-v"
+      ],
+      "exit_code": 1,
+      "output_kind": "transcribed_exact_failure_excerpt_not_full_stdout",
+      "output": "FAIL: test_pass_requires_independent_audit_evidence (tests.test_scientific_closure_governance.GovernanceTests.test_pass_requires_independent_audit_evidence)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/gus/work/AAI_Hydric_Stress_scientific_closure/tests/test_scientific_closure_governance.py\", line 150, in test_pass_requires_independent_audit_evidence\n    with self.assertRaises(ValueError):\n         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^\nAssertionError: ValueError not raised\n\n----------------------------------------------------------------------\nRan 48 tests in 0.545s\n\nFAILED (failures=1)",
+      "context": "Registro posterior al PASS sc01, sin modificación de validadores ni código científico; 47 pruebas pasaron y una falló."
+    },
+    "explorer": {
+      "session": "/root/preparation_explorer",
+      "message_type": "FINAL_ANSWER",
+      "exact_text": "La falla proviene del fixture: al copiar `self.changes[0]`, ahora copia el `audit` PASS real de sc-01. El test no lo reemplaza, por lo que `validate_state` acepta correctamente el registro.\n\nCorrección mínima: agregar `audit=None` al `record.update(...)` en [test_scientific_closure_governance.py](/home/gus/work/AAI_Hydric_Stress_scientific_closure/tests/test_scientific_closure_governance.py:145). No se debe modificar el validador ni el checker."
+    },
+    "implementer": {
+      "session": "/root/preparation_metadata",
+      "assigned_model": "gpt-5.6-sol",
+      "assigned_reasoning_effort": "medium",
+      "effective_model": null,
+      "effective_reasoning_effort": null,
+      "effective_sandbox": "danger-full-access inherited",
+      "message_type": "MESSAGE",
+      "exact_text": "FREEZE/libero escritura. Único cambio: `audit=None` en fixture negativa `test_pass_requires_independent_audit_evidence`; no se tocó validate_state/checker. Selectiva exacta: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_scientific_closure_governance.GovernanceTests.test_pass_requires_independent_audit_evidence -v` => exit 0, Ran 1, OK. Suite exacta: `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests/test_scientific_closure_checker.py tests/test_scientific_closure_governance.py` => exit 0, Ran 48 in 0.507s, OK. Checker: `PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_scientific_closure.py` => exit 0, `scientific-closure checker: PASS (estructura; runtime no verificado)`. `git diff --check -- tests/test_scientific_closure_governance.py` exit 0/sin salida. SHA-256 final test: b939730a1cd7447fa5a68fee85718d6d9ee5b12e1f6262abe6691c86abf0b2cd. Diff exact: una inserción `audit=None,` después de `record.update(status='PASS', approved_for_implementation=True,`. Sin evidencia adicional ni commit."
+    }
+  },
+  "result": "Fixture corregida y pruebas aprobadas por implementador; revisión independiente pendiente",
+  "limitations": [
+    "Mensajes de agentes no son stdout crudo; fallo conserva extracto exacto declarado, sin reconstruir salida no archivada.",
+    "No se modifica auditoría científica previa; esta corrección no cierra CRIT-CHK-01..04."
+  ]
+}

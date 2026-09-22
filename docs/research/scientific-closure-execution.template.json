@@ -1,0 +1,45 @@
+{
+  "schema_version": "scientific_closure_execution_plan.v1",
+  "status": "NOT_AUTHORIZED_NOT_EXECUTED",
+  "executable_commit": null,
+  "immutable_image_id": null,
+  "fill_identity_from": "clean build + docker inspect + metadata-only preflight",
+  "stages": {
+    "A": "NOT_EXECUTED",
+    "B": "NOT_EXECUTED",
+    "C": "CLOSED"
+  },
+  "ledger_initialized": false,
+  "runtime_root": "C:\\Repo\\AAI_Hydric_Stress_scientific_runtime",
+  "directories": [
+    "evidence",
+    "ledger",
+    "backups",
+    "validation"
+  ],
+  "datasets": {
+    "era5": {
+      "expected_sha256": "318edffb89c64d5f500e35b5530e6064cb02f68b89bd28a71262c2ebb01f485f",
+      "expected_size_bytes": 3954003
+    },
+    "nasa_power": {
+      "expected_sha256": "415b4f71abb78e419b765110f4a42c3f32587b204d12897812df9573c5c2202b",
+      "expected_size_bytes": 127568
+    }
+  },
+  "input_values_read_this_preparation": false,
+  "bootstrap": {
+    "seed": 20250109,
+    "replicas": 5000,
+    "block_days": 30,
+    "minimum_valid_fraction": 0.8
+  },
+  "model_seed": 42,
+  "backup_policy": "scientific-closure-runbook.md",
+  "auxiliary_evaluations": {
+    "R": "DESIGN_ONLY",
+    "H": "DESIGN_ONLY",
+    "N": "DESIGN_ONLY",
+    "S": "DESIGN_ONLY"
+  }
+}

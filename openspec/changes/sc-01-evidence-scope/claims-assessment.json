@@ -1,0 +1,59 @@
+{
+  "schema_version": "scientific_closure_claims_assessment.v1",
+  "campaign_id": null,
+  "change_id": "sc-01-evidence-scope",
+  "requirement_ids": ["SC-GOV-005"],
+  "timestamp_utc": "2026-09-19T08:13:25Z",
+  "actor": {
+    "session": "/root/preparation_metadata",
+    "role": "scientific_implementer",
+    "assigned_model": "gpt-5.6-sol",
+    "assigned_reasoning_effort": "medium",
+    "effective_model": null,
+    "effective_reasoning_effort": null,
+    "nominal_sandbox": "workspace-write",
+    "effective_sandbox": "danger-full-access inherited"
+  },
+  "object": {
+    "input_commit_sha": "a70022d3dd84495421c35186ec91abf765828e6c",
+    "claims_document": {"path": "openspec/scientific-closure/claims.md", "sha256": "eb02d961b762fe4ebaaee77375059a64935f12c91884b8d7c8e842daf4205dc4"},
+    "decisions_document": {"path": "openspec/scientific-closure/decisions.md", "sha256": "5058169ff5ebdaaede697667c20e5ff9776c0fc9e2ee55615fc1cf98bae039b5"},
+    "scope_exploration": {"path": "openspec/scientific-closure/readiness-linux-2026-09-19/scope-exploration.json", "sha256": "a728dc7a0d0b93e232a8f0400b7d2d3e916dec1f0f29bc1b252c1950d646e545"},
+    "image": null,
+    "seeds": null
+  },
+  "command": "sha256sum openspec/project.md openspec/specs/scientific-closure/spec.md openspec/scientific-closure/claims.md openspec/scientific-closure/inventory.md openspec/scientific-closure/decisions.md openspec/scientific-closure/readiness-linux-2026-09-19/scope-exploration.json docs/research/scientific-closure-decisions.md docs/adr/0009-contratos-temporales-y-experimentos-controlados.md docs/adr/0010-seleccion-modelos-controlled-daily-v4.md docs/adr/0011-protocolo-controlled-daily-v4-external-pergamino.md",
+  "exit_code": 0,
+  "output": "Fuentes y documentos de evaluación hasheados; claims.md=eb02d961b762fe4ebaaee77375059a64935f12c91884b8d7c8e842daf4205dc4; decisions.md=5058169ff5ebdaaede697667c20e5ff9776c0fc9e2ee55615fc1cf98bae039b5.",
+  "output_kind": "summary_not_raw_stdout",
+  "result": "NECESSITY_DECISIONS_RESOLVED_PENDING_INDEPENDENT_REVIEW; SCIENTIFIC_EVIDENCE_PENDING",
+  "authority": {
+    "source": "Prompt vigente del responsable y transición APPROVED→IN_PROGRESS registrada por el orquestador en changes.json.",
+    "delegated_decision": "El orquestador fijó R/H/N/S y CL-10 dentro del alcance aprobado, apoyado por exploración y advisory crítico.",
+    "scientific_execution_authorized": false
+  },
+  "complements": {
+    "R": {"decision": "NOT_REQUIRED", "reason": "La campaña principal sostiene clasificación P20, no predicción continua de humedad.", "scope_cap": "No afirmar MAE/RMSE de humedad t+3 ni equivalencia con clasificación."},
+    "H": {"decision": "REQUIRED", "reason": "CL-06 exige cuantificar el aporte de correcciones simuladas mediante comparación predeclarada.", "scope_cap": "No presentar resultados simulados como beneficio de una persona real; evidencia prospectiva externa sería necesaria."},
+    "N": {"decision": "NOT_REQUIRED", "reason": "CL-04 se limita al uso histórico v3 de anomalías como predictores; no se sostiene detección reservada.", "scope_cap": "No afirmar detección de anomalías reales, corrupciones reservadas o fallas reales."},
+    "S": {"decision": "NOT_REQUIRED", "reason": "La afirmación se limita a etiquetas escasas y ruido históricamente documentados en v3.", "scope_cap": "No afirmar robustez a sensores o mediciones ausentes."}
+  },
+  "claims": [
+    {"id": "CL-01", "source": ["openspec/project.md", "docs/research/controlled-daily-v4-external-pergamino-protocol.md"], "existing_evidence": "Protocolo/diseño REFERENCED", "gap": "A íntegra, soporte y selección", "scientific_evidence_status": "PENDING", "decision": "RETAIN_LIMITED_CLAIM", "reason": "Comparación retrospectiva P20 exploratoria; no requiere R/H/N/S."},
+    {"id": "CL-02", "source": ["docs/research/controlled-daily-v4-external-pergamino-protocol.md"], "existing_evidence": "Contrato B REFERENCED", "gap": "B única tras candidato admisible A", "scientific_evidence_status": "PENDING", "decision": "RETAIN_CONDITIONAL_CLAIM", "reason": "Gate negativo limita la conclusión y detiene avance."},
+    {"id": "CL-03", "source": ["docs/research/controlled-daily-v4-external-pergamino-protocol.md"], "existing_evidence": "Contrato C REFERENCED", "gap": "C única tras B CANDIDATE_VALIDATED, auditor B PASS y freeze", "scientific_evidence_status": "PENDING", "decision": "RETAIN_CONDITIONAL_CLAIM", "reason": "No afirmar desempeño final si C no se abre."},
+    {"id": "CL-04", "source": ["docs/research/reference-v3-formal-results.json", "docs/research/reference-v3-formal-table.md"], "existing_evidence": "v3 REFERENCED con hashes preservados", "gap": "Trazabilidad y límites en síntesis", "scientific_evidence_status": "REFERENCED", "decision": "RETAIN_HISTORICAL_LIMITED_CLAIM", "reason": "N no se necesita para repetir fielmente el aporte como predictor; no es detección."},
+    {"id": "CL-05", "source": ["docs/research/scientific-closure-decisions.md"], "existing_evidence": "Diseño R REFERENCED", "gap": "MAE/RMSE y baselines solo si se amplía alcance", "scientific_evidence_status": "NOT_REQUIRED_FOR_APPROVED_SCOPE", "decision": "RETAIN_AS_EXPLICIT_BOUNDARY", "reason": "R NOT_REQUIRED para clasificación P20; no se elimina el componente ni se afirma regresión."},
+    {"id": "CL-06", "source": ["openspec/project.md", "docs/research/scientific-closure-decisions.md"], "existing_evidence": "Diseño H REFERENCED", "gap": "Comparación auditada de tres brazos", "scientific_evidence_status": "PENDING", "decision": "RETAIN_REQUIRED_CLAIM", "reason": "H REQUIRED para correcciones simuladas; nunca acredita beneficio humano real."},
+    {"id": "CL-07", "source": ["docs/research/scientific-closure-decisions.md"], "existing_evidence": "Diseño N REFERENCED", "gap": "Evaluación reservada solo si se amplía alcance", "scientific_evidence_status": "NOT_REQUIRED_FOR_APPROVED_SCOPE", "decision": "RETAIN_AS_EXPLICIT_BOUNDARY", "reason": "N NOT_REQUIRED y no se afirma detección reservada/fallas reales."},
+    {"id": "CL-08", "source": ["docs/research/reference-v3-formal-results.json", "docs/research/scientific-closure-decisions.md"], "existing_evidence": "v3 REFERENCED; diseño S preservado", "gap": "Máscaras/ruido solo si se amplía a mediciones ausentes", "scientific_evidence_status": "REFERENCED_LIMITED", "decision": "RETAIN_HISTORICAL_LIMITED_CLAIM", "reason": "S NOT_REQUIRED para etiquetas+ruido v3; sensores ausentes quedan excluidos."},
+    {"id": "CL-09", "source": ["docs/research/controlled-daily-v4-external-pergamino-protocol.md"], "existing_evidence": "Definición onset v4 REFERENCED", "gap": "Métricas onset/censura/falsos avisos y soporte", "scientific_evidence_status": "PENDING", "decision": "RETAIN_SUPPORT_CONDITIONAL_CLAIM", "reason": "Onset indefinido por soporte es un resultado válido; no requiere auxiliares."},
+    {"id": "CL-10", "source": ["openspec/project.md", "openspec/specs/scientific-closure/spec.md", "openspec/scientific-closure/readiness-linux-2026-09-19/scope-exploration.json"], "existing_evidence": "Criterio preejecución RESOLVED", "gap": "Terminal auditado, H auditado, trazabilidad caps. 2/3 y límites", "scientific_evidence_status": "PENDING", "decision": "SUFFICIENCY_CRITERION_FIXED", "reason": "Admite terminal negativo A/B, soporte insuficiente y v3 REFERENCED; no exige C tras gate negativo ni certifica HU1/tesis completa."}
+  ],
+  "limitations": [
+    "La decisión de necesidad no es evidencia científica ni autorización de ejecución.",
+    "No se observaron resultados de A/B/C/H ni valores de holdouts.",
+    "No se inventaron procedencia, adquisición o licencia faltantes.",
+    "La evaluación requiere crítica y auditoría independientes antes de cerrar sc-01."
+  ]
+}

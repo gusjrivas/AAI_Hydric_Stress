@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "checked_at_utc": null,
+  "checked_at_status": "UNKNOWN_NOT_CAPTURED_DURING_INITIAL_CHECK",
+  "path": "/mnt/c",
+  "findmnt": "/mnt/c C: 9p ro,relatime,aname=drvfs;path=C:;symlinkroot=/mnt/,cache=5,access=client,msize=65536,trans=fd,rfd=3,wfd=3",
+  "mount": "C: on /mnt/c type 9p (ro,relatime,aname=drvfs;path=C:;symlinkroot=/mnt/,cache=5,access=client,msize=65536,trans=fd,rfd=3,wfd=3)",
+  "read_only_rejection_observation": {
+    "operation": "shell redirection attempted to a unique absent path under /mnt/c; this operation could have written if the mount had not rejected it",
+    "exact_attempted_path": "/mnt/c/.codex-read-only-probe-20260920-19752",
+    "exit_code": 1,
+    "exact_stderr": "/bin/bash: line 6: /mnt/c/.codex-read-only-probe-20260920-19752: Read-only file system",
+    "path_absent_after": true
+  },
+  "result": "VERIFIED_READ_ONLY",
+  "limitation": "The write-capable attempt was rejected with EROFS and left no path; it is not described as inherently non-destructive. This mount check does not establish agent-role sandbox enforcement. No remount was attempted. A timestamped read-only findmnt recheck is preserved in command-recheck.json."
+}

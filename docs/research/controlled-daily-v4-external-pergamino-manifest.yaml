@@ -1,15 +1,18 @@
 # Manifiesto de provenance — controlled_daily_v4_external_pergamino
 #
-# Plantilla versionada, SIN resultados experimentales. Estado global (`status`): PROTOCOL_ONLY.
-# Ningún experimento fue ejecutado; ningún valor de resultados existe todavía. Esto sigue
-# siendo cierto (actualización 2026-09-13) y no debe confundirse con el estado de la
-# IMPLEMENTACIÓN DE CÓDIGO, que es distinto: ver el bloque `implementation_status` más abajo.
+# ACTUALIZACIÓN 2026-09-21: la campaña A -> B -> C SE EJECUTÓ. Estado global (`status`):
+# EXECUTED_2026_09_21. El holdout 2024-2025 fue abierto de forma única e irreversible.
+# El texto anterior de este encabezado decía «Plantilla versionada, SIN resultados
+# experimentales [...] Ningún experimento fue ejecutado», lo cual fue cierto hasta el
+# 2026-09-20 y dejó de serlo el 2026-09-21; se corrige aquí para no inducir a error.
+# El estado de la IMPLEMENTACIÓN DE CÓDIGO es distinto del de los RESULTADOS: ver
+# `implementation_status` y `execution_artifacts` más abajo.
 # No modificar controlled_daily_v3 ni su evidencia (scientific-baseline-v3) a partir de este archivo.
 # Ver docs/adr/0011-protocolo-controlled-daily-v4-external-pergamino.md y
 # docs/research/controlled-daily-v4-external-pergamino-protocol.md para la decisión y el detalle completo.
 
 protocol_id: controlled_daily_v4_external_pergamino
-status: PROTOCOL_ONLY
+status: EXECUTED_2026_09_21
 adr: docs/adr/0011-protocolo-controlled-daily-v4-external-pergamino.md
 protocol_document: docs/research/controlled-daily-v4-external-pergamino-protocol.md
 related_adr: docs/adr/0010-seleccion-modelos-controlled-daily-v4.md
@@ -18,22 +21,25 @@ does_not_alter: scientific-baseline-v3, controlled_daily_v3, technical-baseline-
 # Añadido 2026-09-13, sin relación con ningún campo leído por
 # src/experiment_runner/controlled_daily_v4/manifest_reference.py (que solo lee
 # coordinates/sources/environment): distingue el estado de la IMPLEMENTACIÓN DE
-# CÓDIGO del estado de RESULTADOS EXPERIMENTALES (`status`, arriba, que sigue en
-# PROTOCOL_ONLY porque ningún experimento se ejecutó todavía).
+# CÓDIGO del estado de RESULTADOS EXPERIMENTALES. Actualizado 2026-09-21: `status`
+# ya NO es PROTOCOL_ONLY y las tres etapas fueron ejecutadas realmente.
 implementation_status:
   stage_a_code: IMPLEMENTED
-  stage_a_verification: SYNTHETIC_TESTS_ONLY
-  stage_a_real_execution: NOT_EXECUTED
+  stage_a_verification: SYNTHETIC_TESTS_AND_REAL_EXECUTION
+  stage_a_real_execution: EXECUTED_2026_09_21
   stage_b_code: IMPLEMENTED
   stage_c_code: IMPLEMENTED
-  stage_b_verification: SYNTHETIC_TESTS_ONLY
-  stage_c_verification: SYNTHETIC_TESTS_ONLY
-  stage_b_real_execution: NOT_EXECUTED
-  stage_c_real_execution: NOT_EXECUTED
+  stage_b_verification: SYNTHETIC_TESTS_AND_REAL_EXECUTION
+  stage_c_verification: SYNTHETIC_TESTS_AND_REAL_EXECUTION
+  stage_b_real_execution: EXECUTED_2026_09_21
+  stage_c_real_execution: EXECUTED_2026_09_21
   complementary_runners: DESIGN_ONLY_NOT_IMPLEMENTED
   note: >
-    Actualizado 2026-09-17. A/B/C integradas, sin resultados científicos.
-    La versión del 13/09 indicaba B/C sin código; ese estado es histórico.
+    Actualizado 2026-09-21. Las tres etapas se ejecutaron realmente sobre Pergamino
+    dentro de la imagen aprobada sha256:55bc923e..., con identidad ejecutable
+    214735e42ee04f018156cd630591e798aadd8bf3. Los complementos R/H/N/S siguen sin
+    implementar y NO se ejecutaron. La versión del 17/09 decía «sin resultados
+    científicos»: cierto hasta el 2026-09-20, falso desde el 2026-09-21.
     Ver scientific-closure-decisions.md y scientific-closure-runbook.md.
 
 site:
@@ -225,13 +231,16 @@ experimental_design:
     stage_b_temporal_validation:
       target_timestamp_range: ["2023-01-04", "2023-12-31"]
       emission_range: ["2023-01-01", "2023-12-28"]
-      status: PENDING_BEFORE_EXECUTION
+      status: executed_2026_09_21
+      result: CANDIDATE_VALIDATED
     stage_c_holdout:
       target_timestamp_range: ["2024-01-04", "2025-12-31"]
       emission_range: ["2024-01-01", "2025-12-28"]
-      status: closed
-      opening_authorization: PENDING_BEFORE_EXECUTION
-      opening_date: PENDING_BEFORE_EXECUTION
+      status: opened_and_evaluated_2026_09_21
+      opening_authorization: "Gustavo Rivas, responsable tecnico y cientifico del Trabajo Final (autorizacion explicita, 2026-09-21)"
+      opening_date: "2026-09-21T04:06:11Z"
+      opening_ledger: "holdout.sqlite, holdout_key 9bbd89a6a17ed3f670b6d7633605c60d27f887ff77c41d16d1867cc45b8138a1, estado CONFIRMADA, attempt_id 2121cdc901454df6be922c54a42d208d"
+      opening_irreversible: true
       opening_condition: "CANDIDATE_VALIDATED en Etapa B (ver protocolo, sección 10)"
   nested_cv:
     outer: "TimeSeriesSplit(n_splits=3, gap=3)"
@@ -278,7 +287,7 @@ hyperparameter_grids:
     base_models: [logistic_regression, random_forest, hist_gradient_boosting_classifier]
 
 environment:
-  status: VALIDATED_FOR_TESTS_ONLY
+  status: VALIDATED_FOR_TESTS_ONLY_THEN_USED_IN_REAL_EXECUTION_2026_09_21
   note: >
     Entorno experimental dedicado, resuelto y construido en un contenedor
     limpio (docker/experiment-v4/Dockerfile, base python@sha256:9534e5a8e31548
@@ -306,11 +315,23 @@ environment:
   black_version: "26.5.1"
 
 repository_state:
-  branch: PENDING_BEFORE_EXECUTION
-  commit: PENDING_BEFORE_EXECUTION
-  note: >
+  branch: feat/scientific-closure
+  commit: 214735e42ee04f018156cd630591e798aadd8bf3
+  commit_role: executable_sha
+  documentary_commit: 37eed42716803baa9bdbed912356b981adac093a
+  image_id: sha256:55bc923efac009b1b6de45acc634774b7910d4829fdfd0b2c963dd5748b297af
+  executed_at_utc: "2026-09-21T03:31:13Z/2026-09-21T04:06:27Z"
+  identity_note: >
+    `commit` es la IDENTIDAD EJECUTABLE: el SHA embebido en `.build_identity.json` de la
+    imagen aprobada, que es el codigo que realmente produjo A, B y C (dirty=false).
+    `documentary_commit` es el HEAD de la rama al ejecutar, que incluye ademas correcciones
+    documentales y siete archivos de `src/experiment_runner/controlled_daily_v4/` no
+    materiales para los resultados numericos (solo mensajes, docstrings, una constante
+    equivalente, una impresion a stderr y un motivo adicional para el caso monoclase de B).
+    La distincion es deliberada y esta verificada en evidence/environment-identity.json.
+  historical_note: >
     Ambos campos se completan con la rama y el commit reales en el momento de
-    ejecución REAL de la Etapa A sobre Pergamino (todavía no ejecutada). El
+    ejecución REAL de la Etapa A sobre Pergamino (SUPERADO 2026-09-21: ejecutada ese día). El
     valor anterior de `branch` (feat/controlled-daily-v4-stage-a-runner) quedó
     obsoleto: esa rama ya fue mergeada a main (PR #188) y main avanzó con
     correcciones posteriores (PR #189, #190) sin que se haya ejecutado ninguna
@@ -322,8 +343,8 @@ repository_state:
     no la corrida real.
 
 execution_artifacts:
-  status: PENDING_BEFORE_EXECUTION
-  note: >
+  status: EXECUTED_2026_09_21
+  historical_note: >
     Ninguno de los siguientes campos existe todavía; se completan únicamente
     cuando el protocolo se ejecute (fuera de alcance de esta tarea documental).
     El mecanismo que los produce ya existe en el runner (`artifacts.py`,
@@ -333,22 +354,70 @@ execution_artifacts:
     test). Esto no adelanta ninguna ejecución científica real -- solo indica
     que, al ejecutarla, estos campos podrán completarse con evidencia real en
     lugar de quedar pendientes de implementación.
+  evidence_root: /home/gus/scientific-closure-runtime/evidence
+  evidence_external_backup: /mnt/scientific-backup/AAI_Hydric_Stress/closure-campaign-2026-09-21
+  dataset_fingerprint_sha256: 8062605be37af073a9b6db9be53063cd88fdfc038273f9d45baa036277038931
+  dataset_fingerprint_n_rows: 2913
   folds:
-    outer_fold_boundaries: PENDING_BEFORE_EXECUTION
-    inner_fold_boundaries: PENDING_BEFORE_EXECUTION
-  p20_train_by_fold: PENDING_BEFORE_EXECUTION
-  frozen_hyperparameters: PENDING_BEFORE_EXECUTION
-  seeds_used: PENDING_BEFORE_EXECUTION
-  oof_predictions_path: PENDING_BEFORE_EXECUTION
-  metrics_path: PENDING_BEFORE_EXECUTION
-  warnings_log: PENDING_BEFORE_EXECUTION
-  stage_b_result: PENDING_BEFORE_EXECUTION
-  stage_c_result: PENDING_BEFORE_EXECUTION
+    outer_fold_boundaries: evidence/A/outer_fold_boundaries.json
+    inner_fold_boundaries: evidence/A/inner_fold_boundaries.json
+    freeze_fold_boundaries: evidence/A/freeze_fold_boundaries.json
+    outer_summary:
+      - {outer_fold_index: 1, n_train: 726, n_validation: 728, validation_feature_range: ["2017-01-05", "2019-01-02"]}
+      - {outer_fold_index: 2, n_train: 1454, n_validation: 728, validation_feature_range: ["2019-01-03", "2020-12-30"]}
+      - {outer_fold_index: 3, n_train: 2182, n_validation: 728, validation_feature_range: ["2020-12-31", "2022-12-28"]}
+  p20_train_by_fold:
+    path: evidence/A/p20_by_fold.json
+    values: [0.330625, 0.32911666666666667, 0.318675]
+    note: identicos para las cuatro familias; el P20 es fold-local y no depende del modelo
+  p20_train_freeze_pass: 0.30266666666666664
+  p20_train_stage_b: 0.30266666666666664
+  p20_train_stage_c: 0.300275
+  frozen_hyperparameters:
+    family: logistic_regression
+    selection_outcome: SIN_GANADOR_ESTABLE
+    selection_reason: tie_break_simplicity_predeclarada_no_superioridad
+    params: {C: 1.0, solver: lbfgs, max_iter: 2000, weighting: sample_weight_balanced}
+    path: evidence/A/frozen_config.json
+  seeds_used: {bootstrap: 20250109, model: 42}
+  oof_predictions_path: evidence/A/oof_predictions_<family>.csv
+  metrics_path: evidence/A/metrics.json
+  warnings_log: evidence/A/warnings.json (vacio en A, B y C)
+  depth_sensitivity_7_28cm: evidence/A_sensitivity_7_28cm (no interviene en seleccion)
+  stage_b_result:
+    verdict: CANDIDATE_VALIDATED
+    mcc_candidate_2023: 0.7013628452384668
+    mcc_persistence_2023: 0.6147436727538629
+    delta_mcc_point_estimate: 0.08661917248460393
+    delta_mcc_interval_95: [-0.014552905008073864, 0.20919816286236456]
+    delta_interval_includes_zero: true
+    interpretation: >
+      NO INFERIORIDAD frente a persistencia, NO superioridad. El intervalo pareado
+      incluye el cero: la compuerta exige unicamente que el limite inferior sea >= -0.05.
+    custody: ledger/stage_b.sqlite, intento unico 7eb5bb7c1bf7467ca2aa0d0c00833d4d, RESERVED antes de leer valores
+    path: evidence/B
+  stage_c_result:
+    predictions_available: true
+    mcc_candidate_2024_2025: 0.664770029347888
+    mcc_persistence_2024_2025: 0.5734375
+    delta_mcc_point_estimate: 0.09133252934788794
+    delta_mcc_interval_95: [0.022657591591829684, 0.17841825864767943]
+    delta_interval_includes_zero: false
+    interpretation: >
+      En esta unica comparacion pareada preespecificada el intervalo excluye el cero, de
+      modo que el candidato supera a la persistencia causal en 2024-2025. El protocolo NO
+      define criterio de aceptacion para C: se reporta tal cual. No confirma la hipotesis
+      general del Trabajo Final, no revierte el empate de la Etapa A y no es validacion
+      agronomica in situ: los datos son reanalisis, no mediciones de campo.
+    path: evidence/C
+  bootstrap_support_all_stages: 5000/5000 replicas validas en A, B y C (piso predeclarado 4000)
 
 future_versioned_artifacts:
   note: >
-    A versionar únicamente después de ejecutar el protocolo (fuera de alcance
-    de esta tarea): predicciones OOF, métricas finales, resultados de Etapa B
+    NOTA HISTORICA, SUPERADA 2026-09-21: decía «a versionar únicamente después de
+    ejecutar el protocolo (fuera de alcance de esta tarea)». El protocolo ya se
+    ejecutó; ver `actual_paths` más abajo, que registra dónde residen realmente
+    estos artefactos y aclara que NO fueron versionados en Git: predicciones OOF, métricas finales, resultados de Etapa B
     y C, y el dataset diario derivado (o su receta reproducible de
     construcción) junto con su propio SHA-256. Los CSV crudos permanecen
     fuera de Git en todo momento. El SHA-256 del conjunto diario elegible ya
@@ -356,11 +425,19 @@ future_versioned_artifacts:
     `dataset_fingerprint.json`) sobre una representación estable y explícita
     (columnas, orden, formato de floats); lo pendiente es únicamente
     versionar el valor de una ejecución científica real, no el mecanismo.
-  planned_paths:
-    daily_derived_dataset: PENDING_BEFORE_EXECUTION
-    daily_derived_dataset_sha256: PENDING_BEFORE_EXECUTION
-    oof_predictions: PENDING_BEFORE_EXECUTION
-    results: PENDING_BEFORE_EXECUTION
+  execution_update_2026_09_21: >
+    La campana A -> B -> C se ejecuto el 2026-09-21 y estos artefactos YA EXISTEN, pero
+    NO fueron versionados en Git y este manifiesto no afirma que lo esten. Residen fuera
+    del checkout, con respaldo externo verificado por hash en un disco fisicamente
+    independiente. Versionarlos en Git sigue siendo una decision pendiente, separada de
+    haberlos producido.
+  actual_paths:
+    daily_derived_dataset: NOT_VERSIONED_IN_GIT (huella reproducible en evidence/A/dataset_fingerprint.json)
+    daily_derived_dataset_sha256: 8062605be37af073a9b6db9be53063cd88fdfc038273f9d45baa036277038931
+    oof_predictions: /home/gus/scientific-closure-runtime/evidence/A/oof_predictions_<family>.csv (NOT_VERSIONED_IN_GIT)
+    results: /home/gus/scientific-closure-runtime/evidence/{A,B,C} (NOT_VERSIONED_IN_GIT)
+    external_backup: /mnt/scientific-backup/AAI_Hydric_Stress/closure-campaign-2026-09-21 (USB disk 1, serial 8986451183503575922)
+    raw_csv_policy: los CSV crudos permanecen fuera de Git, sin excepcion
 
 current_interpretation:
   feature_contract: pergamino_features.v1

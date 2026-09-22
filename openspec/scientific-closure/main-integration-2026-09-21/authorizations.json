@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0",
+  "record": "authorizations",
+  "campaign_id": "main-integration-2026-09-21",
+  "change_id": null,
+  "change_id_note": "Esta operación no cierra ningún change sc-*. Es una integración de rama que ningún change cubría; se registra por sí misma.",
+  "requirement_ids": [
+    "SC-GOV-002",
+    "SC-GOV-003",
+    "SC-GOV-009",
+    "SC-GOV-019"
+  ],
+  "requirement_ids_note": "Requisitos cuyos HECHOS citados cambian por esta integración. Ningún estado se movió: SC-GOV-002, 009 y 019 siguen BLOCKED; SC-GOV-003 sigue PASS_WITH_LIMITATIONS.",
+  "captured_at_utc": "2026-09-21T05:40:00Z",
+  "authorizations": [
+    {
+      "id": "AUTH-MERGE-2026-09-21",
+      "scope": "Resolver el merge ya iniciado de origin/main hacia feat/scientific-closure comparando semánticamente cada conflicto; conservar el trabajo científico válido de la rama; incorporar íntegramente las correcciones auditadas del PR #206; ejecutar pruebas, lint y formato; solicitar una revisión crítica independiente; crear el commit de merge sin reescribir historia; y hacer push EXCLUSIVAMENTE a origin/feat/scientific-closure.",
+      "actor": "responsable del trabajo (dueño del repositorio), por instrucción de sesión del 2026-09-21",
+      "date_utc": "2026-09-21",
+      "source": "session prompt (resolución autónoma del merge en curso)",
+      "status": "ACTIVE_PARTIALLY_EXERCISED",
+      "explicit_prohibitions_in_the_same_instruction": [
+        "git merge --abort",
+        "git reset --hard",
+        "git clean -fd",
+        "git push --force",
+        "rebase",
+        "modificar main",
+        "crear tags o releases",
+        "mergear feat/scientific-closure a main",
+        "ejecutar A, B o C",
+        "abrir holdouts",
+        "inicializar el ledger definitivo",
+        "generar resultados científicos",
+        "debilitar compuertas metodológicas",
+        "modificar criterios congelados para favorecer resultados"
+      ],
+      "exception_to": [
+        {
+          "document": "AGENTS.md",
+          "clause": "En preparacion: sin push, main/UI, merge, rebase, tag, release, PR ni A/B/C."
+        },
+        {
+          "document": "openspec/scientific-closure/README.md",
+          "clause": "Excluye ejecución científica durante preparación, inspección de holdouts cerrados, modificación de resultados/v3/UI/main, publicación, tags, PR, merge, rebase y push.",
+          "clause_note": "Cita completa, restituida tras el hallazgo X5 de la crítica independiente: la primera redacción elidía con puntos suspensivos justamente la parte sobre UI/main. La excepción NO alcanza ninguna de las cláusulas elididas: no se ejecuta ciencia, no se inspecciona el holdout, no se modifican resultados ni v3, no se modifica main, y la UI del árbol reproduce la de main sin alterarla (git diff origin/main -- frontend/ vacío)."
+        },
+        {
+          "document": "openspec/scientific-closure/plan.md",
+          "clause": "sin inferir excepción ni hacer merge en esta tarea."
+        }
+      ],
+      "exception_basis": "openspec/specs/scientific-closure/spec.md, criterio de aceptación de SC-GOV-003: 'no push/merge/rebase/tag/release/PR sin encargo futuro explícito'. La instrucción del 2026-09-21 ES ese encargo explícito, acotado al merge de main HACIA la rama y al push de la rama.",
+      "not_amended": "La excepción NO enmienda ni deroga AGENTS.md, README.md ni plan.md. Fuera del merge y del push aquí descritos, todas sus exclusiones siguen vigentes sin cambio.",
+      "decision_record": "openspec/scientific-closure/decisions.md, GD-24 y GD-25",
+      "status_note": "Corregido tras el hallazgo X4 de la crítica independiente. Al capturarse este registro, el merge está resuelto y staged pero NO commiteado (.git/MERGE_HEAD presente) y NO pusheado. Las dos últimas partes del alcance — crear el commit de merge y hacer push a origin/feat/scientific-closure — se ejercen inmediatamente después; el commit de merge y el estado del remoto son su evidencia, no este archivo."
+    }
+  ],
+  "still_not_authorized": [
+    "Ejecutar A, B o C",
+    "Inicializar el ledger definitivo",
+    "Abrir o analizar el holdout 2024-2025",
+    "Modificar, mergear o reescribir main",
+    "Abrir o mergear un PR",
+    "Crear tags o releases",
+    "Reescribir historia publicada"
+  ],
+  "limitation": "Este registro es la transcripción estructurada de una instrucción de sesión, no una firma criptográfica ni un artefacto externo verificable. Un auditor posterior debe contrastarlo con el responsable. Se crea porque la primera redacción de GD-24 citaba la autorización solo en prosa, hallazgo N6 de la crítica independiente del 2026-09-21."
+}

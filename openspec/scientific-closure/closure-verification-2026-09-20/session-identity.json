@@ -1,0 +1,116 @@
+{
+  "schema_version": "1.0",
+  "record": "session_identity_and_preflight",
+  "campaign_id": "closure-verification-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": [
+    "SC-GOV-001",
+    "SC-GOV-019"
+  ],
+  "captured_at_utc": "2026-09-20T17:46:04.001837Z",
+  "actor": "orchestrator",
+  "role": "orchestrator",
+  "runtime": "Claude Code CLI (claude-opus-5). The five .codex/agents profiles are NOT loadable in this runtime; see agent-substitution.",
+  "worktree": "/home/gus/work/AAI_Hydric_Stress_scientific_closure",
+  "branch": "feat/scientific-closure",
+  "head_at_session_start": "b9fefbf36037ca259f4b17b68642d330bc489d39",
+  "upstream": "origin/feat/scientific-closure",
+  "upstream_sha_at_session_start": "b9fefbf36037ca259f4b17b68642d330bc489d39",
+  "origin_main_at_session_start": "9fcbfd9f4dd4860a07f7e99d5b16d849ac81c4af",
+  "tree_state_at_session_start": "clean (git status --porcelain=v1 --untracked-files=all produced no output)",
+  "unpushed_commits_at_session_start": 0,
+  "git_diff_check_exit_code": 0,
+  "expected_head_in_session_instruction": "dc0d3f5b4dbed235078c1bc93a3c863b6f65d3c6",
+  "expected_head_discrepancy": "The session instruction declared dc0d3f5 as the expected HEAD. The observed HEAD was b9fefbf, ten commits later. The instruction's own state summary (LNX/AUD-READ partials, ledger not initialised, A/B/C not executed) was therefore verified directly against the repository rather than assumed, as the instruction required.",
+  "environment": {
+    "mnt_c_mount_options": "ro,relatime,aname=drvfs;path=C:;symlinkroot=/mnt/,cache=5,access=client,msize=65536,trans=fd,rfd=3,wfd=3",
+    "mnt_c_written_to": false,
+    "system_python": "3.11.16 is NOT the system interpreter; /usr/bin/python3 is Python 3.14.4",
+    "pinned_venv": "/home/gus/scientific-closure-runtime/env/venv-v4 (Python 3.11.16)",
+    "uv": "0.12.17",
+    "node_linux": "/home/gus/scientific-closure-runtime/env/node/bin/node v22.20.0 (npm 10.9.3)",
+    "bubblewrap": "0.11.1",
+    "docker_cli_on_path": "/mnt/c/Program Files/Docker/Docker/resources/bin/docker (Windows binary; reports the distro has no Docker integration)",
+    "docker_daemon_reachable": false,
+    "sudo_non_interactive_exit_code": 1
+  },
+  "agent_substitution": {
+    "reason": "The nominal profiles in .codex/agents (scientific_explorer gpt-5.6-terra/medium, scientific_implementer gpt-5.6-sol/medium, scientific_critic gpt-5.6-sol/high, scientific_auditor gpt-5.6-sol/xhigh, evidence_checker gpt-5.6-luna/low) belong to a different agent runtime and cannot be loaded here. This is the same non-loadability already recorded in agent-capabilities.json.",
+    "substitutes_used": [
+      {
+        "nominal_role": "evidence_checker",
+        "substitute": "Claude Code general-purpose subagent",
+        "model_requested": "opus",
+        "model_effective_declared_by_runtime": "claude-opus-5",
+        "context": "separate",
+        "sandbox_mode_nominal": "read-only",
+        "sandbox_mode_effective": "INSTRUCTED_ONLY - the harness does not place the subagent process inside a read-only sandbox; the instruction forbade writes and no write was observed, which is behaviour, not enforcement"
+      },
+      {
+        "nominal_role": "scientific_critic",
+        "substitute": "Claude Code general-purpose subagent",
+        "model_requested": "opus",
+        "model_effective_declared_by_runtime": "claude-opus-5",
+        "context": "separate",
+        "sandbox_mode_nominal": "read-only",
+        "sandbox_mode_effective": "INSTRUCTED_ONLY"
+      },
+      {
+        "nominal_role": "scientific_auditor",
+        "substitute": "Claude Code general-purpose subagent",
+        "model_requested": "opus",
+        "model_effective_declared_by_runtime": "claude-opus-5",
+        "context": "separate",
+        "sandbox_mode_nominal": "read-only",
+        "sandbox_mode_effective": "INSTRUCTED_ONLY"
+      },
+      {
+        "nominal_role": "scientific_implementer",
+        "substitute": "NONE - the orchestrator performed the writes itself",
+        "context": "same as orchestrator",
+        "limitation": "implementer and orchestrator are not independent in this session; independence is preserved only for the checker, critic and auditor roles"
+      },
+      {
+        "nominal_role": "scientific_explorer",
+        "substitute": "NONE as a separate role - the orchestrator performed the reading inventory itself",
+        "limitation": "recorded, not defended"
+      }
+    ],
+    "effective_model_introspection": null,
+    "effective_model_introspection_status": "NOT_INTROSPECTABLE - the runtime reports the model name it was asked for; no independent backend attestation exists. Not claimed as verified.",
+    "max_concurrent_children": 2,
+    "max_concurrent_children_limit_source": "orchestrator self-limitation; AGENTS.md caps at four"
+  },
+  "authorisation_applicable": {
+    "source": "session instruction of 2026-09-20 (the operator's prompt to this session)",
+    "grants": [
+      "read and modify repository files",
+      "install dependencies strictly necessary",
+      "run tests, linters, formatters, checkers",
+      "create atomic commits",
+      "push exclusively to origin/feat/scientific-closure",
+      "execute A, B and C ONLY when their formal preconditions are satisfied"
+    ],
+    "withholds": [
+      "modify, merge or rewrite main",
+      "destructive rebase",
+      "force push",
+      "tags or releases",
+      "open or merge a pull request",
+      "modify UI from other branches",
+      "delete valid evidence",
+      "alter earlier results",
+      "invent data, provenance, licences, dates, hashes, identities, permissions, results or audits",
+      "relax scientific criteria to obtain a favourable result",
+      "assert a gate is satisfied on partial evidence"
+    ],
+    "effect_on_abc": "The authorisation removes the requirement for an additional user confirmation; it does NOT remove ADR-0011 precondition 4, which is a frozen normative condition of an accepted ADR. That precondition remained unsatisfied, so no stage was executed."
+  },
+  "limitations": [
+    "This record describes the session start. Commits created by this session are listed in checkpoints.json.",
+    "No scientific execution took place. No ledger was initialised. No holdout value was read."
+  ],
+  "captured_at_utc_note": "AUD-F-06: this timestamp is the instant the PREFLIGHT BLOCK was captured, not the instant the session started. The session began earlier; the full test run recorded as W-01 in independent-verification.json started at 2026-09-20T17:42:36Z, before this capture. The ordering claim in the first version of this file was loose and is corrected here rather than restated.",
+  "session_started_utc_approx": "2026-09-20T17:36Z (first tool call of the session)",
+  "preflight_block_captured_utc": "2026-09-20T17:46:04.001837Z"
+}

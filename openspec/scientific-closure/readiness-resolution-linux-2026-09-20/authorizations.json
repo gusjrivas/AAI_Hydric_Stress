@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "record": "authorizations",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": [
+    "SC-GOV-002"
+  ],
+  "captured_at_utc": "2026-09-20T04:35:00Z",
+  "mechanism": {
+    "description": "Each stage is dispatched only when (a) its static dependencies are PASS, (b) its declarative extra_gate in changes.json evaluates true against verifiable evidence, and (c) a traceable authorization for that specific stage exists with actor, scope and date. A technical PASS never implies execution permission.",
+    "verified_here": "The mechanism was exercised: every extra_gate clause relevant to dispatching stage A was evaluated against evidence in this directory before deciding not to dispatch. The blocking clause is recorded below."
+  },
+  "authorizations": [
+    {
+      "id": "AUTH-PREP-2026-09-20",
+      "scope": "Resolve readiness blockers; create/modify repository files; install dependencies in a project environment; create virtual environments; run tests, linters, formatters, checkers and builds; inspect dataset metadata where the protocol permits; create atomic commits; push to origin/feat/scientific-closure only.",
+      "actor": "repository owner, via the session instruction of 2026-09-20",
+      "date_utc": "2026-09-20",
+      "source": "session prompt (autonomous scientific closure orchestration)",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "AUTH-ABC-2026-09-20",
+      "scope": "Execute campaigns A, B and C, initialise the scientific ledger and open the holdout, CONDITIONAL on the standing gates being satisfied and that fact being recorded.",
+      "actor": "repository owner, via the session instruction of 2026-09-20",
+      "date_utc": "2026-09-20",
+      "source": "session prompt",
+      "status": "GRANTED_BUT_NOT_EXERCISABLE",
+      "why_not_exercisable": "The authorization is explicitly conditional ('siempre que los gates vigentes esten satisfechos'). Gate G1 is not satisfied: ADR-0011 pre-execution condition 4 requires this ADR AND the detailed protocol to be merged into main before any execution may begin. Verified: the ADR is merged byte-identically, but the protocol version in origin/main is superseded (lacks the section titled 'Condiciones de interpretacion y soporte previas a ejecucion' (numbered 16 in the branch, duplicating '16. Provenance', which IS in main), the normative support and interpretation criteria) and the runner implementation is not in main. Satisfying condition 4 requires a merge/PR to main, which the same instruction explicitly does NOT authorize."
+    }
+  ],
+  "pending_authorizations": [
+    {
+      "stage": "A",
+      "blocked_by": [
+        "ADR-0011 condition 4 (external)",
+        "container image not inspectable (external)",
+        "backup physical independence (external)"
+      ],
+      "note": "No stage A command was issued. No model was fitted on Pergamino data."
+    },
+    {
+      "stage": "B",
+      "blocked_by": [
+        "stage A not executed"
+      ],
+      "note": "Custody register untouched; no attempt reserved."
+    },
+    {
+      "stage": "C",
+      "blocked_by": [
+        "stage B not executed",
+        "separate ledger initialisation authorization not exercisable"
+      ],
+      "note": "Holdout 2024-2025 remains closed. Ledger NOT initialised."
+    }
+  ],
+  "explicit_non_claims": [
+    "No scientific execution authorization was inferred from any technical PASS in this session.",
+    "The ledger was not initialised. The holdout was not opened. No 2024-2025 value was read."
+  ],
+  "governance_attribution_note": {
+    "raised_by": "independent critic, finding F-11",
+    "observation": "All fifteen records in this directory carry change_id 'sc-02-runtime-readiness', which is BLOCKED with approved_for_implementation: false. The synthesis is in substance the deliverable of sc-06-scientific-synthesis, also BLOCKED, and docs/research/scientific-closure-synthesis-2026-09-20.md is not listed in the paths of any change.",
+    "accepted": true,
+    "response": "The observation is correct and is not disputed. What this session did NOT do: it did not transition any change out of BLOCKED, did not fabricate a state_event, did not set approved_for_implementation, and did not close any change. changes.json is byte-unchanged, which the evidence checker verified independently. What it DID do: produce readiness evidence and documentation under the repository owner's standing instruction (AUTH-PREP-2026-09-20), which authorises exactly that. The change_id field on these records names the SCOPE the evidence belongs to, not a claim that the change was dispatched. The synthesis is a session deliverable that documents an unexecuted protocol; it is NOT the sc-06 deliverable, because sc-06's acceptance requires an audited terminal A/B/C stage that does not exist.",
+    "residual_irregularity": "Under a strict reading of operations.md, evidence for a change should be produced after that change is APPROVED. Here the evidence was produced first, precisely because it is the evidence needed to decide whether sc-02 can leave BLOCKED. That ordering is recorded as an irregularity rather than defended as correct, and it is for the auditor to judge. It did not relax any gate: sc-02 remains BLOCKED and G1 remains NOT_SATISFIED.",
+    "path_declaration": "docs/research/scientific-closure-synthesis-2026-09-20.md and this whole directory are outside the declared paths of every change. They are declared here instead of being silently attached to a change's path list."
+  }
+}

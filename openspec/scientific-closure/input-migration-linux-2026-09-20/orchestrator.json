@@ -1,0 +1,196 @@
+{
+  "schema_version": "input_migration_orchestration.v1",
+  "timestamp_utc": "2026-09-20T03:19:36.754341+00:00",
+  "change_id": "sc-02-runtime-readiness",
+  "scope": "Authorized input-remediation subset; full sc-02 remains BLOCKED, not reopened or closed",
+  "authorization": "User prompt 2026-09-20 phases 1-8; extends allowed paths for this bounded evidence package and external copies; prohibits all scientific execution",
+  "dependency": "sc-01 PASS a0d8bf7412bbb68448cf3bcec262097cd1571ab3 per changes.json",
+  "initial_identity": {
+    "head": "e669bf8d0034d0776464822d668c34208f0dd412",
+    "branch": "feat/scientific-closure",
+    "upstream": "origin/feat/scientific-closure",
+    "status_porcelain": "",
+    "source": "Initial exec cell 75f1ba before any write"
+  },
+  "fetch": {
+    "command": "git fetch origin",
+    "exit_code": 0,
+    "origin_main_before": "f7c4ef72ebee9f745bd80deadcd8ad69d9183274",
+    "origin_main_after": "9fcbfd9f4dd4860a07f7e99d5b16d849ac81c4af",
+    "origin_feature_after": "ba539bd",
+    "note": "Fetch also updated origin/feat/scientific-closure (forced remote update); no integration, local HEAD unchanged. Full output returned in exec chunk 0eee79."
+  },
+  "read_only_probe": {
+    "method": "bool(os.statvfs(\"/mnt/c\").f_flag & os.ST_RDONLY)",
+    "result": true,
+    "non_destructive": true,
+    "write_attempted": false,
+    "initial_python_alias_attempt": "python unavailable exit127; successful retry python3"
+  },
+  "commands": [
+    {
+      "command": [
+        "git",
+        "rev-parse",
+        "--show-toplevel"
+      ],
+      "exit_code": 0,
+      "stdout": "/home/gus/work/AAI_Hydric_Stress_scientific_closure\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "branch",
+        "--show-current"
+      ],
+      "exit_code": 0,
+      "stdout": "feat/scientific-closure\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "stdout": "e669bf8d0034d0776464822d668c34208f0dd412\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "rev-parse",
+        "--abbrev-ref",
+        "--symbolic-full-name",
+        "@{upstream}"
+      ],
+      "exit_code": 0,
+      "stdout": "origin/feat/scientific-closure\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "rev-parse",
+        "origin/main"
+      ],
+      "exit_code": 0,
+      "stdout": "9fcbfd9f4dd4860a07f7e99d5b16d849ac81c4af\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "merge-base",
+        "--is-ancestor",
+        "214735e42ee04f018156cd630591e798aadd8bf3",
+        "origin/main"
+      ],
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "origin/main",
+        "HEAD",
+        "--",
+        "docs/adr/0011-protocolo-controlled-daily-v4-external-pergamino.md",
+        "docs/research/controlled-daily-v4-external-pergamino-protocol.md"
+      ],
+      "exit_code": 0,
+      "stdout": "diff --git a/docs/research/controlled-daily-v4-external-pergamino-protocol.md b/docs/research/controlled-daily-v4-external-pergamino-protocol.md\nindex bc314e6..a65ce46 100644\n--- a/docs/research/controlled-daily-v4-external-pergamino-protocol.md\n+++ b/docs/research/controlled-daily-v4-external-pergamino-protocol.md\n@@ -2,6 +2,14 @@\n \n Estado: ~~**PROTOCOL_ONLY** — protocolo formalizado, sin implementación de código ni ejecución.~~ **Actualización (2026-09-13):** el protocolo permanece formalizado como fuente normativa. La Etapa A (secciones 5–9) cuenta con implementación de código y verificación exhaustiva sobre datos sintéticos desde el *change* `implement-controlled-daily-v4-stage-a` (mergeado; correcciones posteriores en los *changes* `fix/controlled-daily-v4-stage-a-validation` y `fix/controlled-daily-v4-reproducibility-docs`, PR #188–#190) — no así las Etapas B (sección 10) ni C (sección 11), que siguen sin ningún código asociado (ver `docs/seguimiento-tareas.md`). Ninguna ejecución real sobre los CSV de Pergamino se realizó todavía en ninguna etapa; toda verificación existente es exclusivamente sintética. Este documento sigue siendo la fuente detallada y reproducible del protocolo; la decisión y su justificación quedan registradas en [ADR-0011](../adr/0011-protocolo-controlled-daily-v4-external-pergamino.md), que no debe duplicar este contenido.\n \n+**Vigencia 2026-09-17:** el párrafo anterior documenta el estado histórico del\n+13/09. A, B y C están implementadas e integradas con pruebas sintéticas; no se\n+han ejecutado científicamente. Rigen las\n+[decisiones de cierre previas a ejecución](scientific-closure-decisions.md)\n+sobre soporte, monoclase, inicio de episodios y custodia de B, y la\n+[guía de ejecución](scientific-closure-runbook.md).\n+Implementación, tests y evidencia científica son estados distintos.\n+\n Rige `ADR-0011` y `ADR-0010`. No modifica, reinterpreta ni recalcula `controlled_daily_v3` (protocolo vigente en `protocolo-experimental-v3.md`, evidencia congelada bajo `scientific-baseline-v3`).\n \n ## 1. Identificador y objetivo\n@@ -41,7 +49,11 @@ El umbral probabilístico de decisión es **fijo en 0.5** para los cuatro candid\n \n ## 4. Features autorizadas\n \n-Contrato causal heredado de `controlled_daily_v3`, sin modificación:\n+Contrato v4 de **ocho features**, distinto de v3: tres valores actuales y\n+cinco transformaciones temporales de humedad. v3 usa 15 variables temporales\n+sobre tres magnitudes, con `include_current=false`. No es una réplica de v3;\n+una diferencia v3→v4 no identifica por sí sola efectos de sitio, período o modelo.\n+Las comparaciones internas v4 usan exactamente el mismo contrato:\n \n - humedad de suelo 0–7 cm (autorregresiva);\n - humedad relativa (RH2M, NASA POWER);\n@@ -49,7 +61,7 @@ Contrato causal heredado de `controlled_daily_v3`, sin modificación:\n - lags 1, 2 y 3 días de humedad de suelo;\n - medias móviles causales de 3 y 7 días de humedad de suelo.\n \n-Temperatura (T2M) y precipitación (PRECTOTCORR) quedan **fuera del protocolo principal**, por criterio metodológico previo (no derivado de resultados): mantener el mismo conjunto de variables que `controlled_daily_v3` evita confundir \"efecto del sitio/dominio\" con \"efecto de variables adicionales\". Pueden incorporarse únicamente como un experimento de sensibilidad separado y predeclarado, ejecutado después de cerrar la comparación principal, sin influir en la selección de ningún candidato.\n+Temperatura (T2M) y precipitación (PRECTOTCORR) quedan **fuera del protocolo principal**, por criterio metodológico previo (no derivado de resultados): acotar a las tres magnitudes físicas predeclaradas; esto no iguala sus transformaciones con las de v3. Pueden incorporarse únicamente como un experimento de sensibilidad separado y predeclarado, ejecutado después de cerrar la comparación principal, sin influir en la selección de ningún candidato.\n \n ## 5. Apertura causal de las etapas — fronteras temporales exactas\n \n@@ -290,3 +302,31 @@ En ningún punto se alcanza portabilidad geográfica (un único sitio externo) n\n ## 18. Seguimiento\n \n Ver `docs/seguimiento-tareas.md`, sección \"Protocolo controlled_daily_v4_external_pergamino documentado\", para el estado de esta iteración frente al plan de tesis.\n+\n+\n+## 16. Condiciones de interpretación y soporte previas a ejecución\n+\n+El contrato efectivo se serializa en `feature_contract` de configuración y\n+artefactos A/B/C. Se emite retrospectivamente después de disponer de ambos\n+productos del día t; no se demuestra disponibilidad operativa en tiempo real.\n+El cruce por fecha de ERA5-Land (día civil UTC-3) y POWER (LST) es una\n+aproximación entre agregaciones diarias distintas, no equivalencia horaria.\n+Las latencias publicadas pueden consumir o superar el horizonte nominal t+3.\n+\n+La selección exige al menos dos folds con MCC definido de los tres previstos\n+y al menos 80 % de réplicas bootstrap válidas (4000/5000). Si una familia no\n+satisface el soporte, A termina `NO_VALID_SELECTION`, sin candidato transferible,\n+con diagnósticos. MCC con verdad o predicción constante es indefinido.\n+La representación JSON es null con estado, razón y soporte, nunca NaN ni cero\n+sustituto. B/C monoclase conservan predicciones y métricas definibles; B no abre C.\n+\n+`episode_recall` mide cobertura de episodios, no anticipación al inicio.\n+Las métricas `onset` distinguen anticipación, detección en inicio, detección\n+tardía y omisión, con censura de fronteras, días de anticipación, falsos avisos\n+y soporte. La definición completa está congelada en las decisiones enlazadas.\n+\n+Las evaluaciones auxiliares de regresión (MAE/RMSE), HITL, anomalías reservadas\n+y robustez están diseñadas por separado en esas decisiones. Sus runners\n+complementarios no están implementados; no alteran las compuertas A→B→C.\n+La demostración histórica de anomalías y la cobertura/recencia al 50 % no se\n+reinterpretan como validación real ni como ausencia de mediciones.\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "mount"
+      ],
+      "exit_code": 0,
+      "stdout": "C: on /mnt/c type 9p (ro,relatime,aname=drvfs;path=C:;symlinkroot=/mnt/,cache=5,access=client,msize=65536,trans=fd,rfd=3,wfd=3)\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "findmnt",
+        "-T",
+        "/mnt/c",
+        "-o",
+        "TARGET,SOURCE,FSTYPE,OPTIONS"
+      ],
+      "exit_code": 0,
+      "stdout": "TARGET SOURCE FSTYPE OPTIONS\n/mnt/c C:     9p     ro,relatime,aname=drvfs;path=C:;symlinkroot=/mnt/,cache=5,access=client,msize=65536,trans=fd,rfd=3,wfd=3\n",
+      "stderr": ""
+    }
+  ],
+  "ownership": {
+    "implementer": "/root/migration_implementer: migration directory except orchestrator/review/audit records; authorized external new copy paths",
+    "orchestrator": "/root: orchestrator.json and review-/audit- records; commits only after writers stop"
+  },
+  "agents": {
+    "catalog_roles": "Specialized roles requested per .codex/agents; actual backend model/effort not independently verifiable",
+    "effective_sandbox": "danger-full-access inherited; read-only behavior does not prove enforcement",
+    "LNX-03": "Not resolved; no fabricated enforcement evidence"
+  },
+  "scientific_execution": {
+    "A": false,
+    "B": false,
+    "C": false,
+    "auxiliaries": false,
+    "ledger_initialized": false,
+    "holdout_values_inspected": false
+  },
+  "adr_condition_4": "BLOCKED: ADR same as updated main but current protocol differs; no methodological exception inferred",
+  "traceability": {
+    "HU": [
+      "HU2",
+      "HU7",
+      "HU8"
+    ],
+    "capability": "scientific-closure",
+    "CRISP_DM": [
+      "data understanding",
+      "preparation",
+      "evaluation/documentation"
+    ],
+    "experimental_configuration_impact": "none",
+    "hypothesis_scope_architecture_impact": "none",
+    "technical_memory": "Chapters 2 and 3: provenance, reproducibility, custody limitations"
+  },
+  "preservation": [
+    {
+      "path": "docs/research/protocolo-experimental-v3.md",
+      "initial_git_blob_sha256": "3d8528e89eb235c94e71d536706292b99badc5c29557a71e917d641898940892",
+      "current_sha256": "3d8528e89eb235c94e71d536706292b99badc5c29557a71e917d641898940892"
+    },
+    {
+      "path": "docs/research/controlled-daily-v4-external-pergamino-protocol.md",
+      "initial_git_blob_sha256": "e3fa7b6644171d0f80cfca6f3088e3e1fec44a0a6e63990deb05c26af5f8218a",
+      "current_sha256": "e3fa7b6644171d0f80cfca6f3088e3e1fec44a0a6e63990deb05c26af5f8218a"
+    },
+    {
+      "path": "docs/adr/0011-protocolo-controlled-daily-v4-external-pergamino.md",
+      "initial_git_blob_sha256": "a8dabbc4b85367d5fb473195972870fb5c7de43ed5726a99910e3fed8c83d9cb",
+      "current_sha256": "a8dabbc4b85367d5fb473195972870fb5c7de43ed5726a99910e3fed8c83d9cb"
+    },
+    {
+      "path": "docs/research/controlled-daily-v4-external-pergamino-manifest.yaml",
+      "initial_git_blob_sha256": "c07a9175b27518521828b526f12c7357095581c651650777419516e47058ba83",
+      "current_sha256": "c07a9175b27518521828b526f12c7357095581c651650777419516e47058ba83"
+    },
+    {
+      "path": "docker/experiment-v4/constraints.txt",
+      "initial_git_blob_sha256": "aa05b7b17ee4677839e724af7a768f532ba669514fb06ffe23f525cddd1efd6b",
+      "current_sha256": "aa05b7b17ee4677839e724af7a768f532ba669514fb06ffe23f525cddd1efd6b"
+    },
+    {
+      "path": "openspec/scientific-closure/changes.json",
+      "initial_git_blob_sha256": "8d9bbbefbf59041374cae92a1d03c37763547b878d16842a2200faee2ca45a6d",
+      "current_sha256": "8d9bbbefbf59041374cae92a1d03c37763547b878d16842a2200faee2ca45a6d"
+    }
+  ]
+}

@@ -1,0 +1,258 @@
+{
+  "schema_version": "1.0",
+  "record": "evidence_manifest",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "generated_at_utc": "2026-09-20T05:54:08.490769+00:00",
+  "commit": "8e31f7800b351b76f2ec65b8673499c66234b91b",
+  "branch": "feat/scientific-closure",
+  "tree_clean": false,
+  "scientific_evidence": {
+    "exists": false,
+    "reason": "No campaign was executed. There are no metrics, predictions, frozen configs or ledger entries.",
+    "evidence_root_declared": "/home/gus/scientific-closure-runtime/evidence",
+    "ledger_path_declared": "/home/gus/scientific-closure-runtime/ledger/holdout.sqlite",
+    "ledger_initialised": false
+  },
+  "scientific_inputs": [
+    {
+      "path": "/home/gus/scientific-closure-inputs/migration-20260920/AAI_Hydric_Stress_external_data/raw/pergamino_era5land_soil_hourly_2015_2025.csv",
+      "sha256": "318edffb89c64d5f500e35b5530e6064cb02f68b89bd28a71262c2ebb01f485f",
+      "size_bytes": 3954003,
+      "type": "scientific_input_not_in_git"
+    },
+    {
+      "path": "/home/gus/scientific-closure-inputs/migration-20260920/AAI_Hydric_Stress_external_data/raw/pergamino_nasa_power_daily_2015_2025.csv",
+      "sha256": "415b4f71abb78e419b765110f4a42c3f32587b204d12897812df9573c5c2202b",
+      "size_bytes": 127568,
+      "type": "scientific_input_not_in_git"
+    }
+  ],
+  "governance_evidence": [
+    {
+      "path": "docs/research/scientific-closure-runbook.md",
+      "sha256": "30e0e1b795215894901c82cfdf22cfc3ce2eeb1d69adfe963ca43fa85cd7eb4d",
+      "size_bytes": 12758,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "docs/research/scientific-closure-synthesis-2026-09-20.md",
+      "sha256": "f12f6ec87b38eb4eb700f95f0f74af742030435a67e61a5c201bb134d254b87a",
+      "size_bytes": 24362,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/current-execution-checkpoint.md",
+      "sha256": "35bcea5134780ef19d8db0863cbddf41c658933c85e26dbf34b6b62a10291a9f",
+      "size_bytes": 16906,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/decisions.md",
+      "sha256": "c3337b0d44b76fe3b29e6c46f4074ab77888b814e647a133c3b35fc65882339b",
+      "size_bytes": 8212,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/inventory.md",
+      "sha256": "078831f3ef832d6e5141c379ab4e638f6b9c34e5885ed02bc1d1477dd410aa31",
+      "size_bytes": 11220,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/agent-capabilities.json",
+      "sha256": "7f22d863a08ee54c45065422bf8f310bcf6c2fa90ffd104a5291aff213f2ba05",
+      "size_bytes": 9832,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/authorizations.json",
+      "sha256": "16e28a6d1019f168a940234808598bcd437f12286b0d53bfb710981ea541cbaa",
+      "size_bytes": 5585,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/blocker-reassessment.json",
+      "sha256": "d2fc759c4a854e864015adaa4fd08212070427c1a5f30fc1bceb89388e35ff2a",
+      "size_bytes": 12268,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/checkpoints.json",
+      "sha256": "5f40a8da94d772d5a9dae71c4c30e27a4f0915438e900091e42cf0f583128573",
+      "size_bytes": 9333,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/clean-checkout-reproduction.json",
+      "sha256": "dc73fdf330f2a47baabb8054d8009e9ab504dc5db256a5619185b018ae945745",
+      "size_bytes": 1761,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/code-identity-and-adr0011.json",
+      "sha256": "8ad321597b1d66f4f45c168b0c8c994e030680536ac245ae032e8666f6cbfacc",
+      "size_bytes": 11530,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/container-runtime-and-image.json",
+      "sha256": "87f666b719a959a326cb7c8c57d2cf3f7bfb30561e13e21490309f9998c7dac8",
+      "size_bytes": 5723,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/execution-manifest.json",
+      "sha256": "6f7b334aecd65125b6dbd93c2964f4ff79fc6145363ee55a04fad922fabba3c2",
+      "size_bytes": 3224,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/provenance-and-licence-assessment.json",
+      "sha256": "3f39ef3444214c606d337937a64f503619327747ce7a5c4ebbb3d8bd47011075",
+      "size_bytes": 10747,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/recovery-rehearsal.json",
+      "sha256": "61a66ac1ec658e68eff74f5e54046abb6ea3ebf2501913d6d03adc839425d556",
+      "size_bytes": 2600,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/review-audit-2.json",
+      "sha256": "e203dd615d89353518f7a68f68a7c8aa52c3ae56837f6e90ba7a33f1f6852528",
+      "size_bytes": 7419,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/review-audit.json",
+      "sha256": "64cdb71801c65f90410c0f40d31faf1cd5ba30529964607c89a0fa680f038485",
+      "size_bytes": 9678,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/review-critic.json",
+      "sha256": "bd758ee81cec200f9d87826bfed05ed82f7dc6d577342c7730b53501ce92a753",
+      "size_bytes": 9606,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/role-sandbox-enforcement.json",
+      "sha256": "82072ebc4426f267dddc77b055b5b84999b39d3496bdeea3476c76e4c399bf4b",
+      "size_bytes": 3544,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/runtime-environment.json",
+      "sha256": "af018556a3c66e9173ec333c9e6e705bb1ba66748923808cabdbb0f84f28e924",
+      "size_bytes": 5921,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/storage-and-backup-independence.json",
+      "sha256": "45cea70875e38829ab3ebe9caab8b56fab60e52831fbceac216943777f8f82b7",
+      "size_bytes": 4075,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/structural-validation.json",
+      "sha256": "dc67a08af32d6e1f6b4d717a4adfeb0f9389f53b90c4eb15cec5c84be41f6e86",
+      "size_bytes": 4208,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/validation-results.json",
+      "sha256": "152fd1ec203af8d3b044cd12efcdc5c413b08ef87e01dd74b12fd05bf274d72f",
+      "size_bytes": 10423,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-resolution-linux-2026-09-20/workflow-events.jsonl",
+      "sha256": "34dfabd87e98a9e7b969a70ead5dcdc61a00b2136acc349dc3b96eae3652fdb3",
+      "size_bytes": 13709,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/risks.md",
+      "sha256": "6591dce9bbbcf1d1f8a99b80f02ae4dafe6f0cc9324ed93803c6fcf6bfa9ec6f",
+      "size_bytes": 4974,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "openspec/scientific-closure/traceability.md",
+      "sha256": "7070b74fb4fe6b86d19218bf8510c663eb67c73438a7ad0b91474f1c0657a88b",
+      "size_bytes": 17860,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "scripts/readonly_role_sandbox.sh",
+      "sha256": "16c8228b8745589bf6db034f3e3916d39b7ffd152ac0c814ad004134443ef406",
+      "size_bytes": 4488,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "scripts/verify_readonly_sandbox.sh",
+      "sha256": "70e5129c6e46e1b9c3658f1d5ec35d72a512810fe26de7233953a91ccd6cb0c8",
+      "size_bytes": 6291,
+      "type": "technical_governance_evidence"
+    },
+    {
+      "path": "tests/test_readonly_role_sandbox.py",
+      "sha256": "250b7f0331cd7ee5c058a2c3336f8541fe725d03238f8ec05854ffd211b1dd5c",
+      "size_bytes": 6825,
+      "type": "technical_governance_evidence"
+    }
+  ],
+  "count": {
+    "governance_files": 29,
+    "scientific_inputs": 2,
+    "scientific_result_artifacts": 0
+  },
+  "note": "Every entry here is technical or governance evidence. None of it is evidence about the scientific hypothesis.",
+  "self_reference_limit": "This manifest is generated as the last content step of the session, after every other file is final, so every hash listed matches the published state. It cannot list or hash itself. The 'commit' field below is the HEAD at generation time, which is the commit BEFORE the one that publishes this manifest: a manifest cannot name a commit that does not yet exist. The re-audit flagged an earlier version whose header named the previously audited commit without saying so (finding NF-03); this field says so.",
+  "published_in_commit": "the commit immediately following 'commit' below; recoverable with git log --oneline dc0d3f5..HEAD",
+  "corrections_2026_09_20": {
+    "applied_by": "closure-verification-2026-09-20 session, as an ANNOTATION only",
+    "principle": "No hash in this manifest was edited, and no entry was removed. This manifest is a historical record of the evidence set as it stood at commit 8e31f78 and it is preserved as such. The corrections below are annotations so that a later reader does not mistake a known, declared change for tampering.",
+    "C-12_stale_recovery_hint": "The 'published_in_commit' field says the manifest is recoverable with 'git log --oneline dc0d3f5..HEAD'. That range returned one commit when written and returns more as the branch advances. The correct, stable range is 'git log --oneline 8e31f78..HEAD', taking the value of the 'commit' field as the base. The original wording is left in place and corrected here.",
+    "entries_that_no_longer_match_HEAD": {
+      "reason": "The closure-verification session of 2026-09-20 edited SIX governance documents listed in this manifest, to close independent-critique findings C-02..C-09 and C-11..C-17 and then audit findings AUD-F-01..AUD-F-06. Their content changed after this manifest was generated, so their sha256 entries here no longer match the file on disk. This is expected and declared, not a custody failure.",
+      "paths": [
+        {
+          "path": "openspec/scientific-closure/traceability.md",
+          "sha256_at_8e31f78": "7070b74fb4fe6b86d19218bf8510c663eb67c73438a7ad0b91474f1c0657a88b",
+          "status": "SUPERSEDED_BY_LATER_EDIT"
+        },
+        {
+          "path": "openspec/scientific-closure/decisions.md",
+          "sha256_at_8e31f78": "c3337b0d44b76fe3b29e6c46f4074ab77888b814e647a133c3b35fc65882339b",
+          "status": "SUPERSEDED_BY_LATER_EDIT"
+        },
+        {
+          "path": "openspec/scientific-closure/risks.md",
+          "sha256_at_8e31f78": "6591dce9bbbcf1d1f8a99b80f02ae4dafe6f0cc9324ed93803c6fcf6bfa9ec6f",
+          "status": "SUPERSEDED_BY_LATER_EDIT"
+        },
+        {
+          "path": "openspec/scientific-closure/inventory.md",
+          "sha256_at_8e31f78": "078831f3ef832d6e5141c379ab4e638f6b9c34e5885ed02bc1d1477dd410aa31",
+          "status": "SUPERSEDED_BY_LATER_EDIT"
+        },
+        {
+          "path": "openspec/scientific-closure/current-execution-checkpoint.md",
+          "sha256_at_8e31f78": "35bcea5134780ef19d8db0863cbddf41c658933c85e26dbf34b6b62a10291a9f",
+          "status": "SUPERSEDED_BY_LATER_EDIT"
+        },
+        {
+          "path": "docs/research/scientific-closure-synthesis-2026-09-20.md",
+          "sha256_at_8e31f78": "f12f6ec87b38eb4eb700f95f0f74af742030435a67e61a5c201bb134d254b87a",
+          "status": "SUPERSEDED_BY_LATER_EDIT"
+        }
+      ],
+      "current_hashes_recorded_in": "openspec/scientific-closure/closure-verification-2026-09-20/evidence-manifest.json",
+      "verification_at_8e31f78": "Before those edits, an independent evidence checker recomputed all 31 declared hashes in this manifest against disk and found 31/31 MATCH, zero missing.",
+      "count_correction_RA-01": "The first version of this annotation named THREE paths. That was true at the instant it was written and FALSE at the commit that published it, because three further files were edited afterwards in the same session: inventory.md, current-execution-checkpoint.md and scientific-closure-synthesis-2026-09-20.md. The re-audit of snapshot 4940ffc found the count false (finding RA-01) and it is corrected here to six. The failure mode is the one this whole session has been correcting: a record stating a number that a later edit invalidates.",
+      "always_current_check": "Do not trust the list above over the filesystem. Recompute: for every entry of governance_evidence and scientific_inputs in this file, sha256 the path and compare. Any mismatch not listed above is a real discrepancy and must be investigated."
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "schema_version": "probe_archive_record.v1",
+  "campaign_id": null,
+  "change_id": "preparation-remediation",
+  "requirement_ids": ["SC-GOV-001", "SC-GOV-003", "SC-GOV-006"],
+  "timestamp_utc": "2026-09-19T08:04:11Z",
+  "actor": {
+    "session": "/root/preparation_metadata",
+    "role": "scientific_implementer",
+    "assigned_model": "gpt-5.6-sol",
+    "assigned_reasoning_effort": "medium",
+    "effective_model": null,
+    "effective_reasoning_effort": null,
+    "nominal_sandbox": "workspace-write",
+    "effective_sandbox": "danger-full-access inherited"
+  },
+  "object": {
+    "source_path": "openspec/scientific-closure/validation-read-only-probe.tmp",
+    "destination_path": "openspec/scientific-closure/readiness-linux-2026-09-19/read-only-probe.txt",
+    "source_tracking_status": "UNTRACKED_LEGACY_SNAPSHOT",
+    "destination_tracking_intent": "VERSIONED_PREPARATION_EVIDENCE",
+    "sha256_before": "5f32a4bf1e4462d70cd8d17d805e297d88629a9745c2a6459d32e5ed9b548976",
+    "sha256_after": "5f32a4bf1e4462d70cd8d17d805e297d88629a9745c2a6459d32e5ed9b548976",
+    "size_bytes_before": 131,
+    "size_bytes_after": 131,
+    "mode_before": "0755",
+    "mode_after": "0755",
+    "image": null
+  },
+  "authority": {
+    "source": "Prompt vigente del responsable, FASE 3: determinar y documentar el tratamiento correcto del probe; asignación del orquestador conforme al prompt vigente, con recomendación técnica del scientific_explorer.",
+    "scope": "Trasladar exactamente 131 bytes a una ruta versionada de preparación y registrar la cadena de custodia.",
+    "scientific_execution_authorized": false
+  },
+  "command": "mv openspec/scientific-closure/validation-read-only-probe.tmp openspec/scientific-closure/readiness-linux-2026-09-19/read-only-probe.txt",
+  "exit_code": 0,
+  "output": "move-exit=0; source-absent-exit=0; destination SHA-256=5f32a4bf1e4462d70cd8d17d805e297d88629a9745c2a6459d32e5ed9b548976; size=131; mode=755; owner=gus; group=gus",
+  "result": "RELOCATED_WITH_IDENTICAL_BYTES_AND_MODE",
+  "classification": "Evidencia técnica de preparación; no evidencia científica ni acreditación integral de aislamiento.",
+  "limitations": [
+    "El archivo conserva modo ejecutable 0755 observado en origen; no fue ejecutado.",
+    "El traslado no convierte el probe en PASS de sandbox o readiness.",
+    "La observación original carecía de timestamp y permanece null en sandbox-probe.json."
+  ]
+}

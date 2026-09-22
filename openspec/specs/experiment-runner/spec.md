@@ -281,3 +281,30 @@ El preflight DEBE validar que checkout, datos crudos, evidencia, ledger y backup
 - No se ejecutó un escenario combinado de escasez + ruido simultáneos.
 - La evaluación cuantitativa formal del aporte de la retroalimentación humana (HU5) al desempeño predictivo permanece diseñada pero no ejecutada dentro de HU7 — ver "Protocolo formal vigente" al inicio de este documento.
 - El período de evaluación 2024 usado por `controlled_daily_v3` es una referencia de desarrollo experimental, no una validación externa independiente sobre otro sitio o período.
+
+
+## Cierre científico v4: nota de vigencia 2026-09-17 (SUPERSEDIDA)
+
+Esta spec incorporó el 2026-09-17 un resumen en prosa de los mecanismos de
+cierre científico v4. Al integrar `origin/main` el 2026-09-21, ese resumen quedó
+**supersedido** por la sección normativa «Cierre científico v4: prerrequisitos
+de ejecución (HU7/HU8, 2026-09-20)» de arriba, que expresa las mismas reglas
+como `### Requirement:` con sus escenarios. Se retira el texto duplicado para
+que la spec no enuncie dos veces la misma norma con precisión distinta.
+
+Diferencia sustantiva que motiva el retiro, y no una simple reformulación: el
+resumen de 2026-09-17 decía que las métricas de inicio debían «censurar
+fronteras/gaps». La versión auditada corrige esa regla a censura **por
+izquierda** —quedan fuera del denominador los episodios que comienzan al inicio
+de un segmento o tras un hueco de calendario, mientras que un episodio truncado
+por el final del segmento **sigue siendo evaluable**—; ver «Requirement:
+Métricas de inicio de episodio» arriba y
+`docs/research/controlled-daily-v4-external-pergamino-protocol.md`, sección 19.
+La redacción anterior habría descartado episodios que la regla vigente conserva.
+
+Sigue vigente, y no depende de esta nota: A/B/C están implementadas y su
+ejecución científica está **pendiente**; la existencia de estos mecanismos y de
+sus fixtures **no** demuestra eficacia real; no se modifica `controlled_daily_v3`
+ni la arquitectura, hipótesis, frontend o contratos públicos; los cuatro
+complementos (regresión, HITL, anomalías, robustez) tienen diseño predeclarado y
+sus runners siguen sin implementar, lo que no bloquea técnicamente la Etapa A.

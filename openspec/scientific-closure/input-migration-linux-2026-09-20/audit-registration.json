@@ -1,0 +1,77 @@
+{
+  "schema_version": "migration_audit_registration.v1",
+  "recorded_at_utc": "2026-09-20T03:44:40.994308+00:00",
+  "actor": "/root",
+  "audit_response_source": "/root/migration_auditor FINAL_ANSWER",
+  "audit_file": "audit-final.json",
+  "audit_sha256": "26c83651dfcd9f1839e1348ef8bf01011895a4bdefff062140353ce917861b0a",
+  "audited_documentary_commit": "5e10d6aff6f251669ae27f86a18a4d146343e99a",
+  "audited_implementation_snapshot_sha256": "f9356d78bbd1cffe557c7a06a822a007db06ec0b70eb9c399bca9a62c49ba1fe",
+  "scope": "Documentary migration package and verified byte transfer; not sc02 or overall readiness",
+  "verdict": "PASS",
+  "input_migration_result": "INPUT_MIGRATION_PARTIAL",
+  "lnx_closed": [],
+  "lnx_partial": [
+    "LNX-01",
+    "LNX-06"
+  ],
+  "lnx_blocked": [
+    "LNX-02",
+    "LNX-04",
+    "LNX-05"
+  ],
+  "lnx_03": "UNCHANGED_BLOCKED",
+  "correction_cycles_used": 1,
+  "changes_registry_modified": false,
+  "scientific_execution": false,
+  "commit_kind": "This registration is a later documentary commit, not an executable scientific SHA; final commit identified by git log -1 -- this file",
+  "review_archive": [
+    {
+      "session": "migration_explorer",
+      "file": "review-explorer.md",
+      "sha256": "6c3d9fbec5680e06954f9c4fe41e14489bac1232e2a096628b662a06be174e54"
+    },
+    {
+      "session": "migration_implementer",
+      "file": "review-implementer.md",
+      "sha256": "367ccd22a566d175e22dd6c925a77353fef9cfb877e6c1fdce0577826429feed"
+    },
+    {
+      "session": "migration_implementer",
+      "file": "review-implementer-clarification.md",
+      "sha256": "1a4dddab2a7730bc998b37d7b56689c1b9856a1ea48f2697d4838d190e38df5d"
+    },
+    {
+      "session": "migration_implementer",
+      "file": "review-implementer-cycle1.md",
+      "sha256": "37a9e5c7cabd67227b46f6bcdb77116001f33cd5f036e8aca97a735bd58d1650"
+    },
+    {
+      "session": "migration_checker",
+      "file": "review-checker-cycle0.md",
+      "sha256": "d9765332b90b453f8fe68717f97429568ab91a01558400dee6223231f95333d7"
+    },
+    {
+      "session": "migration_checker",
+      "file": "review-checker-cycle1.md",
+      "sha256": "80243834ed8ae1a538e3d674b88f01ed5c21ca9224f808e0594cad7431510b88"
+    },
+    {
+      "session": "migration_critic",
+      "file": "review-critic-final.md",
+      "sha256": "07d425123cea0a522aa00f5f1db981215405536542b8957c2f5d786599ffcd51"
+    }
+  ],
+  "final_package_checks": {
+    "implementation_hashes": "13/13 PASS unchanged since independent review",
+    "all_json": "PARSED",
+    "protected_paths": "UNCHANGED relative to e669bf8",
+    "datasets_committed": false
+  },
+  "limitations": [
+    "Exact long preliminary explorer message retained in conversation; final response archived verbatim.",
+    "Profile/backend differences and unrestricted effective sandbox disclosed; LNX-03 not resolved.",
+    "Probe capable of writing was attempted once by implementer and rejected EROFS; deviation preserved in audit.",
+    "Initial operation timestamps not captured are UNKNOWN; timestamped rechecks do not retroactively date original actions."
+  ]
+}

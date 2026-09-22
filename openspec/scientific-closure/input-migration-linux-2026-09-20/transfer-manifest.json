@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "created_at_utc": null,
+  "created_at_status": "UNKNOWN; 2026-09-20T03:21:52Z was a later date command, not the exact transfer or manifest creation instant",
+  "operation": "read-only Windows source to new Linux migration subtrees; no overwrite",
+  "primary_root": "/home/gus/scientific-closure-inputs/migration-20260920",
+  "backup_root": "/home/gus/scientific-closure-backup/migration-20260920",
+  "files": [
+    {"relative_path":"AAI_Hydric_Stress_external_data/raw/pergamino_era5land_soil_hourly_2015_2025.csv","source":"/mnt/c/Repo/AAI_Hydric_Stress_external_data/raw/pergamino_era5land_soil_hourly_2015_2025.csv","size_bytes":3954003,"sha256":"318edffb89c64d5f500e35b5530e6064cb02f68b89bd28a71262c2ebb01f485f","documented_hash_match":true,"primary_hash_match":true,"backup_hash_match":true,"source_primary_cmp_exit":0,"source_backup_cmp_exit":0},
+    {"relative_path":"AAI_Hydric_Stress_external_data/raw/pergamino_nasa_power_daily_2015_2025.csv","source":"/mnt/c/Repo/AAI_Hydric_Stress_external_data/raw/pergamino_nasa_power_daily_2015_2025.csv","size_bytes":127568,"sha256":"415b4f71abb78e419b765110f4a42c3f32587b204d12897812df9573c5c2202b","documented_hash_match":true,"primary_hash_match":true,"backup_hash_match":true,"source_primary_cmp_exit":0,"source_backup_cmp_exit":0},
+    {"relative_path":"AAI_Hydric_Stress_scientific_runtime/validation/v4-tests.xml","source":"/mnt/c/Repo/AAI_Hydric_Stress_scientific_runtime/validation/v4-tests.xml","size_bytes":73874,"sha256":"0ee57b78da281d660b32d6f4032a8a16ab6a8e76278574d3be30270370eac196","documented_hash_match":null,"primary_hash_match":true,"backup_hash_match":true,"source_primary_cmp_exit":0,"source_backup_cmp_exit":0},
+    {"relative_path":"AAI_Hydric_Stress_scientific_runtime/validation/image-acceptance-tests.xml","source":"/mnt/c/Repo/AAI_Hydric_Stress_scientific_runtime/validation/image-acceptance-tests.xml","size_bytes":8317,"sha256":"a67e2b465cde165b1dfd5fb37d61db05a65572accfbe8a66fbb82c6f0c07f34d","documented_hash_match":null,"primary_hash_match":true,"backup_hash_match":true,"source_primary_cmp_exit":0,"source_backup_cmp_exit":0},
+    {"relative_path":"AAI_Hydric_Stress_scientific_runtime/validation/preexecution-environment.json","source":"/mnt/c/Repo/AAI_Hydric_Stress_scientific_runtime/validation/preexecution-environment.json","size_bytes":1850,"sha256":"03aa0d2871d815b19496c4da5018a44ccdb0a72c6605de23f70a11713b88e6cd","documented_hash_match":null,"primary_hash_match":true,"backup_hash_match":true,"source_primary_cmp_exit":0,"source_backup_cmp_exit":0},
+    {"relative_path":"AAI_Hydric_Stress_scientific_runtime/validation/pip-freeze.txt","source":"/mnt/c/Repo/AAI_Hydric_Stress_scientific_runtime/validation/pip-freeze.txt","size_bytes":426,"sha256":"d0f0b9129c8229ce0ea281e02cf0066bbb00d369e511737fc07547956a387667","documented_hash_match":null,"primary_hash_match":true,"backup_hash_match":true,"source_primary_cmp_exit":0,"source_backup_cmp_exit":0}
+  ],
+  "excluded": [
+    {"path":"AAI_Hydric_Stress_scientific_runtime/evidence","reason":"No entries observed; no historical custody inferred and no closed scientific content copied."},
+    {"path":"AAI_Hydric_Stress_scientific_runtime/ledger","reason":"No entries observed; active or historical ledgers are excluded from opaque copy and no ledger was initialized."},
+    {"path":"AAI_Hydric_Stress_scientific_runtime/backups","reason":"No entries observed; empty directory is not evidence of historical backup custody."}
+  ],
+  "timestamped_read_only_recheck": "command-recheck.json",
+  "overall_byte_identity": "PASS",
+  "scientific_campaign_executed": false,
+  "holdout_values_inspected": false
+}

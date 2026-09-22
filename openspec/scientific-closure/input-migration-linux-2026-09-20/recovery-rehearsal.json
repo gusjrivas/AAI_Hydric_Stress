@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "performed_at_utc": null,
+  "performed_at_status": "UNKNOWN_NOT_CAPTURED_DURING_INITIAL_OPERATION",
+  "requirement": "SC-GOV-018",
+  "primary_root": "/home/gus/scientific-closure-inputs/migration-20260920",
+  "second_copy_root": "/home/gus/scientific-closure-backup/migration-20260920",
+  "rehearsal_root": "/home/gus/codex-runs/scientific-closure-20260919/migration-20260920/recovery-rehearsal",
+  "copy_verification": {"files":6,"primary_source_cmp_pass":6,"backup_source_cmp_pass":6,"sha256_match":true},
+  "fixture_recovery": {
+    "source_copy":"/home/gus/scientific-closure-backup/migration-20260920/AAI_Hydric_Stress_scientific_runtime/validation/pip-freeze.txt",
+    "restored_copy":"/home/gus/codex-runs/scientific-closure-20260919/migration-20260920/recovery-rehearsal/pip-freeze.restored.txt",
+    "restored_copy_filesystem_mtime":"2026-09-20T03:20:48.7948778600+0000",
+    "filesystem_mtime_is_operation_time":false,
+    "size_bytes":426,
+    "sha256":"d0f0b9129c8229ce0ea281e02cf0066bbb00d369e511737fc07547956a387667",
+    "cmp_exit":0,
+    "result":"PASS_TECHNICAL_FIXTURE_ONLY",
+    "timestamped_hash_and_cmp_recheck":"command-recheck.json"
+  },
+  "storage_topology": {
+    "primary_device":2128,
+    "second_copy_device":2128,
+    "rehearsal_device":2128,
+    "filesystem":"/dev/sdf ext4",
+    "physically_independent":false,
+    "classification":"LOGICAL_SECOND_COPY_SAME_PHYSICAL_ENVIRONMENT"
+  },
+  "lnx_06": {
+    "satisfied":"A second logical copy with verified hashes exists and a recovery rehearsal using a non-scientific validation fixture passed.",
+    "remaining":"Independent storage is not available; historical runtime custody is not established by empty evidence/ledger/backups directories.",
+    "status":"PARTIALLY_SATISFIED"
+  },
+  "originals_or_holdouts_modified":false,
+  "ledger_initialized":false
+}

@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0",
+  "record": "readonly_role_sandbox_enforcement_probe",
+  "checked_at_utc": "2026-09-20T05:53:32Z",
+  "sandbox_wrapper": "scripts/readonly_role_sandbox.sh",
+  "bwrap_version": "bubblewrap 0.11.1",
+  "sandbox_launch_exit_code": 0,
+  "checks": {
+    "read_repository_succeeds": true,
+    "write_repository_fails": true,
+    "write_repository_stderr": "/bin/bash: line 5: /home/gus/work/AAI_Hydric_Stress_scientific_closure/.readonly-sandbox-probe-78454-1789883612: Read-only file system",
+    "write_real_home_fails": true,
+    "write_ephemeral_tmp_succeeds": true,
+    "network_dns_unavailable": true,
+    "repository_probe_absent_after": true,
+    "home_probe_absent_after": true,
+    "ephemeral_dev_write_exit_code": 0,
+    "dev_probe_absent_after": true,
+    "wsl_windows_binaries_unreachable": true,
+    "mnt_is_empty": true,
+    "wsl_interop_sockets_unreachable": true,
+    "run_entries": 0
+  },
+  "probe_paths": {
+    "repository": "/home/gus/work/AAI_Hydric_Stress_scientific_closure/.readonly-sandbox-probe-78454-1789883612",
+    "home": "/home/gus/.readonly-sandbox-probe-78454-1789883612"
+  },
+  "verdict": "PASS",
+  "limitation": "Acredita que el mecanismo impone solo lectura y ausencia de red A PROCESOS LINUX, y que la via conocida de escape por interoperabilidad WSL (ejecucion de binarios PE via /mnt, hallazgo A-01) y la de los endpoints de interop (/run/WSL/*_interop, hallazgo NF-01) estan cerradas. NO demuestra que no exista otra via. NO acredita, por si solo, que un agente revisor concreto haya sido ejecutado a traves de el; eso exige registrar el comando exacto de esa sesion. La primera version de este registro afirmaba solo lectura y ausencia de red sin calificar, lo que el auditor refuto ejecutando curl.exe de Windows desde dentro del sandbox y obteniendo HTTP 200 (hallazgo A-01).",
+  "known_escape_vectors": [
+    {
+      "id": "A-01",
+      "status": "CLOSED",
+      "discovered_by": "independent auditor",
+      "demonstrated": true,
+      "description": "Execution of Windows PE binaries through WSL interop. /mnt/c/Windows/System32/curl.exe returned HTTP 200 from inside the sandbox and cmd.exe created a file in the repository root via \\\\wsl.localhost. Such processes run on the Windows host, outside every Linux namespace.",
+      "mitigation": "--tmpfs /mnt, --ro-bind /dev/null /init, WSL_* environment cleared, PATH reset.",
+      "regression_test": "tests/test_readonly_role_sandbox.py::test_wsl_windows_interop_is_closed"
+    },
+    {
+      "id": "NF-01",
+      "status": "CLOSED",
+      "discovered_by": "independent re-audit",
+      "demonstrated": false,
+      "description": "Interop IPC endpoints, not binary execution. /run/WSL/*_interop, the session bus and the system bus accepted connect() from inside the sandbox: pathname AF_UNIX sockets cross network namespaces, so --unshare-net does not reach them, and they sat on the read-only bind of /. The re-auditor stopped at reachability and sent no protocol message, so this was plausible rather than demonstrated.",
+      "mitigation": "--tmpfs /run, verified with interop_sockets_visible: 0 without breaking git, reads or EROFS.",
+      "regression_test": "tests/test_readonly_role_sandbox.py::test_wsl_interop_sockets_are_unreachable"
+    }
+  ],
+  "scope_statement": "Read-only and no network FOR LINUX PROCESSES, with both known WSL interop vectors closed. This does NOT demonstrate that no further vector exists. Two independent reviewers found one each, at different layers; a third layer is not excluded."
+}

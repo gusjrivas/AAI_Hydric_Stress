@@ -1,0 +1,104 @@
+{
+  "schema_version": "1.0",
+  "record": "executable_code_identity_and_adr0011_condition_4",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": [
+    "SC-GOV-009",
+    "SC-GOV-002"
+  ],
+  "captured_at_utc": "2026-09-20T04:27:02.316416+00:00",
+  "declared_historic_executable_commit": "214735e42ee04f018156cd630591e798aadd8bf3",
+  "documentary_head": "dc0d3f5b4dbed235078c1bc93a3c863b6f65d3c6",
+  "origin_main": "9fcbfd9f4dd4860a07f7e99d5b16d849ac81c4af",
+  "checks": [
+    {
+      "command": "git merge-base --is-ancestor 214735e42ee04f018156cd630591e798aadd8bf3 HEAD",
+      "started_utc": "2026-09-20T04:27:02.322545+00:00",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "git diff --stat 214735e42ee04f018156cd630591e798aadd8bf3 HEAD -- src",
+      "started_utc": "2026-09-20T04:27:02.325751+00:00",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "git diff --stat 214735e42ee04f018156cd630591e798aadd8bf3 HEAD -- docker pyproject.toml",
+      "started_utc": "2026-09-20T04:27:02.328264+00:00",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "git diff --stat 214735e42ee04f018156cd630591e798aadd8bf3 HEAD -- docs/research/controlled-daily-v4-external-pergamino-protocol.md docs/research/controlled-daily-v4-external-pergamino-manifest.yaml docs/adr/0011-protocolo-controlled-daily-v4-external-pergamino.md",
+      "started_utc": "2026-09-20T04:27:02.331108+00:00",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "git diff --name-status 214735e42ee04f018156cd630591e798aadd8bf3 HEAD",
+      "started_utc": "2026-09-20T04:27:02.334263+00:00",
+      "exit_code": 0,
+      "stdout": "tific-closure/input-migration-linux-2026-09-20/review-runtime-metadata.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/review-validation-recheck.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/runtime-image.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/snapshot-v1-superseded.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/source-inventory.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/transfer-manifest.json\nA\topenspec/scientific-closure/input-migration-linux-2026-09-20/validation.json\nA\topenspec/scientific-closure/inventory.md\nA\topenspec/scientific-closure/next-session.txt\nA\topenspec/scientific-closure/operations.md\nA\topenspec/scientific-closure/plan.md\nA\topenspec/scientific-closure/preparation-resumption-2026-09-19.md\nA\topenspec/scientific-closure/preparation-resumption-audit-2026-09-19.md\nA\topenspec/scientific-closure/preparation-validation.md\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/audit-final.md\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/checker-final.md\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/clean-checkout-reproduction.json\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/critique-final-message.md\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/critique-final.md\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/critique-initial.json\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/metadata-implementation.json\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/model-catalog.json\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/observations.json\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/precommit-observation.json\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/probe-archive.json\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/provenance-source-check.json\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/read-only-probe.txt\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/reader-reports.json\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/registration-fixture.json\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/registration-reviews.json\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/registration-validation.json\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/report.md\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/review-archive.json\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/sandbox-probe.json\nA\topenspec/scientific-closure/readiness-linux-2026-09-19/scope-exploration.json\nA\topenspec/scientific-closure/requirements.json\nA\topenspec/scientific-closure/risks.md\nA\topenspec/scientific-closure/traceability.md\nA\topenspec/specs/scientific-closure/spec.md\nA\tscripts/check_scientific_closure.py\nA\ttests/test_scientific_closure_checker.py\nA\ttests/test_scientific_closure_governance.py",
+      "stderr": ""
+    },
+    {
+      "command": "git merge-base --is-ancestor 214735e42ee04f018156cd630591e798aadd8bf3 refs/remotes/origin/main",
+      "started_utc": "2026-09-20T04:27:02.338832+00:00",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "git diff --numstat refs/remotes/origin/main HEAD -- docs/adr/0011-protocolo-controlled-daily-v4-external-pergamino.md",
+      "started_utc": "2026-09-20T04:27:02.342268+00:00",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "git diff --numstat refs/remotes/origin/main HEAD -- docs/research/controlled-daily-v4-external-pergamino-protocol.md",
+      "started_utc": "2026-09-20T04:27:02.344829+00:00",
+      "exit_code": 0,
+      "stdout": "42\t2\tdocs/research/controlled-daily-v4-external-pergamino-protocol.md",
+      "stderr": ""
+    },
+    {
+      "command": "git diff --numstat refs/remotes/origin/main HEAD -- src/experiment_runner/controlled_daily_v4",
+      "started_utc": "2026-09-20T04:27:02.347834+00:00",
+      "exit_code": 0,
+      "stdout": "3\t2\tsrc/experiment_runner/controlled_daily_v4/admissibility.py\n31\t5\tsrc/experiment_runner/controlled_daily_v4/artifacts.py\n17\t4\tsrc/experiment_runner/controlled_daily_v4/bootstrap.py\n30\t9\tsrc/experiment_runner/controlled_daily_v4/cli.py\n16\t0\tsrc/experiment_runner/controlled_daily_v4/features.py\n83\t5\tsrc/experiment_runner/controlled_daily_v4/metrics.py\n92\t0\tsrc/experiment_runner/controlled_daily_v4/preflight.py\n18\t0\tsrc/experiment_runner/controlled_daily_v4/selection.py\n65\t1\tsrc/experiment_runner/controlled_daily_v4/stage_a_runner.py\n214\t0\tsrc/experiment_runner/controlled_daily_v4/stage_b_custody.py\n47\t57\tsrc/experiment_runner/controlled_daily_v4/stage_b_runner.py\n41\t54\tsrc/experiment_runner/controlled_daily_v4/stage_c_runner.py\n26\t1\tsrc/experiment_runner/controlled_daily_v4/tuning.py",
+      "stderr": ""
+    }
+  ],
+  "findings": {
+    "src_identical_to_declared_executable_commit": true,
+    "src_identical_basis": "git diff --stat 214735e..HEAD -- src produces empty output (see checks[1]); only tests/test_scientific_closure_{checker,governance}.py were added between the two commits.",
+    "docker_and_pyproject_identical": true,
+    "protocol_and_manifest_and_adr_identical_to_executable_commit": true,
+    "adr_0011_condition_4_text": "Ninguna ejecucion puede comenzar sin que este ADR y el protocolo detallado ya esten mergeados en `main`.",
+    "adr_0011_in_origin_main": "PRESENT_AND_BYTE_IDENTICAL (sha256 a8dabbc4b85367d5fb473195972870fb5c7de43ed5726a99910e3fed8c83d9cb on both refs)",
+    "protocol_in_origin_main": "PRESENT_BUT_OLDER_VERSION (origin/main sha256 4853fb64bfe567cfcf4f295d74d5457f8fe51bdd1837b5b6180a25115f6c0657 vs HEAD e3fa7b6644171d0f80cfca6f3088e3e1fec44a0a6e63990deb05c26af5f8218a; numstat 42 additions / 2 deletions)",
+    "protocol_divergence_content": [
+      "origin/main lacks the section TITLED 'Condiciones de interpretacion y soporte previas a ejecucion', which declares the normative support thresholds (>=2 of 3 folds with defined MCC, >=4000/5000 valid bootstrap replicas, NO_VALID_SELECTION, onset/episode_recall distinctions, undefined-metric JSON contract). NOTE ON NUMBERING, verified: in the branch that section is numbered '## 16', duplicating the pre-existing '## 16. Provenance' and appearing after '## 18. Seguimiento'. origin/main DOES contain '## 16. Provenance'. Referring to this divergence as 'main lacks section 16' would therefore be literally false; the section must be identified by title. The duplicate numbering pre-exists this session and was not introduced by it.",
+      "origin/main section 4 still states the feature contract is 'heredado de controlled_daily_v3, sin modificacion'; HEAD corrects this to an explicit v4 eight-feature contract distinct from v3. The eight feature names themselves are unchanged on both refs.",
+      "HEAD adds a 'Vigencia 2026-09-17' status paragraph absent from origin/main."
+    ],
+    "runner_code_in_origin_main": "CONTEXT, NOT PART OF CONDITION 4: git diff --numstat origin/main..HEAD over src/experiment_runner/controlled_daily_v4 shows ~780 insertions / ~160 deletions across 13 modules, and the declared executable commit 214735e is NOT an ancestor of origin/main (exit 1). Condition 4 does not mention the implementation; the implementation is condition 3, which is SATISFIED. This divergence is recorded as context for whoever performs the merge, and is NOT used to justify the condition 4 verdict.",
+    "condition_4_verdict": "NOT_SATISFIED",
+    "condition_4_reasoning": "Condition 4 requires, literally and only, that 'este ADR y el protocolo detallado' be merged into main. The ADR is merged byte-identically. The detailed protocol IS present in main but as a superseded version that lacks the section declaring the normative support and interpretation criteria under which a run would be judged. On the condition's own terms that is sufficient for NOT_SATISFIED. Treating it as satisfied would require inferring an exception, which plan.md explicitly forbids ('Resolver la precondicion de main de ADR-0011 sin inferir excepcion ni hacer merge en esta tarea').",
+    "condition_4_resolution_requires": "A merge into main of the current detailed protocol. A pull request and merge to main are both outside the authorization of this session. In practice the same merge would sensibly also carry the runner implementation, but condition 4 alone does not demand it.",
+    "conditions_1_2_3_status": {
+      "1": "SATISFIED_WITH_RESIDUAL: constraints.txt + validate_environment() exist and were exercised here; residual repository_state.commit in the provenance manifest remains PENDING_BEFORE_EXECUTION and can only be frozen at the moment of a real run.",
+      "2": "RESOLVABLE_AND_RESOLVED_IN_THIS_SESSION: see provenance-and-licence-assessment.json.",
+      "3": "SATISFIED: the protocol implementation exists as OpenSpec changes (openspec/changes/implement-controlled-daily-v4-stage-a and implement-controlled-daily-v4-stage-b-c) and the code is present.",
+      "4": "NOT_SATISFIED (external, see above)."
+    },
+    "protocol_section_numbering_defect": "docs/research/controlled-daily-v4-external-pergamino-protocol.md contains two sections numbered 16 (line 288 'Provenance', line 307 'Condiciones de interpretacion y soporte previas a ejecucion'). Pre-existing defect, not corrected here because the protocol is part of the frozen identity verified byte-identical to 214735e. Recorded for correction by whoever integrates this work into main."
+  }
+}

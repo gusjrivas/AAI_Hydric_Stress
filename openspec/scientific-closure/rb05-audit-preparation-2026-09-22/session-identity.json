@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0",
+  "record": "session_identity_and_preflight",
+  "campaign_id": "rb05-audit-preparation-2026-09-22",
+  "campaign_id_note": "No es una campana cientifica. Prepara el dossier RB-05 (auditoria final requisito por requisito sobre los 25 SC-GOV, solicitada en traceability.md:389-396) para una unica auditoria independiente externa (Codex). No ejecuta A/B/C/H/R/N/S, no abre el holdout, no inicializa ni toca ningun ledger, no modifica evidencia cientifica.",
+  "requirement_ids": [
+    "SC-GOV-001", "SC-GOV-002", "SC-GOV-003", "SC-GOV-004", "SC-GOV-005",
+    "SC-GOV-006", "SC-GOV-007", "SC-GOV-008", "SC-GOV-009", "SC-GOV-010",
+    "SC-GOV-011", "SC-GOV-012", "SC-GOV-013", "SC-GOV-014", "SC-GOV-015",
+    "SC-GOV-016", "SC-GOV-017", "SC-GOV-018", "SC-GOV-019", "SC-GOV-020",
+    "SC-GOV-021", "SC-GOV-022", "SC-GOV-023", "SC-GOV-024", "SC-GOV-025"
+  ],
+  "captured_at_utc": "2026-09-22T16:58:51Z",
+  "actor": "orchestrator",
+  "role": "orchestrator",
+  "runtime": "Claude Code CLI (claude-sonnet-5). Los cinco perfiles de .codex/agents NO son cargables en este runtime; sustitucion ya declarada en sesiones anteriores (traceability.md:62, reconciliation-2026-09-22/session-identity.json).",
+  "worktree": "/home/gus/work/AAI_Hydric_Stress_scientific_closure",
+  "branch": "feat/scientific-closure-final-main",
+  "head_at_start": "22da0dd00bf84d9434582cc414a98d398debd2d0",
+  "head_contains_origin_main": true,
+  "head_contains_origin_feat_scientific_closure": true,
+  "tree_state_at_start": "clean",
+  "authority": "instruccion explicita del responsable, sesion del 2026-09-22, para preparar RB-05 sin ejecutar A/B/C/H/R/N/S y sin abrir el holdout; no autoriza declarar SC-GOV-025, GF ni el PASS de sc-06-scientific-synthesis",
+  "agent_substitution": {
+    "reason": "Los perfiles nominales de .codex/agents no son cargables en este runtime.",
+    "substitutes_used": [
+      {
+        "nominal_role": "scientific_explorer",
+        "substitute": "Claude Code fork de contexto compartido (evidencia condensada, sin escritura)",
+        "model_requested": "sonnet",
+        "context": "forked",
+        "sandbox_mode_nominal": "read-only",
+        "sandbox_mode_effective": "read-only, sin herramientas de escritura"
+      },
+      {
+        "nominal_role": "scientific_critic",
+        "substitute": "Claude Code subagente de contexto separado, un unico despacho",
+        "model_requested": "por definir en el despacho",
+        "context": "separate",
+        "sandbox_mode_nominal": "read-only",
+        "sandbox_mode_effective": "read-only, sin herramientas de escritura"
+      }
+    ],
+    "max_concurrent_children": 1
+  },
+  "scientific_execution_in_this_session": {
+    "runners_executed": "NINGUNO",
+    "holdout_touched": false,
+    "ledgers_touched": false,
+    "frozen_artifacts_modified": "NINGUNO",
+    "metrics_produced": "NINGUNA",
+    "statement": "Esta sesion audita documentalmente los 25 SC-GOV contra evidencia y decisiones ya registradas. No ejecuta A, B, C, H, R, N ni S. No recomputa hashes ni metricas: reutiliza integramente las auditorias preservadas de A/B/C, H, RB-03 y de la reconciliacion RB-04/05/06."
+  },
+  "explicit_non_scope": [
+    "No cambia el valor de SC-GOV-025 en traceability.md.",
+    "No cambia el gate GF en plan.md ni en decisions.md.",
+    "No transiciona sc-06-scientific-synthesis a PASS ni a ningun otro estado en changes.json.",
+    "No reabre ni reaudita RB-03 (decision GD-12 sobre R/N/S).",
+    "No reabre ni reaudita RB-04 (sintesis) ni RB-06 (trazabilidad a memoria).",
+    "No es la auditoria final independiente: es la preparacion del dossier que esa auditoria (Codex, fuera de esta sesion) va a revisar."
+  ]
+}

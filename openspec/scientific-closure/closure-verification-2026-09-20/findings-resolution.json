@@ -1,0 +1,464 @@
+{
+  "schema_version": "1.0",
+  "record": "findings_and_resolution",
+  "campaign_id": "closure-verification-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "snapshot_reviewed": {
+    "note": "This file resolves findings raised against SEVERAL snapshots, so a single scalar was wrong (finding FA-04). Each review names the snapshot it covered; the authoritative mapping is below and is also derivable from each review-*.md header.",
+    "b9fefbf36037ca259f4b17b68642d330bc489d39": "evidence checker and adversarial critic (C-01..C-20, D-1..D-4)",
+    "5b40a55ef62f19cfa9125aa29146e53976661692": "first independent final audit (AUD-F-01..AUD-F-06)",
+    "4940ffccbca34a2970a0eb4b54dcb7af03b2b62d": "independent re-audit (RA-01..RA-05)",
+    "88304765076cf51a21c059bcef0807c00609868d": "third and final independent audit cycle (FA-01..FA-05)"
+  },
+  "sources": {
+    "derivation_rule": "Do not trust this list over the filesystem. The readers of this campaign are exactly the files matching closure-verification-2026-09-20/review-*.md; each carries its role, its substitute runtime, the snapshot it reviewed and its verdict line. Enumerate them rather than relying on a count stated in prose (findings FA-01, FA-02).",
+    "reports_present_when_this_field_was_last_written": [
+      "review-evidence-checker.md (evidence checker, snapshot b9fefbf; 10 verified, 2 discrepancies, 1 not verifiable, 2 notes)",
+      "review-critic.md (adversarial critic, snapshot b9fefbf; CRITIC_MATERIAL_FINDINGS(10) plus 7 minor and 3 observations)",
+      "review-audit.md (final audit, snapshot 5b40a55; AUDIT_VERDICT: BLOCKED; AUD-F-01..AUD-F-06)",
+      "review-audit-2.md (re-audit, snapshot 4940ffc; REAUDIT_VERDICT: BLOCKED; RA-01..RA-05)",
+      "review-audit-3.md (third and final cycle, snapshot 8830476; FINAL_AUDIT_VERDICT: BLOCKED; FA-01..FA-05)"
+    ],
+    "orchestrator_findings": "independent-verification.json, prefixed E-"
+  },
+  "principle": "Reader reports are preserved verbatim and are never edited to match a later state. Where a reader report contains a statement this session proved false, the report stays as written and the correction is recorded HERE. That applies in particular to review-audit.json and review-audit-2.json of the previous campaign, both of which assert 'no push'.",
+  "findings": [
+    {
+      "id": "C-01",
+      "severity": "MATERIAL",
+      "claim_challenged": "Framing the session verdict as TERMINAL BLOCKED",
+      "accepted": true,
+      "resolution": "APPLIED. BLOCKED is suspensive, not terminal: the checker's terminal set is {PASS, NOT_APPLICABLE} and its transition graph admits BLOCKED to APPROVED. traceability.md and current-execution-checkpoint.md now say so explicitly, and the final report states that SCIENTIFIC_CLOSURE_BLOCKED describes where the work stopped, not that it is unachievable.",
+      "residual": "The session verdict keyword itself is fixed by the operator's instruction; its MEANING is now qualified wherever it appears."
+    },
+    {
+      "id": "C-02",
+      "severity": "MATERIAL",
+      "claim_challenged": "Three records assert the branch was not pushed; it was, twice",
+      "accepted": true,
+      "verified_independently_by_orchestrator": "git reflog show refs/remotes/origin/feat/scientific-closure --date=iso shows 'update by push' for dc0d3f5 at 2026-09-20T03:52:42Z and for b9fefbf at 05:54:37Z; git ls-remote confirms the remote at b9fefbf; AGENTS.md line 36 and the SC-GOV-019 acceptance string both forbid push in preparation",
+      "resolution": "APPLIED. SC-GOV-019 degraded from PASS_WITH_LIMITATIONS to BLOCKED. Recorded as decision GD-19 and risk RK-14. The two audit records that say 'no push' are preserved unaltered; this entry is their correction. RK-15 records the reason no reviewer caught it: all three ran without network, although the reflog is local.",
+      "residual": "The two pushes cannot be undone without rewriting published history, which is prohibited. Ratification of the earlier breach belongs to the responsible person. The current session's instruction authorises push to origin/feat/scientific-closure prospectively."
+    },
+    {
+      "id": "C-03",
+      "severity": "MATERIAL",
+      "claim_challenged": "traceability.md closing paragraph denied the existence of the critique and audit its own rows cite",
+      "accepted": true,
+      "resolution": "APPLIED. The false sentence is gone; the closing paragraph now names review-critic.json, review-audit.json and review-audit-2.json explicitly."
+    },
+    {
+      "id": "C-04",
+      "severity": "MATERIAL",
+      "claim_challenged": "checkpoints.json asserts exactly ONE unlisted commit where two exist; traceability.md repeated it",
+      "accepted": true,
+      "resolution": "APPLIED in the traceability row and in this session's checkpoints.json, which states the RULE (a checkpoint record cannot contain the commit that introduces it) instead of a count that self-invalidates. The previous session's checkpoints.json is left as written, being its record.",
+      "note": "The evidence checker raised the same finding independently as D-1."
+    },
+    {
+      "id": "C-05",
+      "severity": "MATERIAL",
+      "claim_challenged": "SC-GOV-006 at PASS_WITH_LIMITATIONS while CRIT-SUB-01 and AUD-SUB-02 remain recorded OPEN/BLOCKED",
+      "accepted": true,
+      "resolution": "APPLIED. SC-GOV-006 degraded to BLOCKED. GD-17's wording corrected: bubblewrap resolves AUD-READ03 and LNX-03, which are about read-only enforcement, NOT CRIT-SUB-01, which is about effective profile loading and permissions and remains open. RK-10 moved from MITIGADO CON RESIDUAL to ABIERTO - MATERIALIZADO, because the recorded 'residual' is the hazard itself having occurred."
+    },
+    {
+      "id": "C-06",
+      "severity": "MATERIAL",
+      "claim_challenged": "traceability.md and inventory.md declare dc0d3f5 as the current HEAD, ten commits stale",
+      "accepted": true,
+      "resolution": "APPLIED in both files. Neither now fixes a HEAD SHA; both point at the checkpoint records, which are the authoritative per-commit identity."
+    },
+    {
+      "id": "C-07",
+      "severity": "MATERIAL",
+      "claim_challenged": "workflow-events.jsonl described as 17 events; it has 23",
+      "accepted": true,
+      "verified_independently_by_orchestrator": "wc -l returns 23",
+      "resolution": "APPLIED. The row now states 23 AT THE SNAPSHOT b9fefbf, tying the count to a commit instead of leaving it floating."
+    },
+    {
+      "id": "C-08",
+      "severity": "MATERIAL",
+      "claim_challenged": "GD-13 says it closes ADR-0011 condition 2; the manifest still reads PENDING_CONFIRMATION",
+      "accepted": true,
+      "resolution": "APPLIED. GD-13 corrected to RESOLVED_IN_SUBSTANCE_BY_EXPLICIT_DECISION, NOT YET REFLECTED IN THE MANIFEST - the wording its own cited evidence already used. RK-05 inherits the correction. SC-GOV-017's row states it. The synthesis already had it right and was not changed.",
+      "residual": "Updating the manifest is an action for whoever integrates this work into main, because the manifest is part of the frozen identity verified identical to 214735e."
+    },
+    {
+      "id": "C-09",
+      "severity": "MATERIAL",
+      "claim_challenged": "SC-GOV-021/023/024 carry the terminal status NOT_APPLICABLE on an explicitly unaudited decision, with artefact absence undisclosed",
+      "accepted": true,
+      "resolution": "APPLIED. All three degraded to BLOCKED (decision GD-23, risk RK-17). claims.md now records the consequence. The absence of auxiliary/{R,N,S}/review.json is stated in each row. The substantive decision R/N/S NOT_REQUIRED is NOT reversed; only its terminal status is.",
+      "reversal_condition": "A favourable independent audit of the sufficiency decision GD-12."
+    },
+    {
+      "id": "C-10",
+      "severity": "MATERIAL",
+      "claim_challenged": "No independent review exists of the published snapshot b9fefbf",
+      "accepted": true,
+      "resolution": "APPLIED. This session commissioned an independent evidence checker and an independent adversarial critic on b9fefbf, an independent final audit on 5b40a55, and an independent re-audit on 4940ffc, each in a separate context. Their exact reports are preserved here. Naming the snapshot each review actually covered matters: the first wording said the audit covered 'the snapshot this session publishes', which was not true of an intermediate snapshot (finding RA-05)."
+    },
+    {
+      "id": "C-11",
+      "severity": "MINOR",
+      "claim_challenged": "Sandbox test count stated as 8 and as 10; it is 11",
+      "accepted": true,
+      "verified_independently_by_orchestrator": "grep -c 'def test_' returns 11",
+      "resolution": "APPLIED in GD-17 and in the SC-GOV-006 row, with the 8 to 9 to 10 to 11 history tied to the findings that caused each increment."
+    },
+    {
+      "id": "C-12",
+      "severity": "MINOR",
+      "claim_challenged": "evidence-manifest.json recovery hint names a stale commit range",
+      "accepted": true,
+      "resolution": "APPLIED as an ANNOTATION to that file (key corrections_2026_09_20), not as an edit to any hash or entry, so the 31/31 verification of its hashes remains meaningful. The stable range is 8e31f78..HEAD."
+    },
+    {
+      "id": "C-13",
+      "severity": "MINOR",
+      "claim_challenged": "RK-11 recorded MITIGADO unqualified; RK-10 records as residual a hazard that occurred",
+      "accepted": true,
+      "resolution": "APPLIED. RK-11 to MITIGADO CON RESIDUAL with the Linux-processes-only scope and the fact that both escapes were found by reviewers, not by the mechanism's tests. RK-10 to ABIERTO - MATERIALIZADO."
+    },
+    {
+      "id": "C-14",
+      "severity": "MINOR",
+      "claim_challenged": "traceability.md cited storage-and-backup-independence.json under the wrong directory",
+      "accepted": true,
+      "resolution": "APPLIED. The SC-GOV-018 row no longer attributes it to input-migration-linux-2026-09-20."
+    },
+    {
+      "id": "C-15",
+      "severity": "MINOR",
+      "claim_challenged": "SC-GOV-017 credits a file whose name differs from the one requirements.json declares",
+      "accepted": true,
+      "resolution": "APPLIED. The row now states that provenance-assessment.json exists under input-migration-linux-2026-09-20 with exactly the declared name, and that provenance-and-licence-assessment.json is a later and broader assessment. Both are cited deliberately."
+    },
+    {
+      "id": "C-16",
+      "severity": "MINOR",
+      "claim_challenged": "The SC-GOV-007 row omits the single-writer exception that agent-capabilities.json declares for traceability.md itself",
+      "accepted": true,
+      "resolution": "APPLIED. The exception is now stated in the row, together with the fact that in this session the orchestrator was sole writer of every edited file and no independent reader wrote anything."
+    },
+    {
+      "id": "C-17",
+      "severity": "MINOR",
+      "claim_challenged": "The duplicate section number 16 is called pre-existing; it was introduced by 214735e on this branch",
+      "accepted": true,
+      "verified_independently_by_orchestrator": "git log -S over the protocol file returns 214735e",
+      "resolution": "APPLIED. The SC-GOV-002 row now says pre-existing relative to this session but NOT relative to the merged protocol."
+    },
+    {
+      "id": "C-18",
+      "severity": "OBSERVATION",
+      "claim_challenged": "The image blocker is environment-specific, not absolute: final-preparation-audit.md records the approved image being EXECUTED on 2026-09-19 from the Windows host",
+      "accepted": true,
+      "resolution": "APPLIED as decision GD-21 and in the SC-GOV-009 row. The blocker is reformulated: what is unreachable is the container runtime FROM THIS WSL DISTRO, not the existence of the image. Added consequence the critic did not state: the runbook invokes every A/B/C command through docker, so this blocks EXECUTING the campaign, not only inspecting the image. The orchestrator re-probed and confirmed unreachability here independently."
+    },
+    {
+      "id": "C-19",
+      "severity": "OBSERVATION",
+      "claim_challenged": "authorizations.json volunteers that sc-02 evidence was produced before sc-02 was approved",
+      "accepted": true,
+      "resolution": "CARRIED INTO THE VERDICT. The irregularity is real, was self-declared rather than concealed, and is one more reason sc-02 is not PASS. It is not cured by this session."
+    },
+    {
+      "id": "C-20",
+      "severity": "OBSERVATION",
+      "claim_challenged": "final-preparation-audit.md says the ten sc-* remain PLANNED, which changes.json contradicts",
+      "accepted": "PARTIALLY - the critic itself downgraded this after checking that the file carries a dated header scoping it to snapshot 1827252d",
+      "resolution": "NO EDIT to that historical audit. The scoping header already prevents the misreading; adding a cross-reference would not change any state and would create exactly the redundant documentation the session instruction warns against."
+    },
+    {
+      "id": "D-1",
+      "severity": "MATERIAL",
+      "source": "evidence_checker",
+      "claim_challenged": "checkpoints.json off-by-one self-reference",
+      "accepted": true,
+      "resolution": "Same as C-04, which the critic raised independently. Two independent readers converging on the same defect is recorded as such."
+    },
+    {
+      "id": "D-2",
+      "severity": "NOT_VERIFIABLE",
+      "source": "evidence_checker",
+      "claim_challenged": "implementation-snapshot.json supersedes.initial_snapshot_sha256 = 39f3d55e... matches no object in the git store",
+      "accepted": true,
+      "resolution": "RECORDED, NOT REPAIRED. The value is self-attested and cannot be independently verified from this repository; an exhaustive re-hash of every blob in the object store found no match. It is not invented in the sense of contradicting something: it simply has no corroboration. The file's own files[] list, including the entry for the same path, matches disk. No hash was edited.",
+      "consequence": "One hash in the evidence set is UNCORROBORATED and is labelled so here rather than counted as verified."
+    },
+    {
+      "id": "D-3",
+      "severity": "LOW",
+      "source": "evidence_checker",
+      "claim_challenged": "model-catalog.json custody hash of an external mutable cache has drifted",
+      "accepted": true,
+      "resolution": "RECORDED. The file is outside repository custody and mutated between sessions. The checker re-ran the document's own extraction command and the DERIVED content hash reproduced exactly, so the substantive record is intact; only the whole-file custody hash no longer holds. Hashing a mutable external cache as if it were custodial evidence is the underlying defect, and it is not repeated in this session's manifest."
+    },
+    {
+      "id": "D-4",
+      "severity": "NOTE",
+      "source": "evidence_checker",
+      "claim_challenged": "evidence-manifest.json declares tree_clean:false while the audited snapshot is clean; traceability.md names a stale HEAD",
+      "accepted": true,
+      "resolution": "The first is a generation-time state already disclosed in the file's self_reference_limit and needs no change. The second is C-06 and was applied."
+    },
+    {
+      "id": "E-01",
+      "severity": "MATERIAL_FOR_REPRODUCIBILITY",
+      "source": "orchestrator",
+      "finding": "With the default login PATH, npx resolves to the Windows binary, CMD.EXE rejects the WSL UNC working directory, and the OpenSpec CLI validates nothing while exiting 1 - a nonexistent change id produces the identical message and exit code",
+      "resolution": "APPLIED as decision GD-20 and risk RK-16, and stated in the SC-GOV-020 row. The recorded 11/11 result is NOT refuted: it reproduces exactly once the Linux node is first on PATH. What was missing is the precondition."
+    },
+    {
+      "id": "E-02",
+      "severity": "OBSERVATION",
+      "source": "orchestrator",
+      "finding": "The pre-existing Linux node used for the OpenSpec validations was of unverified provenance",
+      "resolution": "RESOLVED. Its binary is byte-identical to the official node-v22.20.0-linux-x64 release, verified against the published SHASUMS256.txt. The downloaded archive and duplicate extraction were removed afterwards; the pre-existing installation was not modified.",
+      "limitation": "This attests identity against the distribution retrieved today, not when or how the pre-existing copy was originally obtained."
+    },
+    {
+      "id": "E-03",
+      "severity": "MATERIAL",
+      "source": "orchestrator",
+      "finding": "The runbook invokes every A/B/C command, and the ledger initialisation, through docker",
+      "resolution": "RECORDED in GD-21 and in the SC-GOV-009 row. Consequence: even if ADR-0011 condition 4 were satisfied tomorrow, the campaign would still be unrunnable from this distro. The campaign is blocked by at least two independent external causes, not one."
+    },
+    {
+      "id": "E-04",
+      "severity": "MINOR",
+      "source": "orchestrator",
+      "finding": "The writable Linux root filesystem is backed by ext4.vhdx inside the C: volume, so mounting another WSL block device is not demonstrated to achieve physical independence",
+      "resolution": "APPLIED in RK-06 and in the SC-GOV-018 row. The missing input is sharpened from 'root privilege to mount /dev/sdd' to 'storage not backed by the same host volume'.",
+      "epistemic_status": "The statement about /dev/sdf is VERIFIED (the vhdx file was located). The statement about /dev/sdd is an INFERENCE: its backing file was not located."
+    },
+    {
+      "id": "E-05",
+      "severity": "OBSERVATION",
+      "source": "orchestrator",
+      "finding": "The formal checker had never been exercised end-to-end against a deliberately falsified state",
+      "resolution": "RESOLVED. Two forged states (a PASS and a NOT_APPLICABLE on BLOCKED changes) are rejected with exit 1 and specific state, approval, audit and dependency-gate violations. The checker is not vacuous. Its documented boundary - it does not verify artefact existence on disk, because those names are expected artefacts of a future campaign - is now explicit rather than assumed. All mutations were performed on a COPY; the repository was never modified."
+    },
+    {
+      "id": "E-06",
+      "severity": "OBSERVATION",
+      "source": "orchestrator",
+      "finding": "SIX governance documents listed in the previous campaign's evidence-manifest.json were edited by this session to close the findings above, so their declared hashes no longer match disk: traceability.md, decisions.md, risks.md, inventory.md, current-execution-checkpoint.md and docs/research/scientific-closure-synthesis-2026-09-20.md.",
+      "resolution": "DECLARED, in an annotation on that manifest and in this session's own manifest, so that a later reader does not mistake a known and intended change for tampering. No hash was edited and no entry was removed.",
+      "count_correction_RA-01": "The first version of this entry, and both manifests, said THREE. That was true when written and false when published, because three more files were edited afterwards in the same session. The re-audit found it (RA-01) and it is corrected to six in all three locations."
+    },
+    {
+      "id": "AUD-F-01",
+      "severity": "MATERIAL",
+      "source": "auditor",
+      "snapshot": "5b40a55",
+      "claim_challenged": "The SC-GOV-025 row asserted that scientific-closure-audit.json 'ya existe' and stated its verdict, while the file existed nowhere in the tree or index, and it pre-stated the auditor's conclusion before the audit was performed",
+      "accepted": true,
+      "resolution": "APPLIED. The artefact now exists as closure-verification-2026-09-20/scientific-closure-audit.json and was written only AFTER the auditor's report was received; the exact report is preserved in review-audit.md. The row was rewritten to describe what exists, to name the real verdict, and to stop pre-stating anything.",
+      "self_criticism": "This was the orchestrator committing, in the same snapshot, the defect class the session had been convened to correct: crediting a nonexistent artefact (C-09) in a record that falsifies itself (C-04). It was caught by the independent auditor, not by the orchestrator, which is the argument for the procedure."
+    },
+    {
+      "id": "AUD-F-02",
+      "severity": "MATERIAL",
+      "source": "auditor",
+      "snapshot": "5b40a55",
+      "claim_challenged": "claim-evidence-review.json named review-critic.md as its exact_report and the matrix said the review was transcribed without altering its verdict, but seven of the sixteen CER items appear nowhere in that report, which has no sixteen-item structure",
+      "accepted": true,
+      "resolution": "APPLIED. The artefact now states plainly that the item list is ORCHESTRATOR-COMPOSED, and quotes verbatim the separate conclusions of the two independent readers that corroborate it. The SC-GOV-016 row was rewritten accordingly.",
+      "status_effect": "SC-GOV-016 remains PASS_WITH_LIMITATIONS. The requirement's check is that a sentence-by-sentence review exists and finds no overstatement; the substance was upheld by the auditor itself in the same report that raised this finding, and independently by the critic before it. What changed is attribution, which is exactly what had to change.",
+      "self_criticism": "Composing a review and attributing it to a reader is misattribution even when the substance is right. The corrected artefact is weaker in form and honest in kind, which is the correct trade."
+    },
+    {
+      "id": "AUD-F-03",
+      "severity": "MINOR",
+      "source": "auditor",
+      "claim_challenged": "The campaign manifest omitted checkpoints.json while claiming every hash listed matches the published state",
+      "accepted": true,
+      "resolution": "APPLIED. The manifest was regenerated over the complete file set of this campaign."
+    },
+    {
+      "id": "AUD-F-04",
+      "severity": "MINOR",
+      "source": "auditor",
+      "claim_challenged": "C-19 was recorded only in this file and not carried into the SC-GOV-002 row, although the critic asked it be carried into any verdict",
+      "accepted": true,
+      "resolution": "APPLIED. The SC-GOV-002 row now states it in the auditor's own terms: real, volunteered rather than concealed, relaxed no gate, and one further reason sc-02 is not PASS."
+    },
+    {
+      "id": "AUD-F-05",
+      "severity": "OBSERVATION",
+      "source": "auditor",
+      "claim_challenged": "next-session.txt, linked from README.md as the live next prompt, was the superseded 2026-09-19 prompt with a Windows path and a 'no push' restriction contradicting the current instruction",
+      "accepted": true,
+      "resolution": "APPLIED. Rewritten for the actual next session: current worktree, current authorisations, the three external inputs, the three requirement-level items that need no execution, and the instruction to inspect the REMOTE state explicitly (RK-15)."
+    },
+    {
+      "id": "AUD-F-06",
+      "severity": "OBSERVATION",
+      "source": "auditor",
+      "claim_challenged": "session-identity.json records a captured_at_utc later than the start of the session's largest verification run",
+      "accepted": true,
+      "resolution": "APPLIED. The field is now labelled as the preflight capture instant, with the approximate session start recorded alongside it."
+    },
+    {
+      "id": "RA-01",
+      "severity": "MATERIAL",
+      "source": "auditor (re-audit of 4940ffc)",
+      "claim_challenged": "Three separate records stated that THREE entries of the previous campaign's manifest no longer match disk; six do.",
+      "accepted": true,
+      "verified_independently_by_orchestrator": "Recomputed every declared sha256 of readiness-resolution-linux-2026-09-20/evidence-manifest.json against disk: MISMATCH=6, MISSING=0. The three undeclared paths were inventory.md, current-execution-checkpoint.md and docs/research/scientific-closure-synthesis-2026-09-20.md.",
+      "resolution": "APPLIED in all three locations, with the count and the full path list corrected, plus an instruction to recompute rather than trust the list.",
+      "self_criticism": "The count was true at the instant it was written and false at the commit that published it, because three further files were edited afterwards in the same session. That is exactly the self-invalidating-record failure this session was convened to correct (C-04, AUD-F-01), committed a third time by the orchestrator and caught a third time by an independent reader. The corrected annotation now tells the reader to recompute instead of trusting a number, which removes the failure mode rather than only its instance.",
+      "nothing_concealed": "No hash was altered and no entry removed; 31 entries before and after, verified independently by the first auditor."
+    },
+    {
+      "id": "RA-02",
+      "severity": "MINOR",
+      "source": "auditor (re-audit of 4940ffc)",
+      "claim_challenged": "scientific-closure-audit.json asserted in the present tense that the re-audit 'is recorded in review-audit-2.md and audit-2.json', neither of which existed, and one of those names already belongs to a different campaign.",
+      "accepted": true,
+      "resolution": "APPLIED. The reference is now conditional and names no file that does not exist. The re-audit, having since been performed, is recorded in review-audit-2.md, which now exists.",
+      "note": "Same defect class as AUD-F-01, milder: a procedural field rather than the normative matrix, and it pre-stated no verdict."
+    },
+    {
+      "id": "RA-03",
+      "severity": "OBSERVATION",
+      "source": "auditor (re-audit of 4940ffc)",
+      "claim_challenged": "A field named verbatim_conclusion held faithful but not byte-exact quotations (markdown emphasis stripped, accents and dashes normalised), and residual uses of 'the reviewer' remained in an artefact whose correction was about attribution.",
+      "accepted": true,
+      "resolution": "APPLIED. The field is renamed quoted_conclusion with an explicit normalisation note, and the residual 'the reviewer' wordings are attributed explicitly."
+    },
+    {
+      "id": "RA-04",
+      "severity": "OBSERVATION",
+      "source": "auditor (re-audit of 4940ffc)",
+      "claim_challenged": "The counts block does not reconcile mechanically with the findings list, because the categories were never defined and the orchestrator self-findings carry no 'accepted' key.",
+      "accepted": true,
+      "resolution": "APPLIED. counts is replaced by a mechanically reproducible tally by severity over the findings array, with the counting rule stated so a reader can recompute it."
+    },
+    {
+      "id": "RA-05",
+      "severity": "OBSERVATION",
+      "source": "auditor (re-audit of 4940ffc)",
+      "claim_challenged": "Two records used the present tense for things that had not happened: checkpoints.json said the push 'is performed', and C-10's resolution said the final audit covered 'the snapshot this session publishes' when it covered an intermediate one.",
+      "accepted": true,
+      "resolution": "APPLIED. Both are restated in the correct tense, and C-10 now names the exact snapshots each review covered."
+    },
+    {
+      "id": "FA-01",
+      "severity": "MINOR",
+      "source": "auditor (third cycle, snapshot 8830476)",
+      "claim_challenged": "Three records said 'three readers'; there are four. The string was true at 4940ffc and falsified by the commit 8830476 itself, which added the fourth report.",
+      "accepted": true,
+      "resolution": "APPLIED, and generalised. The cardinality is removed rather than corrected: the affected fields now instruct the reader to enumerate review-*.md. Correcting the number would only have reset the same clock."
+    },
+    {
+      "id": "FA-02",
+      "severity": "MINOR",
+      "source": "auditor (third cycle)",
+      "claim_challenged": "The sources index omitted the re-auditor whose findings the commit was written to close.",
+      "accepted": true,
+      "resolution": "APPLIED. sources is now a derivation rule plus a snapshot-scoped list."
+    },
+    {
+      "id": "FA-03",
+      "severity": "OBSERVATION",
+      "source": "auditor (third cycle)",
+      "claim_challenged": "audit_cycle recorded only cycle 1 although this file carried cycle-2 findings.",
+      "accepted": true,
+      "resolution": "APPLIED. All three cycles recorded, with a derivation rule."
+    },
+    {
+      "id": "FA-04",
+      "severity": "OBSERVATION",
+      "source": "auditor (third cycle)",
+      "claim_challenged": "snapshot_reviewed was a single scalar while the file resolves findings from several snapshots.",
+      "accepted": true,
+      "resolution": "APPLIED. Replaced by an explicit snapshot-to-review mapping."
+    },
+    {
+      "id": "FA-05",
+      "severity": "OBSERVATION",
+      "source": "auditor (third cycle)",
+      "claim_challenged": "The previous campaign's manifest was edited by this session and its post-edit hash is recorded in no manifest.",
+      "accepted": true,
+      "resolution": "APPLIED. It is now an entry of this campaign's manifest. Integrity was never lost - the file is git-tracked - but the omission was the same species as AUD-F-03."
+    }
+  ],
+  "counts": {
+    "counting_rule": "One entry per findings[] element, tallied by its severity field verbatim. Reproducible with: python -c \"import json,collections;d=json.load(open(<this file>));print(collections.Counter(f.get('severity','UNSPECIFIED') for f in d['findings']))\"",
+    "total_findings": 46,
+    "by_severity": {
+      "LOW": 1,
+      "MATERIAL": 15,
+      "MATERIAL_FOR_REPRODUCIBILITY": 1,
+      "MINOR": 13,
+      "NOTE": 1,
+      "NOT_VERIFIABLE": 1,
+      "OBSERVATION": 14
+    }
+  },
+  "disagreements_with_readers": "None, across every review of this campaign. Every material finding from every independent reader was accepted and applied, including the four raised against the orchestrator's own work in this session (AUD-F-01, AUD-F-02, RA-01, and the FA- set). C-20 was downgraded by the critic itself. No reader finding was overruled. Deliberately stated without a reader count: a count written here is falsified by the next cycle, which is finding FA-01. Enumerate review-*.md instead.",
+  "convergence_note": "C-04 and D-1 are the same defect found independently by two readers in separate contexts. That convergence is recorded because it raises confidence in both reports, and because the defect had already been raised once before as audit finding A-04 and had recurred.",
+  "audit_cycle": {
+    "derivation_rule": "One cycle per review-audit*.md under this directory; each names its snapshot and its verdict line. Listed here for convenience, not as the source of truth (finding FA-03).",
+    "cycle_1": {
+      "snapshot": "5b40a55",
+      "verdict": "BLOCKED (suspensive)",
+      "material": [
+        "AUD-F-01",
+        "AUD-F-02"
+      ],
+      "disposition": "returned, corrected, re-submitted"
+    },
+    "cycle_2": {
+      "snapshot": "4940ffc",
+      "verdict": "BLOCKED (suspensive)",
+      "material": [
+        "RA-01"
+      ],
+      "other": [
+        "RA-02",
+        "RA-03",
+        "RA-04",
+        "RA-05"
+      ],
+      "disposition": "returned, corrected, re-submitted; the auditor ruled all six cycle-1 findings CLOSED"
+    },
+    "cycle_3": {
+      "snapshot": "8830476",
+      "verdict": "BLOCKED (suspensive)",
+      "material": [],
+      "other": [
+        "FA-01",
+        "FA-02",
+        "FA-03",
+        "FA-04",
+        "FA-05"
+      ],
+      "disposition": "corrected, and the recurring class recorded as a known limitation rather than chased further; the auditor ruled all five cycle-2 findings CLOSED and recommended stopping"
+    },
+    "rule": "A change closes only on an auditor PASS over the snapshot actually reviewed. No cycle produced that, so no change was closed on the strength of any of them."
+  },
+  "recurring_defect_class_recorded_as_a_known_limitation": {
+    "id": "KL-01",
+    "raised_by": "the third-cycle auditor, and accepted",
+    "class": "A record that states a cardinality or asserts an artefact, written during a process whose next step changes that cardinality or creates that artefact.",
+    "instances": [
+      "C-04 and D-1 (checkpoint said one unlisted commit; two)",
+      "AUD-F-01 (matrix credited an audit artefact that did not exist, and pre-stated its verdict)",
+      "RA-01 (three records said three superseded hashes; six)",
+      "RA-02 and RA-05 (present tense for things that had not happened)",
+      "FA-01 and FA-02 (three readers; four)"
+    ],
+    "severity_trend": "Strictly decreasing: MATERIAL in the normative matrix, then MATERIAL in the evidence-integrity layer, then MINOR in narrative and index fields.",
+    "mechanism": "Structural, not careless. Each correction cycle adds a reader and a finding set, which falsifies any cardinality the previous cycle wrote about those same sets. A fourth cycle would add a fifth reader and predictably produce a fifth instance.",
+    "remedy_applied": "Replace stated cardinalities with derivation instructions, or scope each one to a named snapshot. Applied to the manifests (always_current_check and self_reference_limit), to sources, audit_cycle, snapshot_reviewed, disagreements_with_readers, and to the SC-GOV-007 row.",
+    "decision": "STOP ITERATING and record the class. This follows the third auditor's own recommendation and the session instruction's rule that a cause persisting across three correction cycles is documented as a stable condition rather than pursued indefinitely.",
+    "honest_residual": "The remedy is applied where the class was found. It is not proven absent elsewhere in the record. A later reader should recompute any number that matters rather than trust it, and should treat an unverified count in this campaign as an assertion, not a fact.",
+    "what_it_does_not_touch": "No instance of this class ever touched custody, leakage, code identity, a requirement status, or any scientific claim. All four independent readers stated this independently."
+  }
+}

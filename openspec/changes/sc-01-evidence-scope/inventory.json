@@ -1,0 +1,60 @@
+{
+  "schema_version": "scientific_closure_evidence_inventory.v1",
+  "campaign_id": null,
+  "change_id": "sc-01-evidence-scope",
+  "requirement_ids": ["SC-GOV-004"],
+  "timestamp_utc": "2026-09-19T08:13:25Z",
+  "actor": {
+    "session": "/root/preparation_metadata",
+    "role": "scientific_implementer",
+    "assigned_model": "gpt-5.6-sol",
+    "assigned_reasoning_effort": "medium",
+    "effective_model": null,
+    "effective_reasoning_effort": null,
+    "nominal_sandbox": "workspace-write",
+    "effective_sandbox": "danger-full-access inherited"
+  },
+  "object": {
+    "input_commit_sha": "a70022d3dd84495421c35186ec91abf765828e6c",
+    "inventory_document": {
+      "path": "openspec/scientific-closure/inventory.md",
+      "sha256": "b728e76a59d92c4d9146f2de2feba48982ad2735e7883732c875fdb9a322f0d3"
+    },
+    "image": null,
+    "seeds": null
+  },
+  "command": "date -u +%Y-%m-%dT%H:%M:%SZ; for p in openspec/project.md openspec/specs/scientific-closure/spec.md docs/research/scientific-closure-decisions.md docs/research/controlled-daily-v4-external-pergamino-manifest.yaml docs/research/scientific-closure-preexecution-audit.md docs/research/scientific-closure-runbook.md; do sha256sum \"$p\"; stat -c '%s %a %n' \"$p\"; done; find src/experiment_runner/controlled_daily_v4 -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum; find src/experiment_runner/controlled_daily_v4 -type f | wc -l; find tests -maxdepth 1 -type f -name 'test_controlled_daily_v4_*.py' -print0 | sort -z | xargs -0 sha256sum | sha256sum; find tests -maxdepth 1 -type f -name 'test_controlled_daily_v4_*.py' | wc -l; for p in /home/gus/work/AAI_Hydric_Stress_scientific_runtime /home/gus/work/AAI_Hydric_Stress_external_data/raw; do if test -e \"$p\"; then printf 'PRESENT %s\\n' \"$p\"; else printf 'ABSENT %s\\n' \"$p\"; fi; done",
+  "exit_code": 0,
+  "output": "28 archivos runner, digest 1353ac162d132d159086bb815a6addd9d52b4547fcbdc91d882c1f7e20330fed; 33 tests, digest 8562c5df55a40b2e98e1794ef380cc5cb00ee11e7acc608b0ce5de76e554fc4d; runtime Linux ABSENT; raw Linux ABSENT.",
+  "output_kind": "summary_not_raw_stdout",
+  "result": "INVENTORY_CLASSIFIED_WITHOUT_RESERVED_DATA_ACCESS",
+  "entries": [
+    {"id": "EV-01A", "path": "docs/research/reference-v3-formal-results.json", "state": "REFERENCED", "inspection": "HASH_ONLY", "sha256": "b876d21cf655075cede4f9532696eb9abc4357fe43b9b7c29414cf6e1e83445a", "size_bytes": 1561988, "provenance": "spec HU7/protocolo v3", "claims": ["CL-04", "CL-08"], "limitation": "No reanalizado ni recalculado"},
+    {"id": "EV-01B", "path": "docs/research/reference-v3-formal-table.md", "state": "REFERENCED", "inspection": "HASH_ONLY", "sha256": "29639c4871033f5abb008258f47c4dfa4dd12c394d4a377fd365a1eda9c4d47c", "size_bytes": 819, "provenance": "spec HU7/protocolo v3", "claims": ["CL-04", "CL-08"], "limitation": "Tabla histórica, no resultado nuevo"},
+    {"id": "EV-02", "path": "docs/research/scientific-closure-preexecution-audit.md", "state": "INSPECTED_DOCUMENT", "sha256": "1f42f04053ec140231a5793a44bc82ea238326515c3462820d14b56107ffc944", "size_bytes": 20855, "provenance": "auditoría preejecución preservada", "claims": ["CL-01", "CL-02", "CL-03", "CL-09"], "limitation": "No sustituye ejecución actual"},
+    {"id": "EV-03", "path": "docs/research/scientific-closure-decisions.md", "state": "INSPECTED_DOCUMENT", "sha256": "92dc7ae4d99097014d0a010353bb13c2eb5ddc2d75026b6ccc1f5578a93874b0", "size_bytes": 11254, "provenance": "decisiones preejecución", "claims": ["CL-01", "CL-02", "CL-03", "CL-05", "CL-06", "CL-07", "CL-08", "CL-09"], "limitation": "Diseños, no resultados"},
+    {"id": "EV-04", "path": "src/experiment_runner/controlled_daily_v4/", "state": "METADATA_HASHED", "file_count": 28, "ordered_hash_listing_sha256": "1353ac162d132d159086bb815a6addd9d52b4547fcbdc91d882c1f7e20330fed", "provenance": "repositorio autorizado", "claims": ["CL-01", "CL-02", "CL-03", "CL-09"], "limitation": "Código no demuestra eficacia"},
+    {"id": "EV-05", "path": "tests/test_controlled_daily_v4_*.py", "state": "METADATA_HASHED", "file_count": 33, "ordered_hash_listing_sha256": "8562c5df55a40b2e98e1794ef380cc5cb00ee11e7acc608b0ce5de76e554fc4d", "provenance": "repositorio autorizado", "claims": [], "limitation": "Fixtures técnicas, no evidencia científica"},
+    {"id": "EV-06A", "path": "docker/experiment-v4/constraints.txt", "state": "HASHED", "sha256": "aa05b7b17ee4677839e724af7a768f532ba669514fb06ffe23f525cddd1efd6b", "size_bytes": 1004, "provenance": "repositorio autorizado", "claims": [], "limitation": "No acredita imagen local"},
+    {"id": "EV-06B", "path": "docker/experiment-v4/build.ps1", "state": "HASHED", "sha256": "ee8124a3715010f8547298f1263ea6d0d328f6fae0fb35aad9729ff654bd448a", "size_bytes": 1058, "provenance": "repositorio autorizado", "claims": [], "limitation": "No se ejecutó build"},
+    {"id": "EV-10", "path": "docs/research/controlled-daily-v4-external-pergamino-manifest.yaml", "state": "INSPECTED_DOCUMENT", "sha256": "c07a9175b27518521828b526f12c7357095581c651650777419516e47058ba83", "size_bytes": 17983, "provenance": "plantilla PROTOCOL_ONLY", "claims": ["CL-01", "CL-02", "CL-03"], "limitation": "Procedencia/adquisición/licencia pendiente no inferida"},
+    {"id": "EV-11", "path": "docs/research/scientific-closure-execution.template.json", "state": "REFERENCED", "sha256": "403c613ce1514c84fc73b20c370066c62c14a8f848a1199d7e88bfe7d80cf506", "size_bytes": 1216, "provenance": "plantilla NOT_AUTHORIZED_NOT_EXECUTED", "claims": [], "limitation": "No es manifiesto de campaña"},
+    {"id": "EV-15A", "path": "openspec/project.md", "state": "INSPECTED_DOCUMENT", "sha256": "34e40dbf65ff3a9eab8c8e93af989d3903c4d477190e56066fa8782255e21fb0", "size_bytes": 6663, "provenance": "fuente de alcance", "claims": ["CL-01", "CL-02", "CL-03", "CL-04", "CL-05", "CL-06", "CL-07", "CL-08", "CL-09", "CL-10"], "limitation": null},
+    {"id": "EV-15B", "path": "openspec/specs/scientific-closure/spec.md", "state": "INSPECTED_DOCUMENT", "sha256": "37716bc0d222bf29e5f63cc095c64de76983d8061774bf410a11bacafa540f57", "size_bytes": 26615, "provenance": "spec normativa", "claims": ["CL-10"], "limitation": "Gobernanza, no resultado"},
+    {"id": "EV-16", "path": "/home/gus/work/AAI_Hydric_Stress_scientific_runtime", "state": "ABSENT", "inspection": "EXISTENCE_ONLY", "sha256": null, "size_bytes": null, "provenance": "ruta Linux esperada", "claims": [], "limitation": "No demuestra inexistencia histórica"},
+    {"id": "EV-17", "path": "/home/gus/work/AAI_Hydric_Stress_external_data/raw", "state": "ABSENT", "inspection": "EXISTENCE_ONLY", "sha256": null, "size_bytes": null, "provenance": "ruta Linux esperada", "claims": [], "limitation": "No sustituir por descarga nueva"},
+    {"id": "EV-18", "path": "openspec/scientific-closure/readiness-linux-2026-09-19/scope-exploration.json", "state": "INSPECTED_DOCUMENT", "sha256": "a728dc7a0d0b93e232a8f0400b7d2d3e916dec1f0f29bc1b252c1950d646e545", "size_bytes": 5044, "provenance": "informe exacto explorer + advisory crítico", "claims": ["CL-01", "CL-02", "CL-03", "CL-04", "CL-05", "CL-06", "CL-07", "CL-08", "CL-09", "CL-10"], "limitation": "No es auditoría ni PASS"}
+  ],
+  "historical_references_not_accessed": [
+    "C:\\Repo\\AAI_Hydric_Stress_scientific_runtime\\evidence",
+    "C:\\Repo\\AAI_Hydric_Stress_scientific_runtime\\ledger",
+    "C:\\Repo\\AAI_Hydric_Stress_scientific_runtime\\validation",
+    "C:\\Repo\\AAI_Hydric_Stress_external_data\\raw"
+  ],
+  "limitations": [
+    "No se accedió a /mnt/c, raw, runtime externo ni holdouts.",
+    "Los hashes prueban identidad de bytes, no procedencia ni validez científica.",
+    "Backups independientes, licencia NASA y adquisición efectiva permanecen faltantes.",
+    "Los estados ABSENT se limitan a las rutas Linux exactas comprobadas."
+  ]
+}

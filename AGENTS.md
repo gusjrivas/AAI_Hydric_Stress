@@ -1,5 +1,40 @@
 # AGENTS.md
 
+## Orquestacion autonoma del cierre cientifico
+
+Para HU7/HU8 leer openspec/scientific-closure/README.md, la spec
+openspec/specs/scientific-closure/spec.md, matriz y change seleccionado.
+OpenSpec es la fuente normativa del trabajo; protocolo v4 y decisiones
+preejecucion conservan autoridad cientifica. No modificar v3.
+Preparacion NO autoriza ejecutar A/B/C ni abrir holdouts.
+
+- Seleccionar solo cambios aprobados con dependencias y gates satisfechos.
+- scientific_explorer reune evidencia antes de implementar, sin modificar.
+- scientific_implementer realiza un cambio acotado, prueba y registra evidencia.
+- Un solo escritor por archivo; asignar rutas y congelar snapshot para revision.
+- evidence_checker verifica resultados mecanicos, sin decisiones cientificas.
+- scientific_critic intenta refutar criterios sin modificar el cambio.
+- Hallazgos materiales vuelven al implementador; repetir pruebas y critica.
+- scientific_auditor independiente interviene despues de superar las criticas.
+- Cerrar un change solo con PASS del auditor sobre el snapshot revisado.
+- FAIL vuelve al implementador; BLOCKED se registra y suspende dependientes.
+- No avanzar A a B sin gate A; ni B a C sin gate B y permisos especificos.
+- Nunca declarar cerrado el Trabajo Final unicamente por tests verdes.
+- Ausencia de mejora general o resultado negativo valido no es error a corregir.
+- Prohibido seleccionar modelos o conclusiones usando el holdout final.
+- Prohibido completar evidencia faltante mediante inferencias.
+- Toda ejecucion registra commit, imagen, configuracion, semillas, datos,
+  hashes, comandos, entorno y resultados; distinguir SHA documental/ejecutable.
+- Distinguir hechos, resultados, inferencias, limitaciones y trabajo pendiente.
+- R/H/N/S solo se activan por necesidad de afirmaciones y alcance aprobado.
+- Maximo cuatro subagentes, limitado ademas por capacidad efectiva del runtime.
+- Usar .codex/agents; verificar modelo/esfuerzo/sandbox efectivo y documentar
+  sustituciones o degradacion. Lectores no solicitan escritura.
+
+Procedimientos: openspec/scientific-closure/operations.md. El orquestador
+conserva informes exactos de lectores. Checkpoints no equivalen a PASS.
+En preparacion: sin push, main/UI, merge, rebase, tag, release, PR ni A/B/C.
+
 Este repositorio implementa el Trabajo Final de la Maestría en Inteligencia Artificial FIUBA.
 
 ## Fuente de verdad

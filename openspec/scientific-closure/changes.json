@@ -1,0 +1,996 @@
+{
+  "schema_version": "scientific_closure_changes.v1",
+  "changes": [
+    {
+      "id": "sc-01-evidence-scope",
+      "title": "Inventario y suficiencia por afirmación",
+      "deps": [],
+      "conditional": false,
+      "goal": "Contrastar el inventario permitido y fijar afirmaciones/obligaciones de evidencia sin abrir B/C.",
+      "paths": [
+        "openspec/scientific-closure/inventory.md",
+        "openspec/scientific-closure/claims.md",
+        "openspec/scientific-closure/decisions.md"
+      ],
+      "tests": [
+        "tests/test_scientific_closure_governance.py"
+      ],
+      "accept": "Inventario reproducible y evaluación CL-01..10; R/H/N/S justificados; ningún cambio tácito de alcance.",
+      "block": "Datos de procedencia o criterio de suficiencia ausentes; afirmaciones UNRESOLVED no se dan por aceptadas.",
+      "risk": "Confundir ausencia de beneficio con defecto o aceptar evidencia funcional como causal.",
+      "rollback": "Revertir solo documentación nueva revisada; preservar historial, hash y decisiones anteriores.",
+      "tasks": [
+        "T01",
+        "T03",
+        "T04",
+        "T05"
+      ],
+      "status": "PASS",
+      "approved_for_implementation": true,
+      "scientific_execution_authorized": false,
+      "extra_gate": "Identity verified AND preparation scope authorized; do not read closed holdouts",
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
+      "approval": {
+        "actor": "responsable mediante prompt vigente; registrado por /root",
+        "timestamp_utc": "2026-09-19T08:10:31Z",
+        "scope": "Preparación documental sc-01: inventario, preservación y suficiencia CL-01..10; sin ejecución científica ni apertura de holdouts",
+        "source": "openspec/scientific-closure/readiness-linux-2026-09-19/report.md: Autoridad vigente; prompt del responsable FASE 4"
+      },
+      "audit": {
+        "verdict": "PASS",
+        "snapshot": "a0d8bf7412bbb68448cf3bcec262097cd1571ab3",
+        "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json#/scopes/sc-01-evidence-scope",
+        "actor": "/root/readiness_auditor",
+        "timestamp_utc": "2026-09-19T08:34:25Z",
+        "scope": "SC-GOV-001/003/004/005 en sc-01; alcance documental, no readiness ni ejecución científica"
+      },
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "APPROVED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:10:31Z",
+          "reason": "Prompt vigente autoriza resolver preparación autónomamente; sc01 sin dependencias. Exploración en scope-exploration.json.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/report.md: Autoridad vigente; prompt del responsable FASE 4"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:10:31Z",
+          "reason": "Gate identidad acreditado: c63fc713bce0158296d23022a7aeeb8db2cfba93 limpio, ruta/rama/upstream correctos. Owner único /root/preparation_metadata para claims.md, inventory.md, decisions.md y registros nuevos sc01. No leer holdouts.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/report.md: Autoridad vigente; prompt del responsable FASE 4"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "REVIEW",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:22:18Z",
+          "reason": "Implementación sc01 y correcciones documentales congeladas; owner liberó escritura. Revisión por hashes del snapshot en verification-final.json; todavía sin auditoría ni cierre.",
+          "evidence": "openspec/changes/sc-01-evidence-scope/verification-final.json"
+        },
+        {
+          "from": "REVIEW",
+          "to": "PASS",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "PASS independiente del auditor sobre sc01; registrar cierre acotado sin habilitar runtime/campaña.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        }
+      ]
+    },
+    {
+      "id": "sc-02-runtime-readiness",
+      "title": "Calificar entorno, custodia y autoridad",
+      "deps": [
+        "sc-01-evidence-scope"
+      ],
+      "conditional": false,
+      "goal": "Resolver prerrequisitos operativos y normativos antes de autorizar cualquier campaña.",
+      "paths": [
+        "openspec/scientific-closure/decisions.md",
+        "openspec/scientific-closure/risks.md",
+        "openspec/scientific-closure/preparation-validation.md"
+      ],
+      "tests": [
+        "tests/test_scientific_closure_governance.py",
+        "tests/test_controlled_daily_v4_environment_validation.py",
+        "tests/test_controlled_daily_v4_reproducibility_artifacts.py",
+        "tests/test_controlled_daily_v4_stage_c_recovery.py"
+      ],
+      "accept": "Mecanismo de permisos por etapa verificado (B/ledger/C pueden seguir pendientes), identidad verificada, procedencia admisible, copia independiente y ensayo sintético; agentes efectivos y PASS auditor. Autorización A se exige recién al despachar A.",
+      "block": "Sandbox/modelo/autoridad/backup insuficientes, tensión ADR-0011 sin resolver, hash o identidad divergente.",
+      "risk": "Inicializar ledger prematuramente o tratar un SHA documental como ejecutable.",
+      "rollback": "Descartar solo fixtures propios tras registrar hashes; nunca restaurar estado científico anterior ni borrar registros.",
+      "tasks": [
+        "T02",
+        "T06",
+        "T07",
+        "T09",
+        "T17",
+        "T18",
+        "T19",
+        "T20"
+      ],
+      "status": "PASS",
+      "approved_for_implementation": true,
+      "scientific_execution_authorized": false,
+      "extra_gate": "sc-01 PASS AND preparation approved; verify authorization mechanism, not future B/C permissions; unresolved runtime/provenance/ADR/backup blocks campaign",
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
+      "approval": {
+        "actor": "responsable tecnico y cientifico (Gustavo Rivas), via prompt de reanudacion",
+        "timestamp_utc": "2026-09-21T03:20:00Z",
+        "scope": "Calificar entorno, custodia, procedencia, respaldo externo independiente y autoridad antes de la campana",
+        "source": "Prompt de reanudacion del responsable tecnico y cientifico, 2026-09-21: autoriza readiness, respaldo y ejecucion de la campana A -> B -> C conforme al protocolo congelado."
+      },
+      "audit": {
+        "verdict": "PASS",
+        "snapshot": "37eed42716803baa9bdbed912356b981adac093a",
+        "evidence": "evidence/governance/closure-campaign-2026-09-21/ (preflight.json, environment-identity.json) y /mnt/scientific-backup/AAI_Hydric_Stress/closure-campaign-2026-09-21/{manifest,rehearsal}",
+        "actor": "/auditor_independiente_cierre_cientifico",
+        "timestamp_utc": "2026-09-21T04:30:00Z",
+        "scope": "Readiness verificado directamente: rama/HEAD/arbol/remoto, Docker operativo, imagen historica identificada y ejecutable, respaldo en disco USB fisicamente independiente con manifiesto, hashes y ensayo de recuperacion, evidence/ y ledger/ vacios, hashes de entradas coincidentes con el manifiesto, checker exit 0 y preflight PREPARED_NOT_AUTHORIZED.",
+        "verdict_qualification": "PASS sobre los prerrequisitos operativos verificados. Limitacion declarada: la condicion 2 de ADR-0011 (licencia especifica de NASA POWER) sigue PENDING_CONFIRMATION y se acepta via decision GD-13 como ADMISSIBLE_WITH_EXPLICIT_LIMITATIONS; es una cuestion de licenciamiento y atribucion, no de validez metodologica."
+      },
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Readiness integral BLOCKED: AUD-READ01..08; faltan insumos externos originales, custodia, entorno, aislamiento y otros gates. No implementar dependientes ni ejecutar campañas.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T03:20:00Z",
+          "reason": "EXT-02 y EXT-03 resueltos por comprobacion directa: el daemon Docker responde y ejecuta la imagen aprobada; /mnt/scientific-backup es el disco USB 1 (serie 8986451183503575922), fisicamente distinto del NVMe que respalda el ext4.vhdx de WSL. EXT-01 ya estaba resuelto por el merge de origin/main.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/ (preflight.json, environment-identity.json) y /mnt/scientific-backup/AAI_Hydric_Stress/closure-campaign-2026-09-21/{manifest,rehearsal}"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T03:25:00Z",
+          "reason": "Ejecucion del readiness: preflight metadata-only, respaldo cientifico externo con manifiesto e inventario, verificacion de hashes y ensayo de recuperacion de imagen, codigo y entradas.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/ (preflight.json, environment-identity.json) y /mnt/scientific-backup/AAI_Hydric_Stress/closure-campaign-2026-09-21/{manifest,rehearsal}"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "REVIEW",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T04:10:00Z",
+          "reason": "Readiness congelado; evidencia verificada por hash desde el disco externo (14/14 OK) y ensayo de recuperacion PASS en sus cuatro componentes.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/ (preflight.json, environment-identity.json) y /mnt/scientific-backup/AAI_Hydric_Stress/closure-campaign-2026-09-21/{manifest,rehearsal}"
+        },
+        {
+          "from": "REVIEW",
+          "to": "PASS",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T04:30:00Z",
+          "reason": "Prerrequisitos operativos y normativos acreditados. Se deja constancia de que la condicion 2 de ADR-0011 (licencia especifica de NASA POWER) sigue PENDING_CONFIRMATION y se acepta como limitacion declarada via decision GD-13 (ADMISSIBLE_WITH_EXPLICIT_LIMITATIONS).",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/ (preflight.json, environment-identity.json) y /mnt/scientific-backup/AAI_Hydric_Stress/closure-campaign-2026-09-21/{manifest,rehearsal}"
+        }
+      ]
+    },
+    {
+      "id": "sc-03-stage-a",
+      "title": "Ejecutar y auditar A autorizada",
+      "deps": [
+        "sc-02-runtime-readiness"
+      ],
+      "conditional": false,
+      "goal": "Producir comparación interna 2015–2022 y candidato congelado o terminal NO_VALID_SELECTION.",
+      "paths": [],
+      "tests": [
+        "tests/test_controlled_daily_v4_stage_a_integration.py",
+        "tests/test_controlled_daily_v4_selection.py",
+        "tests/test_controlled_daily_v4_freezing.py",
+        "tests/test_controlled_daily_v4_bootstrap.py",
+        "tests/test_controlled_daily_v4_stage_window.py"
+      ],
+      "accept": "Artefactos íntegros de A y auditor PASS sobre protocolo; gate A transferible o terminal negativo/insuficiencia documentado.",
+      "block": "Sin autorización A, soporte insuficiente para avanzar a B, error técnico o procedencia inválida.",
+      "risk": "Usar datos posteriores a 2022 o congelar hiperparámetros con resultados de B/C.",
+      "rollback": "Preservar salida parcial y bitácora; no sobrescribir. Falla técnica requiere diagnóstico predeclarado, no repetición oportunista.",
+      "tasks": [
+        "T10",
+        "T11",
+        "T15"
+      ],
+      "status": "PASS",
+      "approved_for_implementation": true,
+      "scientific_execution_authorized": true,
+      "extra_gate": "sc-02 PASS AND G1 satisfied AND authorization A recorded AND fixed executable/image verified",
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
+      "approval": {
+        "actor": "responsable tecnico y cientifico (Gustavo Rivas), via prompt de reanudacion",
+        "timestamp_utc": "2026-09-21T03:20:00Z",
+        "scope": "Ejecutar la Etapa A (desarrollo y seleccion, 2015-2022) y su sensibilidad de profundidad 7-28 cm",
+        "source": "Prompt de reanudacion del responsable tecnico y cientifico, 2026-09-21: autoriza readiness, respaldo y ejecucion de la campana A -> B -> C conforme al protocolo congelado."
+      },
+      "audit": {
+        "verdict": "PASS",
+        "snapshot": "37eed42716803baa9bdbed912356b981adac093a",
+        "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/ (execution-record.json, gate-review.json, temporal-contract-check.json, statistical-review.json, sensitivity-7-28cm-record.json)",
+        "actor": "/auditor_independiente_cierre_cientifico",
+        "timestamp_utc": "2026-09-21T04:30:00Z",
+        "scope": "Etapa A: fronteras temporales, contrato de features, nested CV, soporte de folds y bootstrap, regla de seleccion y congelamiento. Auditor independiente reprodujo los cuatro MCC globales a 15 digitos y los doce intervalos pareados a <1e-12."
+      },
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Dependencias sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T03:20:00Z",
+          "reason": "sc-02 PASS y autorizacion explicita de la Etapa A por el responsable.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/ (execution-record.json, gate-review.json, temporal-contract-check.json, statistical-review.json, sensitivity-7-28cm-record.json)"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T03:25:00Z",
+          "reason": "Ejecucion de la Etapa A dentro de la imagen aprobada sha256:55bc923e..., identidad ejecutable 214735e, exit 0 en 496 s; mas la sensibilidad 7-28 cm en un directorio separado.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/ (execution-record.json, gate-review.json, temporal-contract-check.json, statistical-review.json, sensitivity-7-28cm-record.json)"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "REVIEW",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T04:10:00Z",
+          "reason": "Artefactos congelados y respaldados en disco externo con hashes verificados.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/ (execution-record.json, gate-review.json, temporal-contract-check.json, statistical-review.json, sensitivity-7-28cm-record.json)"
+        },
+        {
+          "from": "REVIEW",
+          "to": "PASS",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T04:30:00Z",
+          "reason": "Auditoria independiente PASS. Resultado: SIN_GANADOR_ESTABLE con desempate predeclarado de simplicidad hacia logistic_regression. NINGUNA familia demostro superioridad; es un resultado negativo valido, no un defecto. Candidato transferible producido, de modo que B no queda bloqueada por NO_VALID_SELECTION.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/ (execution-record.json, gate-review.json, temporal-contract-check.json, statistical-review.json, sensitivity-7-28cm-record.json)"
+        }
+      ]
+    },
+    {
+      "id": "sc-04-stage-b",
+      "title": "Evaluar candidato único en B",
+      "deps": [
+        "sc-03-stage-a"
+      ],
+      "conditional": false,
+      "goal": "Reservar y evaluar una vez 2023 con candidato primario congelado de A.",
+      "paths": [],
+      "tests": [
+        "tests/test_controlled_daily_v4_stage_b_runner.py",
+        "tests/test_controlled_daily_v4_stage_b_integration.py",
+        "tests/test_controlled_daily_v4_scientific_closure.py"
+      ],
+      "accept": "Reserva y artefactos íntegros; PASS auditor sobre ejecución; C solo si CANDIDATE_VALIDATED.",
+      "block": "Gate A sin candidato, sin autorización B, intento previo/incierto, identidad distinta; negativo bloquea C.",
+      "risk": "Cambiar output/candidato para eludir intento único o confundir FAIL técnico y no validación científica.",
+      "rollback": "SOLO recuperación de artefactos completos con hashes y motivo; nunca reentrenar, liberar reserva ni repetir con otro candidato.",
+      "tasks": [
+        "T12",
+        "T13"
+      ],
+      "status": "PASS",
+      "approved_for_implementation": true,
+      "scientific_execution_authorized": true,
+      "extra_gate": "sc-03 PASS AND A scientific_run AND primary_selection AND candidate_produced AND support valid AND authorization B recorded AND custody unused; NO_VALID_SELECTION blocks B",
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
+      "approval": {
+        "actor": "responsable tecnico y cientifico (Gustavo Rivas), via prompt de reanudacion",
+        "timestamp_utc": "2026-09-21T03:20:00Z",
+        "scope": "Ejecutar la Etapa B (validacion temporal 2023) preservando la custodia del primer y unico intento",
+        "source": "Prompt de reanudacion del responsable tecnico y cientifico, 2026-09-21: autoriza readiness, respaldo y ejecucion de la campana A -> B -> C conforme al protocolo congelado."
+      },
+      "audit": {
+        "verdict": "PASS",
+        "snapshot": "37eed42716803baa9bdbed912356b981adac093a",
+        "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-04-stage-b/ (execution-record.json, gate-review.json, custody-review.json)",
+        "actor": "/auditor_independiente_cierre_cientifico",
+        "timestamp_utc": "2026-09-21T04:30:00Z",
+        "scope": "Etapa B: compuerta de la seccion 10, custodia H07/H15, fronteras temporales y ausencia de fuga del holdout. El auditor independiente re-derivo la etapa end-to-end desde los CSV crudos con corte duro en 2023-12-31 y reprodujo los artefactos bit a bit."
+      },
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Dependencias sc-03-stage-a sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T03:20:00Z",
+          "reason": "sc-03 PASS, auditoria independiente de A con veredicto PASS y autorizacion explicita de la Etapa B.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-04-stage-b/ (execution-record.json, gate-review.json, custody-review.json)"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T03:25:00Z",
+          "reason": "Ejecucion del unico intento de B con reserva exclusiva previa a la lectura de valores; exit 0 en 16.6 s.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-04-stage-b/ (execution-record.json, gate-review.json, custody-review.json)"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "REVIEW",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T04:10:00Z",
+          "reason": "Intento finalizado con hashes completos; evidencia y ledger respaldados y verificados.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-04-stage-b/ (execution-record.json, gate-review.json, custody-review.json)"
+        },
+        {
+          "from": "REVIEW",
+          "to": "PASS",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T04:30:00Z",
+          "reason": "Auditoria independiente PASS con stage_c_admissible=true. Veredicto CANDIDATE_VALIDATED: MCC 0.7014 > 0 y limite inferior -0.0146 >= -0.05. ADVERTENCIA REGISTRADA: la compuerta es de NO INFERIORIDAD; el intervalo pareado incluye el cero y NO se demuestra superioridad frente a persistencia.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-04-stage-b/ (execution-record.json, gate-review.json, custody-review.json)"
+        }
+      ]
+    },
+    {
+      "id": "sc-05-stage-c",
+      "title": "Evaluar holdout final bajo custodia",
+      "deps": [
+        "sc-04-stage-b"
+      ],
+      "conditional": false,
+      "goal": "Abrir una sola vez 2024–2025 luego de B validada y autorización adicional.",
+      "paths": [],
+      "tests": [
+        "tests/test_controlled_daily_v4_stage_c_admissibility.py",
+        "tests/test_controlled_daily_v4_holdout_ledger.py",
+        "tests/test_controlled_daily_v4_stage_c_recovery.py",
+        "tests/test_controlled_daily_v4_stage_c_integration.py"
+      ],
+      "accept": "Apertura trazada, resultados íntegros conservados cualquiera sea su signo y auditor PASS; ninguna selección posterior.",
+      "block": "B no validada; falta autorización C/inicialización; ledger ausente sin autorización, indeterminado o intento previo.",
+      "risk": "Apertura irreversible o restauración de backup para repetir holdout.",
+      "rollback": "No existe rollback de conocimiento adquirido; custodiar intento. Recuperación idempotente solo resultado completo íntegro y ledger original.",
+      "tasks": [
+        "T14"
+      ],
+      "status": "PASS",
+      "approved_for_implementation": true,
+      "scientific_execution_authorized": true,
+      "extra_gate": "sc-04 PASS AND B CANDIDATE_VALIDATED AND authorization C recorded AND ledger initialization separately authorized AND custody admissible; CANDIDATE_NOT_VALIDATED blocks C",
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
+      "approval": {
+        "actor": "responsable tecnico y cientifico (Gustavo Rivas), via prompt de reanudacion",
+        "timestamp_utc": "2026-09-21T03:20:00Z",
+        "scope": "Inicializar el ledger del holdout y ejecutar la Etapa C (holdout final 2024-2025) una unica vez",
+        "source": "Prompt de reanudacion del responsable tecnico y cientifico, 2026-09-21: autoriza readiness, respaldo y ejecucion de la campana A -> B -> C conforme al protocolo congelado."
+      },
+      "audit": {
+        "verdict": "PASS",
+        "snapshot": "37eed42716803baa9bdbed912356b981adac093a",
+        "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-05-stage-c/ (execution-record.json, holdout-review.json)",
+        "actor": "/auditor_independiente_cierre_cientifico",
+        "timestamp_utc": "2026-09-21T04:30:00Z",
+        "scope": "Etapa C: conformidad con la seccion 11, unicidad e irreversibilidad de la apertura del holdout, ledger CONFIRMADA con autorizacion nominal, y recomputo independiente de MCC, delta e intervalo bootstrap, ademas del P20 desde el CSV crudo.",
+        "verdict_qualification": "El vocabulario cerrado del checker solo admite PASS/FAIL/BLOCKED en este campo. El veredicto literal del auditor final independiente es PASS_WITH_LIMITATIONS sobre la campana, con scientific_sufficiency INSUFFICIENT para el gate GF. Se registra PASS porque la Etapa C satisface su propia compuerta GC; la insuficiencia es de ALCANCE GLOBAL (complemento H sin ejecutar) y se refleja en sc-06..sc-10, que permanecen BLOCKED. Ver evidence/governance/closure-campaign-2026-09-21/sc-05-stage-c/holdout-review.json."
+      },
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Dependencias sc-04-stage-b sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T03:20:00Z",
+          "reason": "sc-04 PASS, auditoria independiente de B con veredicto PASS y stage_c_admissible=true, autorizacion explicita de C e inicializacion separada del ledger autorizada.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-05-stage-c/ (execution-record.json, holdout-review.json)"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T03:25:00Z",
+          "reason": "Inicializacion separada del ledger (exit 0) y ejecucion unica de la Etapa C (exit 0 en 17.2 s), con apertura del holdout registrada de forma nominal e irreversible.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-05-stage-c/ (execution-record.json, holdout-review.json)"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "REVIEW",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T04:10:00Z",
+          "reason": "Evidencia congelada; manifiesto de integridad de C verificado 18/18 y respaldo externo verificado 84/84.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-05-stage-c/ (execution-record.json, holdout-review.json)"
+        },
+        {
+          "from": "REVIEW",
+          "to": "PASS",
+          "actor": "/orquestador_cierre_cientifico",
+          "timestamp_utc": "2026-09-21T04:30:00Z",
+          "reason": "Auditoria final independiente con veredicto PASS_WITH_LIMITATIONS sobre la campana. Gate GC SATISFECHO por integridad y unicidad del procedimiento, no por que el resultado fuera favorable. Resultado: delta MCC [+0.0227, +0.1784], que excluye el cero. NO confirma la hipotesis general, NO es validacion agronomica y NO revierte el empate de la Etapa A. Limitaciones agregadas tras la auditoria: calibracion degradada en el holdout y deriva de prevalencia entre etapas.",
+          "evidence": "evidence/governance/closure-campaign-2026-09-21/sc-05-stage-c/ (execution-record.json, holdout-review.json)"
+        }
+      ]
+    },
+    {
+      "id": "sc-06-scientific-synthesis",
+      "title": "Consolidar evidencia y auditar cierre",
+      "deps": [
+        "sc-01-evidence-scope",
+        "sc-02-runtime-readiness"
+      ],
+      "conditional": false,
+      "goal": "Evaluar suficiencia del alcance completo y redactar conclusiones honestas con memoria trazada.",
+      "paths": [
+        "openspec/scientific-closure/inventory.md",
+        "openspec/scientific-closure/claims.md",
+        "openspec/scientific-closure/risks.md",
+        "docs/research/scientific-closure-synthesis-2026-09-22.md"
+      ],
+      "tests": [
+        "tests/test_scientific_closure_governance.py"
+      ],
+      "accept": "Terminal A/B/C auditado, todas obligaciones aplicables resueltas, matriz requisito→evidencia completa y PASS independiente de cierre científico.",
+      "block": "Terminal sin auditar, complemento REQUIRED pendiente, afirmación sin respaldo o alcance UNRESOLVED.",
+      "risk": "Declarar tesis cerrada solo por tests verdes o por éxito de clasificación P20.",
+      "rollback": "Retirar solo nuevas afirmaciones incorrectas con corrección trazable; no modificar evidencia fuente ni esconder resultados.",
+      "tasks": [
+        "T08",
+        "T16",
+        "T25"
+      ],
+      "status": "FAIL",
+      "approved_for_implementation": true,
+      "scientific_execution_authorized": false,
+      "extra_gate": "Audited terminal A or B or C AND all REQUIRED auxiliaries audited; UNRESOLVED blocks closure",
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
+      "approval": {
+        "actor": "responsable del trabajo (dueño del repositorio), por instrucción de sesión del 2026-09-22; registrado por el orquestador",
+        "timestamp_utc": "2026-09-22T12:27:30Z",
+        "scope": "Reconciliar y redactar los entregables documentales de RB-04 (síntesis científica) y RB-06 (trazabilidad a memoria), portados y corregidos desde feat/scientific-evidence-finalization (PR #211), más la revisión de SC-GOV-016. NO autoriza declarar PASS de sc-06, NO autoriza declarar SC-GOV-025 ni GF, y NO autoriza ejecutar ninguna campaña. El PASS de este change depende exclusivamente del veredicto de una auditoría independiente única sobre el snapshot reconciliado.",
+        "source": "openspec/scientific-closure/reconciliation-2026-09-22/session-identity.json"
+      },
+      "audit": {
+        "verdict": "FAIL",
+        "scope": "Auditoria final requisito por requisito sobre los 25 SC-GOV-001..025 (T25), snapshot 88ced622dd653cf6e6f892fd8212a2857acb77b7",
+        "auditor": "Codex, sesion externa independiente de la preparacion",
+        "report": "openspec/changes/sc-06-scientific-synthesis/reviews/review-audit-rb05-codex-FAIL.md",
+        "material_findings": [
+          "M-01",
+          "M-02",
+          "M-03",
+          "M-04"
+        ],
+        "material_findings_resolution": {
+          "M-01": "CONFIRMADO E IRREPARABLE DOCUMENTALMENTE. Aceptado administrativamente como desviacion permanente (decisions.md GD-40). NO equivale a PASS ni PASS_WITH_LIMITATIONS.",
+          "M-02": "CORREGIDO 2026-09-22 (sc-06/tasks.md T08 desmarcada)",
+          "M-03": "CORREGIDO 2026-09-22 (thesis-traceability.md fila 3.5)",
+          "M-04": "CORREGIDO 2026-09-22 (SC-GOV-003 degradado a PASS_WITH_LIMITATIONS, decisions.md GD-39)"
+        },
+        "administrative_closure": "Expediente v4 cerrado administrativamente con no conformidad declarada (decisions.md GD-40). Cierre confirmatorio del alcance cientifico de HU7/HU8 NO alcanzado."
+      },
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Dependencias sc-01-evidence-scope, sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "orquestador, sobre instrucción explícita del responsable del 2026-09-22",
+          "timestamp_utc": "2026-09-22T12:27:30Z",
+          "reason": "Se acredita la resolución del motivo del bloqueo original (dependencias sc-01/sc-02 sin PASS): ambas están PASS desde 2026-09-19 y 2026-09-21. El extra_gate está satisfecho (ver gate_evaluation). El responsable autoriza expresamente redactar los entregables documentales, condicionado a auditoría única antes de PASS.",
+          "evidence": "openspec/scientific-closure/reconciliation-2026-09-22/session-identity.json"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "orquestador de la sesión reconciliation-2026-09-22",
+          "timestamp_utc": "2026-09-22T12:27:30Z",
+          "reason": "Escritor único: el orquestador. Se producen los tres artefactos de evidencia: docs/research/scientific-closure-synthesis-2026-09-22.md (T16/T25), reconciliation-2026-09-22/thesis-traceability.md, y la sección 'Clasificación final de afirmaciones' de claims.md (T16). Portados desde f355272 con tres correcciones documentadas en reconciliation-table.md: rutas de auxiliary/{R,N,S}/review.json apuntando a los artefactos de RB-03; limitación de imputación causal (~24%, causal_ffill) agregada en CL-04/CL-08 y en hu8-resultados-discusion-conclusiones.md §8.4; CL-10 degradada de DEMOSTRADA a RESPALDADA CON LIMITACIONES hasta la auditoría única. Los dos informes de auditoría de f355272 (ambos FAIL) se preservan verbatim en reviews/, marcados como historia y no como aprobación.",
+          "evidence": "openspec/scientific-closure/reconciliation-2026-09-22/reconciliation-table.md; docs/research/scientific-closure-synthesis-2026-09-22.md; openspec/scientific-closure/reconciliation-2026-09-22/thesis-traceability.md"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "REVIEW",
+          "actor": "orquestador, dossier RB-05 preparado sobre el snapshot 88ced62",
+          "timestamp_utc": "2026-09-22T21:25:33Z",
+          "reason": "Dossier RB-05 (openspec/scientific-closure/rb05-audit-preparation-2026-09-22/rb05-dossier.md) preparado y sometido a auditoria independiente externa (Codex) requisito por requisito sobre los 25 SC-GOV, per T25.",
+          "evidence": "openspec/scientific-closure/rb05-audit-preparation-2026-09-22/rb05-dossier.md; openspec/scientific-closure/rb05-audit-preparation-2026-09-22/session-identity.json"
+        },
+        {
+          "from": "REVIEW",
+          "to": "FAIL",
+          "actor": "auditor externo independiente (Codex), sesion separada de la preparacion",
+          "timestamp_utc": "2026-09-22T21:25:33Z",
+          "reason": "Auditoria requisito por requisito sobre los 25 SC-GOV, snapshot 88ced622dd653cf6e6f892fd8212a2857acb77b7. Veredicto FAIL: cuatro hallazgos materiales M-01..M-04. M-02, M-03 y M-04 corregidos el mismo dia (ver decisions.md GD-38/GD-39). M-01 (contradiccion cronologica comprobada en la secuencia de gates A-B-C: sc-04-stage-b y sc-05-stage-c autorizadas citando el PASS de la etapa previa antes de que ese PASS existiera en el registro, verificado por dos fuentes primarias independientes) confirmado e irreparable documentalmente. Aceptado administrativamente por el responsable como desviacion permanente (decisions.md GD-40); esa aceptacion NO convierte esto en PASS ni en PASS_WITH_LIMITATIONS.",
+          "evidence": "openspec/changes/sc-06-scientific-synthesis/reviews/review-audit-rb05-codex-FAIL.md"
+        }
+      ],
+      "gate_evaluation": {
+        "evaluated_at_utc": "2026-09-22T12:27:30Z",
+        "extra_gate_verbatim": "Audited terminal A or B or C AND all REQUIRED auxiliaries audited; UNRESOLVED blocks closure",
+        "clauses": [
+          {
+            "clause": "Audited terminal A or B or C",
+            "satisfied": true,
+            "note": "A, B y C auditados en closure-campaign-2026-09-21; C es el terminal, holdout CONFIRMADA."
+          },
+          {
+            "clause": "all REQUIRED auxiliaries audited",
+            "satisfied": true,
+            "note": "H es el único complemento REQUIRED (GD-12, criticado y auditado por RB-03). SC-GOV-022 = PASS_WITH_LIMITATIONS desde 2026-09-21, sin cambio."
+          },
+          {
+            "clause": "UNRESOLVED blocks closure",
+            "satisfied": true,
+            "note": "R, N y S son NOT_REQUIRED (auditado, RB-03), no UNRESOLVED. No hay complemento UNRESOLVED."
+          }
+        ],
+        "conclusion": "Gate satisfecho para HABILITAR el trabajo documental. No implica PASS del change: SC-GOV-025 exige además 'ningún obligatorio sin resolver', y RB-05 (auditoría final requisito por requisito) no tiene todavía un veredicto formal PASS sobre ningún snapshot. Ese veredicto es lo único que puede mover este change a PASS."
+      }
+    },
+    {
+      "id": "sc-07-aux-regression",
+      "title": "Complemento condicional de regresión",
+      "deps": [
+        "sc-01-evidence-scope",
+        "sc-02-runtime-readiness"
+      ],
+      "conditional": true,
+      "goal": "Implementar y validar auxiliary_soil_regression_v1 solo si R=REQUIRED; ejecutar luego únicamente con autorización científica específica.",
+      "paths": [
+        "src/experiment_runner/scientific_auxiliary/auxiliary_soil_regression_v1.py",
+        "tests/test_auxiliary_soil_regression_v1.py"
+      ],
+      "tests": [
+        "tests/test_auxiliary_soil_regression_v1.py"
+      ],
+      "accept": "Necesidad R=REQUIRED anterior a ejecución, diseño congelado respetado, fixtures aprobados y evidencia auditada. Si NOT_REQUIRED: solo decisión motivada, sin implementación.",
+      "block": "UNRESOLVED/NOT_REQUIRED impide ejecutar; falta autorización o runner validado; intento de consumir 2023–2025/Balcarce.",
+      "risk": "Usar complementos para cambiar selección de A o afirmar validación independiente; confundir simulación con realidad.",
+      "rollback": "Revertir exclusivamente nuevo código antes de ejecución; después preservar todos los artefactos e intentos y documentar corrección.",
+      "tasks": [
+        "T21"
+      ],
+      "status": "BLOCKED",
+      "approved_for_implementation": false,
+      "scientific_execution_authorized": false,
+      "extra_gate": "R REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization R; NOT_REQUIRED/UNRESOLVED blocks execution",
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
+      "approval": null,
+      "audit": null,
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Dependencias sc-01-evidence-scope, sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas. Su decisión NOT_REQUIRED auditada no equivale a ejecución ni cierre individual del change.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "orquestador, sobre instrucción explícita del responsable del 2026-09-22",
+          "timestamp_utc": "2026-09-22T02:08:58Z",
+          "reason": "Se acredita la resolución del motivo del bloqueo en lo que depende de esta rama. El change quedó BLOCKED el 2026-09-19 por dependencias y gates no satisfechos, y SC-GOV-021 fue degradado a BLOCKED por GD-23 el 2026-09-20 porque la decisión de suficiencia GD-12 no tenía crítica ni auditoría independiente. Las dependencias sc-01 y sc-02 están PASS, y el responsable autoriza expresamente la rama documental. No se renuevan derechos de intento científico: scientific_execution_authorized sigue false.",
+          "evidence": "openspec/scientific-closure/sufficiency-review-2026-09-22/authorizations.json (AUTH-SUFF-2026-09-22)"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "orquestador de la sesión sufficiency-review-2026-09-22",
+          "timestamp_utc": "2026-09-22T02:08:58Z",
+          "reason": "Compuertas contrastadas cláusula por cláusula en gate_evaluation: la de implementación NO se satisface y no se declara satisfecha. Se ejecuta la rama documental: dossier de suficiencia GD-12 y artefacto auxiliary/R/review.json para SC-GOV-021. Escritor único: el orquestador. Ningún archivo de src/ ni de tests/ se toca.",
+          "evidence": "openspec/scientific-closure/sufficiency-review-2026-09-22/gd12-sufficiency-dossier.md; openspec/scientific-closure/sufficiency-review-2026-09-22/auxiliary/R/review.json"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "BLOCKED",
+          "actor": "orquestador de la sesión sufficiency-review-2026-09-22",
+          "timestamp_utc": "2026-09-22T03:05:00Z",
+          "reason": "REVIERTE la transición del 2026-09-22T02:08:58Z, que fue INDEBIDA. Hallazgos materiales C-05 y C-06 de la crítica independiente: plan.md exige condición REQUIRED para sc-07..10 y prohíbe despachar con gate negativo; operations.md exige extra_gate satisfecho para APPROVED → IN_PROGRESS y establece que un campo indeterminado bloquea. El propio gate_evaluation declaraba dos de cinco cláusulas insatisfechas y la transición se hizo igual, con approved_for_implementation en true, que es el predicado mismo de una de esas cláusulas. Los eventos anteriores NO se borran, conforme a operations.md; quedan como registro del incumplimiento y de su corrección, siguiendo el precedente de GD-19. El change vuelve al estado que tenía en 1c33aad y permanece BLOCKED de forma permanente mientras la clasificación NOT_REQUIRED rija. La decisión de suficiencia se conserva en applicability_decision y el estado NOT_APPLICABLE corresponde al requisito en traceability.md, no a este change.",
+          "evidence": "openspec/changes/sc-07-aux-regression/reviews/review-critic-gd12.md (hallazgos C-05, C-06, C-08); openspec/scientific-closure/sufficiency-review-2026-09-22/findings-resolution.json"
+        }
+      ],
+      "gate_evaluation": {
+        "evaluated_at_utc": "2026-09-22T03:05:00Z",
+        "supersedes": "La evaluación de compuertas del 2026-09-22T02:08:58Z, que acompañó una transición indebida y queda corregida por el hallazgo C-05 de la crítica independiente.",
+        "extra_gate_verbatim": "R REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization R; NOT_REQUIRED/UNRESOLVED blocks execution",
+        "clauses": [
+          {
+            "clause": "R REQUIRED",
+            "satisfied": false,
+            "note": "NO se satisface y NO puede satisfacerse: la decisión de suficiencia GD-12, criticada y auditada de forma independiente, clasifica R como NOT_REQUIRED. Por plan.md («sc-07..10 requieren sc-01+sc-02 y condición REQUIRED»; «Cambios dependientes no se ejecutan si gate negativo») este change no se despacha."
+          },
+          {
+            "clause": "sc-01/sc-02 PASS",
+            "satisfied": true,
+            "note": "sc-01-evidence-scope PASS (2026-09-19) y sc-02-runtime-readiness PASS (2026-09-21). Es la única cláusula satisfecha, y no alcanza."
+          },
+          {
+            "clause": "implementation approved",
+            "satisfied": false,
+            "note": "NO aprobada. approved_for_implementation vuelve a false tras el hallazgo C-06: el booleano es exactamente el predicado que lee esta cláusula, y declararlo true mientras la cláusula se declaraba insatisfecha inducía a error a cualquier consumidor automático del registro."
+          },
+          {
+            "clause": "scientific execution additionally requires validated runner and authorization",
+            "satisfied": false,
+            "note": "No hay runner, no se implementa ninguno y no se autoriza ejecución."
+          },
+          {
+            "clause": "NOT_REQUIRED/UNRESOLVED blocks execution",
+            "satisfied": true,
+            "note": "Se respeta literalmente: R es NOT_REQUIRED y la ejecución queda bloqueada de forma permanente mientras esa clasificación rija."
+          }
+        ],
+        "conclusion": "Gate NEGATIVO. El change permanece BLOCKED y no se despacha. BLOCKED no describe aquí un defecto ni un obstáculo removible: describe correctamente un complemento condicional que no hay que ejecutar. La decisión de suficiencia que lo sostiene vive en applicability_decision, y el estado NOT_APPLICABLE que le corresponde es el del REQUISITO en traceability.md, no el de este change."
+      },
+      "applicability_decision": {
+        "decision": "NOT_REQUIRED",
+        "decided_at_utc": "2026-09-22T03:05:00Z",
+        "requirement": "SC-GOV-021",
+        "norm_verbatim_form": "«solo si» (condición necesaria)",
+        "basis": "openspec/scientific-closure/sufficiency-review-2026-09-22/gd12-sufficiency-dossier.md",
+        "artifact": "openspec/scientific-closure/sufficiency-review-2026-09-22/auxiliary/R/review.json",
+        "independent_critique": "openspec/changes/sc-07-aux-regression/reviews/review-critic-gd12.md (hallazgos C-05, C-06, C-08)",
+        "independent_audit": "openspec/changes/sc-07-aux-regression/reviews/review-audit-gd12.md — PASS sobre RB-03 (snapshot 6878184), con cinco condiciones documentales aplicadas; el PASS no es cierre científico, no desbloquea SC-GOV-025 ni el gate GF, y RB-04/RB-05/RB-06 siguen abiertos.",
+        "why_the_change_status_is_not_NOT_APPLICABLE": "La tabla de transiciones que verifica tests/test_scientific_closure_governance.py admite NOT_APPLICABLE únicamente desde PLANNED, y este change dejó PLANNED el 2026-09-19. Modificar esa tabla para que el registro encaje sería hacer que una regla deje de regir por redacción en vez de por evidencia. La restricción se informa, no se esquiva: ver GD-31.",
+        "limitations_that_must_remain_declared": "Ver limitations_that_must_remain_declared en el artefacto auxiliary/R/review.json. NOT_REQUIRED no es evidencia de ausencia de efecto y no autoriza ninguna afirmación sobre lo que el complemento habría mostrado.",
+        "audited_snapshot": "6878184d2753257a48bb31c5a18d79b1d8338872"
+      }
+    },
+    {
+      "id": "sc-08-aux-hitl",
+      "title": "Complemento condicional de HITL",
+      "deps": [
+        "sc-01-evidence-scope",
+        "sc-02-runtime-readiness"
+      ],
+      "conditional": true,
+      "goal": "Implementar y validar auxiliary_hitl_v1 solo si H=REQUIRED; ejecutar luego únicamente con autorización científica específica.",
+      "paths": [
+        "src/experiment_runner/scientific_auxiliary/auxiliary_hitl_v1.py",
+        "tests/test_auxiliary_hitl_v1.py"
+      ],
+      "tests": [
+        "tests/test_auxiliary_hitl_v1.py"
+      ],
+      "accept": "Necesidad H=REQUIRED anterior a ejecución, diseño congelado respetado, fixtures aprobados y evidencia auditada. Si NOT_REQUIRED: solo decisión motivada, sin implementación.",
+      "block": "UNRESOLVED/NOT_REQUIRED impide ejecutar; falta autorización o runner validado; intento de consumir 2023–2025/Balcarce.",
+      "risk": "Usar complementos para cambiar selección de A o afirmar validación independiente; confundir simulación con realidad.",
+      "rollback": "Revertir exclusivamente nuevo código antes de ejecución; después preservar todos los artefactos e intentos y documentar corrección.",
+      "tasks": [
+        "T22"
+      ],
+      "status": "PASS",
+      "approved_for_implementation": true,
+      "scientific_execution_authorized": true,
+      "extra_gate": "H REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization H; NOT_REQUIRED/UNRESOLVED blocks execution",
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
+      "approval": {
+        "actor": "Gustavo Julián Rivas, responsable técnico y científico del Trabajo Final",
+        "timestamp_utc": "2026-09-21T11:46:00Z",
+        "scope": "Implementar, validar y ejecutar UNA vez el complemento H (auxiliary_hitl_v1) sobre Pergamino 2015-2022, en la rama feat/scientific-closure-hitl-complement. NO autoriza reejecutar A, B ni C, NO autoriza reabrir el holdout 2024-2025, NO autoriza tocar main ni la evidencia histórica, y NO autoriza afirmar validación agronómica.",
+        "source": "AUTH-HITL-2026-09-21, transcripción de la instrucción de sesión del responsable; no es una firma verificable externamente"
+      },
+      "audit": {
+        "verdict": "PASS",
+        "actor": "scientific_auditor independiente, sesión separada de solo lectura",
+        "timestamp_utc": "2026-09-21T21:45:00Z",
+        "snapshot": "5aec15d4d75234384f2d54ebdfdae57d0c9d3291",
+        "scope": "Complemento H (auxiliary_hitl_v1): contrato, paquete, intervención humana, ejecución, evidencia, gobernanza y respaldo externo, más pronunciamiento sobre GF y SC-GOV-025.",
+        "evidence": "openspec/changes/sc-08-aux-hitl/reviews/review-audit-final.md",
+        "verdict_qualification": "El vocabulario cerrado del checker sólo admite PASS/FAIL/BLOCKED en este campo. El veredicto literal del auditor es PASS a nivel REQUISITO SC-GOV-022 y sujeto a condiciones, NO PASS de gate, y con scientific_sufficiency_for_GF = INSUFFICIENT. El requisito queda PASS_WITH_LIMITATIONS en la matriz. Las condiciones que el auditor puso fueron cumplidas antes de registrar este PASS: preservación verbatim de los cuatro informes de crítica (AUD-H-01), declaración de la ausencia de ancla en git para los resultados (AUD-H-02), corrección del recuento de diferencias (AUD-H-03), enunciado sin atenuar de la detección 0/4 del operador (AUD-H-04), enumeración completa de las 13 afirmaciones prohibidas (AUD-H-05), corrección de la cita de GD-29 (AUD-H-08) y actualización de la matriz (AUD-H-10). Dos puntos quedan declarados como NO verificados de forma independiente: INV-10 y la reproducción estricta 18/18 (AUD-H-09). GF y SC-GOV-025 permanecen BLOCKED por causas ajenas a H."
+      },
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Dependencias sc-01-evidence-scope, sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "orquestador del complemento H (Claude Opus 5, sesión autónoma del responsable)",
+          "timestamp_utc": "2026-09-21T11:46:00Z",
+          "reason": "Resuelta la causa del bloqueo: sc-01-evidence-scope y sc-02-runtime-readiness están en PASS desde la campaña del 2026-09-21, H sigue REQUIRED en claims.md (CL-06, CL-10) y el responsable emitió autorización expresa de implementación y ejecución. La reapertura no renueva derechos sobre A, B, C ni sobre el holdout.",
+          "evidence": "openspec/scientific-closure/changes.json (approval AUTH-HITL-2026-09-21); openspec/scientific-closure/current-execution-checkpoint.md"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "scientific_implementer del complemento H",
+          "timestamp_utc": "2026-09-21T12:14:00Z",
+          "reason": "Contrato predeclarado congelado antes de observar resultados, runner auxiliary_hitl_v1 implementado y 60 pruebas focalizadas en verde. Commit 5f30880.",
+          "evidence": "openspec/changes/sc-08-aux-hitl/contract-H-frozen.json; src/experiment_runner/scientific_auxiliary/auxiliary_hitl_v1.py; tests/test_auxiliary_hitl_v1.py"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "REVIEW",
+          "actor": "orquestador del complemento H",
+          "timestamp_utc": "2026-09-21T20:00:00Z",
+          "reason": "Snapshot congelado tras la ejecución única de H, su reproducción bit a bit, el respaldo verificado y el ensayo de recuperación. Se somete a crítica independiente y a auditoría final.",
+          "evidence": "evidence/governance/hitl-complement-2026-09-21/sc-08-aux-hitl/execution-record.json; reproduction-record.json; recovery-rehearsal.json"
+        },
+        {
+          "from": "REVIEW",
+          "to": "PASS",
+          "actor": "orquestador, sobre el veredicto del scientific_auditor independiente",
+          "timestamp_utc": "2026-09-21T21:50:00Z",
+          "reason": "El auditor final independiente emitió PASS sobre el requisito SC-GOV-022 en el snapshot 5aec15d4, tras verificar por su cuenta el criterio de aceptación congelado y recomputar 72 métricas sin sklearn con 0 discrepancias. Sus dos hallazgos materiales fueron remediados antes de este cierre: AUD-H-01 preservando verbatim los cuatro informes de crítica independiente, y AUD-H-02 declarándolo como limitación viva. La suficiencia científica para el gate GF es INSUFFICIENT por causas ajenas a H, y GF permanece bloqueado.",
+          "evidence": "openspec/changes/sc-08-aux-hitl/reviews/review-audit-final.md; evidence/governance/hitl-complement-2026-09-21/auxiliary/H/review.json; sc-08-aux-hitl/findings-resolution.json"
+        }
+      ]
+    },
+    {
+      "id": "sc-09-aux-anomalies",
+      "title": "Complemento condicional de anomalías",
+      "deps": [
+        "sc-01-evidence-scope",
+        "sc-02-runtime-readiness"
+      ],
+      "conditional": true,
+      "goal": "Implementar y validar auxiliary_anomalies_v1 solo si N=REQUIRED; ejecutar luego únicamente con autorización científica específica.",
+      "paths": [
+        "src/experiment_runner/scientific_auxiliary/auxiliary_anomalies_v1.py",
+        "tests/test_auxiliary_anomalies_v1.py"
+      ],
+      "tests": [
+        "tests/test_auxiliary_anomalies_v1.py"
+      ],
+      "accept": "Necesidad N=REQUIRED anterior a ejecución, diseño congelado respetado, fixtures aprobados y evidencia auditada. Si NOT_REQUIRED: solo decisión motivada, sin implementación.",
+      "block": "UNRESOLVED/NOT_REQUIRED impide ejecutar; falta autorización o runner validado; intento de consumir 2023–2025/Balcarce.",
+      "risk": "Usar complementos para cambiar selección de A o afirmar validación independiente; confundir simulación con realidad.",
+      "rollback": "Revertir exclusivamente nuevo código antes de ejecución; después preservar todos los artefactos e intentos y documentar corrección.",
+      "tasks": [
+        "T23"
+      ],
+      "status": "BLOCKED",
+      "approved_for_implementation": false,
+      "scientific_execution_authorized": false,
+      "extra_gate": "N REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization N; NOT_REQUIRED/UNRESOLVED blocks execution",
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
+      "approval": null,
+      "audit": null,
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Dependencias sc-01-evidence-scope, sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas. Su decisión NOT_REQUIRED auditada no equivale a ejecución ni cierre individual del change.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "orquestador, sobre instrucción explícita del responsable del 2026-09-22",
+          "timestamp_utc": "2026-09-22T02:08:58Z",
+          "reason": "Se acredita la resolución del motivo del bloqueo en lo que depende de esta rama. El change quedó BLOCKED el 2026-09-19 por dependencias y gates no satisfechos, y SC-GOV-023 fue degradado a BLOCKED por GD-23 el 2026-09-20 porque la decisión de suficiencia GD-12 no tenía crítica ni auditoría independiente. Las dependencias sc-01 y sc-02 están PASS, y el responsable autoriza expresamente la rama documental. No se renuevan derechos de intento científico: scientific_execution_authorized sigue false.",
+          "evidence": "openspec/scientific-closure/sufficiency-review-2026-09-22/authorizations.json (AUTH-SUFF-2026-09-22)"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "orquestador de la sesión sufficiency-review-2026-09-22",
+          "timestamp_utc": "2026-09-22T02:08:58Z",
+          "reason": "Compuertas contrastadas cláusula por cláusula en gate_evaluation: la de implementación NO se satisface y no se declara satisfecha. Se ejecuta la rama documental: dossier de suficiencia GD-12 y artefacto auxiliary/N/review.json para SC-GOV-023. Escritor único: el orquestador. Ningún archivo de src/ ni de tests/ se toca.",
+          "evidence": "openspec/scientific-closure/sufficiency-review-2026-09-22/gd12-sufficiency-dossier.md; openspec/scientific-closure/sufficiency-review-2026-09-22/auxiliary/N/review.json"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "BLOCKED",
+          "actor": "orquestador de la sesión sufficiency-review-2026-09-22",
+          "timestamp_utc": "2026-09-22T03:05:00Z",
+          "reason": "REVIERTE la transición del 2026-09-22T02:08:58Z, que fue INDEBIDA. Hallazgos materiales C-05 y C-06 de la crítica independiente: plan.md exige condición REQUIRED para sc-07..10 y prohíbe despachar con gate negativo; operations.md exige extra_gate satisfecho para APPROVED → IN_PROGRESS y establece que un campo indeterminado bloquea. El propio gate_evaluation declaraba dos de cinco cláusulas insatisfechas y la transición se hizo igual, con approved_for_implementation en true, que es el predicado mismo de una de esas cláusulas. Los eventos anteriores NO se borran, conforme a operations.md; quedan como registro del incumplimiento y de su corrección, siguiendo el precedente de GD-19. El change vuelve al estado que tenía en 1c33aad y permanece BLOCKED de forma permanente mientras la clasificación NOT_REQUIRED rija. La decisión de suficiencia se conserva en applicability_decision y el estado NOT_APPLICABLE corresponde al requisito en traceability.md, no a este change.",
+          "evidence": "openspec/changes/sc-09-aux-anomalies/reviews/review-critic-gd12.md (hallazgos C-05, C-06, C-08); openspec/scientific-closure/sufficiency-review-2026-09-22/findings-resolution.json"
+        }
+      ],
+      "gate_evaluation": {
+        "evaluated_at_utc": "2026-09-22T03:05:00Z",
+        "supersedes": "La evaluación de compuertas del 2026-09-22T02:08:58Z, que acompañó una transición indebida y queda corregida por el hallazgo C-05 de la crítica independiente.",
+        "extra_gate_verbatim": "N REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization N; NOT_REQUIRED/UNRESOLVED blocks execution",
+        "clauses": [
+          {
+            "clause": "N REQUIRED",
+            "satisfied": false,
+            "note": "NO se satisface y NO puede satisfacerse: la decisión de suficiencia GD-12, criticada y auditada de forma independiente, clasifica N como NOT_REQUIRED. Por plan.md («sc-07..10 requieren sc-01+sc-02 y condición REQUIRED»; «Cambios dependientes no se ejecutan si gate negativo») este change no se despacha."
+          },
+          {
+            "clause": "sc-01/sc-02 PASS",
+            "satisfied": true,
+            "note": "sc-01-evidence-scope PASS (2026-09-19) y sc-02-runtime-readiness PASS (2026-09-21). Es la única cláusula satisfecha, y no alcanza."
+          },
+          {
+            "clause": "implementation approved",
+            "satisfied": false,
+            "note": "NO aprobada. approved_for_implementation vuelve a false tras el hallazgo C-06: el booleano es exactamente el predicado que lee esta cláusula, y declararlo true mientras la cláusula se declaraba insatisfecha inducía a error a cualquier consumidor automático del registro."
+          },
+          {
+            "clause": "scientific execution additionally requires validated runner and authorization",
+            "satisfied": false,
+            "note": "No hay runner, no se implementa ninguno y no se autoriza ejecución."
+          },
+          {
+            "clause": "NOT_REQUIRED/UNRESOLVED blocks execution",
+            "satisfied": true,
+            "note": "Se respeta literalmente: N es NOT_REQUIRED y la ejecución queda bloqueada de forma permanente mientras esa clasificación rija."
+          }
+        ],
+        "conclusion": "Gate NEGATIVO. El change permanece BLOCKED y no se despacha. BLOCKED no describe aquí un defecto ni un obstáculo removible: describe correctamente un complemento condicional que no hay que ejecutar. La decisión de suficiencia que lo sostiene vive en applicability_decision, y el estado NOT_APPLICABLE que le corresponde es el del REQUISITO en traceability.md, no el de este change."
+      },
+      "applicability_decision": {
+        "decision": "NOT_REQUIRED",
+        "decided_at_utc": "2026-09-22T03:05:00Z",
+        "requirement": "SC-GOV-023",
+        "norm_verbatim_form": "«si» (condición suficiente); NOT_REQUIRED NO se infiere negando el antecedente, sino de la demostración positiva de la sección 6 del dossier",
+        "basis": "openspec/scientific-closure/sufficiency-review-2026-09-22/gd12-sufficiency-dossier.md",
+        "artifact": "openspec/scientific-closure/sufficiency-review-2026-09-22/auxiliary/N/review.json",
+        "independent_critique": "openspec/changes/sc-09-aux-anomalies/reviews/review-critic-gd12.md (hallazgos C-05, C-06, C-08)",
+        "independent_audit": "openspec/changes/sc-09-aux-anomalies/reviews/review-audit-gd12.md — PASS sobre RB-03 (snapshot 6878184), con cinco condiciones documentales aplicadas; el PASS no es cierre científico, no desbloquea SC-GOV-025 ni el gate GF, y RB-04/RB-05/RB-06 siguen abiertos.",
+        "why_the_change_status_is_not_NOT_APPLICABLE": "La tabla de transiciones que verifica tests/test_scientific_closure_governance.py admite NOT_APPLICABLE únicamente desde PLANNED, y este change dejó PLANNED el 2026-09-19. Modificar esa tabla para que el registro encaje sería hacer que una regla deje de regir por redacción en vez de por evidencia. La restricción se informa, no se esquiva: ver GD-31.",
+        "limitations_that_must_remain_declared": "Ver limitations_that_must_remain_declared en el artefacto auxiliary/N/review.json. NOT_REQUIRED no es evidencia de ausencia de efecto y no autoriza ninguna afirmación sobre lo que el complemento habría mostrado.",
+        "audited_snapshot": "6878184d2753257a48bb31c5a18d79b1d8338872"
+      }
+    },
+    {
+      "id": "sc-10-aux-robustness",
+      "title": "Complemento condicional de robustez",
+      "deps": [
+        "sc-01-evidence-scope",
+        "sc-02-runtime-readiness"
+      ],
+      "conditional": true,
+      "goal": "Implementar y validar auxiliary_robustness_v1 solo si S=REQUIRED; ejecutar luego únicamente con autorización científica específica.",
+      "paths": [
+        "src/experiment_runner/scientific_auxiliary/auxiliary_robustness_v1.py",
+        "tests/test_auxiliary_robustness_v1.py"
+      ],
+      "tests": [
+        "tests/test_auxiliary_robustness_v1.py"
+      ],
+      "accept": "Necesidad S=REQUIRED anterior a ejecución, diseño congelado respetado, fixtures aprobados y evidencia auditada. Si NOT_REQUIRED: solo decisión motivada, sin implementación.",
+      "block": "UNRESOLVED/NOT_REQUIRED impide ejecutar; falta autorización o runner validado; intento de consumir 2023–2025/Balcarce.",
+      "risk": "Usar complementos para cambiar selección de A o afirmar validación independiente; confundir simulación con realidad.",
+      "rollback": "Revertir exclusivamente nuevo código antes de ejecución; después preservar todos los artefactos e intentos y documentar corrección.",
+      "tasks": [
+        "T24"
+      ],
+      "status": "BLOCKED",
+      "approved_for_implementation": false,
+      "scientific_execution_authorized": false,
+      "extra_gate": "S REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization S; NOT_REQUIRED/UNRESOLVED blocks execution",
+      "orchestrator_paths": [
+        "openspec/scientific-closure/changes.json"
+      ],
+      "approval": null,
+      "audit": null,
+      "state_events": [
+        {
+          "from": "PLANNED",
+          "to": "BLOCKED",
+          "actor": "/root",
+          "timestamp_utc": "2026-09-19T08:38:20.773053Z",
+          "reason": "Dependencias sc-01-evidence-scope, sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas. Su decisión NOT_REQUIRED auditada no equivale a ejecución ni cierre individual del change.",
+          "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "orquestador, sobre instrucción explícita del responsable del 2026-09-22",
+          "timestamp_utc": "2026-09-22T02:08:58Z",
+          "reason": "Se acredita la resolución del motivo del bloqueo en lo que depende de esta rama. El change quedó BLOCKED el 2026-09-19 por dependencias y gates no satisfechos, y SC-GOV-024 fue degradado a BLOCKED por GD-23 el 2026-09-20 porque la decisión de suficiencia GD-12 no tenía crítica ni auditoría independiente. Las dependencias sc-01 y sc-02 están PASS, y el responsable autoriza expresamente la rama documental. No se renuevan derechos de intento científico: scientific_execution_authorized sigue false.",
+          "evidence": "openspec/scientific-closure/sufficiency-review-2026-09-22/authorizations.json (AUTH-SUFF-2026-09-22)"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "orquestador de la sesión sufficiency-review-2026-09-22",
+          "timestamp_utc": "2026-09-22T02:08:58Z",
+          "reason": "Compuertas contrastadas cláusula por cláusula en gate_evaluation: la de implementación NO se satisface y no se declara satisfecha. Se ejecuta la rama documental: dossier de suficiencia GD-12 y artefacto auxiliary/S/review.json para SC-GOV-024. Escritor único: el orquestador. Ningún archivo de src/ ni de tests/ se toca.",
+          "evidence": "openspec/scientific-closure/sufficiency-review-2026-09-22/gd12-sufficiency-dossier.md; openspec/scientific-closure/sufficiency-review-2026-09-22/auxiliary/S/review.json"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "BLOCKED",
+          "actor": "orquestador de la sesión sufficiency-review-2026-09-22",
+          "timestamp_utc": "2026-09-22T03:05:00Z",
+          "reason": "REVIERTE la transición del 2026-09-22T02:08:58Z, que fue INDEBIDA. Hallazgos materiales C-05 y C-06 de la crítica independiente: plan.md exige condición REQUIRED para sc-07..10 y prohíbe despachar con gate negativo; operations.md exige extra_gate satisfecho para APPROVED → IN_PROGRESS y establece que un campo indeterminado bloquea. El propio gate_evaluation declaraba dos de cinco cláusulas insatisfechas y la transición se hizo igual, con approved_for_implementation en true, que es el predicado mismo de una de esas cláusulas. Los eventos anteriores NO se borran, conforme a operations.md; quedan como registro del incumplimiento y de su corrección, siguiendo el precedente de GD-19. El change vuelve al estado que tenía en 1c33aad y permanece BLOCKED de forma permanente mientras la clasificación NOT_REQUIRED rija. La decisión de suficiencia se conserva en applicability_decision y el estado NOT_APPLICABLE corresponde al requisito en traceability.md, no a este change.",
+          "evidence": "openspec/changes/sc-10-aux-robustness/reviews/review-critic-gd12.md (hallazgos C-05, C-06, C-08); openspec/scientific-closure/sufficiency-review-2026-09-22/findings-resolution.json"
+        }
+      ],
+      "gate_evaluation": {
+        "evaluated_at_utc": "2026-09-22T03:05:00Z",
+        "supersedes": "La evaluación de compuertas del 2026-09-22T02:08:58Z, que acompañó una transición indebida y queda corregida por el hallazgo C-05 de la crítica independiente.",
+        "extra_gate_verbatim": "S REQUIRED AND sc-01/sc-02 PASS AND implementation approved; scientific execution additionally requires validated runner and authorization S; NOT_REQUIRED/UNRESOLVED blocks execution",
+        "clauses": [
+          {
+            "clause": "S REQUIRED",
+            "satisfied": false,
+            "note": "NO se satisface y NO puede satisfacerse: la decisión de suficiencia GD-12, criticada y auditada de forma independiente, clasifica S como NOT_REQUIRED. Por plan.md («sc-07..10 requieren sc-01+sc-02 y condición REQUIRED»; «Cambios dependientes no se ejecutan si gate negativo») este change no se despacha."
+          },
+          {
+            "clause": "sc-01/sc-02 PASS",
+            "satisfied": true,
+            "note": "sc-01-evidence-scope PASS (2026-09-19) y sc-02-runtime-readiness PASS (2026-09-21). Es la única cláusula satisfecha, y no alcanza."
+          },
+          {
+            "clause": "implementation approved",
+            "satisfied": false,
+            "note": "NO aprobada. approved_for_implementation vuelve a false tras el hallazgo C-06: el booleano es exactamente el predicado que lee esta cláusula, y declararlo true mientras la cláusula se declaraba insatisfecha inducía a error a cualquier consumidor automático del registro."
+          },
+          {
+            "clause": "scientific execution additionally requires validated runner and authorization",
+            "satisfied": false,
+            "note": "No hay runner, no se implementa ninguno y no se autoriza ejecución."
+          },
+          {
+            "clause": "NOT_REQUIRED/UNRESOLVED blocks execution",
+            "satisfied": true,
+            "note": "Se respeta literalmente: S es NOT_REQUIRED y la ejecución queda bloqueada de forma permanente mientras esa clasificación rija."
+          }
+        ],
+        "conclusion": "Gate NEGATIVO. El change permanece BLOCKED y no se despacha. BLOCKED no describe aquí un defecto ni un obstáculo removible: describe correctamente un complemento condicional que no hay que ejecutar. La decisión de suficiencia que lo sostiene vive en applicability_decision, y el estado NOT_APPLICABLE que le corresponde es el del REQUISITO en traceability.md, no el de este change."
+      },
+      "applicability_decision": {
+        "decision": "NOT_REQUIRED",
+        "decided_at_utc": "2026-09-22T03:05:00Z",
+        "requirement": "SC-GOV-024",
+        "norm_verbatim_form": "«si» (condición suficiente); NOT_REQUIRED NO se infiere negando el antecedente, sino de la demostración positiva de la sección 6 del dossier",
+        "basis": "openspec/scientific-closure/sufficiency-review-2026-09-22/gd12-sufficiency-dossier.md",
+        "artifact": "openspec/scientific-closure/sufficiency-review-2026-09-22/auxiliary/S/review.json",
+        "independent_critique": "openspec/changes/sc-10-aux-robustness/reviews/review-critic-gd12.md (hallazgos C-05, C-06, C-08)",
+        "independent_audit": "openspec/changes/sc-10-aux-robustness/reviews/review-audit-gd12.md — PASS sobre RB-03 (snapshot 6878184), con cinco condiciones documentales aplicadas; el PASS no es cierre científico, no desbloquea SC-GOV-025 ni el gate GF, y RB-04/RB-05/RB-06 siguen abiertos.",
+        "why_the_change_status_is_not_NOT_APPLICABLE": "La tabla de transiciones que verifica tests/test_scientific_closure_governance.py admite NOT_APPLICABLE únicamente desde PLANNED, y este change dejó PLANNED el 2026-09-19. Modificar esa tabla para que el registro encaje sería hacer que una regla deje de regir por redacción en vez de por evidencia. La restricción se informa, no se esquiva: ver GD-31.",
+        "limitations_that_must_remain_declared": "Ver limitations_that_must_remain_declared en el artefacto auxiliary/S/review.json. NOT_REQUIRED no es evidencia de ausencia de efecto y no autoriza ninguna afirmación sobre lo que el complemento habría mostrado.",
+        "audited_snapshot": "6878184d2753257a48bb31c5a18d79b1d8338872"
+      }
+    }
+  ]
+}

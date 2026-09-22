@@ -1,0 +1,134 @@
+{
+  "schema_version": "1.0",
+  "record": "scientific_closure_audit",
+  "campaign_id": "closure-verification-2026-09-20",
+  "change_id": "sc-06-scientific-synthesis",
+  "requirement_ids": [
+    "SC-GOV-025",
+    "SC-GOV-008"
+  ],
+  "captured_at_utc": "2026-09-20T18:35:00Z",
+  "auditor": {
+    "nominal_role": "scientific_auditor",
+    "nominal_profile": ".codex/agents/scientific_auditor.toml (gpt-5.6-sol, effort xhigh, sandbox_mode read-only)",
+    "substitute": "Claude Code general-purpose subagent, model requested opus, separate context",
+    "substitution_reason": "The .codex/agents profiles are not loadable in this runtime; see session-identity.json.",
+    "sandbox_effective": "INSTRUCTED_ONLY - read-only by prompt, not enforced by the harness. Declared, not claimed as enforcement.",
+    "independence": "Separate context. Acted after a satisfactory critique, as operations.md requires. Re-derived every statement by command and explicitly declined to accept any claim on the strength of a record. Wrote no file.",
+    "exact_report": "review-audit.md"
+  },
+  "object_audited": {
+    "commit": "5b40a55ef62f19cfa9125aa29146e53976661692",
+    "branch": "feat/scientific-closure",
+    "tree": "clean",
+    "scope": "The PREPARATION and its documentary record. NOT any scientific campaign, because none exists."
+  },
+  "verdict": "BLOCKED",
+  "verdict_scope": "sc-02-runtime-readiness and the documentary record at commit 5b40a55. Suspensive, not terminal.",
+  "verdict_grounds": {
+    "correctable_in_session": [
+      "AUD-F-01",
+      "AUD-F-02"
+    ],
+    "external_inputs_owed_by_the_responsible_person": [
+      "ADR-0011 precondition 4 (merge to main)",
+      "a reachable container runtime",
+      "storage not backed by the same host volume"
+    ]
+  },
+  "what_the_auditor_verified_and_upheld": [
+    "Identity, clean tree, git diff --check exit 0, and the REMOTE state - which the previous round of reviewers had not inspected. The two preparation pushes were confirmed independently from the reflog and ls-remote.",
+    "22 of the 24 reader findings (C-01..C-20, D-1..D-4) genuinely and fully closed; none recorded as APPLIED was found absent.",
+    "Requirement arithmetic: PASS 0, PASS_WITH_LIMITATIONS 8, BLOCKED 17, NOT_APPLICABLE 0, total 25, against 25 ids in requirements.json.",
+    "The five degradations to BLOCKED are correct and none is under-stated.",
+    "25/25 declared sha256 in this campaign's evidence manifest recomputed MATCH, 0 mismatch, 0 missing.",
+    "The annotation on the previous campaign's manifest altered no hash and removed no entry: 31 entries before and after, no changed hashes, one added key.",
+    "No earlier reader report anywhere in openspec/scientific-closure/ was edited, including the two audit records that wrongly assert 'no push'.",
+    "Custody: no stage A/B/C artefact exists, the ledger directory is empty, no 2024-2025 value was read, and the only SQLite files are self-declared fixtures.",
+    "Executable identity: src, docker and pyproject.toml byte-identical to 214735e by tree and blob object identity.",
+    "ADR-0011 precondition 4 GENUINELY NOT_SATISFIED, on normative and not cosmetic grounds.",
+    "No leakage introduced; the three baselines unmoved; main not modified.",
+    "Every reported verification command reproduces at the stated exit code, and the carry-over of the 545-test result is legitimate because git diff b9fefbf..HEAD over src, scripts and tests is empty."
+  ],
+  "scientific_sufficiency_assessment": {
+    "requirement": "SC-GOV-025 asks the auditor to evaluate the whole approved scientific scope, not only software or a candidate.",
+    "result": "SCIENTIFIC CLOSURE IS NOT ACHIEVED.",
+    "claim_by_claim": {
+      "CL-01_CL-02_CL-03_CL-09": "NOT SUPPORTED and not covered by an accepted limitation. Each carries an explicit PENDING gap requiring stage A, B or C. PENDING designates missing future evidence, which is the opposite of an accepted limitation.",
+      "CL-06": "NOT SUPPORTED. H is REQUIRED, has no runner and no evidence. An explicit open item, not a limitation.",
+      "CL-10": "NOT SUPPORTED. It requires an audited A/B/C terminal and an audited H; neither exists.",
+      "CL-04_CL-05_CL-07_CL-08": "ADMISSIBLE, and the only four that are, precisely because they explicitly decline to make any v4 claim and rest on REFERENCED v3 evidence under accepted limits."
+    },
+    "exactly_what_is_missing": [
+      "an audited terminal Stage A yielding either a transferable candidate or NO_VALID_SELECTION",
+      "Stage B's verdict",
+      "Stage C, only if B validates",
+      "an audited H comparison",
+      "an independent audit of the sufficiency decision GD-12, absent which R, N and S NOT_REQUIRED cannot carry a terminal status"
+    ],
+    "count": "Six of ten approved claims rest on evidence that does not exist and is not substituted by any accepted limitation."
+  },
+  "auditor_ruling_on_the_session_outcome": {
+    "agrees_with": "SCIENTIFIC_CLOSURE_BLOCKED, explicitly suspensive",
+    "rejects": "SCIENTIFIC_CLOSURE_PASS_WITH_LIMITATIONS",
+    "reason_for_rejection": "It would require every approved claim to be supported by evidence or by an accepted limitation. Six of ten are supported by neither, and seventeen of twenty-five requirements are unresolved. Claiming it would be precisely the overstatement this session's corrections were made to remove.",
+    "reason_terminal_would_be_wrong": "BLOCKED is non-terminal in the repository's own checker: the terminal set is {PASS, NOT_APPLICABLE} and the transition graph admits BLOCKED to APPROVED. All three external grounds are ordinary operator actions."
+  },
+  "findings": [
+    {
+      "id": "AUD-F-01",
+      "severity": "MATERIAL",
+      "requirement": "SC-GOV-025",
+      "location": "openspec/scientific-closure/traceability.md, SC-GOV-025 row",
+      "expected": "the row describes an artefact that exists, or declares it absent",
+      "observed": "the row stated that closure-verification-2026-09-20/scientific-closure-audit.json 'ya existe' and stated its verdict, while the file existed nowhere in the tree or index at 5b40a55; it also pre-stated the auditor's conclusion before the audit was performed",
+      "correctable_in_session": true,
+      "resolution": "APPLIED. The artefact is this file, written only AFTER receiving the auditor's report, whose exact text is preserved in review-audit.md. The row was rewritten to describe what exists and to stop pre-stating a verdict."
+    },
+    {
+      "id": "AUD-F-02",
+      "severity": "MATERIAL",
+      "requirement": "SC-GOV-016",
+      "location": "closure-verification-2026-09-20/claim-evidence-review.json and the SC-GOV-016 row",
+      "expected": "content attributed to an independent reader is traceable to that reader's preserved exact report",
+      "observed": "seven of the sixteen CER items appear nowhere in review-critic.md, which has no sixteen-item structure, yet the artefact named it as its exact_report and the matrix said the review was transcribed without altering its verdict",
+      "correctable_in_session": true,
+      "resolution": "APPLIED. The artefact now states plainly that the item list is ORCHESTRATOR-COMPOSED and quotes verbatim the separate conclusions of the two independent readers that corroborate it. The row was rewritten accordingly. SC-GOV-016 stays PASS_WITH_LIMITATIONS because the substance was upheld by the auditor itself in the same report that raised this finding."
+    },
+    {
+      "id": "AUD-F-03",
+      "severity": "MINOR",
+      "location": "closure-verification-2026-09-20/evidence-manifest.json",
+      "observed": "the manifest omits checkpoints.json, published in the same commit and the declared SC-GOV-019 artefact, while claiming every hash listed matches the published state",
+      "correctable_in_session": true,
+      "resolution": "APPLIED. The manifest was regenerated and now includes checkpoints.json and every other file of this campaign."
+    },
+    {
+      "id": "AUD-F-04",
+      "severity": "MINOR",
+      "observed": "C-19, the self-declared ordering irregularity in which sc-02 evidence was produced before sc-02 was approved, was recorded only in findings-resolution.json and not carried into the SC-GOV-002 row",
+      "correctable_in_session": true,
+      "resolution": "APPLIED. The SC-GOV-002 row now states it, in the auditor's own terms: the irregularity is real, was volunteered rather than concealed, relaxed no gate, and is one further reason sc-02 is not PASS."
+    },
+    {
+      "id": "AUD-F-05",
+      "severity": "OBSERVATION",
+      "observed": "next-session.txt, linked from README.md as the live next prompt, is the superseded 2026-09-19 operator prompt with a Windows path and a 'no push' restriction that contradicts the 2026-09-20 instruction, and is not labelled superseded",
+      "correctable_in_session": true,
+      "resolution": "APPLIED. The file was rewritten for the actual next session and states what is now true, including that the three external inputs are prerequisites to any campaign."
+    },
+    {
+      "id": "AUD-F-06",
+      "severity": "OBSERVATION",
+      "observed": "session-identity.json records a captured_at_utc later than the start of the session's largest verification run",
+      "correctable_in_session": true,
+      "resolution": "APPLIED. The field is now labelled as the preflight capture instant, not the session start, and the actual session start is recorded alongside it."
+    }
+  ],
+  "disposition_required_by_the_repository_rule": "Material findings return to the implementer; a change closes only on an auditor PASS over the reviewed snapshot. AUD-F-01 and AUD-F-02 were returned, corrected, re-tested and re-submitted. This file records the FIRST audit of this campaign, over snapshot 5b40a55. **Correction RA-02:** the first version of this field asserted, in the present tense, that the re-audit 'is recorded in review-audit-2.md and audit-2.json'. Neither existed when that sentence was written, and one of those names already belongs to a different campaign - the same defect class as AUD-F-01, in a procedural field. The re-audit was subsequently performed over snapshot 4940ffc and its exact report is preserved in review-audit-2.md, alongside this file.",
+  "limitations": [
+    "This audit covers preparation and its record. It certifies no scientific result, because none exists.",
+    "The auditor's read-only status was instructed, not technically enforced.",
+    "The auditor ran without network and could not re-verify external provenance URLs."
+  ]
+}

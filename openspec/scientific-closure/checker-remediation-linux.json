@@ -1,0 +1,231 @@
+{
+  "schema_version": "checker-remediation/v1",
+  "timestamp_utc": "2026-09-19 07:36:44 UTC",
+  "scope": "HU7/HU8; scientific-closure; CRISP-DM evaluación/documentación; recuperación acotada del checkpoint. Sin impacto en configuraciones experimentales, hipótesis, alcance científico, arquitectura ni memoria salvo trazabilidad técnica capítulos 2/3. No se selecciona ni cierra sc-02.",
+  "authorization": "Instrucción explícita de sesión: recuperar dirty Linux, corregir exclusivamente UnboundLocalError, validar y commitear si tests pasan. Prevalece sobre restricciones históricas del checkpoint a nuevas delegaciones.",
+  "repository": {
+    "root": "/home/gus/work/AAI_Hydric_Stress_scientific_closure",
+    "branch": "feat/scientific-closure",
+    "initial_head": "59612ab2d1822e7bef6f22255985866de73b6cda",
+    "upstream": "origin/feat/scientific-closure",
+    "initial_status": "dirty: exactamente dos modificados y un probe untracked",
+    "unexpected_changes": []
+  },
+  "environment": {
+    "python": "3.14.4",
+    "interpreter": "/usr/bin/python3",
+    "image": null,
+    "scientific_data": null,
+    "seeds": null,
+    "note": "Pruebas técnicas con fixtures, sin imagen experimental ni ejecución científica. python alias, pip, ruff y black ausentes. No instalaciones ni cambios de configuración/permisos."
+  },
+  "equivalence": {
+    "backup": "/mnt/c/Repo/AAI_Hydric_Stress_scientific_closure",
+    "result": "Tres archivos coinciden byte a byte según SHA-256 antes de editar",
+    "files": [
+      {
+        "path": "scripts/check_scientific_closure.py",
+        "bytes": 36610,
+        "sha256": "bf39fff51ca464d7cb4ab1b9cf110065a4fbeb8505d98172ee5ce2094328ef85"
+      },
+      {
+        "path": "tests/test_scientific_closure_checker.py",
+        "bytes": 18531,
+        "sha256": "ee40b2ddc0be3ad798500818d5ef0bcdaa5ec74a4f161725eabc700b68d74940"
+      },
+      {
+        "path": "openspec/scientific-closure/validation-read-only-probe.tmp",
+        "bytes": 131,
+        "sha256": "5f32a4bf1e4462d70cd8d17d805e297d88629a9745c2a6459d32e5ed9b548976"
+      }
+    ]
+  },
+  "reproduction": {
+    "command": "python3 -m unittest discover -s tests -p test_scientific_closure_checker.py -k test_repository_passes -v",
+    "exit_code": 1,
+    "tests": 1,
+    "errors": 1,
+    "output": "test_repository_passes (test_scientific_closure_checker.CheckerTests.test_repository_passes) ... ERROR\n\n======================================================================\nERROR: test_repository_passes (test_scientific_closure_checker.CheckerTests.test_repository_passes)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/home/gus/work/AAI_Hydric_Stress_scientific_closure/tests/test_scientific_closure_checker.py\", line 132, in test_repository_passes\n    self.assertEqual(CHECKER.ClosureChecker(ROOT).run(), [])\n                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"/home/gus/work/AAI_Hydric_Stress_scientific_closure/scripts/check_scientific_closure.py\", line 136, in run\n    self.check_changes()\n    ~~~~~~~~~~~~~~~~~~^^\n  File \"/home/gus/work/AAI_Hydric_Stress_scientific_closure/scripts/check_scientific_closure.py\", line 249, in check_changes\n    self.check_state(cid, change)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^\n  File \"/home/gus/work/AAI_Hydric_Stress_scientific_closure/scripts/check_scientific_closure.py\", line 396, in check_state\n    elif audit is not None and not isinstance(audit, dict):\n         ^^^^^\nUnboundLocalError: cannot access local variable 'audit' where it is not associated with a value\n\n----------------------------------------------------------------------\nRan 1 test in 0.008s\n\nFAILED (errors=1)\n"
+  },
+  "fix": {
+    "cycles": 1,
+    "writer": "/root (orquestador), sustitución funcional documentada tras rechazo de scientific_implementer; sin modificar perfiles",
+    "cause": "audit se asignaba solo dentro de la rama terminal, pero el elif la consultaba para cambios no terminales",
+    "change": "Mover audit = change.get('audit') inmediatamente antes del if terminal; condiciones y errores idénticos",
+    "regression": "Se conservan las pruebas existentes test_repository_passes y test_json_wrong_types_fail_without_exception (incluye audit='truthy'). No se requieren pruebas duplicadas ni nuevas modificaciones a tests.",
+    "frozen_snapshot": {
+      "scripts/check_scientific_closure.py": "a68a47f1e7df128d2ba227a810a183531f013cbd9653091934b49d30c74a2ebf",
+      "tests/test_scientific_closure_checker.py": "ee40b2ddc0be3ad798500818d5ef0bcdaa5ec74a4f161725eabc700b68d74940"
+    }
+  },
+  "validation": [
+    {
+      "cmd": "python3 -m unittest discover -s tests -p test_scientific_closure_checker.py -k test_repository_passes -v",
+      "chunk_id": "6b84b3",
+      "wall_time_seconds": 0.015707653,
+      "exit_code": 0,
+      "original_token_count": 50,
+      "output": "test_repository_passes (test_scientific_closure_checker.CheckerTests.test_repository_passes) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.073s\n\nOK\n"
+    },
+    {
+      "cmd": "python3 -m unittest discover -s tests -p test_scientific_closure_checker.py -k test_json_wrong_types_fail_without_exception -v",
+      "chunk_id": "65b2f5",
+      "wall_time_seconds": 0.012921801,
+      "exit_code": 0,
+      "original_token_count": 61,
+      "output": "test_json_wrong_types_fail_without_exception (test_scientific_closure_checker.CheckerTests.test_json_wrong_types_fail_without_exception) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.078s\n\nOK\n"
+    },
+    {
+      "cmd": "python3 -m unittest discover -s tests -p test_scientific_closure_checker.py -v",
+      "chunk_id": "46618e",
+      "wall_time_seconds": 0.512451602,
+      "exit_code": 0,
+      "original_token_count": 1137,
+      "output": "test_b_cannot_advance_without_a_pass (test_scientific_closure_checker.CheckerTests.test_b_cannot_advance_without_a_pass) ... ok\ntest_contradictory_scientific_approval_fails (test_scientific_closure_checker.CheckerTests.test_contradictory_scientific_approval_fails) ... ok\ntest_dependency_cycle_fails (test_scientific_closure_checker.CheckerTests.test_dependency_cycle_fails) ... ok\ntest_disabled_multiagent_fails (test_scientific_closure_checker.CheckerTests.test_disabled_multiagent_fails) ... ok\ntest_duplicate_requirement_fails (test_scientific_closure_checker.CheckerTests.test_duplicate_requirement_fails) ... ok\ntest_invalid_agent_toml_fails (test_scientific_closure_checker.CheckerTests.test_invalid_agent_toml_fails) ... ok\ntest_invalid_reference_fails (test_scientific_closure_checker.CheckerTests.test_invalid_reference_fails) ... ok\ntest_json_wrong_types_fail_without_exception (test_scientific_closure_checker.CheckerTests.test_json_wrong_types_fail_without_exception) ... ok\ntest_matrix_mismatch_fails (test_scientific_closure_checker.CheckerTests.test_matrix_mismatch_fails) ... ok\ntest_missing_acceptance_fails (test_scientific_closure_checker.CheckerTests.test_missing_acceptance_fails) ... ok\ntest_missing_agent_fails (test_scientific_closure_checker.CheckerTests.test_missing_agent_fails) ... ok\ntest_missing_dependency_fails (test_scientific_closure_checker.CheckerTests.test_missing_dependency_fails) ... ok\ntest_missing_stage_gate_fails (test_scientific_closure_checker.CheckerTests.test_missing_stage_gate_fails) ... ok\ntest_repository_passes (test_scientific_closure_checker.CheckerTests.test_repository_passes) ... ok\ntest_runtime_evidence_config_divergence_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_config_divergence_fails) ... ok\ntest_runtime_evidence_configuration_digest_and_replay_fail (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_configuration_digest_and_replay_fail) ... ok\ntest_runtime_evidence_duplicate_role_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_duplicate_role_fails) ... ok\ntest_runtime_evidence_duplicate_session_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_duplicate_session_fails) ... ok\ntest_runtime_evidence_effective_divergence_without_substitution_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_effective_divergence_without_substitution_fails) ... ok\ntest_runtime_evidence_explicit_model_substitution_passes (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_explicit_model_substitution_passes) ... ok\ntest_runtime_evidence_inconsistent_substitution_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_inconsistent_substitution_fails) ... ok\ntest_runtime_evidence_load_not_loaded_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_load_not_loaded_fails) ... ok\ntest_runtime_evidence_malformed_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_malformed_fails) ... ok\ntest_runtime_evidence_missing_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_missing_fails) ... ok\ntest_runtime_evidence_missing_forged_and_escape_output_fail (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_missing_forged_and_escape_output_fail) ... ok\ntest_runtime_evidence_missing_role_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_missing_role_fails) ... ok\ntest_runtime_evidence_non_string_role_fails_without_exception (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_non_string_role_fails_without_exception) ... ok\ntest_runtime_evidence_nonzero_exit_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_nonzero_exit_fails) ... ok\ntest_runtime_evidence_passes_api_and_cli (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_passes_api_and_cli) ... ok\ntest_runtime_evidence_sandbox_not_enforced_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_sandbox_not_enforced_fails) ... ok\ntest_runtime_evidence_schema_fails (test_scientific_closure_checker.CheckerTests.test_runtime_evidence_schema_fails) ... ok\ntest_title_norm_and_check_must_match_spec (test_scientific_closure_checker.CheckerTests.test_title_norm_and_check_must_match_spec) ... ok\ntest_unknown_status_fails (test_scientific_closure_checker.CheckerTests.test_unknown_status_fails) ... ok\n\n----------------------------------------------------------------------\nRan 33 tests in 0.581s\n\nOK\n"
+    },
+    {
+      "cmd": "python3 scripts/check_scientific_closure.py",
+      "chunk_id": "d81dbd",
+      "wall_time_seconds": 0.000003767,
+      "exit_code": 0,
+      "original_token_count": 18,
+      "output": "scientific-closure checker: PASS (estructura; runtime no verificado)\n"
+    },
+    {
+      "cmd": "python3 -m ruff check scripts/check_scientific_closure.py tests/test_scientific_closure_checker.py",
+      "chunk_id": "1e713e",
+      "wall_time_seconds": 0.000005662,
+      "exit_code": 1,
+      "original_token_count": 10,
+      "output": "/usr/bin/python3: No module named ruff\n"
+    },
+    {
+      "cmd": "python3 -m black --check scripts/check_scientific_closure.py tests/test_scientific_closure_checker.py",
+      "chunk_id": "a6689d",
+      "wall_time_seconds": 0.000004566,
+      "exit_code": 1,
+      "original_token_count": 10,
+      "output": "/usr/bin/python3: No module named black\n"
+    },
+    {
+      "cmd": "git diff --check",
+      "chunk_id": "d06e89",
+      "wall_time_seconds": 0.000007365,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    },
+    {
+      "cmd": "python3 - <<'PY'\nimport importlib.util\nimport subprocess\nimport sys\nfrom pathlib import Path\nspec = importlib.util.spec_from_file_location('checker_tests', Path('tests/test_scientific_closure_checker.py'))\nmodule = importlib.util.module_from_spec(spec)\nspec.loader.exec_module(module)\ncase = module.CheckerTests()\ntry:\n    root = case.make_fixture()\n    relative = 'openspec/scientific-closure/changes.json'\n    payload = case.load(root, relative)\n    payload['changes'][0]['audit'] = 'truthy'\n    case.save(root, relative, payload)\n    result = subprocess.run([sys.executable, str(module.SCRIPT), '--root', str(root)], capture_output=True, text=True)\n    assert result.returncode == 1, result\n    assert 'AUDIT: sc-01-evidence-scope: audit debe ser objeto o null' in result.stderr, result.stderr\n    assert 'Traceback' not in result.stderr, result.stderr\n    print('CLI audit mal tipado: exit 1; AUDIT reproducible; sin traceback')\n    for status in ('PASS', 'NOT_APPLICABLE'):\n        for audit in (None, 'truthy', {}, {'verdict': 'FAIL', 'snapshot': 'fixture', 'evidence': 'fixture'}):\n            checker = module.CHECKER.ClosureChecker(root)\n            change = dict(payload['changes'][0], status=status, audit=audit)\n            checker.check_state(change['id'], change)\n            assert any(error.startswith('AUDIT:') for error in checker.errors), checker.errors\n    print('8 casos terminales con auditoria ausente/invalida: rechazados por AUDIT')\nfinally:\n    case.doCleanups()\nPY",
+      "chunk_id": "aea925",
+      "wall_time_seconds": 0.000005208,
+      "exit_code": 0,
+      "original_token_count": 34,
+      "output": "CLI audit mal tipado: exit 1; AUDIT reproducible; sin traceback\n8 casos terminales con auditoria ausente/invalida: rechazados por AUDIT\n"
+    }
+  ],
+  "counts": {
+    "suite_tests": 33,
+    "suite_passed": 33,
+    "suite_failed": 0,
+    "suite_errors": 0,
+    "note": "El checkpoint histórico declara 48 tests/41 errores; el archivo SHA acreditado contiene 33 métodos test_*. Se conserva la declaración histórica sin atribuirla al snapshot actual. Las pruebas focalizadas se solapan con la suite; no sumar como tests distintos.",
+    "additional_negative_cases": 9
+  },
+  "review": {
+    "explorer": {
+      "session": "/root/explore_checker",
+      "profile": "scientific_explorer: gpt-5.6-terra/medium/read-only declarado",
+      "effective_limit": "Modelo/esfuerzo efectivos no introspectables; RO por conducta, aislamiento nativo no acreditado.",
+      "exact_final": "Inspección read-only completada.\n\n- Causa: [`check_state`](file:///home/gus/work/AAI_Hydric_Stress_scientific_closure/scripts/check_scientific_closure.py:336) asigna `audit` solo en la rama terminal (línea 392) y la usa en el `elif` de la línea 396 para cambios no terminales. Un change `PLANNED` con `audit: null` produce `UnboundLocalError`.\n- Reproducción: `python3 -m unittest tests/test_scientific_closure_checker.py -k json_wrong_types_fail_without_exception` → exit 1; un test con 7 subtests en error, todos con traceback a línea 396. `python` no está disponible.\n- Corrección mínima: mover `audit = change.get(\"audit\")` antes del `if` terminal, sin cambiar las ramas ni los códigos `AUDIT`.\n- Regresión existente: [`test_json_wrong_types_fail_without_exception`](file:///home/gus/work/AAI_Hydric_Stress_scientific_closure/tests/test_scientific_closure_checker.py:266) ya cubre `audit` mal tipado y exige error `AUDIT`; [`test_repository_passes`](file:///home/gus/work/AAI_Hydric_Stress_scientific_closure/tests/test_scientific_closure_checker.py:131) cubre el estado normal `PLANNED`.\n- CRIT-CHK-01..04 permanecen sin validación sobre el snapshot actual, según checkpoint. Sus implementaciones y pruebas están localizadas en el checker y tests, sin evidencia para declararlos cerrados.\n- El temporal contiene un probe preparatorio no científico; el checkpoint ordena preservarlo.\n- No escribí archivos, no ejecuté campañas ni inspeccioné holdouts. Mi rol fue explorer read-only bajo sandbox restringido; el modelo efectivo no es introspectable desde este rol."
+    },
+    "evidence_checker": {
+      "session": "/root/verify_checker",
+      "profile": "evidence_checker: gpt-5.6-luna/low/read-only declarado",
+      "effective_limit": "Sin evidencia independiente de modelo/esfuerzo ni aislamiento efectivo; no se intentó resolver CRIT-SUB-01.",
+      "exact_final": "Verificación mecánica read-only completada.\n\n- Rama: `feat/scientific-closure`\n- HEAD: `59612ab2d1822e7bef6f22255985866de73b6cda`\n- SHA-256 Linux:\n  - `scripts/check_scientific_closure.py`: `a68a47f1e7df128d2ba227a810a183531f013cbd9653091934b49d30c74a2ebf`\n  - `tests/test_scientific_closure_checker.py`: `ee40b2ddc0be3ad798500818d5ef0bcdaa5ec74a4f161725eabc700b68d74940`\n- Tests: idénticos al respaldo Windows (`cmp=0`).\n- Checker: difiere del respaldo únicamente por mover `audit = change.get(\"audit\")` fuera del condicional, corrigiendo el `UnboundLocalError`.\n- AST: 33 funciones `test_*`; checkpoint histórico menciona 48, discrepancia documentada.\n- `py_compile`: exitoso.\n- `git diff --check`: exitoso.\n- Archivo temporal presente, 131 bytes; no modificado.\n- `ruff`/`black` no disponibles.\n- Estado: archivos modificados esperados y temporal sin seguimiento; no hubo ediciones durante esta verificación."
+    },
+    "implementer": {
+      "session": "/root/fix_checker",
+      "requested_model": "gpt-5.6",
+      "requested_effort": "medium",
+      "result": "ERROR antes de ejecutar; no veredicto",
+      "exact_final": "Agent errored: {\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'gpt-5.6' model is not supported when using Codex with a ChatGPT account.\"}}\n\nThis agent's turn failed. If you still need this agent, use the available collaboration tools to give it another task."
+    },
+    "critic": {
+      "session": "/root/critic_checker",
+      "requested_model": "gpt-5.6",
+      "requested_effort": "high",
+      "result": "ERROR antes de ejecutar; no veredicto",
+      "exact_final": "Agent errored: {\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'gpt-5.6' model is not supported when using Codex with a ChatGPT account.\"}}\n\nThis agent's turn failed. If you still need this agent, use the available collaboration tools to give it another task."
+    },
+    "auditor": {
+      "session": "/root/auditor_checker",
+      "requested_model": "gpt-5.6",
+      "requested_effort": "xhigh",
+      "result": "ERROR antes de ejecutar; no veredicto",
+      "exact_final": "Agent errored: {\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'gpt-5.6' model is not supported when using Codex with a ChatGPT account.\"}}\n\nThis agent's turn failed. If you still need this agent, use the available collaboration tools to give it another task."
+    }
+  },
+  "crit_findings": {
+    "CRIT-CHK-01": "Implementación preservada y pruebas actuales verdes; NO CERRADO: faltan crítica y auditoría independientes.",
+    "CRIT-CHK-02": "Implementación preservada y pruebas actuales verdes; NO CERRADO: faltan crítica y auditoría independientes.",
+    "CRIT-CHK-03": "Implementación preservada y pruebas actuales verdes; NO CERRADO: faltan crítica y auditoría independientes.",
+    "CRIT-CHK-04": "Implementación preservada y pruebas actuales verdes; NO CERRADO: faltan crítica y auditoría independientes."
+  },
+  "probe": {
+    "action": "preservado, sin agregar al commit",
+    "reason": "Checkpoint lo identifica evidencia/probe preservado; no borrar. Aunque no es evidencia científica, no se acredita que eliminarlo no afecte trazabilidad.",
+    "content": "scientific-closure read-only sandbox probe\ncreated-by: root-orchestrator\npurpose: reversible non-scientific preparation validation\n"
+  },
+  "external_blockers": {
+    "CRIT-SUB-01": "OPEN/BLOCKED, no resuelto",
+    "modelos nominales incompatibles": "gpt-5.6 rechazado en implementador, crítico y auditor de esta sesión",
+    "permisos efectivos": "no acreditados",
+    "aislamiento read-only": "no acreditado; no se repitieron pruebas de sandbox",
+    "ADR-0011": "pendiente; no se resolvió",
+    "identidad ejecutable": "pendiente para campaña; este snapshot es técnico/documental",
+    "backup y recuperación": "pendientes; equivalencia de tres archivos no acredita ensayo integral",
+    "procedencia y licencias": "pendientes; no investigadas"
+  },
+  "commit": {
+    "requested_message": "fix(science): complete formal checker remediation",
+    "created": false,
+    "attempt": {
+      "command": "git add -- scripts/check_scientific_closure.py tests/test_scientific_closure_checker.py openspec/scientific-closure/current-execution-checkpoint.md openspec/scientific-closure/checker-remediation-linux.json",
+      "exit_code": 128,
+      "output": "fatal: Unable to create '/home/gus/work/AAI_Hydric_Stress_scientific_closure/.git/index.lock': Read-only file system\n"
+    },
+    "safe_alternative": "Conservar diff y trazabilidad en worktree; no evadir montaje read-only de .git ni alterar permisos. Un índice alternativo no permite escribir objetos/refs en este repositorio read-only."
+  },
+  "final_head": "59612ab2d1822e7bef6f22255985866de73b6cda",
+  "final_tree": "dirty; tres archivos modificados, registro JSON nuevo y probe untracked preservado; nada staged",
+  "final_checks_before_commit_attempt": [
+    {
+      "cmd": "python3 scripts/check_scientific_closure.py",
+      "chunk_id": "4ef034",
+      "wall_time_seconds": 0.000004104,
+      "exit_code": 0,
+      "original_token_count": 18,
+      "output": "scientific-closure checker: PASS (estructura; runtime no verificado)\n"
+    },
+    {
+      "cmd": "git diff --check",
+      "chunk_id": "7b96f7",
+      "wall_time_seconds": 0.000005408,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    },
+    {
+      "cmd": "git status --porcelain=v1 --untracked-files=all",
+      "chunk_id": "16bb59",
+      "wall_time_seconds": 0.000003878,
+      "exit_code": 0,
+      "original_token_count": 68,
+      "output": " M openspec/scientific-closure/current-execution-checkpoint.md\n M scripts/check_scientific_closure.py\n M tests/test_scientific_closure_checker.py\n?? openspec/scientific-closure/checker-remediation-linux.json\n?? openspec/scientific-closure/validation-read-only-probe.tmp\n"
+    }
+  ],
+  "terminal_status": "CHECKER_REMEDIATION_BLOCKED",
+  "next_step": "En una ejecución con herramientas de lint/formato y perfiles de crítico/auditor disponibles y autorizados, revisar este snapshot; cerrar CRIT-CHK-01..04 únicamente con PASS independiente. No ejecutar A/B/C."
+}

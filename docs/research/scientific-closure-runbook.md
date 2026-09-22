@@ -119,10 +119,14 @@ El placeholder no constituye autorización. No ejecutar automáticamente A→B�
 La carga física/verificación de CSV no equivale a analizar sus valores:
 agregados/features se restringen al período autorizado según contrato existente.
 Al momento de redactar esta guía no se montaron CSV reales ni se ejecutó
-validate-inputs-only sobre ellos. Cuando exista autorización, los bloques de
-arriba sí montan `<RAW_ROOT>` en modo solo lectura: el preflight consulta
-únicamente rutas, tamaños y referencias versionadas de esos archivos, sin leer
-sus valores.
+validate-inputs-only sobre ellos con esta variante Windows/Docker. Con
+posterioridad, y **fuera** de esta variante, la sección «Variante Linux
+(2026-09-20)» sí registra una ejecución de `--validate-inputs-only` sobre las
+entradas reales: esa comprobación verifica identidad y procedencia y **no**
+analiza valores, no calcula features ni abre ningún período reservado. Cuando
+exista autorización, los bloques de arriba sí montan `<RAW_ROOT>` en modo solo
+lectura: el preflight consulta únicamente rutas, tamaños y referencias
+versionadas de esos archivos, sin leer sus valores.
 
 ## Backup y recuperación
 
@@ -160,3 +164,88 @@ Registrar tiempo de pared, CPU y memoria en cada ejecución autorizada.
 R/H/N/S: diseños separados congelados; nuevos runners pendientes. No existe aún
 un comando real válido para estos complementos. Implementar y contrastar sus
 fixtures antes de ejecutarlos. Ninguno abre B/C.
+
+## Variante Linux (2026-09-20)
+
+Esta sección **no reemplaza** la variante Windows/Docker anterior, que se
+conserva como procedimiento de referencia. Describe únicamente las rutas y el
+entorno verificados en Linux (WSL2) el 2026-09-20. Nada de lo registrado aquí
+constituye ejecución científica.
+
+**Advertencia de bloqueo — estado al 2026-09-20 (histórico).** Mientras la
+condición 4 de ADR-0011 no estuviera satisfecha, **ninguna etapa A, B o C podía
+ejecutarse**, ni podía inicializarse el ledger definitivo ni abrirse el holdout.
+Hecho verificado ese día: `origin/main` era
+`9fcbfd9f4dd4860a07f7e99d5b16d849ac81c4af`; el ADR estaba mergeado byte a byte,
+pero el protocolo detallado presente en `origin/main` era una versión anterior
+(le faltaba la sección titulada «Condiciones de interpretación y soporte») y el
+código del runner en `main` divergía (~780 inserciones / ~160 eliminaciones). El
+commit ejecutable declarado `214735e42ee04f018156cd630591e798aadd8bf3` no era
+ancestro de `origin/main`. Resolver esa divergencia exigía una decisión de
+integración que esa preparación no podía inferir ni ejecutar.
+
+**Actualización (2026-09-21).** Esa decisión de integración se tomó fuera de
+esta preparación: el PR #206 se mergeó en `main`
+(`a65701477b19ecad172fa613aea8b8dbf94bab9c`), que ya contiene el protocolo
+vigente con la sección «Condiciones de interpretación y soporte», las decisiones
+preejecución, esta guía y el runner correspondiente. ADR-0011 registra en
+consecuencia la condición 4 como cumplida. Hechos que **siguen** verificados y
+sin resolver: `214735e42ee04f018156cd630591e798aadd8bf3` **tampoco** es ancestro
+de `a657014`, de modo que el commit ejecutable declarado en la documentación
+preexistente **debe volver a declararse** sobre el SHA efectivamente integrado
+antes de cualquier ejecución; la imagen aprobada no fue reconstruida ni
+verificada en este host; y las condiciones 1 (parcial), 2 (parcial) y 3 de
+ADR-0011 no cambian por este merge. La condición 4 es un prerrequisito de
+integración, **no** una autorización: **no habilita ejecutar A, B ni C**, no
+inicializa el ledger definitivo y no abre el holdout 2024-2025, que permanecen
+bajo sus propias compuertas y requieren autorización explícita.
+
+**Rutas verificadas (hechos).**
+
+| Elemento | Ruta Linux | Estado verificado 2026-09-20 |
+| --- | --- | --- |
+| Entradas primarias | `/home/gus/scientific-closure-inputs/migration-20260920/AAI_Hydric_Stress_external_data/raw/` | Presentes; hashes recalculados |
+| Copia lógica | `/home/gus/scientific-closure-backup/migration-20260920/AAI_Hydric_Stress_external_data/raw/` | Presentes; hashes idénticos a la primaria |
+| Raíz runtime | `/home/gus/scientific-closure-runtime/` | Creada con `env/`, `evidence/`, `ledger/`, `backups/`, `logs/`; **vacíos de evidencia científica**. Discrepancia registrada el 2026-09-21: la sección «Rutas y preparación» exige `evidence`, `ledger`, `backups` y `validation`; esta raíz tiene `logs/` y **no** tiene `validation/`. `logs/` **no** es su equivalente. `validation/` debe crearse antes de invocar el preflight |
+| Entorno reconstruido | `/home/gus/scientific-closure-runtime/env/venv-v4` | Python 3.11.16; 23 paquetes idénticos al pip-freeze histórico |
+
+SHA-256 verificados de las entradas:
+
+- `pergamino_era5land_soil_hourly_2015_2025.csv`:
+  `318edffb89c64d5f500e35b5530e6064cb02f68b89bd28a71262c2ebb01f485f`
+  (3.954.003 bytes).
+- `pergamino_nasa_power_daily_2015_2025.csv`:
+  `415b4f71abb78e419b765110f4a42c3f32587b204d12897812df9573c5c2202b`
+  (127.568 bytes).
+
+Ambos coinciden con el manifiesto versionado y la validación de procedencia del
+runner (`--validate-inputs-only`) terminó con exit 0 y `Provenance OK`. Esa
+comprobación verifica identidad y procedencia; **no** analiza valores, no
+calcula features ni abre ningún período reservado.
+
+**El entorno reconstruido NO es la imagen histórica.** La imagen aprobada
+`sha256:55bc923efac009b1b6de45acc634774b7910d4829fdfd0b2c963dd5748b297af` no fue
+inspeccionada, exportada, importada ni reconstruida: el daemon Docker no es
+alcanzable desde esta distro (integración WSL deshabilitada; los sockets de
+Docker Desktop deniegan `connect()` a uid 1000; `sudo` exige autenticación
+interactiva). No se afirma equivalencia alguna entre `venv-v4` y la imagen
+aprobada. Cualquier ejecución autorizada debe realizarse sobre la imagen
+aprobada verificada por digest, no sobre este entorno.
+
+**Limitaciones adicionales registradas** (no resueltas aquí): la copia de
+respaldo no tiene independencia física — primaria, copia y ensayo comparten el
+dispositivo 2128 (`/dev/sdf`, ext4) y montar `/dev/sdd` requiere root; el ledger
+definitivo **no** está inicializado; A, B y C **no** se ejecutaron; el holdout
+2024–2025 permanece cerrado y ningún valor reservado fue leído.
+
+**Forma de invocación en Linux.** Cuando exista autorización y los gates estén
+satisfechos, los comandos son los de las secciones A/B/C anteriores sustituyendo
+el prefijo `docker @DockerCommon $ImageId` por la invocación equivalente dentro
+de la imagen aprobada. El nombre de módulo correcto es, en cualquier caso,
+`experiment_runner.controlled_daily_v4.cli` para etapas y ledger, y
+`experiment_runner.controlled_daily_v4.preflight` para el preflight.
+Ejecutar `python -m experiment_runner.controlled_daily_v4` sin sufijo falla.
+La comprobación de `--help` (parser completo) citada en la nota «Corrección de
+invocación — 2026-09-20» del encabezado se realizó en este entorno reconstruido
+Linux.
+Esta nota documenta la forma del comando; **no** autoriza ejecutarlo.

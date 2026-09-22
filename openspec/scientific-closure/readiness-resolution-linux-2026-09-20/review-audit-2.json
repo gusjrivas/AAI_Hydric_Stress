@@ -1,0 +1,87 @@
+{
+  "schema_version": "1.0",
+  "record": "independent_re_audit_of_the_published_snapshot_and_correction_cycle_3",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "audited_snapshot": "8e31f7800b351b76f2ec65b8673499c66234b91b",
+  "previously_audited_snapshot": "ccd3a9c5fdbc58b403edf44a0989351e0d642203",
+  "why_this_record_exists": "review-audit.json declared that the published snapshot had not been re-audited within the session budget. This second pass closes that declared gap: unlike the first audit, it examined the snapshot that is actually published.",
+  "auditor": {
+    "role": "scientific_auditor_second_pass",
+    "independent_context": true,
+    "wrote_no_file": true,
+    "model_requested": "gpt-5.6-sol / xhigh (profile not loadable in this runtime)",
+    "model_effective": "claude-opus-5",
+    "substitution_declared": true,
+    "enforced_sandbox": "scripts/readonly_role_sandbox.sh",
+    "contamination": "None. Repository verified unchanged: empty git status, no stash, probe file absent, HEAD and remote unchanged.",
+    "scope": "Bounded: verify that A-01..A-07 were genuinely applied, plus non-regression. Not a repeat of the full audit."
+  },
+  "verdicts": {
+    "audited_work": "PASS_WITH_LIMITATIONS",
+    "global_scientific_closure": "BLOCKED",
+    "publishable_as_is": true
+  },
+  "corrections_independently_verified": {
+    "A-01": "CLOSED for the demonstrated vector. Verified inside the sandbox: /mnt empty, cmd.exe unreachable, DNS fails, repository write EROFS with no surviving file, binfmt_misc empty, /init is the char device, no WSL_* variable survives.",
+    "A-02": "CONFIRMED, stronger than claimed: all 30 manifest entries recomputed, 30/30 match, 0 mismatch, and the manifest does not list itself.",
+    "A-03": "CONFIRMED. git cat-file proves the manifest did not exist at a881207; both reader events now carry evidence_manifest null with NOT_AVAILABLE_AT_REVIEW_TIME.",
+    "A-04": "CONFIRMED. 8 checkpoints listed, 9 commits in range, exactly one absent, stated verbatim with the history of the two prior wrong versions.",
+    "A-05": "CONFIRMED. No occurrence of 'cuatro commits' remains; the SC-GOV-019 row matches the artefact.",
+    "A-06": "CONFIRMED. 10 test functions; counts aligned in validation-results.json, the synthesis and agent-capabilities.json; 486+48+10=544 consistent.",
+    "A-07": "CONFIRMED. Duration unified to 994.22 s.",
+    "summary": "7 of 7 genuinely applied; none declared-but-not-applied."
+  },
+  "non_regression_verified": [
+    "src/, docker/, pyproject.toml, openspec/specs/, docs/adr/, protocol v3, protocol v4 artefacts, frontend/ and backend/ all identical to the session base dc0d3f5.",
+    "changes.json byte-identical to the base.",
+    "/home/gus/scientific-closure-runtime/evidence and /ledger both empty.",
+    "origin/feat/scientific-closure still at dc0d3f5; no push, no new tags, no merges.",
+    "48 governance/checker tests reproduced in 0.68 s, matching V-02 exactly.",
+    "The formal checker returns PASS and exits 0."
+  ],
+  "new_findings": [
+    {
+      "id": "NF-01", "severity": "medium",
+      "summary": "The WSL interop mitigation was incomplete: closing PE-binary execution did not close the interop IPC endpoints. /run/WSL/*_interop, the session bus and the system bus accepted connect() from inside the sandbox, because pathname AF_UNIX sockets cross network namespaces and those paths sat on the read-only bind of /.",
+      "demonstrated": false,
+      "note": "The re-auditor stopped at reachability and sent no protocol message, so this was plausible rather than demonstrated. It falsified no published sentence, since all three carried 'does not demonstrate that no other path exists'.",
+      "resolution": "CONFIRMED AND CLOSED",
+      "how": "The orchestrator reproduced the reachability (CONNECT_OK on three interop sockets and both buses), then added --tmpfs /run. Re-verified: /run empty, interop_sockets_visible 0, git still works, reads work, writes still EROFS. The verifier now asserts wsl_interop_sockets_unreachable and an eleventh regression test covers it."
+    },
+    {
+      "id": "NF-02", "severity": "low_medium",
+      "summary": "agent-capabilities.json still said the auditor was 'not described here as having done anything' while the same commit described at length what the auditor did: the very defect class F-03 created the record to fix.",
+      "resolution": "CORRECTED", "how": "Both auditor passes are now recorded under observed_readers, the intended-but-not-dispatched block is removed, and a revision_history records all three versions and why each changed."
+    },
+    {
+      "id": "NF-03", "severity": "low_medium",
+      "summary": "evidence-manifest.json self-declared the previously audited commit with tree_clean false and had no self-reference field, so its header would mislead a reader asking which commit it describes. Its content was correct: 30/30 hashes verified.",
+      "resolution": "CORRECTED", "how": "The generator now emits a self_reference_limit and a published_in_commit field explaining that a manifest cannot name a commit that does not yet exist."
+    },
+    {
+      "id": "NF-04", "severity": "low",
+      "summary": "A self-reference note gave a verification recipe that is false as written ('the final commit touches only those three paths plus this JSON'; it touches twelve).",
+      "resolution": "CORRECTED", "how": "Rewritten to state the substantive claim, that nothing but JSON records changed after the run, and to say it is verifiable by timestamp rather than by file count."
+    },
+    {
+      "id": "NF-05", "severity": "low_medium",
+      "summary": "workflow-events.jsonl contained zero occurrences of 'auditor': neither audit pass, nor correction cycles 2 and 3, were in the ledger that SC-GOV-007 describes as holding the dispatch and report of every role.",
+      "resolution": "CORRECTED", "how": "Six events added: dispatch and report of both auditor passes and correction cycles 2 and 3. The ledger now holds 23 events."
+    }
+  ],
+  "re_auditor_limitations": [
+    "Bounded scope: did not repeat the full audit.",
+    "Did not run the 486-test v4 suite (accepted as recorded).",
+    "Ran the sandbox tests only nested, so 2 of 10 results were unusable as written; both failures were identified as nesting artefacts of HOME=/tmp, not defects, and the WSL interop test passed even nested.",
+    "No network: licence URLs, origin/main beyond the local ref, the Docker daemon and the approved image remain unverified.",
+    "Did not open the holdout; no 2024-2025 value read.",
+    "Cannot prove which model executed any subagent nor that contexts were independent.",
+    "Stopped NF-01 at socket reachability; documented, not demonstrated.",
+    "Did not audit HU1-HU6, the UI or the technical report."
+  ],
+  "correction_cycle": {"number": 3, "of_max": 3, "findings_dismissed": 0, "gates_relaxed": 0, "verdicts_improved": 0},
+  "final_state_after_cycle_3": {
+    "full_suite": "545 passed, 14 subtests passed, exit 0, 613.82 s",
+    "note": "The published snapshot carries cycle-3 corrections made AFTER this re-audit. Every one of them either closes a demonstrated or reachable defect (NF-01) or corrects a record's accuracy (NF-02..NF-05). None improves a verdict, relaxes a gate or changes a scientific statement. The correction budget of three cycles is now exhausted and this is declared rather than implied."
+  }
+}

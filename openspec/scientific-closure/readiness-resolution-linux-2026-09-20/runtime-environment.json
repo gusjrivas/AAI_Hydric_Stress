@@ -1,0 +1,116 @@
+{
+  "schema_version": "1.0",
+  "record": "reconstructed_runtime_environment",
+  "campaign_id": "readiness-resolution-linux-2026-09-20",
+  "change_id": "sc-02-runtime-readiness",
+  "requirement_ids": [
+    "SC-GOV-009",
+    "SC-GOV-020"
+  ],
+  "captured_at_utc": "2026-09-20T04:26:23.319493+00:00",
+  "actor": {
+    "role": "orchestrator_acting_as_implementer",
+    "model": "claude-opus-5",
+    "effective_model_introspectable": false,
+    "nominal_sandbox": "bypassPermissions",
+    "effective_filesystem_sandbox": "UNRESTRICTED_WITHIN_HOST_USER",
+    "note": "No per-role OS-level sandbox enforcement is available in this runtime; behavior-only, not enforced."
+  },
+  "classification": "RECONSTRUCTED_ENVIRONMENT_NOT_THE_HISTORIC_IMAGE",
+  "explicit_non_claims": [
+    "This environment is NOT the historic approved image sha256:55bc923efac009b1b6de45acc634774b7910d4829fdfd0b2c963dd5748b297af.",
+    "No container was built; no image digest exists for this environment.",
+    "Equivalence with the historic image is NOT claimed and was NOT verified."
+  ],
+  "host": {
+    "platform": "Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "machine": "x86_64"
+  },
+  "commands": [
+    {
+      "command": "/home/gus/scientific-closure-runtime/env/venv-v4/bin/python -V",
+      "cwd": "/home/gus/work/AAI_Hydric_Stress_scientific_closure",
+      "started_utc": "2026-09-20T04:26:23.323382+00:00",
+      "duration_s": 0.005,
+      "exit_code": 0,
+      "stdout": "Python 3.11.16\n",
+      "stderr": ""
+    },
+    {
+      "command": "/home/gus/scientific-closure-runtime/env/venv-v4/bin/python -c \"import platform,sys;print(platform.platform());print(sys.executable)\"",
+      "cwd": "/home/gus/work/AAI_Hydric_Stress_scientific_closure",
+      "started_utc": "2026-09-20T04:26:23.328531+00:00",
+      "duration_s": 0.048,
+      "exit_code": 0,
+      "stdout": "Linux-6.6.114.1-microsoft-standard-WSL2-x86_64-with-glibc2.43\n/home/gus/scientific-closure-runtime/env/venv-v4/bin/python\n",
+      "stderr": ""
+    },
+    {
+      "command": "$HOME/.local/bin/uv --version",
+      "cwd": "/home/gus/work/AAI_Hydric_Stress_scientific_closure",
+      "started_utc": "2026-09-20T04:26:23.376454+00:00",
+      "duration_s": 0.012,
+      "exit_code": 0,
+      "stdout": "uv 0.12.17 (x86_64-unknown-linux-gnu)\n",
+      "stderr": ""
+    },
+    {
+      "command": "$HOME/.local/bin/uv pip freeze --python /home/gus/scientific-closure-runtime/env/venv-v4/bin/python",
+      "cwd": "/home/gus/work/AAI_Hydric_Stress_scientific_closure",
+      "started_utc": "2026-09-20T04:26:23.388017+00:00",
+      "duration_s": 0.016,
+      "exit_code": 0,
+      "stdout": "black==26.5.1\nclick==8.5.0\ncloudpickle==3.1.2\niniconfig==2.3.0\njoblib==1.6.0\nmypy-extensions==1.1.0\nnarwhals==2.26.0\nnumpy==2.4.6\npackaging==26.3\npandas==3.0.5\npathspec==1.1.1\nplatformdirs==4.11.8\npluggy==1.6.0\npyarrow==25.0.1\npygments==2.21.0\npytest==9.1.1\npython-dateutil==2.9.0.post0\npytokens==0.4.1\nruff==0.16.6\nscikit-learn==1.9.0\nscipy==1.17.1\nsix==1.17.0\nthreadpoolctl==3.6.0\n",
+      "stderr": "Using Python 3.11.16 environment at: /home/gus/scientific-closure-runtime/env/venv-v4\n"
+    },
+    {
+      "command": "$HOME/.local/bin/uv pip check --python /home/gus/scientific-closure-runtime/env/venv-v4/bin/python",
+      "cwd": "/home/gus/work/AAI_Hydric_Stress_scientific_closure",
+      "started_utc": "2026-09-20T04:26:23.404050+00:00",
+      "duration_s": 0.015,
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "Using Python 3.11.16 environment at: /home/gus/scientific-closure-runtime/env/venv-v4\nChecked 23 packages in 0.60ms\nAll installed packages are compatible\n"
+    },
+    {
+      "command": "/home/gus/scientific-closure-runtime/env/venv-v4/bin/ruff --version",
+      "cwd": "/home/gus/work/AAI_Hydric_Stress_scientific_closure",
+      "started_utc": "2026-09-20T04:26:23.418635+00:00",
+      "duration_s": 0.004,
+      "exit_code": 0,
+      "stdout": "ruff 0.16.6\n",
+      "stderr": ""
+    },
+    {
+      "command": "/home/gus/scientific-closure-runtime/env/venv-v4/bin/black --version",
+      "cwd": "/home/gus/work/AAI_Hydric_Stress_scientific_closure",
+      "started_utc": "2026-09-20T04:26:23.422847+00:00",
+      "duration_s": 0.193,
+      "exit_code": 0,
+      "stdout": "black, 26.5.1 (compiled: yes)\nPython (CPython) 3.11.16\n",
+      "stderr": ""
+    }
+  ],
+  "historic_pip_freeze": {
+    "path": "/home/gus/scientific-closure-inputs/migration-20260920/AAI_Hydric_Stress_scientific_runtime/validation/pip-freeze.txt",
+    "sha256": "d0f0b9129c8229ce0ea281e02cf0066bbb00d369e511737fc07547956a387667"
+  },
+  "constraints": {
+    "path": "docker/experiment-v4/constraints.txt",
+    "sha256_lf_working_tree": "aa05b7b17ee4677839e724af7a768f532ba669514fb06ffe23f525cddd1efd6b",
+    "sha256_crlf_rendering": "d47cdb8c2e70998a95f431cdc6c0e84359aa72736f4399d113a206623b631554",
+    "historic_recorded_constraints_sha256": "d47cdb8c2e70998a95f431cdc6c0e84359aa72736f4399d113a206623b631554",
+    "finding": "The historic constraints_sha256 recorded in preexecution-environment.json equals the CRLF rendering of the same file, computed here. This is a verified line-ending difference from the Windows checkout, not a content divergence. Package pins are identical."
+  },
+  "package_set_comparison": {
+    "historic_pip_freeze_entries": 26,
+    "reconstructed_venv_entries": 23,
+    "difference": [
+      "pip",
+      "setuptools",
+      "wheel"
+    ],
+    "statement": "The 23 packages that carry protocol meaning are identical in name and version. The historic freeze also lists pip, setuptools and wheel, which the virtual-environment creator does not seed. Saying 'identical package set' without that qualification is imprecise; the precise statement is 23/23 after excluding those three.",
+    "explicit_non_claim": "This still does not make the environment equivalent to the historic image."
+  }
+}

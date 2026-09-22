@@ -1,0 +1,382 @@
+{
+  "schema_version": "scientific_closure_verification.v1",
+  "campaign_id": null,
+  "change_id": "sc-01-evidence-scope",
+  "requirement_ids": [
+    "SC-GOV-001",
+    "SC-GOV-003",
+    "SC-GOV-004",
+    "SC-GOV-005",
+    "SC-GOV-020"
+  ],
+  "timestamp_utc": "2026-09-19T08:22:56Z",
+  "actor": {
+    "session": "/root",
+    "role": "orchestrator",
+    "effective_model": null
+  },
+  "object": {
+    "documentary_base_commit": "a70022d3dd84495421c35186ec91abf765828e6c",
+    "worktree_state": "authorized sc01 edits plus verification record; commit checkpoint follows",
+    "image": null,
+    "scientific_configuration": null,
+    "scientific_seeds": null,
+    "scientific_data": null
+  },
+  "command": "Exact argv and outputs in checks; PYTHONDONTWRITEBYTECODE=1",
+  "exit_code": 0,
+  "output": "48/48 tests and structural checker passed; JSON/cross-hashes verified; protected diff empty",
+  "output_kind": "summary_with_exact_per_command_outputs_below",
+  "checks": [
+    {
+      "timestamp_utc": "2026-09-19T08:22:55Z",
+      "command_argv": [
+        "python3",
+        "-m",
+        "unittest",
+        "tests/test_scientific_closure_checker.py",
+        "tests/test_scientific_closure_governance.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "test_b_cannot_advance_without_a_pass (tests.test_scientific_closure_checker.CheckerTests.test_b_cannot_advance_without_a_pass) ... ok\ntest_contradictory_scientific_approval_fails (tests.test_scientific_closure_checker.CheckerTests.test_contradictory_scientific_approval_fails) ... ok\ntest_dependency_cycle_fails (tests.test_scientific_closure_checker.CheckerTests.test_dependency_cycle_fails) ... ok\ntest_disabled_multiagent_fails (tests.test_scientific_closure_checker.CheckerTests.test_disabled_multiagent_fails) ... ok\ntest_duplicate_requirement_fails (tests.test_scientific_closure_checker.CheckerTests.test_duplicate_requirement_fails) ... ok\ntest_invalid_agent_toml_fails (tests.test_scientific_closure_checker.CheckerTests.test_invalid_agent_toml_fails) ... ok\ntest_invalid_reference_fails (tests.test_scientific_closure_checker.CheckerTests.test_invalid_reference_fails) ... ok\ntest_json_wrong_types_fail_without_exception (tests.test_scientific_closure_checker.CheckerTests.test_json_wrong_types_fail_without_exception) ... ok\ntest_matrix_mismatch_fails (tests.test_scientific_closure_checker.CheckerTests.test_matrix_mismatch_fails) ... ok\ntest_missing_acceptance_fails (tests.test_scientific_closure_checker.CheckerTests.test_missing_acceptance_fails) ... ok\ntest_missing_agent_fails (tests.test_scientific_closure_checker.CheckerTests.test_missing_agent_fails) ... ok\ntest_missing_dependency_fails (tests.test_scientific_closure_checker.CheckerTests.test_missing_dependency_fails) ... ok\ntest_missing_stage_gate_fails (tests.test_scientific_closure_checker.CheckerTests.test_missing_stage_gate_fails) ... ok\ntest_repository_passes (tests.test_scientific_closure_checker.CheckerTests.test_repository_passes) ... ok\ntest_runtime_evidence_config_divergence_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_config_divergence_fails) ... ok\ntest_runtime_evidence_configuration_digest_and_replay_fail (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_configuration_digest_and_replay_fail) ... ok\ntest_runtime_evidence_duplicate_role_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_duplicate_role_fails) ... ok\ntest_runtime_evidence_duplicate_session_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_duplicate_session_fails) ... ok\ntest_runtime_evidence_effective_divergence_without_substitution_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_effective_divergence_without_substitution_fails) ... ok\ntest_runtime_evidence_explicit_model_substitution_passes (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_explicit_model_substitution_passes) ... ok\ntest_runtime_evidence_inconsistent_substitution_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_inconsistent_substitution_fails) ... ok\ntest_runtime_evidence_load_not_loaded_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_load_not_loaded_fails) ... ok\ntest_runtime_evidence_malformed_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_malformed_fails) ... ok\ntest_runtime_evidence_missing_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_missing_fails) ... ok\ntest_runtime_evidence_missing_forged_and_escape_output_fail (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_missing_forged_and_escape_output_fail) ... ok\ntest_runtime_evidence_missing_role_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_missing_role_fails) ... ok\ntest_runtime_evidence_non_string_role_fails_without_exception (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_non_string_role_fails_without_exception) ... ok\ntest_runtime_evidence_nonzero_exit_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_nonzero_exit_fails) ... ok\ntest_runtime_evidence_passes_api_and_cli (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_passes_api_and_cli) ... ok\ntest_runtime_evidence_sandbox_not_enforced_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_sandbox_not_enforced_fails) ... ok\ntest_runtime_evidence_schema_fails (tests.test_scientific_closure_checker.CheckerTests.test_runtime_evidence_schema_fails) ... ok\ntest_title_norm_and_check_must_match_spec (tests.test_scientific_closure_checker.CheckerTests.test_title_norm_and_check_must_match_spec) ... ok\ntest_unknown_status_fails (tests.test_scientific_closure_checker.CheckerTests.test_unknown_status_fails) ... ok\ntest_accepts_documented_approval_without_scientific_permission (tests.test_scientific_closure_governance.GovernanceTests.test_accepts_documented_approval_without_scientific_permission) ... ok\ntest_agents_toml_fields_models_and_permissions (tests.test_scientific_closure_governance.GovernanceTests.test_agents_toml_fields_models_and_permissions) ... ok\ntest_auxiliaries_are_conditional (tests.test_scientific_closure_governance.GovernanceTests.test_auxiliaries_are_conditional) ... ok\ntest_change_contracts_and_no_authorization (tests.test_scientific_closure_governance.GovernanceTests.test_change_contracts_and_no_authorization) ... ok\ntest_dependencies_and_terminal_gate (tests.test_scientific_closure_governance.GovernanceTests.test_dependencies_and_terminal_gate) ... ok\ntest_document_links_resolve (tests.test_scientific_closure_governance.GovernanceTests.test_document_links_resolve) ... ok\ntest_evidence_paths_and_safe_resume (tests.test_scientific_closure_governance.GovernanceTests.test_evidence_paths_and_safe_resume) ... ok\ntest_existing_and_planned_paths (tests.test_scientific_closure_governance.GovernanceTests.test_existing_and_planned_paths) ... ok\ntest_not_applicable_is_not_a_shortcut_for_core_changes (tests.test_scientific_closure_governance.GovernanceTests.test_not_applicable_is_not_a_shortcut_for_core_changes) ... ok\ntest_pass_requires_independent_audit_evidence (tests.test_scientific_closure_governance.GovernanceTests.test_pass_requires_independent_audit_evidence) ... ok\ntest_project_toml_concurrency (tests.test_scientific_closure_governance.GovernanceTests.test_project_toml_concurrency) ... ok\ntest_rejects_fake_approval_and_non_object_events (tests.test_scientific_closure_governance.GovernanceTests.test_rejects_fake_approval_and_non_object_events) ... ok\ntest_rejects_illegal_or_incomplete_event_chains (tests.test_scientific_closure_governance.GovernanceTests.test_rejects_illegal_or_incomplete_event_chains) ... ok\ntest_requirement_ids_and_fields (tests.test_scientific_closure_governance.GovernanceTests.test_requirement_ids_and_fields) ... ok\ntest_spec_matrix_tasks_are_consistent (tests.test_scientific_closure_governance.GovernanceTests.test_spec_matrix_tasks_are_consistent) ... ok\n\n----------------------------------------------------------------------\nRan 48 tests in 0.539s\n\nOK\n"
+    },
+    {
+      "timestamp_utc": "2026-09-19T08:22:56Z",
+      "command_argv": [
+        "python3",
+        "scripts/check_scientific_closure.py"
+      ],
+      "exit_code": 0,
+      "stdout": "scientific-closure checker: PASS (estructura; runtime no verificado)\n",
+      "stderr": ""
+    },
+    {
+      "timestamp_utc": "2026-09-19T08:22:56Z",
+      "command_argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "timestamp_utc": "2026-09-19T08:22:56Z",
+      "command_argv": [
+        "git",
+        "diff",
+        "--name-only",
+        "329cb60",
+        "--",
+        "frontend",
+        "backend",
+        "src",
+        "data",
+        "docs/research",
+        "docs/adr"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "timestamp_utc": "2026-09-19T08:22:56Z",
+      "command_argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_code": 0,
+      "stdout": "a70022d3dd84495421c35186ec91abf765828e6c\n",
+      "stderr": ""
+    },
+    {
+      "timestamp_utc": "2026-09-19T08:22:56Z",
+      "command_argv": [
+        "git",
+        "branch",
+        "--show-current"
+      ],
+      "exit_code": 0,
+      "stdout": "feat/scientific-closure\n",
+      "stderr": ""
+    }
+  ],
+  "snapshot": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "aa21934585f0488d219c52d672984359b50951f7bfa2833ea2c4b84e2662f8c9",
+      "size_bytes": 4863,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": ".codex/config.toml",
+      "sha256": "5d377e0b7f402e6f59957aefcd3080be046d258a31550a4b0159e514cd6445f0",
+      "size_bytes": 129,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "scripts/check_scientific_closure.py",
+      "sha256": "891246bb701fd4054315a144842e48780bc191d21e97e3e0402dbf614df442cf",
+      "size_bytes": 36618,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "tests/test_scientific_closure_checker.py",
+      "sha256": "4e4a406d74296106caecec5c0c39064737ec1970a6eef548877ec363ed6ad877",
+      "size_bytes": 18539,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "tests/test_scientific_closure_governance.py",
+      "sha256": "f1bcc1e085835baa403a6c07cdf3709c8ba0610365cee24b1f5457a560020a75",
+      "size_bytes": 12269,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/scientific-closure/changes.json",
+      "sha256": "63590f1462f8a8ec117d4f0566aca86bf8107e259c4472cef9bdede7548a98d9",
+      "size_bytes": 18619,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/scientific-closure/claims.md",
+      "sha256": "eb02d961b762fe4ebaaee77375059a64935f12c91884b8d7c8e842daf4205dc4",
+      "size_bytes": 5301,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/scientific-closure/inventory.md",
+      "sha256": "b728e76a59d92c4d9146f2de2feba48982ad2735e7883732c875fdb9a322f0d3",
+      "size_bytes": 4578,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/scientific-closure/decisions.md",
+      "sha256": "5058169ff5ebdaaede697667c20e5ff9776c0fc9e2ee55615fc1cf98bae039b5",
+      "size_bytes": 4074,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": ".codex/agents/evidence_checker.toml",
+      "sha256": "11931f606d0733e3bacee202d608ace5b5f19558ba711b6edc5f862a826b2478",
+      "size_bytes": 1457,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": ".codex/agents/scientific_auditor.toml",
+      "sha256": "d4eefe725efc973f9627f94e44173a2aa5c3ddd20990866e889ec9813498fcc4",
+      "size_bytes": 1603,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": ".codex/agents/scientific_critic.toml",
+      "sha256": "bd86937574e7ee02d00c749c300c5dbf3cbdd67189b45def381be90d249dfa87",
+      "size_bytes": 1506,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": ".codex/agents/scientific_explorer.toml",
+      "sha256": "a8b74e754df4e4c985f1e8c1b9cd67abc20b445a768878b88201951d4b05c20b",
+      "size_bytes": 1348,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": ".codex/agents/scientific_implementer.toml",
+      "sha256": "54e90dbfe21b7929af5515a70ee60cea5b5121ed9467deca19f9ad40288f7724",
+      "size_bytes": 1488,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/changes/sc-01-evidence-scope/claims-assessment.json",
+      "sha256": "2c42d693a8cfd21aa6fd09ce00ba401aaa53d4c1ce683d24e6a47ebb5463a0dd",
+      "size_bytes": 7804,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/changes/sc-01-evidence-scope/inventory.json",
+      "sha256": "a917ed693815ca5d127c156e56941b5c213353047bea919881877bfea4d67030",
+      "size_bytes": 7844,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/changes/sc-01-evidence-scope/preservation.json",
+      "sha256": "944262470a34b91f5a1296f8c520a5239125d7fbaf274b1e33639bb8ed8f31d5",
+      "size_bytes": 2741,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/changes/sc-01-evidence-scope/proposal.md",
+      "sha256": "2fb5da202175b88aa25a6948df6c551b1e1a918f386aa2cde2ddb4d5c1716877",
+      "size_bytes": 3044,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/changes/sc-01-evidence-scope/session-identity.json",
+      "sha256": "e4e554231cd4633dfa9cf2cd536db1045ae9432509e8ce6a6c149101e19f6eae",
+      "size_bytes": 1787,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/changes/sc-01-evidence-scope/specs/scientific-closure/spec.md",
+      "sha256": "7c0d99ac0ec2b5c8e6af66611737f4a8a5bdb7f9635729c3ab345e62e73a4fae",
+      "size_bytes": 929,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/changes/sc-01-evidence-scope/tasks.md",
+      "sha256": "9975605fcfc953a86fd3b609f8f7ccb422178bf5c153232984ffd4259a4369c6",
+      "size_bytes": 1384,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/changes/sc-01-evidence-scope/validation.json",
+      "sha256": "83a4bad8d407c0e663e4a75bc5589da62b12c29a933ca2eea14620fd1020514f",
+      "size_bytes": 4738,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-linux-2026-09-19/critique-initial.json",
+      "sha256": "b59ce2aa8f752d866e7f0ae1e2d0b52f01da46e23579110054e5ac832ef8da02",
+      "size_bytes": 4463,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-linux-2026-09-19/metadata-implementation.json",
+      "sha256": "5506af1c53494d65837cd3137a91f2bf98dd2a985cb215244eeebb07b7833d46",
+      "size_bytes": 1404,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-linux-2026-09-19/model-catalog.json",
+      "sha256": "e4eedb40fdb6f0608988cb197c912e47556f3cdb9411b7f9ee694eeaa6444f46",
+      "size_bytes": 4369,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-linux-2026-09-19/observations.json",
+      "sha256": "d51eda63e7c583a5299a238b55ae97e9ed80c01fb15d9c9d1d7365a0fe8b44de",
+      "size_bytes": 8791,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-linux-2026-09-19/probe-archive.json",
+      "sha256": "a58d6e478d7f3b9154c1dbc3b0d1c0d581251f59f4e394865ead1ceb1f304a05",
+      "size_bytes": 2427,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-linux-2026-09-19/provenance-source-check.json",
+      "sha256": "d0aacd342c680d5d6789521135f6122008c1ca65f947acaa814148b7d66b9195",
+      "size_bytes": 2050,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-linux-2026-09-19/read-only-probe.txt",
+      "sha256": "5f32a4bf1e4462d70cd8d17d805e297d88629a9745c2a6459d32e5ed9b548976",
+      "size_bytes": 131,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-linux-2026-09-19/reader-reports.json",
+      "sha256": "f5141abcb8a1a1a80abf26268d2147e332b036651cf68f438a19b78195be7ad5",
+      "size_bytes": 6373,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-linux-2026-09-19/report.md",
+      "sha256": "db34645603c4f27478d295dca1db1ae87905b6c9a4b15e611ccf2fdc04c1c321",
+      "size_bytes": 8421,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-linux-2026-09-19/sandbox-probe.json",
+      "sha256": "30c4f392ff2f1e2e92f4c5820443caca0c65b3a3ac3f73a58d4ae5d81e27ea88",
+      "size_bytes": 3810,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    },
+    {
+      "path": "openspec/scientific-closure/readiness-linux-2026-09-19/scope-exploration.json",
+      "sha256": "a728dc7a0d0b93e232a8f0400b7d2d3e916dec1f0f29bc1b252c1950d646e545",
+      "size_bytes": 5044,
+      "type": "technical_or_documentary_not_new_scientific_results",
+      "authorization": "prompt vigente: preparación y sc01 aprobado; no campaña",
+      "timestamp_utc": "2026-09-19T08:22:56Z"
+    }
+  ],
+  "result": "TECHNICAL_VERIFICATION_PASS_NOT_READINESS",
+  "limitations": [
+    "validation.json preserves implementer summaries and earlier fixture failure; snapshot hashes there were refreshed after prose fixes without a new implementer suite. This exact-output verification covers the final corrected files.",
+    "Python3.14.4 host tests; not frozen scientific image/Python3.11.16.",
+    "Ruff/Black/OpenSpec CLI blocked by missing Docker/npx; no packages installed globally.",
+    "No raw/holdouts/ledger or scientific execution; sandbox enforcement of agent sessions is not certified.",
+    "This record is excluded from its own snapshot; subsequent independent review identifies its hash or commit."
+  ]
+}
