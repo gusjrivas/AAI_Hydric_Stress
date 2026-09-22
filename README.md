@@ -4,6 +4,19 @@ Prototipo experimental de la arquitectura de inteligencia artificial para detecc
 
 Ver [`docs/adr/`](docs/adr/) para las decisiones de arquitectura y stack técnico, y [`openspec/project.md`](openspec/project.md) para el contexto, alcance y convenciones del proyecto.
 
+## Probar Mi cultivo con Docker
+
+La rama de integración incluye un entorno local aislado con datos y modelos
+sintéticos, históricos y pronósticos revisables:
+
+```powershell
+docker compose -f compose.producer-preview.yml up -d --build
+```
+
+Abrir http://localhost:5180. No requiere instalar Python/Node ni modifica los
+servicios o datos del stack habitual. [Guía de prueba y reinicio](docker/producer-preview/README.md).
+No representa validación predictiva real ni cierre científico.
+
 ## Estado del proyecto
 
 Ver [`docs/seguimiento-tareas.md`](docs/seguimiento-tareas.md) para la auditoría detallada, tarea por tarea, con evidencia verificable. Resumen por historia de usuario:

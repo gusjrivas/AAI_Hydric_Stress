@@ -9,6 +9,7 @@ import { useForecastWorkspace } from "./features/forecast/useForecastWorkspace";
 import { LineageChain } from "./features/lineage/LineageChain";
 import { EvidencePanel } from "./features/evidence/EvidencePanel";
 import { ResumenView } from "./features/summary/ResumenView";
+import { ProducerView } from "./features/producer/ProducerView";
 import { DestinationNav } from "./features/navigation/DestinationNav";
 import { DESTINATION_LABELS, useHashRoute } from "./features/navigation/useHashRoute";
 import { DemoPage } from "./features/demo/DemoPage";
@@ -93,32 +94,36 @@ function App() {
         <h1>Seguimiento del agua en el cultivo</h1>
         <p className="app-intro">Consultá el pronóstico y registrá lo que observaste en el cultivo.</p>
         <p className="app-intro">Herramienta en evaluación. Ayuda a revisar la situación; no indica cuánto ni cuándo regar.</p>
-        <form
-          className="app-sensor-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            applySensor();
-          }}
-        >
-          <label htmlFor="sensor-draft-input">Punto de medición (sensor)</label>
-          <input
-            id="sensor-draft-input"
-            value={draftSensorId}
-            onChange={(event) => setDraftSensorId(event.target.value)}
-            aria-invalid={sensorError ? true : undefined}
-            aria-describedby={sensorError ? "sensor-error" : undefined}
-          />
-          <button type="submit" disabled={forecastBusy}>
-            Aplicar
-          </button>
-        </form>
-        <p className="app-sensor-active" aria-live="polite">
-          Sensor activo: <strong>{activeSensorId}</strong>
-        </p>
-        {sensorError && (
-          <p id="sensor-error" role="alert" className="app-sensor-error">
-            {sensorError}
-          </p>
+        {route !== "productor" && (
+          <>
+            <form
+              className="app-sensor-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                applySensor();
+              }}
+            >
+              <label htmlFor="sensor-draft-input">Punto de medición (sensor)</label>
+              <input
+                id="sensor-draft-input"
+                value={draftSensorId}
+                onChange={(event) => setDraftSensorId(event.target.value)}
+                aria-invalid={sensorError ? true : undefined}
+                aria-describedby={sensorError ? "sensor-error" : undefined}
+              />
+              <button type="submit" disabled={forecastBusy}>
+                Aplicar
+              </button>
+            </form>
+            <p className="app-sensor-active" aria-live="polite">
+              Sensor activo: <strong>{activeSensorId}</strong>
+            </p>
+            {sensorError && (
+              <p id="sensor-error" role="alert" className="app-sensor-error">
+                {sensorError}
+              </p>
+            )}
+          </>
         )}
       </header>
 
@@ -152,6 +157,15 @@ function App() {
               demoGate={demoGate}
               refreshToken={demoQualityRefreshToken}
             />
+          </section>
+        )}
+
+        {!isDemoRoute && route === "productor" && (
+          <section aria-labelledby="productor-heading">
+            <h2 id="productor-heading" className="app-section-heading" tabIndex={-1}>
+              Mi cultivo
+            </h2>
+            <ProducerView />
           </section>
         )}
 
