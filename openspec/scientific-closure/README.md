@@ -39,6 +39,10 @@ independiente autorizado. No reescribir documentos históricos.
   ningún veredicto `FAIL` histórico se presenta aquí como cierre científico.
 - [Suficiencia de R/N/S — RB-03](sufficiency-review-2026-09-22/): `PASS` del
   auditor independiente sobre `65ca852`. Fuente autoritativa; no se reabre.
+- [Dossier RB-05 — preparación de auditoría única](rb05-audit-preparation-2026-09-22/):
+  estado documental de los 25 SC-GOV con evidencia exacta, listo para la
+  auditoría final requisito por requisito. **No** otorga el PASS de RB-05;
+  no cambia `SC-GOV-025`, `GF` ni el estado de `sc-06-scientific-synthesis`.
 
 Fuentes preservadas: openspec/project.md; openspec/specs/experiment-runner/spec.md;
 docs/research/protocolo-experimental-v3.md;
