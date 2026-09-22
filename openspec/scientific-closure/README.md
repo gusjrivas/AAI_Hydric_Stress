@@ -30,6 +30,11 @@ independiente autorizado. No reescribir documentos históricos.
 - [Cambios](changes.json): dependencias y aplicabilidad.
 - [Registro de preparación](preparation-validation.md).
 - [Prompt siguiente](next-session.txt): reanuda preparación, no abre A/B/C.
+- [Cierre documental 2026-09-22](evidence-finalization-2026-09-22/): revisión de
+  suficiencia de R/N/S, revisión de afirmaciones, trazabilidad a la memoria y
+  auditoría final requisito por requisito.
+- [Síntesis científica canónica](../../docs/research/scientific-closure-synthesis-2026-09-22.md):
+  resultados efectivamente obtenidos en A, B, C y H, con sus limitaciones.
 
 Fuentes preservadas: openspec/project.md; openspec/specs/experiment-runner/spec.md;
 docs/research/protocolo-experimental-v3.md;

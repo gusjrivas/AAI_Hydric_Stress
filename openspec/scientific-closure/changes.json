@@ -467,14 +467,19 @@
         "T16",
         "T25"
       ],
-      "status": "BLOCKED",
-      "approved_for_implementation": false,
+      "status": "REVIEW",
+      "approved_for_implementation": true,
       "scientific_execution_authorized": false,
       "extra_gate": "Audited terminal A or B or C AND all REQUIRED auxiliaries audited; UNRESOLVED blocks closure",
       "orchestrator_paths": [
         "openspec/scientific-closure/changes.json"
       ],
-      "approval": null,
+      "approval": {
+        "actor": "Gustavo Julian Rivas, responsable tecnico y cientifico del Trabajo Final",
+        "timestamp_utc": "2026-09-22T00:40:00Z",
+        "scope": "Consolidar documentalmente el cierre cientifico: matriz final de requisitos, sintesis cientifica canonica de los resultados obtenidos, clasificacion final de afirmaciones y trazabilidad a los capitulos 2 y 3 de la memoria. NO autoriza ejecutar A, B, C ni H, NO autoriza abrir el holdout, NO autoriza generar evidencia cientifica nueva ni modificar codigo cientifico, contratos o resultados.",
+        "source": "Encargo del responsable del 2026-09-22 sobre la rama feat/scientific-evidence-finalization, base origin/feat/scientific-closure, HEAD inicial 1c33aad8cbee765e2968bd164b5d4890743eea0a."
+      },
       "audit": null,
       "state_events": [
         {
@@ -484,6 +489,30 @@
           "timestamp_utc": "2026-09-19T08:38:20.773053Z",
           "reason": "Dependencias sc-01-evidence-scope, sc-02-runtime-readiness sin PASS requerido por bloqueo de runtime/readiness; acciones dependientes suspendidas.",
           "evidence": "openspec/scientific-closure/readiness-linux-2026-09-19/audit-final.json"
+        },
+        {
+          "from": "BLOCKED",
+          "to": "APPROVED",
+          "actor": "/orquestador_cierre_documental",
+          "timestamp_utc": "2026-09-22T00:40:00Z",
+          "reason": "Se resuelven las causas del bloqueo. Las dependencias sc-01 y sc-02 estan en PASS desde el 2026-09-21; el terminal cientifico A->B->C esta auditado y respaldado; el unico complemento REQUIRED (H) esta ejecutado y auditado con PASS del auditor independiente. El gate adicional del change queda satisfecho. Autorizacion explicita del responsable para el cierre documental, sin ejecucion cientifica.",
+          "evidence": "openspec/changes/sc-08-aux-hitl/reviews/review-audit-final.md; openspec/scientific-closure/traceability.md seccion 2026-09-21"
+        },
+        {
+          "from": "APPROVED",
+          "to": "IN_PROGRESS",
+          "actor": "/orquestador_cierre_documental",
+          "timestamp_utc": "2026-09-22T00:45:00Z",
+          "reason": "Implementacion documental acotada: matriz final de requisitos en traceability.md, clasificacion final de afirmaciones en claims.md, sintesis cientifica canonica, trazabilidad a la memoria y los tres artefactos de revision de suficiencia de R, N y S. No se toca src/, ni contratos, ni resultados, ni el checker.",
+          "evidence": "openspec/scientific-closure/evidence-finalization-2026-09-22/auxiliary/R/review.json; openspec/scientific-closure/evidence-finalization-2026-09-22/auxiliary/N/review.json; openspec/scientific-closure/evidence-finalization-2026-09-22/auxiliary/S/review.json; openspec/scientific-closure/evidence-finalization-2026-09-22/claim-evidence-review.json; openspec/scientific-closure/evidence-finalization-2026-09-22/thesis-traceability.md; docs/research/scientific-closure-synthesis-2026-09-22.md"
+        },
+        {
+          "from": "IN_PROGRESS",
+          "to": "REVIEW",
+          "actor": "/orquestador_cierre_documental",
+          "timestamp_utc": "2026-09-22T01:15:00Z",
+          "reason": "Snapshot congelado para la revision independiente final. Checker exit 0, OpenSpec estricto 11/11, pruebas de gobernanza 15/15 y del checker 33/33. El change NO se cierra con tests verdes: espera el veredicto del lector independiente.",
+          "evidence": "openspec/scientific-closure/evidence-finalization-2026-09-22/review-final-independent.md (pendiente en este snapshot)"
         }
       ]
     },

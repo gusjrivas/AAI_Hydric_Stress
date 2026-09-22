@@ -97,3 +97,74 @@ recalibración quedan demostradas por la pista **simulada**; el rechazo y la
 recalibración sucesiva, por **ninguna** pista científica. No hubo intervención
 de un agrónomo ni validación agronómica de campo: es trabajo futuro, declarado
 por el propio operador.
+
+## Clasificación final de afirmaciones — 2026-09-22
+
+Esta sección **no reescribe** las anteriores: las cierra. Clasifica cada
+afirmación del cierre en una de cuatro categorías y fija qué puede decirse en la
+memoria técnica y qué no. Producida sin ejecutar A, B, C ni H, sin abrir el
+holdout y sin evidencia científica nueva.
+
+Categorías: **DEMOSTRADA** (evidencia propia, suficiente y auditada para el
+enunciado exacto); **RESPALDADA CON LIMITACIONES** (evidencia propia que sostiene
+un enunciado más débil que el intuitivo, con límites que deben acompañarla
+siempre); **NO DEMOSTRADA** (no hay evidencia propia; el enunciado no se sostiene
+y no se insinúa); **TRABAJO FUTURO** (haría falta evidencia nueva, y se declara
+cuál).
+
+### Afirmaciones de la campaña
+
+| ID | Enunciado permitido, tal como puede escribirse | Clasificación | Evidencia primaria | Qué queda prohibido decir |
+| --- | --- | --- | --- | --- |
+| CL-01 | La comparación retrospectiva entre las cuatro familias autorizadas sobre 2015–2022 en Pergamino terminó en `SIN_GANADOR_ESTABLE`; el candidato se fijó por el desempate de simplicidad **predeclarado**, no por desempeño superior | RESPALDADA CON LIMITACIONES | Etapa A auditada: soporte 3/3 folds, 5000/5000 réplicas, `selection_decision.json`, `frozen_config.json` | Que la regresión logística sea mejor que las otras familias; que exista un ganador; que el empate pruebe equivalencia |
+| CL-02 | El candidato congelado se validó una sola vez sobre 2023 y resultó **no inferior** a la persistencia causal dentro del margen práctico predeclarado; el intervalo pareado **incluye el cero** | RESPALDADA CON LIMITACIONES | Etapa B auditada: `decision.json`, custodia de intento único, `predictions_2023.csv` | Superioridad sobre persistencia; que `CANDIDATE_VALIDATED` signifique «mejor»; reutilizar B para elegir otro candidato |
+| CL-03 | La evaluación final sobre el holdout 2024–2025, abierto **una única vez**, arrojó un resultado favorable frente a la persistencia en MCC, acompañado de calibración degradada, falsos avisos y episodios no detectados | RESPALDADA CON LIMITACIONES | Etapa C auditada: `outcome.json`, `metrics.json`, ledger `CONFIRMADA`, apertura única e irreversible | Desempeño operativo; anticipación agronómica; que el holdout pueda reabrirse o reinterpretarse; presentar el MCC sin la calibración degradada |
+| CL-04 | Los sintéticos y las anomalías aportaron como predictores en la referencia histórica `controlled_daily_v3`, dentro de su propio diseño y sitio | RESPALDADA CON LIMITACIONES | `docs/research/reference-v3-formal-results.json`, `REFERENCED`, preservada y no recalculada | Convertir ese aporte en resultado de v4; extrapolarlo a Pergamino; presentarlo como detección |
+| CL-05 | El error continuo de humedad a t+3 **no** se midió en esta campaña | NO DEMOSTRADA | `auxiliary/R/review.json`; R `NOT_REQUIRED` (GD-12, auditada) | Cualquier afirmación de desempeño sobre humedad continua; presentar MCC como si acreditara error continuo |
+| CL-06 | El mecanismo de corrección supervisada quedó técnicamente validado: las correcciones **simuladas** producen recalibración, con deltas de signo mixto entre semillas y **sin** intervalos | RESPALDADA CON LIMITACIONES | Complemento H auditado: tres brazos sobre las mismas filas de evaluación, 20 eventos por semilla, cinco semillas congeladas, estratificación verificada | Mejora atribuible al feedback; beneficio de una persona real; pericia, criterio propio o juicio humano bajo incertidumbre |
+| CL-07 | La detección reservada de corrupciones **no** se evaluó | NO DEMOSTRADA | `auxiliary/N/review.json`; N `NOT_REQUIRED` (GD-12, auditada) | Detección reservada; anomalías reales; fallas reales de sensor; usar el 0/4 humano de H como tasa de detección |
+| CL-08 | La robustez citable se limita a las etiquetas escasas y el ruido documentados en v3 | RESPALDADA CON LIMITACIONES | Referencia v3 `REFERENCED`; `auxiliary/S/review.json`; S `NOT_REQUIRED` (GD-12, auditada) | Robustez ante sensores o mediciones ausentes; equiparar escasez de etiquetas con ausencia de mediciones |
+| CL-09 | Las métricas de anticipación retrospectiva de episodios P20 a t+3 —onset, censura, falsos avisos y soporte— están presentes en la evidencia de A, B y C, con sus indefiniciones declaradas | RESPALDADA CON LIMITACIONES | Evidencia de A, B y C; `statistical-review.json` | Anticipación operativa; anticipación agronómica; tratar un onset indefinido como si fuera cero |
+| CL-10 | El conjunto de evidencia es suficiente para el alcance aprobado de HU7/HU8, con sus limitaciones declaradas | DEMOSTRADA **para su alcance exacto** | Terminal A/B/C auditado; H auditado; síntesis 2026-09-22; matriz final; trazabilidad a capítulos 2 y 3 | Que certifique HU1; que certifique la tesis completa; que un PASS estructural equivalga a cierre científico |
+
+### Afirmaciones de sistema, derivadas de HU5 y HU6
+
+| Enunciado permitido | Clasificación | Evidencia primaria | Límite |
+| --- | --- | --- | --- |
+| El circuito de retroalimentación humana está implementado end-to-end y registra correcciones con su linaje temporal | DEMOSTRADA como **evidencia técnica** | HU5 integrada; pruebas del repositorio; complemento H ejecutado sobre él | Evidencia técnica **nunca** es eficacia científica. La implementación funcional no prueba beneficio |
+| La arquitectura de integración y la interfaz del productor existen y son operables | DEMOSTRADA como **evidencia técnica** | HU6; `frontend/` idéntico a `main` | No se ensayó con usuarios finales; no hay medición de uso ni de latencia operativa |
+
+### No demostrado, enunciado de frente
+
+Ninguna de estas afirmaciones tiene evidencia propia en este trabajo y **ninguna
+se insinúa** en la memoria:
+
+1. Superioridad general de IA, ensambles o aprendizaje profundo sobre líneas de base.
+2. Validación agronómica, eficacia de campo o ahorro de agua.
+3. Estrés fisiológico de los cultivos: el objetivo es un proxy P20 sobre humedad de reanálisis.
+4. Mejora causada por el feedback humano.
+5. Detección humana de errores de etiqueta: fue **0 de 4** sobre las únicas cuatro determinables.
+6. Generalización geográfica más allá de Pergamino; Balcarce no alimenta la comparación principal.
+7. Anticipación operativa o latencia de alerta.
+8. Robustez ante sensores caídos o mediciones ausentes.
+9. Desempeño sobre humedad continua.
+10. Detección reservada de corrupciones.
+
+### Trabajo futuro, con la evidencia que cada ítem exigiría
+
+| Trabajo futuro | Evidencia nueva que haría falta |
+| --- | --- |
+| Validación agronómica de campo | Campaña prospectiva multi-sitio con observación humana independiente de si las predicciones se corresponden con la realidad, declarada por el propio operador |
+| Beneficio real del feedback humano | Protocolo prospectivo con revisores múltiples, cegamiento efectivo, rechazo y recalibración sucesiva ejercitados, y tamaño muestral que admita intervalos |
+| Desempeño sobre humedad continua | Complemento R: diseño congelado, runner validado, MAE/RMSE en m³/m³ y comparación contra persistencia |
+| Detección reservada de corrupciones | Complemento N: fit sólo sobre train, inyección reservada conocida, matriz de confusión y soporte |
+| Robustez ante mediciones ausentes | Complemento S: cuatro condiciones fijas, cinco semillas, target limpio común, máscaras e imputación registradas |
+| Generalización geográfica | Réplica del protocolo v4 en al menos un segundo sitio, con su propia procedencia y su propio holdout |
+| Sensores propios en campo | Ingesta real, no reanálisis; procedencia, calibración y custodia propias |
+
+### Regla que sobrevive al cierre
+
+`NOT_REQUIRED` limita la afirmación; **no** elimina el requisito de la tesis ni
+convierte la ausencia de evidencia en evidencia de ausencia. Resultados
+negativos, persistencia superior, `SIN_GANADOR_ESTABLE` y `NO_RECALIBRATION` son
+resultados válidos del protocolo, no defectos a corregir.

@@ -1,0 +1,101 @@
+{
+  "schema_version": "scientific_closure_auxiliary_review.v1",
+  "campaign_id": "evidence-finalization-2026-09-22",
+  "change_id": "sc-09-aux-anomalies",
+  "requirement_ids": ["SC-GOV-023", "SC-GOV-005"],
+  "complement": "N",
+  "complement_design": "auxiliary_anomalies_v1",
+  "timestamp_utc": "2026-09-22T00:45:00Z",
+  "actor": {
+    "role": "scientific_implementer",
+    "runtime": "Claude Opus 5 (sustitucion declarada del perfil .codex/agents/scientific_implementer.toml, que no es cargable en este runtime)",
+    "note": "Este artefacto es la revision del implementador. NO es la critica ni la auditoria independiente."
+  },
+  "object": {
+    "repository": "AAI_Hydric_Stress",
+    "branch": "feat/scientific-evidence-finalization",
+    "documentary_sha": "1c33aad8cbee765e2968bd164b5d4890743eea0a",
+    "sha_kind": "documental; este artefacto no se produjo ejecutando ningun runner"
+  },
+
+  "decision_under_review": {
+    "id": "GD-12",
+    "text": "N NOT_REQUIRED, sin afirmar deteccion reservada ni fallas reales",
+    "declared_at_utc": "2026-09-19",
+    "declared_before_execution": true,
+    "anchored_in_git_before_campaign": "Si. GD-12 figura en decisions.md desde el 2026-09-19, anterior a la campana del 2026-09-21."
+  },
+
+  "condition_of_activation": {
+    "normative_text": "N DEBE activarse si se afirmara deteccion reservada de corrupciones y la demostracion disponible es insuficiente.",
+    "source": "openspec/specs/scientific-closure/spec.md, requisito SC-GOV-023",
+    "first_conjunct_intent_to_claim": false,
+    "second_conjunct_evidence_gap": "NO EVALUADO; la condicion es una conjuncion y el primer conjunto es falso.",
+    "why_first_conjunct_is_false": "CL-07 establece que la deteccion de corrupciones reservadas permanece explicita pero NO se sostiene en el cierre limitado, y claims.md prohibe afirmar deteccion reservada, anomalias reales o fallas reales. CL-04 limita el aporte de sinteticos/anomalias a la referencia historica v3, preservada y no recalculada, y prohibe convertirla en resultado v4."
+  },
+
+  "interaction_with_the_H_complement": {
+    "risk_considered": "El complemento H ejecutado el 2026-09-21 inyecta corrupciones de etiqueta (CORRUPTION_FRACTION=0.10, stream independiente default_rng(seed+10000)) y publica una comparacion entre un revisor simulado que detecta 4/4 y un operador humano que detecta 0/4. Un lector podria leer eso como deteccion de anomalias y creer que N quedo cubierto o, al reves, refutado.",
+    "assessment": "Ni cubierto ni refutado. La corrupcion de H es un modelo de error de ETIQUETA dentro del diseno congelado de H, sobre eventos de feedback de 2021, para medir el mecanismo de correccion supervisada. El diseno N es otra cosa: exige fit SOLO sobre train, inyeccion reservada conocida y una matriz de confusion de deteccion sobre esa reserva. Nada de eso se ejecuto.",
+    "consequence": "La deteccion 0/4 de la pista humana de H es un hecho sobre esa pista y NO es una metrica de deteccion de anomalias. No se transfiere a N ni se presenta como evidencia de N."
+  },
+
+  "evidence_examined": [
+    {
+      "path": "openspec/scientific-closure/claims.md",
+      "what_it_shows": "CL-04 y CL-07 delimitan la afirmacion y marcan N NOT_REQUIRED.",
+      "inspection": "leido en HEAD 1c33aad"
+    },
+    {
+      "path": "docs/research/reference-v3-formal-results.json",
+      "what_it_shows": "Los resultados formales de v3 con configuraciones base/+sinteticos/+anomalias/completa existen, estan preservados y NO se recalculan aqui.",
+      "inspection": "REFERENCED; hash historico registrado en inventory.md EV-01; no se reanalizan sus resultados"
+    },
+    {
+      "path": "docs/research/scientific-closure-decisions.md",
+      "what_it_shows": "El diseno congelado auxiliary_anomalies_v1 existe y se preserva, sin ejecucion.",
+      "inspection": "referenciado; no se modifica"
+    }
+  ],
+
+  "what_REQUIRED_would_have_demanded": [
+    "Fit del detector exclusivamente sobre train, sin ver la reserva.",
+    "Inyeccion reservada de corrupciones conocidas, con su registro.",
+    "Matriz de confusion de deteccion y su soporte, conforme diseno N.",
+    "Prohibicion explicita de convertir anomalias simuladas en fallas reales de sensor."
+  ],
+  "none_of_the_above_exists": true,
+  "artifacts_absent_and_declared": [
+    "src/experiment_runner/scientific_auxiliary/auxiliary_anomalies_v1.py",
+    "tests/test_auxiliary_anomalies_v1.py",
+    "cualquier matriz de confusion de deteccion reservada producida por esta campana"
+  ],
+
+  "verdict": {
+    "sufficiency": "NOT_REQUIRED",
+    "requirement_state_proposed": "NOT_APPLICABLE",
+    "change_state_proposed": "BLOCKED (sin cambio)",
+    "why_the_two_states_differ": "Identico a R: la obligacion condicional no aplica al alcance aprobado, mientras que el change nunca se implementa ni se ejecuta. El checker no admite BLOCKED -> NOT_APPLICABLE y no se modifica para forzarlo.",
+    "reversibility": "Si se pretendiera afirmar deteccion reservada, esta decision queda sin efecto y SC-GOV-023 vuelve a estar abierto."
+  },
+
+  "limitations_that_must_remain_declared": [
+    "No existe ninguna metrica de deteccion de corrupciones reservada en la campana v4.",
+    "El aporte de anomalias como predictores en v3 es evidencia historica REFERENCED, de su propio diseno y sitio; no es un resultado de v4 y no acredita deteccion.",
+    "La deteccion humana 0/4 de la pista humana de H no es una metrica de deteccion de anomalias y no se cita como tal.",
+    "Esta revision es documental y no verifica numeros, porque no hay numeros de N que verificar."
+  ],
+
+  "prohibited_claims": [
+    "Afirmar deteccion reservada de corrupciones.",
+    "Presentar anomalias simuladas como fallas reales de sensor.",
+    "Transferir a v4 los resultados de la configuracion +anomalias de v3.",
+    "Usar el 0/4 humano de H como tasa de deteccion de anomalias."
+  ],
+
+  "independent_review": {
+    "state": "PENDING",
+    "note": "Se completa con el veredicto del revisor independiente final. Hasta entonces este artefacto es una propuesta del implementador y NO cierra SC-GOV-023.",
+    "verbatim_report": null
+  }
+}

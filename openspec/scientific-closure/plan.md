@@ -73,3 +73,33 @@ auditor independiente. No reentrenar para verificar un holdout ni recalcular con
 otro candidato. La revisión de métricas usa exclusivamente artefactos autorizados.
 Los nuevos runners auxiliares, si REQUIRED, necesitan fixtures sustantivos
 temporales y de perturbación antes de ejecutar su diseño congelado.
+
+## Estado de los gates — 2026-09-22 (cierre documental)
+
+Esta sección **no** modifica la tabla de gates ni el protocolo A→B→C: registra el
+estado alcanzado. Ninguna compuerta se relaja.
+
+| Gate | Estado | Base |
+| --- | --- | --- |
+| G0 Preparación | PASS | Auditoría de preparación del 2026-09-19, con las correcciones del 2026-09-20 |
+| G1 Campaña | PASS | Readiness, procedencia, identidad, respaldo y autorizaciones acreditados el 2026-09-21 |
+| GA A | SATISFECHO | `SIN_GANADOR_ESTABLE` con desempate de simplicidad predeclarado; candidato transferible y soporte válido |
+| GB B | SATISFECHO | `CANDIDATE_VALIDATED` por **no inferioridad**; intervalo que incluye el cero; custodia de intento único |
+| GC C | SATISFECHO | Apertura única, nominal e irreversible; ledger `CONFIRMADA` |
+| **GF Cierre** | **PASS_WITH_LIMITATIONS** | Terminal científico auditado, complemento H auditado, `GD-12` criticada y auditada, síntesis de resultados, matriz final, claims finales y trazabilidad a los capítulos 2 y 3. **No es PASS pleno:** once requisitos conservan limitaciones declaradas y no subsanadas (GD-33) |
+
+La cláusula de `sc-06` que exige «todos los REQUIRED con PASS» se cumple: H es el
+único complemento `REQUIRED` y está en `PASS_WITH_LIMITATIONS` con PASS del
+auditor independiente. R, N y S son `NOT_REQUIRED` por `GD-12`, hoy auditada.
+
+`GF` alcanza al **alcance aprobado de HU7/HU8**. No certifica HU1 ni el cierre
+total del Trabajo Final, y un PASS estructural del checker sigue sin equivaler a
+cierre científico.
+
+### Validación de esta fase
+
+Documental y de gobernanza, sin ejecución científica: checker de cierre,
+pruebas de gobernanza y del checker, OpenSpec 1.13.1 estricto con el node Linux
+al frente del `PATH` (precondición GD-20), `git diff --check` y verificación de
+que la evidencia de A/B/C/H y el holdout no cambiaron. **No** se ejecutó la suite
+completa: esta fase sólo modifica documentos y gobernanza.

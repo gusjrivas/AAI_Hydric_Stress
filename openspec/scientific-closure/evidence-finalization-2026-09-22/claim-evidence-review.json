@@ -1,0 +1,125 @@
+{
+  "schema_version": "scientific_closure_claim_evidence_review.v1",
+  "campaign_id": "evidence-finalization-2026-09-22",
+  "change_id": "sc-06-scientific-synthesis",
+  "requirement_ids": ["SC-GOV-016"],
+  "task": "T16",
+  "timestamp_utc": "2026-09-22T01:10:00Z",
+  "actor": {
+    "role": "scientific_implementer",
+    "runtime": "Claude Opus 5 (sustitucion declarada; perfiles .codex/agents no cargables en este runtime)"
+  },
+  "object_reviewed": {
+    "path": "docs/research/scientific-closure-synthesis-2026-09-22.md",
+    "reviewed_against": [
+      "openspec/scientific-closure/claims.md",
+      "evidencia respaldada de closure-campaign-2026-09-21 (snapshot final verificado)",
+      "evidencia respaldada de hitl-complement-2026-09-21",
+      "openspec/changes/sc-08-aux-hitl/reviews/review-audit-final.md"
+    ],
+    "method": "Revision frase a frase de cada afirmacion de resultado contra el artefacto que la publica. NO se recomputaron metricas: ya fueron recomputadas de forma independiente en las auditorias de A/B/C y de H, y esta sesion tiene prohibido ejecutar."
+  },
+
+  "distinctions_enforced": {
+    "hecho_verificado": "Enunciado que un artefacto publica literalmente.",
+    "resultado": "Salida de una etapa ejecutada conforme al protocolo congelado.",
+    "inferencia": "Lectura del resultado; se marca como tal y nunca se presenta como resultado.",
+    "limitacion": "Condicion que acota el alcance de un resultado.",
+    "pendiente": "Evidencia que no existe y que no se completa por inferencia."
+  },
+
+  "checks": [
+    {
+      "id": "CE-01",
+      "check": "Que la sintesis no afirme superioridad en A.",
+      "result": "CONFORME. Dice SIN_GANADOR_ESTABLE, publica que el maximo nominal fue soft_voting (0,708028) y que el candidato seleccionado, logistic_regression (0,697968), quedo segundo a 0,010059. Enuncia explicitamente que el modelo evaluado no es el de mejor MCC nominal."
+    },
+    {
+      "id": "CE-02",
+      "check": "Que la sintesis no convierta CANDIDATE_VALIDATED en superioridad.",
+      "result": "CONFORME. Declara que la compuerta B es de no inferioridad y que el intervalo [-0,014553; 0,209198] incluye el cero. Ademas publica que la precision del candidato (0,667) es INFERIOR a la de la persistencia (0,723), hecho desfavorable que la evidencia contiene y que no se omite."
+    },
+    {
+      "id": "CE-03",
+      "check": "Que el resultado favorable de C no se infle a superioridad general.",
+      "result": "CONFORME. Publica el intervalo [0,022658; 0,178418] que excluye el cero y lo acompana, en el mismo bloque, de: ~24 unidades efectivas, ausencia de correccion por multiplicidad, una sola serie, calibracion degradada, 75 dias de falso aviso en 26 rachas y dos episodios no detectados. La frase 'no sostiene una afirmacion de superioridad general' es explicita."
+    },
+    {
+      "id": "CE-04",
+      "check": "Que la calibracion degradada figure con numeros y no como adjetivo.",
+      "result": "CONFORME. Tabla de cinco bins con predicho y observado; el peor caso (0,964296 predicho contra 0,662651 observado, n=83) y la advertencia literal de que Brier y ROC-AUC no revelan el defecto."
+    },
+    {
+      "id": "CE-05",
+      "check": "Que H no afirme mejora ni beneficio.",
+      "result": "CONFORME. Publica los cinco deltas que aislan correcciones con su signo mixto (3 positivos, 2 negativos), declara que NO hay intervalos porque el diseno congelado no predeclara bootstrap, declara que NO existe agregado entre semillas, y no enuncia ninguna direccion de efecto."
+    },
+    {
+      "id": "CE-06",
+      "check": "Que el 0/4 humano este enunciado y no solo sus insumos (hallazgo AUD-H-04).",
+      "result": "CONFORME. Los cuatro identificadores (H-SC-004, H-SC-008, H-SC-009, H-SC-020) figuran con su humedad y su etiqueta registrada, contra el P20 congelado 0,318617, y la tasa 0 de 4 frente a 4 de 4 del oraculo se enuncia como consecuencia, no como insumo."
+    },
+    {
+      "id": "CE-07",
+      "check": "Que no se afirme validacion agronomica, eficacia de campo, ahorro de agua ni estres fisiologico.",
+      "result": "CONFORME. La seccion 11 las enumera como no afirmadas, y la seccion 8 declara que P20 es un percentil empirico y no una medicion de estres."
+    },
+    {
+      "id": "CE-08",
+      "check": "Que no se presente el reanalisis como medicion de sensores propios.",
+      "result": "CONFORME. Declarado en la tabla de la seccion 2 y en la seccion 8."
+    },
+    {
+      "id": "CE-09",
+      "check": "Que onset y episode_recall se distingan, como exige SC-GOV-016.",
+      "result": "CONFORME. Se publican por separado: episode_recall 0,857143 en B y 0,900000 en C; y las metricas de onset con anticipated / same_day / late / missed / censored y la mediana de adelanto con signo (3,0 en B, 2,0 en C)."
+    },
+    {
+      "id": "CE-10",
+      "check": "Que las metricas indefinidas figuren como null con razon y no sustituidas por cero.",
+      "result": "CONFORME. Se transcriben las razones literales constant_prediction, no_predicted_positives, no_observations_in_bin y no_detected_evaluable_episodes."
+    },
+    {
+      "id": "CE-11",
+      "check": "Que no se afirme un dato que la evidencia no publica.",
+      "result": "CONFORME, y con una abstencion explicita. La prevalencia desagregada 2024 frente a 2025 NO existe en ningun artefacto; la sintesis publica la prevalencia agregada del bienio (17,6 %) y declara que no se infiere la desagregacion. Esa abstencion es deliberada: el valor seria derivable de predictions_2024_2025.csv, pero derivarlo hoy seria producir evidencia nueva, que esta sesion tiene prohibido."
+    },
+    {
+      "id": "CE-12",
+      "check": "Que los resultados negativos se presenten como validos y no como defectos.",
+      "result": "CONFORME. SIN_GANADOR_ESTABLE, la no inferioridad de B y NO_RECALIBRATION se enuncian como resultados validos del protocolo. La seccion 1 dice que la combinacion 'no es un defecto de software ni un fracaso experimental'."
+    },
+    {
+      "id": "CE-13",
+      "check": "Que la sensibilidad 7-28 cm no se lea como un mejor modelo.",
+      "result": "CONFORME. Se transcribe la advertencia literal del registro de ejecucion y se explica por que: un target sobre una capa mas profunda e inercial es intrinsecamente mas predecible, de modo que comparar los MCC es comparar dos problemas distintos."
+    },
+    {
+      "id": "CE-14",
+      "check": "Que las limitaciones no se atenuen ni se desplacen a una seccion lejana.",
+      "result": "CONFORME CON OBSERVACION. Cada resultado lleva su limitacion en el mismo bloque, y ademas existe la seccion 9 consolidada. La observacion: la duplicacion es deliberada, para que ningun lector encuentre el numero sin el limite; no es una inconsistencia."
+    },
+    {
+      "id": "CE-15",
+      "check": "Que no se presente evidencia tecnica como eficacia cientifica.",
+      "result": "CONFORME. HU5 y HU6 se clasifican explicitamente como evidencia tecnica en claims.md, y la sintesis declara que su utilidad operativa no fue medida."
+    }
+  ],
+
+  "findings": [],
+
+  "verdict": {
+    "result": "CONFORME",
+    "scope": "Revision frase a frase de docs/research/scientific-closure-synthesis-2026-09-22.md contra claims.md y la evidencia publicada.",
+    "limitations": [
+      "Es una revision documental del implementador. NO recomputa metricas.",
+      "NO sustituye la revision independiente; esta se registra aparte y su informe se preserva verbatim.",
+      "La conformidad se afirma sobre el texto revisado en el snapshot declarado; cualquier edicion posterior de la sintesis la invalida."
+    ]
+  },
+
+  "independent_review": {
+    "state": "PENDING",
+    "verbatim_report": null
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "schema_version": "scientific_closure_auxiliary_review.v1",
+  "campaign_id": "evidence-finalization-2026-09-22",
+  "change_id": "sc-07-aux-regression",
+  "requirement_ids": ["SC-GOV-021", "SC-GOV-005"],
+  "complement": "R",
+  "complement_design": "auxiliary_soil_regression_v1",
+  "timestamp_utc": "2026-09-22T00:45:00Z",
+  "actor": {
+    "role": "scientific_implementer",
+    "runtime": "Claude Opus 5 (sustitucion declarada del perfil .codex/agents/scientific_implementer.toml, que no es cargable en este runtime)",
+    "note": "Este artefacto es la revision del implementador. NO es la critica ni la auditoria independiente; esas se registran en independent_review y en el informe verbatim referenciado."
+  },
+  "object": {
+    "repository": "AAI_Hydric_Stress",
+    "branch": "feat/scientific-evidence-finalization",
+    "documentary_sha": "1c33aad8cbee765e2968bd164b5d4890743eea0a",
+    "executable_sha_of_the_campaign": "214735e42ee04f018156cd630591e798aadd8bf3",
+    "sha_kind": "documental; este artefacto no se produjo ejecutando ningun runner"
+  },
+
+  "decision_under_review": {
+    "id": "GD-12",
+    "text": "R NOT_REQUIRED para clasificacion P20",
+    "declared_at_utc": "2026-09-19",
+    "declared_before_execution": true,
+    "anchored_in_git_before_campaign": "Si. GD-12 figura en openspec/scientific-closure/decisions.md desde la preparacion del 2026-09-19, dos dias antes de ejecutar A/B/C el 2026-09-21. La anterioridad es verificable con git log sobre ese archivo y NO depende de este artefacto."
+  },
+
+  "condition_of_activation": {
+    "normative_text": "R DEBE activarse solo si se pretende sostener desempeno sobre humedad continua y la evidencia existente no lo cubre.",
+    "source": "openspec/specs/scientific-closure/spec.md, requisito SC-GOV-021",
+    "first_conjunct_intent_to_claim": false,
+    "second_conjunct_evidence_gap": "NO EVALUADO, y no hace falta evaluarlo: la condicion es una conjuncion y el primer conjunto ya es falso.",
+    "why_first_conjunct_is_false": "Ninguna afirmacion del alcance aprobado sostiene desempeno sobre humedad continua. CL-05 dice literalmente que el error continuo de humedad t+3 permanece registrado pero NO se sostiene como afirmacion de la campana P20. La variable de respuesta de todo el protocolo v4 es binaria (episodio P20 a t+3) y las metricas de decision son MCC, F1 y episode_recall, ninguna de ellas continua."
+  },
+
+  "evidence_examined": [
+    {
+      "path": "openspec/scientific-closure/claims.md",
+      "what_it_shows": "CL-05 delimita la afirmacion y marca R NOT_REQUIRED para clasificacion P20; ampliarla exigiria una nueva decision.",
+      "inspection": "leido en HEAD 1c33aad"
+    },
+    {
+      "path": "openspec/project.md",
+      "what_it_shows": "El alcance aprobado del Trabajo Final no incluye regresion de humedad continua como entregable.",
+      "inspection": "leido en HEAD 1c33aad"
+    },
+    {
+      "path": "docs/research/controlled-daily-v4-external-pergamino-protocol.md",
+      "what_it_shows": "El protocolo congelado v4 define target binario P20 a t+3 y su comparacion contra persistencia causal; no define MAE/RMSE en m3/m3.",
+      "inspection": "referenciado; no se modifica"
+    },
+    {
+      "path": "docs/research/scientific-closure-decisions.md",
+      "what_it_shows": "El diseno congelado auxiliary_soil_regression_v1 existe y se preserva, sin ejecucion.",
+      "inspection": "referenciado; no se modifica"
+    }
+  ],
+
+  "what_REQUIRED_would_have_demanded": [
+    "Diseno R congelado y preinscripto antes de ver resultados.",
+    "Runner auxiliary_soil_regression_v1 implementado y validado con fixtures sustantivos.",
+    "MAE y RMSE en m3/m3 sobre humedad continua, con soporte declarado.",
+    "Comparacion contra persistencia causal en la misma escala continua.",
+    "Prohibicion explicita de confundir esas metricas con MCC."
+  ],
+  "none_of_the_above_exists": true,
+  "artifacts_absent_and_declared": [
+    "src/experiment_runner/scientific_auxiliary/auxiliary_soil_regression_v1.py",
+    "tests/test_auxiliary_soil_regression_v1.py",
+    "cualquier metrica MAE/RMSE en m3/m3 producida por esta campana"
+  ],
+
+  "verdict": {
+    "sufficiency": "NOT_REQUIRED",
+    "requirement_state_proposed": "NOT_APPLICABLE",
+    "change_state_proposed": "BLOCKED (sin cambio)",
+    "why_the_two_states_differ": "El requisito SC-GOV-021 es una obligacion condicional: al no darse su condicion de activacion, no aplica al alcance aprobado, y ese es el estado terminal correcto para el requisito. El change sc-07-aux-regression permanece BLOCKED porque nunca se implementa ni se ejecuta; su propio registro de estado ya dice que una decision NOT_REQUIRED auditada no equivale a ejecucion ni cierre individual del change. La maquina de estados del checker tampoco admite la transicion BLOCKED -> NOT_APPLICABLE, y NO se modifica el checker para forzarla: se deja constancia de la asimetria en lugar de relajar la herramienta.",
+    "reversibility": "Si en el futuro se pretendiera sostener desempeno sobre humedad continua, esta decision queda sin efecto y SC-GOV-021 vuelve a estar abierto. No es una exencion permanente."
+  },
+
+  "limitations_that_must_remain_declared": [
+    "El error continuo de humedad a t+3 NO fue medido en esta campana. No existe MAE ni RMSE en m3/m3 para Pergamino v4.",
+    "NOT_REQUIRED no significa que la regresion sea innecesaria para el problema agronomico: significa que ninguna afirmacion del alcance aprobado la necesita.",
+    "El diseno congelado auxiliary_soil_regression_v1 se preserva sin ejecutar; su ausencia de resultados no es un resultado negativo.",
+    "Esta revision es documental. No ejecuta, no reproduce y no verifica numeros, porque no hay numeros que verificar."
+  ],
+
+  "prohibited_claims": [
+    "Afirmar desempeno sobre humedad continua.",
+    "Presentar MCC como si acreditara error continuo.",
+    "Presentar la ausencia de R como evidencia de que la regresion no aportaria."
+  ],
+
+  "independent_review": {
+    "state": "PENDING",
+    "note": "Se completa con el veredicto del revisor independiente final. Hasta entonces este artefacto es una propuesta del implementador y NO cierra SC-GOV-021.",
+    "verbatim_report": null
+  }
+}

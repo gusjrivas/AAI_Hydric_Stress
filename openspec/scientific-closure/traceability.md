@@ -303,3 +303,123 @@ corrigió sobre los mismos eventos. Detección humana 0/4 frente a 4/4 del
 oráculo. Eso fija el alcance real de la pista humana y es lo que hace
 imprescindible la validación de campo que el propio operador declaró como
 trabajo futuro.
+
+## Matriz final de requisitos — 2026-09-22 (CIERRE DOCUMENTAL)
+
+Esta sección **supersede** a todas las anteriores para el estado por requisito y
+es la matriz final exigida por SC-GOV-025. Las secciones previas se conservan
+íntegras como registro histórico y **no** se reescriben. Esta sesión **no**
+ejecutó A, B, C ni H, **no** abrió el holdout, **no** repitió auditorías
+históricas y **no** produjo evidencia científica nueva: consolida evidencia ya
+auditada y resuelve los pendientes documentales y de gobernanza.
+
+Los identificadores van en negrita para no alterar el recuento del checker, que
+exige que `| SC-GOV-0NN |` aparezca exactamente una vez en este archivo, en la
+tabla requisito → tarea → prueba → evidencia del encabezado.
+
+### Estado por requisito
+
+| Requisito | Estado final | Base y justificación breve |
+| --- | --- | --- |
+| **SC-GOV-001** | PASS | Identidad de sesión verificada (worktree, rama `feat/scientific-evidence-finalization`, HEAD `1c33aad`, árbol limpio, upstream). Sin cambio respecto del 2026-09-21. |
+| **SC-GOV-002** | PASS | Autorización explícita del responsable por etapa: readiness, respaldo, A→B→C, complemento H y esta finalización documental. Sin cambio. |
+| **SC-GOV-003** | PASS_WITH_LIMITATIONS | v3, UI, `main` y el núcleo de `src/` preservados. **Limitación viva:** `src/` ya no es byte-idéntico a `214735e…` (merge PR #206, GD-24/GD-25) y el directorio nuevo `scientific_auxiliary/` lo separa de `origin/main` (GD-26); la propiedad verificable hoy es que `controlled_daily_v4/`, `human_feedback/`, `pyproject.toml`, el Dockerfile, `constraints.txt` y `frontend/` son byte-idénticos a **`a6570147`**, el commit de `main` que integró GD-24, con la única excepción del archivo nuevo `auxiliary_hitl_v1.py` (GD-26). **Corrección 2026-09-22:** la redacción anterior decía «idénticos a `origin/main`», y eso **dejó de ser cierto**: `origin/main` avanzó a `2079d03` (PR #207) después de aquel merge, con 106 archivos y +16105 líneas que esta rama no integra porque el encargo prohíbe merge. La propiedad se enuncia ahora contra un commit inmutable en vez de contra una referencia móvil. Esta sesión no toca `src/`. |
+| **SC-GOV-004** | PASS | Inventario con procedencia, hashes y respaldo externo verificado; faltantes declarados sin completarse por inferencia. Sin cambio. |
+| **SC-GOV-005** | PASS | **Cambia desde PASS_WITH_LIMITATIONS.** La limitación citada era «CL-06 (H) queda sin evidencia y CL-10 no es alcanzable hoy». Ambas causas están resueltas: H se ejecutó y fue auditado, y CL-10 se cierra con la síntesis, la matriz y la trazabilidad a la memoria de esta sesión. La decisión de necesidad por afirmación (GD-12) queda además criticada y auditada de forma independiente. |
+| **SC-GOV-006** | PASS_WITH_LIMITATIONS | Revisión independiente efectiva por lectores en sesiones separadas de solo lectura. **Sustitución declarada y no subsanada:** los cinco perfiles `.codex/agents` no son cargables en este runtime (RK-10 materializado); el runtime efectivo es Claude Opus 5 con subagentes independientes. Se documenta la sustitución; no se la presenta como equivalencia. |
+| **SC-GOV-007** | PASS | `changes.json` registra transiciones, aprobación y auditoría por change; un único escritor por archivo en cada sesión. |
+| **SC-GOV-008** | PASS_WITH_LIMITATIONS | Auditores independientes distintos del implementador en A, B, C, H y en este cierre. Informes de crítica preservados verbatim en `openspec/changes/sc-08-aux-hitl/reviews/` y en `evidence-finalization-2026-09-22/`, tras el hallazgo AUD-H-01. **Limitación:** en esta sesión, por instrucción del responsable, crítica y auditoría del cierre documental se consolidaron en **una sola** pasada independiente; no fueron dos lectores distintos. |
+| **SC-GOV-009** | PASS | Identidad ejecutable `214735e` (ancestro de HEAD) frente a documental `37eed42`, con delta de 7 archivos clasificado sin efecto numérico y verificado por dos auditores. H declara identidad ejecutable propia (GD-27). Sin cambio. |
+| **SC-GOV-010** | PASS | `temporal-contract-check.json`: fronteras 2015–2022 / 2023 / 2024–2025, contrato de 8 features idéntico en las tres etapas, target observado t+3 no imputado, sin fuga. Sin cambio. |
+| **SC-GOV-011** | PASS | Gate A satisfecho: `SIN_GANADOR_ESTABLE` con desempate de simplicidad predeclarado, soporte 3/3 folds y 5000/5000 réplicas. Resultado negativo válido. Sin cambio. |
+| **SC-GOV-012** | PASS | Gate B satisfecho: `CANDIDATE_VALIDATED` por **no inferioridad**; el intervalo pareado incluye el cero y no demuestra superioridad. Sin cambio. |
+| **SC-GOV-013** | PASS | Custodia de B: intento único, reserva anterior a la lectura de valores, sin recuperación ni repetición. Ledger `stage_b.sqlite` releído en modo `ro` por el auditor de H. Sin cambio. |
+| **SC-GOV-014** | PASS | Gate C: apertura única, nominal e irreversible; ledger `holdout.sqlite` en estado `CONFIRMADA`, un registro, verificado en modo `ro`. **Esta sesión no lo abrió ni lo releyó para decidir nada.** Sin cambio. |
+| **SC-GOV-015** | PASS_WITH_LIMITATIONS | Bootstrap reproducido de forma independiente en A, B y C. **Limitación viva:** intervalos percentiles sin corrección por multiplicidad ni calibración de cobertura, y soporte efectivo reducido en C por autocorrelación. Sin cambio. |
+| **SC-GOV-016** | PASS_WITH_LIMITATIONS | **Cambia de base, no de estado.** La base anterior era una revisión de sobreinterpretación sobre una síntesis **sin resultados**. Hoy existe la síntesis de los resultados efectivamente obtenidos (`docs/research/scientific-closure-synthesis-2026-09-22.md`) y su revisión frase a frase (`claim-evidence-review.json`). **Limitación:** la revisión es documental; no recomputa métricas, que ya fueron recomputadas de forma independiente en las auditorías de A/B/C y de H. |
+| **SC-GOV-017** | PASS_WITH_LIMITATIONS | Procedencia verificada por hash y decisión GD-13 `ADMISSIBLE_WITH_EXPLICIT_LIMITATIONS`. **Limitación no subsanada:** la condición 2 de ADR-0011 sigue `PENDING_CONFIRMATION` en el manifiesto; fecha de adquisición efectiva `UNKNOWN`; `downloaded_service_version` de NASA POWER `UNKNOWN`. Sin cambio. |
+| **SC-GOV-018** | PASS_WITH_LIMITATIONS | **Se precisa el estado.** Respaldo externo en disco USB con manifiesto, inventario, hashes y ensayo de recuperación PASS. **Limitación que debe permanecer (AUD-H-02):** los resultados científicos no tienen ancla en git y viven en un montaje escribible protegido por un manifiesto alojado en ese mismo montaje. El ensayo acredita integridad y recuperabilidad de la copia, **no** resistencia a edición deliberada con privilegios. Exposición estructural preexistente, no una regresión. |
+| **SC-GOV-019** | PASS_WITH_LIMITATIONS | Trazabilidad de commits y push registrada. **Limitación no subsanada:** ADR-0011 ratifica RK-14 pero dice que «no subsana el incumplimiento»; los dos push de preparación del 2026-09-20 permanecen como desviación reconocida. No existe artefacto que lo cure. Sin cambio. |
+| **SC-GOV-020** | PASS | Checker exit 0, pruebas de gobernanza 15/15 (más 4 subtests) y del checker 33/33 (más 10 subtests), OpenSpec estricto 11/11, suite v4 preservada y no reejecutada en esta sesión. **El propio criterio lo dice: ningún PASS estructural equivale a cierre científico.** |
+| **SC-GOV-021** | NOT_APPLICABLE | **Cambia desde BLOCKED. La causa del bloqueo se resolvió.** GD-23 lo degradó porque la decisión GD-12 «sigue sin crítica ni auditoría independiente»; esa crítica y esa auditoría existen hoy y el artefacto `auxiliary/R/review.json` también. La condición de activación de SC-GOV-021 es una conjunción cuyo primer término es falso: ninguna afirmación del alcance aprobado sostiene desempeño sobre humedad continua (CL-05). **Limitación:** no existe MAE ni RMSE en m³/m³ para v4, y `NOT_REQUIRED` no significa que la regresión sea innecesaria para el problema agronómico. |
+| **SC-GOV-022** | PASS_WITH_LIMITATIONS | Complemento H ejecutado una sola vez, con contrato anclado en git antes de la intervención, y auditado de forma independiente. **Limitaciones vivas:** la pista humana sólo ejercitó la ACEPTACIÓN; rechazo y recalibración sucesiva no fueron ejercitados por ninguna pista científica; cegamiento PARCIAL y declarado; detección humana **0/4** frente a 4/4 del oráculo simulado sobre los mismos eventos; INV-10 y la reproducción estricta 18/18 **no** fueron verificados de forma independiente (AUD-H-09). Sin cambio. |
+| **SC-GOV-023** | NOT_APPLICABLE | **Cambia desde BLOCKED, misma causa resuelta que SC-GOV-021.** `auxiliary/N/review.json` existe. No se afirma detección reservada de corrupciones (CL-07) ni se convierten anomalías simuladas en fallas reales (CL-04). **Limitación:** no hay métrica de detección reservada en v4, y la detección humana 0/4 de H **no** es una tasa de detección de anomalías y no se cita como tal. |
+| **SC-GOV-024** | NOT_APPLICABLE | **Cambia desde BLOCKED, misma causa resuelta.** `auxiliary/S/review.json` existe. La robustez citable se limita a etiquetas escasas y ruido documentados en v3 (CL-08). **Limitación:** escasez de etiquetas no equivale a sensores ausentes; no se afirma degradación con gracia ante mediciones faltantes, que es trabajo futuro. La imputación causal de entradas de v4 es una regla de causalidad, no un ensayo de robustez. |
+| **SC-GOV-025** | PASS_WITH_LIMITATIONS | **Cambia desde BLOCKED.** Los cinco conjuntos de su criterio de aceptación se evalúan uno por uno abajo. La auditoría final requisito por requisito sobre el snapshot posterior a la campaña existe (`scientific-closure-audit.json`, esta sesión), la síntesis de resultados existe, los complementos están justificados y auditados, y la trazabilidad a los capítulos 2 y 3 existe. **Limitaciones que impiden un PASS pleno:** las de SC-GOV-003, 006, 008, 015, 016, 017, 018, 019 y 022, todas declaradas, ninguna atenuada. |
+
+**Recuento final: PASS 11, PASS_WITH_LIMITATIONS 11, NOT_APPLICABLE 3, BLOCKED 0**
+(total 25). El recuento anterior, del 2026-09-21 tras la campaña, era 14 / 6 / 5
+sin `NOT_APPLICABLE`. Los cambios son ocho y están justificados fila por fila:
+SC-GOV-005 sube a PASS; SC-GOV-021, 023 y 024 pasan de BLOCKED a NOT_APPLICABLE;
+SC-GOV-025 pasa de BLOCKED a PASS_WITH_LIMITATIONS; SC-GOV-003, 008, 016 y 018
+bajan de PASS a PASS_WITH_LIMITATIONS porque esta revisión encontró que sus
+limitaciones estaban registradas en otros documentos y no en su propia fila.
+Bajar cuatro filas no es un tecnicismo: es lo que impide que el recuento final
+parezca mejor de lo que la evidencia sostiene.
+
+### Requisitos condicionales: por qué el estado del requisito y el del change difieren
+
+`SC-GOV-021`, `023` y `024` quedan `NOT_APPLICABLE` como **requisitos**, mientras
+que los changes `sc-07-aux-regression`, `sc-09-aux-anomalies` y
+`sc-10-aux-robustness` permanecen `BLOCKED` en `changes.json`. No es una
+inconsistencia y no se disimula:
+
+- El **requisito** es una obligación condicional. Su condición de activación no
+  se da para el alcance aprobado, de modo que no aplica. Ese es su estado
+  terminal correcto y es exactamente el estado al que GD-23 dijo que volverían
+  «con auditoría independiente favorable de GD-12».
+- El **change** nunca se implementa ni se ejecuta. Su propio registro de estado
+  ya decía, desde el 2026-09-19, que «su decisión NOT_REQUIRED auditada no
+  equivale a ejecución ni cierre individual del change».
+- Además, la máquina de estados de `scripts/check_scientific_closure.py` **no
+  admite** la transición `BLOCKED → NOT_APPLICABLE`: sólo `PLANNED → NOT_APPLICABLE`.
+  **No se modificó el checker para forzarla** (decisión GD-31). Relajar la
+  herramienta de verificación para que acepte el estado que se desea registrar
+  es precisamente la forma de fallo que este sistema existe para impedir.
+
+### GD-12 y los complementos R / N / S
+
+| Complemento | Condición de activación (spec) | Evidencia primaria | Limitación declarada | Estado final | Justificación breve |
+| --- | --- | --- | --- | --- | --- |
+| R (regresión) | Sostener desempeño sobre humedad continua **y** evidencia existente que no lo cubra | `auxiliary/R/review.json`; CL-05 en `claims.md`; protocolo v4 (target binario P20 t+3); diseño congelado `auxiliary_soil_regression_v1` preservado | No existe MAE ni RMSE en m³/m³ para v4; el error continuo a t+3 no fue medido | `NOT_REQUIRED` / requisito `NOT_APPLICABLE` | El primer término de la conjunción es falso: ninguna afirmación aprobada sostiene desempeño continuo. Ampliar el alcance exigiría una decisión nueva |
+| N (anomalías) | Afirmar detección reservada de corrupciones **y** demostración insuficiente | `auxiliary/N/review.json`; CL-04 y CL-07; resultados formales v3 `REFERENCED` y no recalculados | No hay métrica de detección reservada en v4; el aporte de anomalías en v3 es histórico y de otro diseño y sitio | `NOT_REQUIRED` / requisito `NOT_APPLICABLE` | No se afirma detección reservada ni fallas reales. El 0/4 humano de H **no** es una tasa de detección de anomalías |
+| S (robustez) | Sostener robustez ante ausencia de mediciones o ruido **más allá** de evidencia ya válida | `auxiliary/S/review.json`; CL-08; referencia v3 `REFERENCED`; diseño congelado `auxiliary_robustness_v1` preservado | Escasez de etiquetas ≠ sensores ausentes; no se afirma degradación con gracia ante mediciones faltantes | `NOT_REQUIRED` / requisito `NOT_APPLICABLE` | No se pretende ir más allá de lo ya documentado en v3. La imputación causal de v4 es causalidad, no robustez |
+| H (HITL) | Sostener aporte cuantitativo de correcciones **y** falta de evaluación prospectiva válida | `auxiliary/H/review.json`; evidencia de `hitl-complement-2026-09-21`; auditoría final independiente | Detección humana 0/4; sólo aceptación; cegamiento parcial; sin intervalos; sin mejora atribuible | `REQUIRED`, ejecutado y auditado | Único complemento activado. Mecanismo técnico validado con limitaciones; **ninguna** afirmación de beneficio |
+
+**GD-12 queda cerrada.** Su contenido de fondo —R, N y S `NOT_REQUIRED`; H
+`REQUIRED`— **no cambia**. Lo que cambia es que dejó de ser una decisión
+autodeclarada: fue criticada y auditada por un lector independiente, con su
+informe preservado verbatim, y sus tres artefactos de revisión existen. La
+anterioridad de GD-12 a la ejecución es verificable en git (registrada el
+2026-09-19; campaña del 2026-09-21) y **no** depende de los artefactos escritos
+hoy.
+
+### Gate GF
+
+| Elemento | Contenido |
+| --- | --- |
+| Entrada exigida | Terminal científico auditado y obligaciones aplicables cumplidas |
+| Condición de avance | Auditor final PASS sobre suficiencia del alcance **completo** |
+| Salida exigida | Afirmaciones trazadas, límites y pendientes, memoria; no sólo software verde |
+| Evidencia primaria | Campaña A→B→C auditada y respaldada (91/91 hashes verificados de forma independiente); complemento H auditado; síntesis 2026-09-22; matriz final; claims finales; trazabilidad a capítulos 2 y 3; `scientific-closure-audit.json` de esta sesión |
+| Limitación | Las nueve limitaciones vivas de la tabla por requisito. Ninguna exige evidencia científica nueva; todas quedan declaradas |
+| **Estado final** | **PASS_WITH_LIMITATIONS** |
+| Justificación breve | Los cinco obstáculos que el auditor de H enumeró eran documentales y de revisión, y ninguno exigía reabrir el holdout ni reejecutar A, B o C. Los cinco están resueltos. `GF` **no** es PASS pleno porque nueve requisitos conservan limitaciones materiales no subsanadas, y porque el cierre científico del alcance HU7/HU8 no certifica HU1 ni la tesis completa |
+
+### Los cinco conjuntos del criterio de aceptación de SC-GOV-025
+
+| # | Conjunto | Estado | Base |
+| --- | --- | --- | --- |
+| 1 | Todas las afirmaciones tienen evidencia o limitación aceptada | SATISFECHO | 10 de 10. CL-10 se cierra con la síntesis, la matriz final y la trazabilidad a la memoria producidas hoy |
+| 2 | Terminal negativo válido documentado | SATISFECHO | `SIN_GANADOR_ESTABLE` en A, no inferioridad en B y `NO_RECALIBRATION` en H están documentados como resultados válidos, no como defectos |
+| 3 | Complementos justificados | SATISFECHO | R, N y S con revisión propia, criticada y auditada; H ejecutado y auditado |
+| 4 | Memoria caps. 2/3 trazada | SATISFECHO | `openspec/scientific-closure/evidence-finalization-2026-09-22/thesis-traceability.md` |
+| 5 | Ningún obligatorio sin resolver | SATISFECHO CON LIMITACIONES | Cero requisitos `BLOCKED`. Once conservan limitaciones declaradas; ninguna se atenúa y ninguna requiere evidencia científica nueva |
+
+### Lo que esta sesión no hizo y no puede afirmar
+
+No se ejecutó A, B, C ni H. No se abrió ni se releyó el holdout 2024–2025 para
+decidir nada. No se repitieron las auditorías históricas. No se modificó código
+científico, ni contratos, ni resultados, ni el checker. No se generó evidencia
+científica nueva. **No** se afirma validación agronómica, eficacia de campo,
+superioridad en B ni mejora causada por el feedback humano.

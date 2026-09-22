@@ -1,0 +1,90 @@
+{
+  "schema_version": "scientific_closure_validation_record.v1",
+  "campaign_id": "evidence-finalization-2026-09-22",
+  "change_id": "sc-06-scientific-synthesis",
+  "timestamp_utc": "2026-09-22T00:53:50Z",
+  "actor": {
+    "role": "evidence_checker",
+    "runtime": "Claude Opus 5 (sustitucion declarada)"
+  },
+  "scope": "Validacion mecanica del cierre documental. NO es evidencia cientifica y NO acredita suficiencia cientifica: el criterio de SC-GOV-020 dice que ningun PASS estructural equivale a cierre cientifico.",
+  "environment": {
+    "python": "/home/gus/scientific-closure-runtime/env/venv-v4/bin/python (3.11.16, entorno fijado GD-14)",
+    "pythonpath": "src",
+    "node_path_precondition": "/home/gus/scientific-closure-runtime/env/node/bin al frente del PATH (GD-20); un npx pelado resuelve al binario de Windows y valida un directorio distinto",
+    "docker": "no alcanzable desde esta distro (GD-21); no se requiere: esta fase no ejecuta runners"
+  },
+  "checks": [
+    {
+      "id": "V-01",
+      "command": "python scripts/check_scientific_closure.py",
+      "exit_code": 0,
+      "result": "scientific-closure checker: PASS (estructura; runtime no verificado)"
+    },
+    {
+      "id": "V-02",
+      "command": "pytest tests/test_scientific_closure_governance.py -q",
+      "exit_code": 0,
+      "result": "15 passed, 4 subtests passed"
+    },
+    {
+      "id": "V-03",
+      "command": "pytest tests/test_scientific_closure_checker.py -q",
+      "exit_code": 0,
+      "result": "33 passed, 10 subtests passed"
+    },
+    {
+      "id": "V-04",
+      "command": "npx @fission-ai/openspec@1.13.1 validate <cada uno de los 10 sc-* y scientific-closure> --strict",
+      "exit_code": 0,
+      "result": "11/11 exit 0, 0 fallos"
+    },
+    {
+      "id": "V-05",
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "sin errores de espacios en blanco ni conflictos"
+    },
+    {
+      "id": "V-06",
+      "command": "sha256sum -c SHA256SUMS en evidence-snapshots/final de closure-campaign-2026-09-21",
+      "exit_code": 0,
+      "result": "91/91 OK, 0 FAILED. La evidencia de A, B y C no cambio"
+    },
+    {
+      "id": "V-07",
+      "command": "sha256sum -c manifest/SHA256SUMS en hitl-complement-2026-09-21",
+      "exit_code": 0,
+      "result": "100/100 OK, 0 FAILED. La evidencia de H no cambio. Nota: la auditoria final de H verifico 93 entradas el 2026-09-21; hoy son 100 porque despues se preservaron verbatim los informes de critica (remediacion de AUD-H-01). El aumento esta explicado y no es una discrepancia"
+    },
+    {
+      "id": "V-08",
+      "command": "lectura de holdout.sqlite y stage_b.sqlite en modo=ro",
+      "exit_code": 0,
+      "result": "holdout_registry: 1 fila, estado CONFIRMADA, attempt_id 2121cdc901454df6be922c54a42d208d, integrity_check ok. stage_b: 1 intento, 2 eventos (RESERVED 03:51:14, FINALIZED 03:51:29 del 2026-09-21), integrity_check ok. mtime de holdout.sqlite = 1789963586903059093 ns, del 2026-09-21. EL HOLDOUT NO FUE REABIERTO NI RELEIDO PARA DECIDIR NADA"
+    },
+    {
+      "id": "V-09",
+      "command": "git diff --name-only a65701477b19ecad172fa613aea8b8dbf94bab9c HEAD -- src/experiment_runner/controlled_daily_v4/ src/human_feedback/ pyproject.toml docker/experiment-v4/Dockerfile docker/experiment-v4/constraints.txt frontend/",
+      "exit_code": 0,
+      "result": "0 archivos distintos en las seis rutas. La unica diferencia de src/ contra ese commit es el archivo nuevo src/experiment_runner/scientific_auxiliary/auxiliary_hitl_v1.py, autorizado por GD-26. PRECISION MATERIAL: la comparacion se hace contra a6570147 —el commit de main que GD-24 integro— y NO contra origin/main, porque origin/main avanzo a 2079d03dded19e0229e34873aa98eb4ed0c757ae (PR #207, 2026-09-21T16:57:48-03:00, 106 archivos, +16105/-58) DESPUES de aquel merge. Contra origin/main hoy el diff NO esta vacio, y eso no es una regresion de esta rama: es main que avanzo. Esta rama no integra ese avance porque el encargo prohibe merge. La propiedad de preservacion queda enunciada contra un commit inmutable en lugar de contra una referencia movil, que es lo que la vuelve falsa en cuanto cambia."
+    },
+    {
+      "id": "V-10",
+      "command": "git diff --check; git rev-parse origin/main; git merge-base --is-ancestor origin/main HEAD",
+      "exit_code": 0,
+      "result": "diff --check sin errores. origin/main = 2079d03dded19e0229e34873aa98eb4ed0c757ae y NO es ancestro de HEAD. Registrado como hecho, no resuelto: integrarlo seria un merge, prohibido por el encargo."
+    }
+  ],
+  "not_executed_and_why": [
+    "Suite completa de tests: el encargo lo prohibe explicitamente cuando solo se modifican documentos y gobernanza. Su ultimo resultado conocido, del 2026-09-21, se conserva sin reejecutar.",
+    "Runner de A, B, C o H: prohibido por el encargo y sin runtime de contenedores disponible.",
+    "Recomputo de metricas: ya recomputadas de forma independiente en las auditorias de A/B/C y de H.",
+    "Hooks locales de git: el worktree no tiene directorio .git/hooks propio. Se registra una sola vez como no bloqueante, conforme al encargo."
+  ],
+  "limitations": [
+    "Esta validacion cubre estructura, integridad y formato. No juzga ciencia.",
+    "El checker se ejecuto SIN modificarse. La transicion BLOCKED -> NOT_APPLICABLE que habria hecho falta para los changes condicionales no se habilito (GD-31).",
+    "La divergencia con origin/main (PR #207, 2079d03) queda ABIERTA y declarada. No se integra en esta fase. Quien integre este trabajo en main debera resolverla, y hasta entonces ninguna afirmacion de identidad debe apoyarse en la referencia movil origin/main."
+  ]
+}
