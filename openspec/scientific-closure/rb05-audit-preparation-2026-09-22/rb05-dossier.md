@@ -5,6 +5,19 @@ rama `feat/scientific-closure-final-main`, árbol limpio. HEAD contiene
 `origin/main` (`2079d03`) y `origin/feat/scientific-closure` (`0ebd5bc`).
 Autoridad: instrucción explícita del responsable, sesión del 2026-09-22.
 
+**Versión 2, corregida tras la auditoría independiente Codex sobre `88ced62`
+(round 1, veredicto `FAIL`, informe verbatim en
+`reviews/review-audit-codex-round1-FAIL.md`).** La versión 1 de este
+documento (commit `88ced62`) proponía PASS/PASS_WITH_LIMITATIONS para los 25
+requisitos sin hallazgos materiales pendientes. La auditoría encontró cuatro
+hallazgos materiales (M-01..M-04); el §3 de abajo incorpora las
+correcciones, marcadas en línea, sin borrar lo que la versión 1 decía sobre
+cada fila — se preserva la versión 1 leyendo el commit `88ced62`. **El más
+severo, M-01, es un incumplimiento histórico verificado y no reparable
+documentalmente** en la secuencia de gates A→B→C (`decisions.md` GD-38,
+`risks.md` RK-20): éste, y no la falta de auditoría, es ahora la razón por la
+que `SC-GOV-025` y `GF` siguen `PENDIENTE`.
+
 **Qué es este documento.** La preparación del dossier que la sección
 "Auditoría independiente única solicitada" de
 `traceability.md:389-396` pide para RB-05: la auditoría final **requisito por
@@ -108,18 +121,18 @@ cuenta, no aceptarla sobre la palabra de este dossier.
 | --- | --- | --- | --- |
 | SC-GOV-001 | PASS | `traceability.md:57` | — |
 | SC-GOV-002 | PASS | `traceability.md:58`; ver §2 para la sección superseded | Condiciones 1 (parcial), 2 (parcial) y 3 de ADR-0011 no cambian (`traceability.md:236`) |
-| SC-GOV-003 | PASS | `traceability.md:59`; `current-execution-checkpoint.md:33-55`; ver §2 | `src/` es byte-idéntico a `origin/main`, no a `214735e` directamente; la distinción identidad ejecutable/documental está declarada, no oculta |
+| SC-GOV-003 | ~~PASS~~ **PASS_WITH_LIMITATIONS (corregido, M-04)** | `traceability.md:59`; `current-execution-checkpoint.md:33-55`; ver §2. **Corrección:** `traceability.md`, sección 2026-09-22 (M-01..M-04), fila `SC-GOV-003`; `decisions.md` GD-39 | `src/` es byte-idéntico a `origin/main`, no a `214735e` directamente; la distinción identidad ejecutable/documental está declarada, no oculta. **Agregado:** el criterio textual incluye «no push ... sin encargo futuro explícito»; `RK-14` (dos pushes de preparación) sigue abierto y no subsanado, mismo tratamiento que ya tenía `SC-GOV-019` |
 | SC-GOV-004 | PASS | `traceability.md:60` | — |
 | SC-GOV-005 | PASS_WITH_LIMITATIONS | `traceability.md:61`; reconfirmado por `claims.md:113` "Clasificación final de afirmaciones — 2026-09-22", filas CL-06 (`claims.md:88`) y CL-10 (`claims.md:92,157`) | CL-10 declara su último término ("trazabilidad y límites") cubierto por RB-06, y queda **pendiente de esta misma auditoría RB-05** para el término "H auditado" + terminal — es decir, RB-05 es simultáneamente objeto y, en parte, insumo de esta fila; no se cierra el círculo aquí |
 | SC-GOV-006 | PASS_WITH_LIMITATIONS | `traceability.md:62`; `decisions.md` GD-17 (sustitución `.codex/agents` declarada) | Perfiles nominales no cargables en este runtime; sustitución documentada, no presentada como equivalencia |
-| SC-GOV-007 | PASS | `traceability.md:63` | — |
-| SC-GOV-008 | PASS | `traceability.md:64` | Ver también `sc-06-scientific-synthesis/tasks.md` T08, que declara evidencia distribuida en `reviews/` sin `audit.json` propio de `sc-06` |
+| SC-GOV-007 | ~~PASS~~ **No sostenido (M-01)**, pendiente de decisión del responsable | `traceability.md:63`. **Corrección:** sección 2026-09-22 (M-01..M-04); `decisions.md` GD-38; `risks.md` RK-20 | `changes.json` acredita, para `sc-04`/`sc-05`, autorizaciones que citan el `PASS` de la etapa previa antes de que ese `PASS` existiera en el propio registro — verificado por dos fuentes primarias independientes (contenido de `changes.json` y marcas de tiempo de sistema de archivos de los `gate-review.json`) |
+| SC-GOV-008 | ~~PASS~~ **No sostenido (M-02)**, pendiente de remediación | `traceability.md:64`. **Corrección:** `sc-06-scientific-synthesis/tasks.md` T08, desmarcada 2026-09-22 | La cadena de revisión independiente que debía acreditar T08 no cubre el hallazgo M-01 |
 | SC-GOV-009 | PASS | `traceability.md:65`; `current-execution-checkpoint.md:43-55` (resolución explícita GD-25/RK-09, dos auditores independientes); ver §2 | `RK-19` (docstring falso en `controlled_daily_v4/__init__.py`) sigue abierto como riesgo menor, remitido a un change propio (`next-session.txt`); no afecta esta identidad porque no es uno de los siete archivos con delta numérico-neutro clasificado |
 | SC-GOV-010 | PASS | `traceability.md:66` | — |
 | SC-GOV-011 | PASS | `traceability.md:67` | `SIN_GANADOR_ESTABLE`, desempate por simplicidad; no se presenta como superioridad |
-| SC-GOV-012 | PASS | `traceability.md:68` | `CANDIDATE_VALIDATED` por no inferioridad; el IC pareado incluye el cero, no se afirma superioridad |
+| SC-GOV-012 | Resultado científico sostenido; **secuencia de gate no sostenida (M-01)** | `traceability.md:68`. **Corrección:** sección 2026-09-22 (M-01..M-04) | `CANDIDATE_VALIDATED` por no inferioridad, el IC pareado incluye el cero — esto se sostiene. Lo que no se sostiene: el criterio exige «tras gate A», y B se ejecutó (`03:51:13`) antes de que el veredicto de auditoría de A existiera en disco (`04:23:00`) |
 | SC-GOV-013 | PASS | `traceability.md:69` | — |
-| SC-GOV-014 | PASS | `traceability.md:70` | Apertura única, nominal e irreversible del holdout 2024-2025; no se reabre |
+| SC-GOV-014 | Resultado científico sostenido; **secuencia de gate no sostenida (M-01)** | `traceability.md:70`. **Corrección:** sección 2026-09-22 (M-01..M-04) | Apertura única, nominal e irreversible del holdout 2024-2025; no se reabre — esto se sostiene. Lo que no se sostiene: el criterio exige que C «requiera B validada», y C se ejecutó (`04:06:10`) antes de que el veredicto de auditoría de B existiera en disco (`04:23:35`) |
 | SC-GOV-015 | PASS_WITH_LIMITATIONS | `traceability.md:71` | Sin corrección por multiplicidad; ~24 unidades efectivas en C |
 | SC-GOV-016 | PASS_WITH_LIMITATIONS | `traceability.md:364` (capa RB-04/05/06, supersede la fila `:72`) | Revisión documental de la síntesis contra `claims.md` y métricas ya recomputadas; no recomputa métricas nuevas; pendiente de verificación por esta misma auditoría única |
 | SC-GOV-017 | PASS_WITH_LIMITATIONS | `traceability.md:73` | Condición 2 de ADR-0011 (licencia NASA POWER) sigue `PENDING_CONFIRMATION`, aceptada como limitación vía GD-13; fecha de adquisición `UNKNOWN`, no inventada |
@@ -136,13 +149,15 @@ cuenta, no aceptarla sobre la palabra de este dossier.
 formal. Dos rondas de auditoría sobre el snapshot `f355272` terminaron en
 `FAIL` documental (defectos de sobreafirmación, no numéricos); la renuncia
 del auditor de la ronda 2 a una tercera ronda no se trata como PASS
-(`traceability.md:367`, `decisions.md` GD-34). Este dossier es la preparación
-de la auditoría única pendiente sobre el snapshot reconciliado
-(`e822f6f` → `22da0dd`), no un sustituto de ella.
+(`traceability.md:367`, `decisions.md` GD-34). **Esta versión 2 del dossier
+sí recibió su auditoría única, sobre `88ced62`, y también terminó en `FAIL`**
+(`reviews/review-audit-codex-round1-FAIL.md`), esta vez por una contradicción
+cronológica comprobada (M-01), no por sobreafirmación documental.
 
 **Gate GF:** `PENDIENTE`, no evaluable como PASS (`plan.md:90`,
-`traceability.md:369`). Ninguno de los obstáculos exige reabrir el holdout ni
-reejecutar A, B, C, H, R, N o S.
+`traceability.md:369`). El hallazgo M-01 no exige reabrir el holdout ni
+reejecutar A, B, C, H, R, N o S — es un defecto de gobernanza del proceso de
+gates, no de los resultados científicos que ese proceso produjo.
 
 ## 4. Verificación de la cláusula de reapertura de SC-GOV-024
 
@@ -163,9 +178,8 @@ puede considerar necesario hacerla.
 
 ## 5. Recuento
 
-**PASS 14, PASS_WITH_LIMITATIONS 7, NOT_APPLICABLE 3, PENDIENTE 1
-(SC-GOV-025) = 25.**
-
+**Recuento de la versión 1 (commit `88ced62`, antes de esta auditoría): PASS
+14, PASS_WITH_LIMITATIONS 7, NOT_APPLICABLE 3, PENDIENTE 1 (SC-GOV-025) = 25.**
 Reconstrucción, no una tabla nueva independiente: la base post-campaña da
 14/6/5/0 (`traceability.md:83`); el complemento H mueve `SC-GOV-022` de
 `BLOCKED` a `PASS_WITH_LIMITATIONS` → 14/7/4/0; RB-03 mueve `SC-GOV-021`,
@@ -180,6 +194,22 @@ una diferencia deliberada: aquella ronda avanzó `SC-GOV-025` a
 `PASS_WITH_LIMITATIONS` (de ahí su 12/10), lo que esta reconciliación
 descartó explícitamente por `GD-34`. El recuento de este dossier usa
 `PENDIENTE`, no `PASS_WITH_LIMITATIONS`, para esa única fila.
+
+**Recuento tras la auditoría Codex round 1 (M-01..M-04):** de las 25 filas,
+21 no cambian de categoría (aunque una, `SC-GOV-003`, cambia de subcategoría
+dentro de "sostenido", ver M-04). Cuatro dejan de estar sostenidas sin
+limitación: `SC-GOV-007` y `SC-GOV-008` (M-01/M-02, sin PASS ni
+PASS_WITH_LIMITATIONS hasta que se remedien) y `SC-GOV-012`/`SC-GOV-014`
+(resultado científico sostenido, secuencia de gate no sostenida). El auditor
+de Codex, contando con su propia metodología (sostenido/no sostenido en vez
+de los cuatro estados de la matriz), llegó a 18 sostenidos + 6 no sostenidos
++ 1 bloqueado = 25 sobre el mismo snapshot; la diferencia con el detalle de
+este dossier es de granularidad de categorías, no de qué filas están en
+disputa — los seis "no sostenidos" que declaró (`003, 007, 008, 012, 014,
+019`) coinciden con los que este dossier señala como afectados por M-01/M-04,
+salvo que este dossier mantiene `SC-GOV-019` en `PASS_WITH_LIMITATIONS` (ya
+lo estaba, sin cambio) en vez de "no sostenido", porque su fila ya declaraba
+la limitación exacta que el criterio exige antes de esta auditoría.
 
 ## 6. Inconsistencias documentales abiertas, no corregidas aquí
 

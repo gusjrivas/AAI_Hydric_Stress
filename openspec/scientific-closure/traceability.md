@@ -394,3 +394,44 @@ sobreafirmaciones; (4) que el estado que se proponga para `SC-GOV-025` y `GF`
 se derive de evidencia vigente; (5) que la limitación de imputación causal esté
 declarada donde corresponde; (6) que ningún `FAIL` histórico se presente como
 `PASS`. No repite recómputo de hashes, métricas ni suites completas.
+
+## Estado por requisito — 2026-09-22, auditoría Codex RB-05 round 1 (FAIL)
+
+Esta sección **no reescribe** las tablas anteriores: las supersede sólo para
+los requisitos que la auditoría requisito-por-requisito solicitada arriba
+tocó. El dossier preparado en
+`openspec/scientific-closure/rb05-audit-preparation-2026-09-22/rb05-dossier.md`
+fue auditado por Codex (informe verbatim en
+`rb05-audit-preparation-2026-09-22/reviews/review-audit-codex-round1-FAIL.md`,
+snapshot `88ced62`). **Veredicto: `FAIL`**, con cuatro hallazgos materiales
+(M-01..M-04). M-02 (tasks.md) y M-03 (fila 3.5 de `thesis-traceability.md`)
+quedaron corregidos el mismo día. M-01 se verificó independientemente contra
+dos fuentes primarias distintas de las que citó el auditor (contenido de
+`changes.json` y marcas de tiempo de sistema de archivos de los artefactos
+de gate-review) y se declaró incumplimiento histórico **no reparable
+documentalmente** (`decisions.md` GD-38, `risks.md` RK-20).
+
+| Requisito | Estado | Fundamento |
+| --- | --- | --- |
+| **SC-GOV-003** | PASS_WITH_LIMITATIONS | Supersede la fila `:59`. Su criterio textual incluye «no push ... sin encargo futuro explícito»; `RK-14` (dos pushes de preparación) sigue abierto y `ADR-0011` declara que la ratificación no subsana el incumplimiento. Mismo tratamiento que ya recibía `SC-GOV-019` por el mismo hecho (`decisions.md` GD-39) |
+| **SC-GOV-007** | No sostenido, pendiente de decisión del responsable | El registro (`changes.json`) acredita, para `sc-04-stage-b` y `sc-05-stage-c`, autorizaciones que citan el `PASS` de la etapa previa como motivo en un instante anterior a que ese `PASS` existiera en el propio registro. No es un requisito obligatorio con evidencia faltante: es una contradicción comprobada dentro de la fuente que el requisito exige que sea consistente |
+| **SC-GOV-008** | No sostenido, pendiente de remediación | `sc-06/tasks.md` T08 quedó desmarcada (M-02): la cadena de revisión independiente que debía acreditarla no cubre el hallazgo M-01 |
+| **SC-GOV-012** | Resultado científico de B sostenido (no inferioridad, MCC > 0); secuencia de gate no sostenida | El criterio exige «tras gate A»; B se ejecutó (`03:51:13`) antes de que existiera el veredicto de auditoría independiente de A (`gate-review.json` escrito a disco a las `04:23:00`) |
+| **SC-GOV-014** | Resultado científico de C sostenido (apertura única, ledger `CONFIRMADA`); secuencia de gate no sostenida | El criterio exige que C «requiera B validada»; C se ejecutó (`04:06:10`) antes de que existiera el veredicto de auditoría independiente de B (`gate-review.json`/`custody-review.json` escritos a disco a las `04:23:35`) |
+
+**Qué NO cambia.** `SC-GOV-021`, `SC-GOV-023` y `SC-GOV-024` (RB-03) no se
+tocan. `sc-07`, `sc-09` y `sc-10` no se tocan. `sc-03-stage-a`, `sc-04-stage-b`
+y `sc-05-stage-c` conservan su `status: PASS` en `changes.json` sin alterar:
+los resultados científicos que produjeron son reales y no están en duda; lo
+que M-01 pone en duda es si el protocolo de compuertas secuenciales se
+respetó como está escrito, que es una pregunta distinta.
+
+**`SC-GOV-025` y el gate `GF` siguen `PENDIENTE`** — no avanzan a
+`PASS_WITH_LIMITATIONS` ni a ningún otro estado. La causa ya no es sólo «falta
+la auditoría única»: la auditoría única **corrió** y terminó en `FAIL`. No hay,
+a esta fecha, un camino de cierre para `SC-GOV-025`/`GF` que no dependa de una
+decisión del responsable sobre M-01 (`decisions.md` GD-38): aceptarlo como
+desviación declarada y permanente (como se hizo con `RK-14`), o alguna otra
+resolución que el orquestador no tiene autoridad para elegir por su cuenta.
+Ninguna de las dos rutas exige reabrir el holdout ni reejecutar A, B, C, H, R,
+N o S.

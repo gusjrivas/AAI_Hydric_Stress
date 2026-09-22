@@ -39,10 +39,12 @@ independiente autorizado. No reescribir documentos históricos.
   ningún veredicto `FAIL` histórico se presenta aquí como cierre científico.
 - [Suficiencia de R/N/S — RB-03](sufficiency-review-2026-09-22/): `PASS` del
   auditor independiente sobre `65ca852`. Fuente autoritativa; no se reabre.
-- [Dossier RB-05 — preparación de auditoría única](rb05-audit-preparation-2026-09-22/):
-  estado documental de los 25 SC-GOV con evidencia exacta, listo para la
-  auditoría final requisito por requisito. **No** otorga el PASS de RB-05;
-  no cambia `SC-GOV-025`, `GF` ni el estado de `sc-06-scientific-synthesis`.
+- [Dossier RB-05](rb05-audit-preparation-2026-09-22/): estado documental de
+  los 25 SC-GOV con evidencia exacta. Auditado por Codex sobre `88ced62`;
+  **veredicto `FAIL`** (`reviews/review-audit-codex-round1-FAIL.md`), por una
+  contradicción cronológica en la secuencia de gates A→B→C declarada
+  incumplimiento histórico no reparable documentalmente (`decisions.md`
+  GD-38). `SC-GOV-025` y `GF` siguen `PENDIENTE`.
 
 Fuentes preservadas: openspec/project.md; openspec/specs/experiment-runner/spec.md;
 docs/research/protocolo-experimental-v3.md;

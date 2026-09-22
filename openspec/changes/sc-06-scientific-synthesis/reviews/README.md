@@ -56,3 +56,15 @@ rondas preservadas arriba.
 **Limitación declarada.** Cada revisor corrió en una sesión separada, de solo
 lectura, con enforcement **instruido, no forzado por el harness**. Lo que estos
 archivos acreditan es el contenido de sus informes tal como fueron recibidos.
+
+## Auditoría requisito por requisito sobre los 25 SC-GOV (T25), 2026-09-22
+
+La auditoría que `T25` exige —requisito por requisito sobre los 25 SC-GOV,
+no de alcance acotado— corrió sobre el dossier
+`openspec/scientific-closure/rb05-audit-preparation-2026-09-22/`, snapshot
+`88ced62`. Informe preservado en
+`../../../scientific-closure/rb05-audit-preparation-2026-09-22/reviews/review-audit-codex-round1-FAIL.md`,
+ver ese directorio para el detalle completo. **Veredicto: `FAIL`** (M-01,
+contradicción cronológica en la secuencia de gates A→B→C, declarada
+incumplimiento histórico no reparable documentalmente, `decisions.md` GD-38).
+`T25` sigue sin marcar.
