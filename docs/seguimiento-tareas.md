@@ -2457,3 +2457,34 @@ ningún holdout, no se ejecutó ninguna corrida real del manifiesto v3, y no
 se modificó ningún parámetro o cláusula de
 `config/producer-calibration-plan.frozen.v3.json` ni de su identidad. No se
 hizo merge ni se abrió PR.
+
+## Reproducción histórica causal: demo de solo lectura (HU7/HU8) (2026-09-23)
+
+Agrega la demo "Reproducción histórica" (`add-causal-historical-replay`):
+un backtest retrospectivo de solo lectura sobre el único candidato admitido
+(`base-seed4`, experimento 4, `controlled_daily_v3`, horizonte +3 días).
+Paquete reproducible con política de admisión externa hardcodeada
+(`src/historical_replay/admission_policy.py`), API mínima detrás de
+`HISTORICAL_REPLAY_ENABLED` con contrato temporal corregido (nunca expone
+campos futuros, ni siquiera como `null`), interfaz con aislamiento de
+estado por `(origen, fecha simulada)` verificado en el render (no en un
+efecto), y feedback de demostración (RH-07) aislado del circuito operativo.
+HU7/HU8, capacidad `historical-replay`, CRISP-DM evaluación/despliegue. Sin
+impacto sobre hipótesis, arquitectura, configuración experimental ni
+resultados históricos de HU7/HU8; no se entrenó, no se infirió, no se
+recalibró, no se recalculó ninguna métrica científica y no se accedió al
+holdout v4.
+
+Evidencia: `tests/test_historical_replay_*.py` + `test_build_replay_package.py`
+(25 passed), `backend/tests/` completa (124 passed), `frontend`
+(`npx vitest run`, 162 passed en 23 archivos; `npm run build` limpio),
+`ruff`/`black` limpios sobre `src`, `tests`, `backend/app`. Verificación
+real en navegador (dos instancias Docker desechables, nunca el contenedor
+compartido) con discrepancia real, feedback registrado y preservado entre
+sesiones. Detalle completo en
+`openspec/scientific-closure/causal-historical-replay-2026-09-22/` y
+`openspec/changes/add-causal-historical-replay/traceability.md`.
+
+Pendiente conocido, no bloqueante: `GET /replay/history` todavía no
+distingue `medida`/`imputada`/`no_determinado` por fila; no se probó
+escritura concurrente de feedback para la misma predicción.
