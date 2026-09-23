@@ -39,11 +39,19 @@ from data_quality.temporal import validate_daily_series
 
 VERIFIED_AGAINST_COMMIT = "2a40ee68c52d2eb5e2040a36b1029f756f9c048a"
 
-# SHA-256 of the exact file contents at the commit above, confirmed identical
-# to HEAD via `git diff` on 2026-09-23 (paso2-correccion-validaciones.md).
+# SHA-256 of the file contents at the commit above (`git show <commit>:<path>
+# | sha256sum`, i.e. the canonical LF blob git actually stores), confirmed
+# identical to HEAD via `git diff` on 2026-09-23
+# (paso2-correccion-validaciones.md). Hashed after CRLF normalization (see
+# `_hash_module_source`) so the check is independent of the checkout's line
+# ending policy — a Windows checkout with `core.autocrlf=true` (used during
+# development, via a Docker bind mount) converts these files to CRLF on
+# disk, while a Linux CI checkout keeps them LF; hashing raw bytes would
+# make this check fail on a real content match purely from that difference
+# (found by a real CI run on this same change, not anticipated in advance).
 _VERIFIED_SOURCE_SHA256 = {
-    "data_quality.imputation": ("f612e42f320d5f9fa43ae05b0bc7c8cca0acdfd37864dfd7ccad64a9046d4a14"),
-    "data_quality.temporal": ("08d09c6f1d5ddca0d440bd63cb02918b23282f38a3f1a26fcb9fa77dfab53e6c"),
+    "data_quality.imputation": ("0d658e829d60b3f3841638cb0db4cf94e76b2f6b56c6b65f064d1c2128a4522e"),
+    "data_quality.temporal": ("5d9b0e02dc96255aadc539f0f908201448fc974d7815a0490571a36725d3a9fb"),
 }
 
 
@@ -54,9 +62,13 @@ class ImputationSourceDriftError(RuntimeError):
 
 
 def _hash_module_source(module) -> str:
+    """Hash the module's source after normalizing CRLF to LF: the check is
+    about the *content* actually running, not about which line-ending
+    convention this particular checkout happens to use."""
     source_path = inspect.getsourcefile(module)
     with open(source_path, "rb") as handle:
-        return hashlib.sha256(handle.read()).hexdigest()
+        content = handle.read()
+    return hashlib.sha256(content.replace(b"\r\n", b"\n")).hexdigest()
 
 
 def verify_imputation_source_matches_verified_commit() -> None:
