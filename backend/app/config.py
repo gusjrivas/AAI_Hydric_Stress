@@ -50,3 +50,39 @@ def is_producer_v2_enabled() -> bool:
         "yes",
         "on",
     }
+
+
+def is_historical_replay_enabled() -> bool:
+    """Feature flag aditivo (spec `historical-replay`): apagado por defecto,
+    consistente con `is_producer_v2_enabled`. No expone la API de
+    reproducción histórica salvo que se habilite explícitamente."""
+    return os.getenv("HISTORICAL_REPLAY_ENABLED", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def get_historical_replay_feedback_dir() -> Path:
+    """Dependencia de FastAPI: directorio exclusivo del feedback de
+    demostración (spec `historical-replay`, RH-07) — nunca
+    `data/feedback__<sensor_id>.parquet`, nunca dentro de
+    `replay_packages/`. Overrideable en tests."""
+    configured = os.environ.get("HISTORICAL_REPLAY_FEEDBACK_DIR")
+    if configured:
+        return Path(configured)
+    return Path(__file__).resolve().parents[2] / "replay_feedback"
+
+
+def get_historical_replay_package_dir() -> Path:
+    """Dependencia de FastAPI: ubicación del único paquete de reproducción
+    histórica autorizado (spec `historical-replay`, Paso 3 §3) —
+    administrator-controlled deployment directory; el cliente nunca puede
+    indicar una ruta, un paquete ni un run. Overrideable en tests mediante
+    `app.dependency_overrides`, igual que `get_producer_bundle_root`.
+    """
+    configured = os.environ.get("HISTORICAL_REPLAY_PACKAGE_DIR")
+    if configured:
+        return Path(configured)
+    return Path(__file__).resolve().parents[2] / "replay_packages" / "base-seed4-1157696b7b-v2"
