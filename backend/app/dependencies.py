@@ -12,9 +12,17 @@ from fastapi import Depends, HTTPException
 
 from data_ingestion.catalog import CatalogRepository
 from data_ingestion.sensor_naming import validate_sensor_id
+from historical_replay.feedback import ReplayFeedbackStore
+from historical_replay.package_loader import LoadedReplayPackage, load_package
 from human_feedback.operational_repository import OperationalRepository
 
-from .config import get_dataset_data_dir, is_producer_v2_enabled
+from .config import (
+    get_dataset_data_dir,
+    get_historical_replay_feedback_dir,
+    get_historical_replay_package_dir,
+    is_historical_replay_enabled,
+    is_producer_v2_enabled,
+)
 
 
 def get_valid_sensor_id(sensor_id: str) -> str:
@@ -51,3 +59,36 @@ def require_producer_v2_enabled(
 def get_producer_bundle_root(data_dir: Path = Depends(get_dataset_data_dir)) -> Path:
     """Administrator-controlled deployment directory; never a client-supplied path."""
     return Path(os.environ.get("PRODUCER_BUNDLE_ROOT", str(data_dir / "operational_bundles")))
+
+
+def require_historical_replay_enabled(
+    enabled: bool = Depends(is_historical_replay_enabled),
+) -> None:
+    if not enabled:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+
+def get_historical_replay_package(
+    package_dir: Path = Depends(get_historical_replay_package_dir),
+) -> LoadedReplayPackage:
+    """Carga y valida el único paquete autorizado en cada solicitud (spec
+    `historical-replay`) — nunca a partir de una ruta, un paquete ni un run
+    indicado por el cliente. Recargar en cada solicitud, en vez de cachear,
+    revalida integridad y admisión siempre; el costo es despreciable para
+    este paquete (unas decenas de KB)."""
+    try:
+        return load_package(package_dir)
+    except (OSError, ValueError) as error:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Paquete de reproducción histórica no disponible o inválido: {error}",
+        ) from error
+
+
+def get_historical_replay_feedback_store(
+    package: LoadedReplayPackage = Depends(get_historical_replay_package),
+    feedback_dir: Path = Depends(get_historical_replay_feedback_dir),
+) -> ReplayFeedbackStore:
+    """Almacenamiento de feedback de demostración (RH-07), aislado por
+    `package_id` — nunca el mismo archivo entre paquetes distintos."""
+    return ReplayFeedbackStore(feedback_dir, package_id=package.manifest["package_id"])

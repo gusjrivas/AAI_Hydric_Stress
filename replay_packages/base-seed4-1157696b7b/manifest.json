@@ -1,0 +1,68 @@
+{
+  "candidate": {
+    "config_name": "base",
+    "experiment_id": "4",
+    "experiment_name": "hu7-controlled-daily-v3-formal",
+    "run_id_child": "1157696b7bb941e394c5af530c762b07",
+    "run_id_parent": "6d516bb9f778450f8fbe2e5492818e57",
+    "run_name_child": "base-seed4",
+    "run_name_parent": "base",
+    "seed": 4
+  },
+  "dataset": {
+    "historical_sha256": "121697dd5af202633f24adf4244a793477d34bf5e4cf4a1f10d7b2ca1b33ba8e",
+    "name": "melchor_romero_2024_consolidado",
+    "package_relative_path": "dataset/melchor_romero_2024_consolidado.parquet"
+  },
+  "decision_rule": {
+    "alert_threshold": 0.5,
+    "calibration_status": "no acreditada para este run",
+    "classifier_output": "y_proba"
+  },
+  "execution_identity": {
+    "commit_sha": "2a40ee68c52d2eb5e2040a36b1029f756f9c048a",
+    "pipeline_version": "controlled_daily_v3",
+    "run_date": "2026-09-05T06:05:11.417240+00:00",
+    "working_tree_status": ""
+  },
+  "exported_at": "2026-09-23T12:34:15.160081+00:00",
+  "files": {
+    "dataset/melchor_romero_2024_consolidado.parquet": {
+      "custody_sha256": "121697dd5af202633f24adf4244a793477d34bf5e4cf4a1f10d7b2ca1b33ba8e"
+    },
+    "derived/imputation_markers.parquet": {
+      "custody_sha256": "ffbd670a348b478ebd38f62630b600e805039cbd604df76b4296cf9909da8a15"
+    },
+    "effective_configuration.json": {
+      "custody_sha256": "4834955f440cde80b79101b394bfeb55429232a476515c16297d21eacb1c75fe"
+    },
+    "parent_run_params.json": {
+      "custody_sha256": "4c6068dca7497d0d6c0d0129151945f157fd0d5ad1893093ae025024888ed3ff"
+    },
+    "predictions.json": {
+      "custody_sha256": "1e440d19bc1e3a0d16e726bad7e75c881fef58112b2850f9c97a6811721fe2ff"
+    }
+  },
+  "known_limitations": [
+    "Calibracion no acreditada para este run. El unico motor de evaluacion de calibracion presente en el repositorio (predictive_modeling/calibration_assessment.py) no se aplico a este run: fue introducido en una fecha posterior al commit de ejecucion y pertenece a otra capacidad (multi-horizon daily predictors).",
+    "El marcador de imputacion (derived/imputation_markers.parquet) es un derivado post-hoc: recomputado deterministicamente a partir de la copia del dataset ya verificada por hash, no persistido por la corrida original.",
+    "target_observed=false no esta ejercitado por ningun ejemplo real de este run (todas las filas de predictions.json tienen target_observed=true).",
+    "El supuesto de disponibilidad diaria de insumos crudos es un supuesto documentado del protocolo v3, no verificado por fila."
+  ],
+  "label_rule": {
+    "frozen_threshold": 0.31678178906440735,
+    "label_column": "soil_moisture",
+    "percentile": 20.0,
+    "rule": "observed_value_at_t_plus_h_less_than_frozen_threshold",
+    "unit": "m3/m3"
+  },
+  "package_id": "base-seed4-1157696b7b",
+  "schema_version": "historical_replay_package_v1",
+  "temporal_semantics": {
+    "day_convention": "UTC_naive_midnight",
+    "frequency": "D",
+    "horizon_days": 3,
+    "issuance": "after_daily_observations_available",
+    "split_date": "2024-10-19"
+  }
+}

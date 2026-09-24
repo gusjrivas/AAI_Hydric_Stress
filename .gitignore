@@ -37,3 +37,21 @@ data/feedback_ui.parquet
 demo_sessions/
 data/sensor__demo-*.parquet
 data/feedback__demo-*.parquet
+
+# Reproducción histórica (change add-causal-historical-replay): el paquete
+# científico autorizado (replay_packages/) SÍ se versiona, igual que
+# data/*.parquet (es pequeño y es la evidencia archivada del candidato). El
+# feedback de demostración y el estado de las sesiones de demo, en cambio,
+# son registros operativos efímeros de uso local — misma razón que
+# demo_sessions/ y data/feedback_ui.parquet: nunca se versionan, pero
+# tampoco se borran (quedan como evidencia local de cada verificación).
+replay_feedback/
+.demo_replay_sessions/
+
+# ZIP de intercambio para revisión de código entre pasos de este mismo
+# *change*: no son entregables del repositorio, se generan y se leen
+# localmente. Se preservan en disco, nunca se versionan.
+/paso*-revision-codigo*.zip
+/openspec/changes/add-causal-historical-replay.zip
+/openspec/scientific-closure/causal-historical-replay-2026-09-22*.zip
+/openspec/scientific-closure/causal-historical-replay-2026-09-22 (*).zip

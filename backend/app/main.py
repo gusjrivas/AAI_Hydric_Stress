@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
@@ -26,14 +27,24 @@ from .routers import (
     producer_v2,
     quality,
     recalibration,
+    replay,
     sensors,
 )
 
 app = FastAPI(title="Alerting UI API")
 
+# Paso 4.1 §4: los orígenes extra (p. ej. el puerto aislado de una sesión de
+# demostración) se configuran por variable de entorno — nunca editando esta
+# lista a mano para cada sesión.
+_extra_cors_origins = [
+    origin.strip()
+    for origin in os.environ.get("CORS_EXTRA_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", *_extra_cors_origins],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -139,3 +150,4 @@ app.include_router(quality.router)
 app.include_router(models.router)
 app.include_router(lineage.router)
 app.include_router(producer_v2.router)
+app.include_router(replay.router)
