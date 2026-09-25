@@ -23,7 +23,12 @@ from historical_replay.feedback import (
     register_feedback,
     visible_feedback_for,
 )
+from historical_replay.history_state import classify_history_row
 from historical_replay.history_view import filtered_history
+from historical_replay.imputation_markers import (
+    ImputationSourceDriftError,
+    reconstruct_imputation_markers,
+)
 from historical_replay.observations import (
     CrossSeriesObservationError,
     ObservationConsistencyError,
@@ -238,13 +243,37 @@ def get_history(
     history = filtered_history(
         package.dataset, columns=[label_column], simulated_clock=simulated_date
     )
-    rows = [
-        ReplayHistoryRow(
-            fecha=row["timestamp"].date(),
-            soil_moisture=(None if pd.isna(row[label_column]) else float(row[label_column])),
+
+    try:
+        markers = reconstruct_imputation_markers(package.dataset, [label_column])
+        drift_causa = None
+    except ImputationSourceDriftError as error:
+        markers = None
+        drift_causa = (
+            f"ImputationSourceDriftError: {error} No se reconstruyen marcadores "
+            "de imputación hasta revisar este cambio."
         )
-        for _, row in history.iterrows()
-    ]
+
+    rows = []
+    for _, row in history.iterrows():
+        fecha = row["timestamp"].date()
+        raw_value = None if pd.isna(row[label_column]) else float(row[label_column])
+        state = classify_history_row(
+            raw_value=raw_value,
+            target_date=fecha,
+            label_column=label_column,
+            imputation_markers_df=markers,
+            undetermined_causa=drift_causa,
+        )
+        rows.append(
+            ReplayHistoryRow(
+                fecha=fecha,
+                soil_moisture=raw_value,
+                estado=state.estado,
+                causa=state.causa,
+                valor_imputado=state.valor_imputado,
+            )
+        )
     return ReplayHistoryResponse(simulated_date=simulated_date, rows=rows)
 
 

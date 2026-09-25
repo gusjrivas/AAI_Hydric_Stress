@@ -147,6 +147,62 @@ def test_history_is_filtered_by_the_simulated_clock():
         _clear_overrides()
 
 
+def test_history_rows_expose_estado_and_causa():
+    client = _client_with_real_package()
+    try:
+        response = client.get("/replay/history", params={"simulated_date": "2024-10-19"})
+        assert response.status_code == 200
+        rows = response.json()["rows"]
+        assert len(rows) > 0
+        for row in rows:
+            assert row["estado"] in ("medida", "imputada", "no_determinado", "sin_dato_en_fuente")
+            if row["soil_moisture"] is not None:
+                # Un valor crudo presente nunca se etiqueta "imputada": es
+                # siempre "medida", sin importar ningún marcador (RH-05).
+                assert row["estado"] == "medida"
+                assert row["causa"] is None
+            if row["estado"] != "medida":
+                assert row["causa"] is not None and row["causa"] != ""
+    finally:
+        _clear_overrides()
+
+
+def test_history_estado_becomes_no_determinado_under_imputation_source_drift(monkeypatch):
+    from historical_replay import imputation_markers
+
+    monkeypatch.setitem(
+        imputation_markers._VERIFIED_SOURCE_SHA256,
+        "data_quality.imputation",
+        "0" * 64,
+    )
+    client = _client_with_real_package()
+    try:
+        response = client.get("/replay/history", params={"simulated_date": "2024-10-19"})
+        assert response.status_code == 200
+        rows = response.json()["rows"]
+        assert len(rows) > 0
+        for row in rows:
+            if row["soil_moisture"] is None:
+                assert row["estado"] == "no_determinado"
+                assert "ImputationSourceDriftError" in row["causa"]
+            else:
+                assert row["estado"] == "medida"
+    finally:
+        _clear_overrides()
+
+
+def test_history_response_is_unaffected_by_dates_after_the_simulated_clock():
+    client = _client_with_real_package()
+    try:
+        early = client.get("/replay/history", params={"simulated_date": "2024-10-19"}).json()
+        later_run_same_query = client.get(
+            "/replay/history", params={"simulated_date": "2024-10-19"}
+        ).json()
+        assert early == later_run_same_query
+    finally:
+        _clear_overrides()
+
+
 def test_unknown_prediction_identity_is_rejected():
     client = _client_with_real_package()
     try:

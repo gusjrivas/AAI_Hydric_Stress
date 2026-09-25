@@ -92,6 +92,9 @@ class ReplayPredictionResponse(BaseModel):
 class ReplayHistoryRow(BaseModel):
     fecha: date
     soil_moisture: float | None = None
+    estado: Literal["medida", "imputada", "no_determinado", "sin_dato_en_fuente"]
+    causa: str | None = None
+    valor_imputado: float | None = None
 
 
 class ReplayHistoryResponse(BaseModel):
