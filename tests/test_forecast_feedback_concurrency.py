@@ -17,9 +17,9 @@ from datetime import date as date_type
 from pathlib import Path
 
 import pandas as pd
-
 from app.routers.feedback import confirm_feedback, reject_feedback
 from app.schemas import RejectRequest
+
 from data_ingestion.sensor_naming import feedback_log_name_for
 from data_ingestion.storage import load_dataset
 from human_feedback.registry import register_forecast_feedback, save_feedback_log
@@ -159,8 +159,12 @@ def test_two_concurrent_emissions_with_disjoint_dates_do_not_lose_rows(tmp_path)
 def test_two_concurrent_emissions_with_an_overlapping_date_do_not_duplicate_identity(tmp_path):
     ctx = multiprocessing.get_context("spawn")
     barrier = ctx.Barrier(2)
-    p0 = ctx.Process(target=_worker_emit, args=(tmp_path, barrier, ["2024-06-01"], [0.9], "model-a"))
-    p1 = ctx.Process(target=_worker_emit, args=(tmp_path, barrier, ["2024-06-01"], [0.1], "model-b"))
+    p0 = ctx.Process(
+        target=_worker_emit, args=(tmp_path, barrier, ["2024-06-01"], [0.9], "model-a")
+    )
+    p1 = ctx.Process(
+        target=_worker_emit, args=(tmp_path, barrier, ["2024-06-01"], [0.1], "model-b")
+    )
     p0.start()
     p1.start()
     p0.join(timeout=60)
@@ -177,8 +181,12 @@ def test_two_concurrent_emissions_with_an_overlapping_date_do_not_duplicate_iden
 def test_concurrent_initial_creation_for_a_brand_new_sensor_preserves_a_valid_log(tmp_path):
     ctx = multiprocessing.get_context("spawn")
     barrier = ctx.Barrier(2)
-    p0 = ctx.Process(target=_worker_emit, args=(tmp_path, barrier, ["2024-07-01"], [0.5], "model-a"))
-    p1 = ctx.Process(target=_worker_emit, args=(tmp_path, barrier, ["2024-07-02"], [0.5], "model-b"))
+    p0 = ctx.Process(
+        target=_worker_emit, args=(tmp_path, barrier, ["2024-07-01"], [0.5], "model-a")
+    )
+    p1 = ctx.Process(
+        target=_worker_emit, args=(tmp_path, barrier, ["2024-07-02"], [0.5], "model-b")
+    )
     p0.start()
     p1.start()
     p0.join(timeout=60)

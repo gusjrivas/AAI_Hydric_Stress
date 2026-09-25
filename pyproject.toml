@@ -11,6 +11,16 @@ dependencies = [
     "netCDF4>=1.6",
     "scikit-learn>=1.4",
     "mlflow>=2.14,<3",
+    # mlflow (>=2.14,<3) declares "sqlalchemy<3,>=1.4.0" as its own
+    # constraint, but mlflow/store/db/utils.py unconditionally imports
+    # `FallbackAsyncAdaptedQueuePool` from `sqlalchemy.pool` — a symbol
+    # removed in SQLAlchemy 2.1.0. Without this pin, an unconstrained
+    # resolver (e.g. CI installing fresh) can pick sqlalchemy==2.1.0 and
+    # break every test that imports mlflow with
+    # `ImportError: cannot import name 'FallbackAsyncAdaptedQueuePool'
+    # from 'sqlalchemy.pool'`. Verified: sqlalchemy 2.0.52 still exports
+    # it, 2.1.0 does not.
+    "sqlalchemy<2.1",
 ]
 
 [project.optional-dependencies]
