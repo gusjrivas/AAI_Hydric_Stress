@@ -33,18 +33,49 @@ class IncompatibleFeatureNamesError(ValueError):
     `feature_columns` — refuses to silently overwrite it."""
 
 
+def _fitted_n_features_in(estimator: Any) -> int | None:
+    """`n_features_in_` on the estimator itself, or — for a wrapper around a
+    custom ClassifierMixin that never calls `check_array`/`_validate_data`
+    in its own `fit` (e.g. v4's `ScaledLogisticRegression`, alone or wrapped
+    by `CalibratedClassifierCV(FrozenEstimator(...))`) — on the first fitted
+    attribute found by unwrapping known delegation points. Never invents a
+    count; a wrapper chain that never reaches one returns None."""
+    current = estimator
+    visited: set[int] = set()
+    for _ in range(8):
+        if current is None or id(current) in visited:
+            return None
+        visited.add(id(current))
+        if hasattr(current, "n_features_in_"):
+            return current.n_features_in_
+        calibrated_classifiers = getattr(current, "calibrated_classifiers_", None)
+        if calibrated_classifiers:
+            current = calibrated_classifiers[0]
+            continue
+        current = next(
+            (
+                candidate
+                for attribute in ("model_", "estimator_", "base_estimator_", "estimator")
+                if (candidate := getattr(current, attribute, None)) is not None
+            ),
+            None,
+        )
+    return None
+
+
 def attach_feature_names(estimator: Any, feature_columns: list[str]) -> None:
     """Restore `feature_names_in_` on an estimator already fitted on an
     array, using the exact column order of the training matrix. Mutates
     `estimator` in place; does not change its predictions."""
-    if not hasattr(estimator, "n_features_in_"):
+    n_features_in = _fitted_n_features_in(estimator)
+    if n_features_in is None:
         raise EstimatorNotFittedError(
             "attach_feature_names requiere un estimador ya ajustado "
             "(sin n_features_in_, no se puede confirmar que .fit() ya corrió)."
         )
-    if estimator.n_features_in_ != len(feature_columns):
+    if n_features_in != len(feature_columns):
         raise FeatureNameCountMismatchError(
-            f"El estimador fue ajustado con {estimator.n_features_in_} columnas, "
+            f"El estimador fue ajustado con {n_features_in} columnas, "
             f"pero se pasaron {len(feature_columns)} nombres."
         )
     existing = getattr(estimator, "feature_names_in_", None)
