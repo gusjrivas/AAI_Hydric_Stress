@@ -1,3 +1,9 @@
 # Frozen calibration manifests are byte-addressed artifacts (ADR-0013).
 # Preserve repository bytes on Windows: autocrlf must not invalidate their identity.
 /config/producer-calibration-plan.frozen*.json -text
+
+# replay_packages/: paquetes de reproducción histórica con custody_sha256
+# fijado en manifest.json — los bytes deben ser idénticos en cualquier
+# checkout; autocrlf no debe alterarlos (ver F-06/F-07, Paso 2 auditoría).
+/replay_packages/**/*.json -text
+/replay_packages/**/*.parquet -text

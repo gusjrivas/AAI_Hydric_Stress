@@ -11,7 +11,7 @@ import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
 from data_ingestion.sensor_naming import feedback_log_name_for
-from human_feedback.registry import load_feedback_log, save_feedback_log
+from human_feedback.registry import load_feedback_log, update_feedback_log_atomically
 from human_feedback.schema import update_feedback
 
 from ..config import get_feedback_data_dir
@@ -82,11 +82,22 @@ def confirm_feedback(
     sensor_id: str = Depends(get_valid_sensor_id),
     data_dir: Path = Depends(get_feedback_data_dir),
 ) -> FeedbackRow:
-    log = _load_or_404(sensor_id, data_dir)
-    target = _find_date_or_404(log, fecha)
-    _require_mature_target(log, target)
-    updated = update_feedback(log, fecha=target, estado_validacion="confirmada")
-    save_feedback_log(feedback_log_name_for(sensor_id), updated, data_dir=data_dir)
+    target = pd.Timestamp(fecha)
+
+    def _apply(log: pd.DataFrame) -> pd.DataFrame:
+        _find_date_or_404(log, fecha)
+        _require_mature_target(log, target)
+        return update_feedback(log, fecha=target, estado_validacion="confirmada")
+
+    try:
+        updated = update_feedback_log_atomically(
+            feedback_log_name_for(sensor_id), _apply, data_dir=data_dir
+        )
+    except FileNotFoundError as error:
+        raise HTTPException(
+            status_code=404, detail="Todavía no se corrió ningún pronóstico."
+        ) from error
+
     row = updated.loc[updated["fecha"] == target].iloc[0]
     return _row_to_schema(row)
 
@@ -98,16 +109,27 @@ def reject_feedback(
     sensor_id: str = Depends(get_valid_sensor_id),
     data_dir: Path = Depends(get_feedback_data_dir),
 ) -> FeedbackRow:
-    log = _load_or_404(sensor_id, data_dir)
-    target = _find_date_or_404(log, fecha)
-    _require_mature_target(log, target)
-    updated = update_feedback(
-        log,
-        fecha=target,
-        estado_validacion="rechazada",
-        etiqueta_corregida=body.etiqueta_corregida,
-        observacion=body.observacion,
-    )
-    save_feedback_log(feedback_log_name_for(sensor_id), updated, data_dir=data_dir)
+    target = pd.Timestamp(fecha)
+
+    def _apply(log: pd.DataFrame) -> pd.DataFrame:
+        _find_date_or_404(log, fecha)
+        _require_mature_target(log, target)
+        return update_feedback(
+            log,
+            fecha=target,
+            estado_validacion="rechazada",
+            etiqueta_corregida=body.etiqueta_corregida,
+            observacion=body.observacion,
+        )
+
+    try:
+        updated = update_feedback_log_atomically(
+            feedback_log_name_for(sensor_id), _apply, data_dir=data_dir
+        )
+    except FileNotFoundError as error:
+        raise HTTPException(
+            status_code=404, detail="Todavía no se corrió ningún pronóstico."
+        ) from error
+
     row = updated.loc[updated["fecha"] == target].iloc[0]
     return _row_to_schema(row)

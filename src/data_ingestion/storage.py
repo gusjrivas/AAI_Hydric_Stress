@@ -112,6 +112,15 @@ def _dataset_lock_path(name: str, data_dir: Path) -> Path:
 DEFAULT_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 
 
+def dataset_lock_path(name: str, data_dir: Path = DEFAULT_DATA_DIR) -> Path:
+    """Public accessor for the lock path `save_dataset` uses internally,
+    so callers that need to protect a load→modify→save cycle spanning
+    multiple `data_ingestion.storage` calls (e.g.
+    `human_feedback.registry.update_feedback_log_atomically`, F-09) can
+    acquire the *same* lock without duplicating the naming scheme."""
+    return _dataset_lock_path(name, data_dir)
+
+
 def save_dataset(name: str, df: pd.DataFrame, data_dir: Path = DEFAULT_DATA_DIR) -> Path:
     data_dir.mkdir(parents=True, exist_ok=True)
     path = data_dir / f"{name}.parquet"
