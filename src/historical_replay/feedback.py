@@ -21,6 +21,8 @@ from dataclasses import asdict, dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+from data_ingestion.storage import interprocess_lock
+
 ADMITTED_VALIDATION_STATES = ("confirmada", "rechazada")
 ADMITTED_ETIQUETAS = (0, 1)
 
@@ -55,15 +57,21 @@ class ReplayFeedbackRecord:
 class ReplayFeedbackStore:
     """Append-only JSON-lines store, one file per `package_id`, isolated
     under its own directory — never `data/feedback__<sensor_id>.parquet`,
-    never inside `replay_packages/`."""
+    never inside `replay_packages/`. Writes are serialized across
+    processes via `interprocess_lock` on a dedicated `.lock` file next to
+    the `.jsonl` (never the `.jsonl` itself as lock target), because
+    append-mode writes are not guaranteed atomic between processes on
+    this platform (F-08)."""
 
     def __init__(self, storage_dir: Path, *, package_id: str):
         self._path = Path(storage_dir) / f"{package_id}.jsonl"
+        self._lock_path = Path(storage_dir) / f"{package_id}.jsonl.lock"
 
     def append(self, record: ReplayFeedbackRecord) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        with self._path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(asdict(record), ensure_ascii=False) + "\n")
+        with interprocess_lock(self._lock_path):
+            with self._path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(asdict(record), ensure_ascii=False) + "\n")
 
     def list_for(self, timestamp_origen: str) -> list[ReplayFeedbackRecord]:
         if not self._path.exists():
