@@ -76,6 +76,33 @@ def update_feedback_log_atomically(
     return updated
 
 
+def register_forecast_feedback(
+    name: str, fresh: pd.DataFrame, data_dir: Path = DEFAULT_DATA_DIR
+) -> pd.DataFrame:
+    """Fusiona atómicamente las filas recién emitidas de un pronóstico
+    (`fresh`, ya construidas por `human_feedback.schema.init_prediction_feedback`)
+    en el registro de retroalimentación de `name`: las filas existentes
+    (predicciones, revisiones, correcciones y metadatos ya persistidos)
+    nunca se sobreescriben — solo se agregan las fechas de `fresh`
+    ausentes del registro vigente. Reutiliza el mismo lock interproceso
+    que protege `confirm_feedback`/`reject_feedback` (F-09), incluyendo
+    el caso de que el archivo todavía no exista (dos primeras emisiones
+    concurrentes para el mismo sensor no compiten por crearlo fuera del
+    lock)."""
+
+    def _merge(existing: pd.DataFrame | None) -> pd.DataFrame:
+        if existing is None:
+            return fresh
+        return pd.concat(
+            [existing, fresh[~fresh["fecha"].isin(existing["fecha"])]],
+            ignore_index=True,
+        )
+
+    return update_feedback_log_atomically(
+        name, _merge, data_dir=data_dir, create_if_missing=True
+    )
+
+
 def upsert_feedback_log(
     existing: pd.DataFrame, dates: pd.Series, alerts: pd.Series
 ) -> pd.DataFrame:

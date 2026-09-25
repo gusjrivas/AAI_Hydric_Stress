@@ -6,11 +6,12 @@ import pytest
 from data_ingestion.storage import load_dataset
 from human_feedback.registry import (
     integrate_feedback_with_predictions,
+    register_forecast_feedback,
     save_feedback_log,
     update_feedback_log_atomically,
     upsert_feedback_log,
 )
-from human_feedback.schema import init_feedback_log, update_feedback
+from human_feedback.schema import init_feedback_log, init_prediction_feedback, update_feedback
 
 
 def test_save_feedback_log_roundtrips_through_storage_contract(tmp_path):
@@ -107,6 +108,60 @@ def test_update_feedback_log_atomically_still_raises_when_missing_and_not_reques
 
     with pytest.raises(FileNotFoundError):
         update_feedback_log_atomically("feedback_missing", _apply, data_dir=tmp_path)
+
+
+def test_register_forecast_feedback_creates_the_log_when_absent(tmp_path):
+    fresh = init_prediction_feedback(
+        pd.DataFrame(
+            {
+                "timestamp": pd.to_datetime(["2024-03-01", "2024-03-02"]),
+                "alert": [1, 0],
+                "y_proba": [0.7, 0.2],
+            }
+        ),
+        "model-a",
+        horizon_days=3,
+        threshold=0.5,
+    )
+
+    result = register_forecast_feedback("feedback_forecast", fresh, data_dir=tmp_path)
+
+    assert len(result) == 2
+    assert set(result["fecha"]) == set(fresh["fecha"])
+
+
+def test_register_forecast_feedback_does_not_replace_an_already_registered_prediction(tmp_path):
+    first = init_prediction_feedback(
+        pd.DataFrame(
+            {
+                "timestamp": pd.to_datetime(["2024-03-01"]),
+                "alert": [1],
+                "y_proba": [0.9],
+            }
+        ),
+        "model-a",
+        horizon_days=3,
+        threshold=0.5,
+    )
+    register_forecast_feedback("feedback_reemission", first, data_dir=tmp_path)
+
+    second = init_prediction_feedback(
+        pd.DataFrame(
+            {
+                "timestamp": pd.to_datetime(["2024-03-01"]),
+                "alert": [0],
+                "y_proba": [0.1],
+            }
+        ),
+        "model-b",
+        horizon_days=3,
+        threshold=0.5,
+    )
+    result = register_forecast_feedback("feedback_reemission", second, data_dir=tmp_path)
+
+    row = result.loc[result["fecha"] == pd.Timestamp("2024-03-01")].iloc[0]
+    assert row["model_version"] == "model-a"
+    assert row["y_proba"] == 0.9
 
 
 def test_integrate_feedback_with_predictions_joins_by_date():

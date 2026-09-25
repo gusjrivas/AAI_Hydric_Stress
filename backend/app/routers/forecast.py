@@ -6,12 +6,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
 from data_ingestion.sensor_naming import feedback_log_name_for
 from human_feedback.model_registry import load_predictor_by_id, register_predictor
-from human_feedback.registry import load_feedback_log, save_feedback_log
+from human_feedback.registry import register_forecast_feedback
 from human_feedback.schema import init_prediction_feedback
 
 from ..config import get_dataset_data_dir, get_feedback_data_dir
@@ -51,15 +50,7 @@ def run_forecast(
     )
 
     feedback_log_name = feedback_log_name_for(sensor_id)
-    try:
-        existing_feedback = load_feedback_log(feedback_log_name, data_dir=feedback_dir)
-        merged_feedback = pd.concat(
-            [existing_feedback, fresh[~fresh.fecha.isin(existing_feedback.fecha)]],
-            ignore_index=True,
-        )
-    except FileNotFoundError:
-        merged_feedback = fresh
-    save_feedback_log(feedback_log_name, merged_feedback, data_dir=feedback_dir)
+    merged_feedback = register_forecast_feedback(feedback_log_name, fresh, data_dir=feedback_dir)
 
     # One immutable issued forecast per sensor/day. Re-running does not replace
     # the prediction a human has already reviewed with another model's output.
