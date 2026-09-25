@@ -1,9 +1,12 @@
+import multiprocessing
+
 import pandas as pd
 
 from data_ingestion.storage import load_dataset
 from human_feedback.registry import (
     integrate_feedback_with_predictions,
     save_feedback_log,
+    update_feedback_log_atomically,
     upsert_feedback_log,
 )
 from human_feedback.schema import init_feedback_log, update_feedback
@@ -38,6 +41,47 @@ def test_upsert_feedback_log_preserves_existing_validation_and_adds_new_dates():
     assert row_jan1["estado_validacion"] == "confirmada"
     assert row_jan3["estado_validacion"] == "pendiente"
     assert len(merged) == 3
+
+
+def _worker_update_atomically(data_dir, name, barrier, fecha, estado):
+    from human_feedback.registry import update_feedback_log_atomically
+    from human_feedback.schema import update_feedback
+
+    def _apply(log):
+        return update_feedback(log, fecha=fecha, estado_validacion=estado)
+
+    barrier.wait()
+    update_feedback_log_atomically(name, _apply, data_dir=data_dir)
+
+
+def test_update_feedback_log_atomically_survives_concurrent_updates_to_different_rows(tmp_path):
+    dates = pd.date_range("2024-01-01", periods=4, freq="D")
+    alerts = pd.Series([1, 1, 0, 0])
+    initial = init_feedback_log(pd.Series(dates), alerts)
+    save_feedback_log("feedback_concurrent", initial, data_dir=tmp_path)
+
+    ctx = multiprocessing.get_context("spawn")
+    barrier = ctx.Barrier(2)
+    p0 = ctx.Process(
+        target=_worker_update_atomically,
+        args=(tmp_path, "feedback_concurrent", barrier, dates[0], "confirmada"),
+    )
+    p1 = ctx.Process(
+        target=_worker_update_atomically,
+        args=(tmp_path, "feedback_concurrent", barrier, dates[1], "rechazada"),
+    )
+    p0.start()
+    p1.start()
+    p0.join(timeout=60)
+    p1.join(timeout=60)
+    assert p0.exitcode == 0
+    assert p1.exitcode == 0
+
+    final = load_dataset("feedback_concurrent", data_dir=tmp_path)
+    row0 = final.loc[final["fecha"] == dates[0]].iloc[0]
+    row1 = final.loc[final["fecha"] == dates[1]].iloc[0]
+    assert row0["estado_validacion"] == "confirmada"
+    assert row1["estado_validacion"] == "rechazada"
 
 
 def test_integrate_feedback_with_predictions_joins_by_date():

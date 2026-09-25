@@ -7,11 +7,20 @@ retroalimentación con los registros de predicción").
 
 from __future__ import annotations
 
+import io
+from collections.abc import Callable
 from pathlib import Path
 
 import pandas as pd
 
-from data_ingestion.storage import DEFAULT_DATA_DIR, load_dataset, save_dataset
+from data_ingestion.storage import (
+    DEFAULT_DATA_DIR,
+    atomic_write_bytes,
+    dataset_lock_path,
+    interprocess_lock,
+    load_dataset,
+    save_dataset,
+)
 from human_feedback.schema import init_feedback_log
 
 
@@ -27,6 +36,28 @@ def load_feedback_log(name: str, data_dir: Path = DEFAULT_DATA_DIR) -> pd.DataFr
     contrato `load_dataset` de `data-ingestion`.
     """
     return load_dataset(name, data_dir=data_dir)
+
+
+def update_feedback_log_atomically(
+    name: str,
+    update_fn: Callable[[pd.DataFrame], pd.DataFrame],
+    data_dir: Path = DEFAULT_DATA_DIR,
+) -> pd.DataFrame:
+    """Ejecuta `load -> update_fn -> save` como una única unidad bajo el
+    mismo lock interproceso que ya protege `save_dataset` (F-09): sin
+    esto, dos ciclos concurrentes pueden leer la misma versión y el
+    segundo en escribir sobreescribe silenciosamente la actualización
+    del primero ("lost update"). Escribe directamente con
+    `atomic_write_bytes` (no vía `save_dataset`) para no anidar una
+    segunda adquisición del mismo lock dentro de esta."""
+    lock_path = dataset_lock_path(name, data_dir)
+    with interprocess_lock(lock_path):
+        log = load_dataset(name, data_dir=data_dir)
+        updated = update_fn(log)
+        buffer = io.BytesIO()
+        updated.to_parquet(buffer, index=False)
+        atomic_write_bytes(data_dir / f"{name}.parquet", buffer.getvalue())
+    return updated
 
 
 def upsert_feedback_log(
