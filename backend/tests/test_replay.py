@@ -163,6 +163,16 @@ def test_history_rows_expose_estado_and_causa():
                 assert row["causa"] is None
             if row["estado"] != "medida":
                 assert row["causa"] is not None and row["causa"] != ""
+
+        # El paquete real tiene huecos genuinos rellenados por
+        # interpolate_missing_causal: al menos una fila real debe quedar en
+        # "imputada", con soil_moisture null y el valor derivado en el
+        # campo separado (nunca dentro de soil_moisture).
+        imputed_rows = [row for row in rows if row["estado"] == "imputada"]
+        assert len(imputed_rows) > 0
+        for row in imputed_rows:
+            assert row["soil_moisture"] is None
+            assert row["valor_imputado"] is not None
     finally:
         _clear_overrides()
 
@@ -192,13 +202,17 @@ def test_history_estado_becomes_no_determinado_under_imputation_source_drift(mon
 
 
 def test_history_response_is_unaffected_by_dates_after_the_simulated_clock():
+    """Ampliar el reloj simulado (que revela más filas del dataset
+    empaquetado a reconstruct_imputation_markers) no debe cambiar ninguna
+    fila ya devuelta antes del corte anterior — ni su soil_moisture, ni su
+    estado, ni su causa (interpolate_missing_causal es forward-fill puro:
+    el estado de una fecha depende solo de fechas iguales o anteriores)."""
     client = _client_with_real_package()
     try:
         early = client.get("/replay/history", params={"simulated_date": "2024-10-19"}).json()
-        later_run_same_query = client.get(
-            "/replay/history", params={"simulated_date": "2024-10-19"}
-        ).json()
-        assert early == later_run_same_query
+        later = client.get("/replay/history", params={"simulated_date": "2024-12-31"}).json()
+        assert len(later["rows"]) > len(early["rows"])
+        assert later["rows"][: len(early["rows"])] == early["rows"]
     finally:
         _clear_overrides()
 
