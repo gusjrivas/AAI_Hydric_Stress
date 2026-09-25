@@ -2,6 +2,8 @@
 
 **Revisión 3 (2026-09-25):** reemplaza íntegramente las revisiones anteriores (`e3b4b6b`, `5c2eff9`) tras la devolución de Codex sobre `5c2eff9`. Todas las citas de código de este documento están verificadas contra el árbol actual del worktree (`feat/ensemble-operational-integration`), no contra memoria de sesión.
 
+**Nota de implementación (2026-09-25, mismo día/sesión):** Hito 1 quedó implementado con las 7 correcciones obligatorias que Codex identificó sobre esta Revisión 3 (sin reabrir el diseño): contrato de salida `ensemble` anidado (nunca `ensemble_*` sueltos); fixtures reutilizando `HorizonContract`/`capture_environment`/hash de bytes reales; las tres familias reales de v4 (`build_estimator`/`fit_estimator`, frozen) ajustadas y calibradas por separado con `CalibratedClassifierCV(FrozenEstimator(...), method="sigmoid")` sobre una partición de calibración disjunta, verificadas por serialización/carga/inferencia reales (no solo con `StubEstimator`); validación estricta de manifiesto/pesos/NaN/infinitos sin fallback; identidad determinística con los tres hashes + `weights`; compatibilidad HTTP/idempotencia preservada (el campo `ensemble` se omite, nunca se agrega como `null`, para no invalidar reintentos legacy). El código de ejemplo de la sección 6 y del plan no se usó tal cual: se contrastó contra las interfaces reales antes de implementar. Detalle de archivos y pruebas en el plan (changelog al inicio).
+
 **HU/capacidad:** integra `predictive-modeling` (bundles operativos v2, `backend/app/routers/producer_v2.py`) con `experiment-runner` (familias de `controlled_daily_v4`). Trazabilidad detallada en la sección 10.
 
 **Fase CRISP-DM:** despliegue (Hito 1: contrato técnico verificable); planificación de modelado (Hito 2: plan, sin ejecución).
@@ -218,7 +220,7 @@ Nuevo módulo pequeño `src/predictive_modeling/bundle_packaging.py::attach_feat
 
 **Compatibilidad/regresión:** sensores/horizontes sin `ensemble/` ni `ensemble_manifest.json` producen exactamente la misma respuesta que hoy — test de regresión explícito, sobre el camino HTTP real, no solo a nivel de función.
 
-**Identificar qué se verificó con artefactos reales de v4: nada** — no existen (sección 2); se documenta como limitación, no como cobertura lograda.
+**Identificar qué se verificó con artefactos reales de v4: nada** — no se encontraron en lo inspeccionado (sección 2); se documenta como limitación, no como cobertura lograda.
 
 ## 4. Documentación y trazabilidad a actualizar
 
@@ -257,7 +259,7 @@ Documento separado `docs/design/ensemble-real-enablement-plan.md`, sin ejecutar 
 - **Umbrales:** confirmar `decision_threshold=0.5` sin optimizar, documentado como no-tuneado.
 - **Horizontes compatibles:** verificar cuáles de horizonte 1/2/3 tienen soporte real en v4 (no asumir que los 3 existen igual que en v2).
 - **Período admisible para demostración histórica:** ventana causalmente válida para una demo tipo `historical_replay`, sin tocar `replay_packages/` ni mezclar este ensamble con el paquete `base-seed4` custodiado.
-- **Autorizaciones científicas requeridas:** rol/autoridad que debe aprobar Stage A real sobre Pergamino (protocolo de cierre científico, `openspec/scientific-closure/`), y diferencias respecto del protocolo v3/v4 vigente (v4 nunca se ejecutó sobre datos reales con fines operativos, no solo científicos — decisión que excede este cambio).
+- **Autorizaciones científicas requeridas:** rol/autoridad que debe aprobar Stage A real sobre Pergamino (protocolo de cierre científico, `openspec/scientific-closure/`), y diferencias respecto del protocolo v3/v4 vigente (no se encontró en lo inspeccionado ninguna ejecución de v4 sobre datos reales con fines operativos, no solo científicos — decisión que excede este cambio).
 - Los cuatro estados de la sección 1, explícitamente diferenciados en el documento, para que quede claro cuál de ellos deja resuelto cada paso del plan.
 
 ## 8. Plan de implementación (Hito 1)

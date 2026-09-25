@@ -10,6 +10,21 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-25-ensemble-operational-integration-design.md` (Revisión 3) — read together with this plan; the spec is the argument, this plan is bite-sized execution.
 
+## Changelog — corrections applied during implementation (2026-09-25)
+
+The example code in the sections below is illustrative only, not a validated implementation — it was checked against the real interfaces (`HorizonContract`, `build_estimator`/`fit_estimator`, the real HTTP route, `SlotSeed`, `EnsembleDetail`) before use, and diverged from it where the sketch omitted required fields (`temporal_cuts`, `data_snapshot_sha256`) or used invalid params (`build_estimator(family, {})`).
+
+7 corrections from Codex's review of this plan/spec were applied during implementation, module by module:
+1. `_render_forecast` emits one nested `ensemble` object (never loose `ensemble_*` keys); `components` is one ordered list, tested end-to-end (emission, listing, individual lookup) — `src/human_feedback/operational_repository.py`, `backend/app/schemas_v2.py`.
+2. Fixtures (`tests/helpers/synthetic_bundles.py`) reuse the real `HorizonContract`/`capture_environment`, include `temporal_cuts`/`data_snapshot_sha256`, and hash the bytes actually written to disk.
+3. The three real v4 families are fit with valid `build_estimator` params and each genuinely calibrated on a disjoint synthetic partition via `CalibratedClassifierCV(FrozenEstimator(...), method="sigmoid")` (`operational_run.fit_seed`'s own pattern) — serialization/load/inference of all three plus the aggregate verified through the real, unmodified loader (`tests/test_ensemble_bundle_real_families.py`); `StubEstimator` doubles stay reserved for exact-probability cases (`tests/test_ensemble_bundle.py`). `attach_feature_names` requires an already-fitted estimator, checks the input count, and never overwrites incompatible names (`src/predictive_modeling/bundle_packaging.py`).
+4. Manifest/weights/threshold validation rejects NaN/infinities/malformed structure without a fallback; per-horizon unavailability preserves family+cause (`src/predictive_modeling/ensemble_bundle.py`).
+5. `EnsembleDetail` binds weights, hashes and a `model_validator` coherence check between probabilities/votes/category/components (`backend/app/schemas_v2.py`).
+6. Compatibility verified against the real route (`POST /api/v2/sensors/{sensor_id}/forecasts`, `json={}`, `body["slots"]`) in `backend/tests/test_producer_v2_ensemble.py`; the `ensemble` key is omitted (never `null`) from the hashed idempotency payload for a single-model slot, so legacy retries hash identically (`tests/test_operational_repository_ensemble.py`).
+7. No memoria técnica file was touched; absolute "no existen"/"nunca se ejecutó" phrasing was corrected to "no encontrado en lo inspeccionado" in the spec (section 2); Hito 2 remains an unexecuted planning document.
+
+Two real bugs were caught by TDD during this pass (not corrections from review, but worth recording): a byte-identical-stub collision that tripped the intended cross-check for component independence (fixed by using distinct dummy probabilities per family — this happened twice, in two different test files), and a temporal-inadmissibility date mismatch between a fixture's default `trained_through`/`calibrated_through` and a test's `as_of_date`.
+
 ## Global Constraints
 
 - Never modify `load_operational_bundle`, `predict_operational_bundle`, `_verify_file_integrity`/`_sha256_of`, anything under `replay_packages/`, or any file in `src/experiment_runner/controlled_daily_v4/` (`freezing.py`, `tuning.py`, stage runners, `models.py`) — only reuse.
