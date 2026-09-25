@@ -124,7 +124,7 @@ def test_ensemble_configured_and_complete_is_available_with_combined_view(tmp_pa
     for horizon in (1, 2, 3):
         for family, probability in [
             ("logistic_regression", 0.51),
-            ("random_forest", 0.51),
+            ("random_forest", 0.52),
             ("hist_gradient_boosting_classifier", 0.01),
         ]:
             _write_ensemble_component(

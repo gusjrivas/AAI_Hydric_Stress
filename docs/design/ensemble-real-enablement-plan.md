@@ -27,7 +27,7 @@
 
 ## 3. Entrenamiento
 
-- Stage A real sobre Pergamino nunca se ejecutó (solo verificado sintéticamente hasta la fecha de este documento) — ejecutarlo por primera vez requiere la autorización de la sección 0.
+- No se encontró en lo inspeccionado ninguna ejecución real de Stage A sobre Pergamino (solo verificado sintéticamente hasta la fecha de este documento; ver sección 0 sobre las limitaciones de ese inventario) — ejecutarlo por primera vez, o reutilizar una ejecución real ya existente en algún lugar no inspeccionado, requiere la autorización de la sección 0.
 - Refit vía `freezing.fit_final_estimator`, por familia, sobre el `eligible_frame` real resultante de Stage A — sin modificar esa función ni el resto de `controlled_daily_v4/` (frozen).
 - Empaquetado real usando `attach_feature_names` (`src/predictive_modeling/bundle_packaging.py`, sin cambios respecto de Hito 1) para restituir `feature_names_in_` sobre los estimadores reales ajustados por array.
 

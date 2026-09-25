@@ -11,6 +11,7 @@ from predictive_modeling.ensemble_bundle import (
     EnsembleComponentMissingError,
     EnsembleManifestInvalidError,
     EnsembleManifestMissingError,
+    compute_ensemble_identity,
     is_ensemble_configured,
     load_ensemble_bundle,
     predict_ensemble_bundle,
@@ -133,26 +134,64 @@ def test_load_ensemble_bundle_raises_on_nan_weight(tmp_path):
         load_ensemble_bundle(tmp_path, sensor_id="s1", horizon=1)
 
 
+def test_load_ensemble_bundle_raises_typed_error_on_unhashable_policy_version(tmp_path):
+    """policy_version=[] is unhashable -- `... not in SUPPORTED_POLICY_VERSIONS`
+    must not raise a bare TypeError; it must be a typed manifest error."""
+    d = tmp_path / "s1" / "horizon_1"
+    d.mkdir(parents=True)
+    _write_full_manifest(d / "ensemble_manifest.json", policy_version=[])
+    with pytest.raises(EnsembleManifestInvalidError):
+        load_ensemble_bundle(tmp_path, sensor_id="s1", horizon=1)
+
+
+def test_load_ensemble_bundle_raises_typed_error_on_a_non_string_family(tmp_path):
+    """A `families` entry that is an object (unhashable) must not raise a
+    bare TypeError from `set(families)`; it must be a typed manifest error."""
+    d = tmp_path / "s1" / "horizon_1"
+    d.mkdir(parents=True)
+    _write_full_manifest(
+        d / "ensemble_manifest.json",
+        families=["logistic_regression", {"not": "a string"}, "hist_gradient_boosting_classifier"],
+    )
+    with pytest.raises(EnsembleManifestInvalidError):
+        load_ensemble_bundle(tmp_path, sensor_id="s1", horizon=1)
+
+
 # --------------------------------------------------------------------------
 # load_ensemble_bundle -- component loading + cross-checks (real fixtures)
 # --------------------------------------------------------------------------
 
 
-def _write_three_components(tmp_path, *, sensor_id="s1", horizon=1, event=None):
+def _write_three_components(
+    tmp_path,
+    *,
+    sensor_id="s1",
+    horizon=1,
+    event=None,
+    decision_threshold=0.5,
+    bundle_contract_version="producer_daily_h123_v1",
+    manifest_contract_version=None,
+    duplicate_probabilities: dict[str, float] | None = None,
+    lags=None,
+    rolling_windows=None,
+):
     horizon_dir = tmp_path / sensor_id / f"horizon_{horizon}"
+    probabilities = duplicate_probabilities or {}
     for index, family in enumerate(SUPPORTED_FAMILIES):
         # Distinct dummy probability per family so the serialized bytes (and
         # therefore each artifact's sha256 identity) are genuinely distinct —
         # load_ensemble_bundle rejects components that share an artifact hash
         # (never "three renamed copies of the same model"). The actual value
         # is irrelevant for aggregation-math tests, which monkeypatch
-        # predict_operational_bundle entirely.
+        # predict_operational_bundle entirely. `duplicate_probabilities` lets
+        # a specific test override this to deliberately create a collision.
+        probability = probabilities.get(family, 0.1 * (index + 1))
         model = StubEstimator(
-            positive_probability=0.1 * (index + 1),
+            positive_probability=probability,
             feature_names_in_=np.array(["temperature", "relative_humidity"], dtype=object),
         )
         calibrator = StubEstimator(
-            positive_probability=0.1 * (index + 1),
+            positive_probability=probability,
             feature_names_in_=np.array(["temperature", "relative_humidity"], dtype=object),
         )
         write_single_bundle(
@@ -164,8 +203,17 @@ def _write_three_components(tmp_path, *, sensor_id="s1", horizon=1, event=None):
             model_identity_label=f"{family}_model",
             calibrator_identity_label=f"{family}_calibrator",
             event=event,
+            decision_threshold=decision_threshold,
+            contract_version=bundle_contract_version,
+            lags=lags,
+            rolling_windows=rolling_windows,
         )
-    write_ensemble_manifest(horizon_dir, sensor_id=sensor_id, horizon=horizon)
+    write_ensemble_manifest(
+        horizon_dir,
+        sensor_id=sensor_id,
+        horizon=horizon,
+        contract_version=manifest_contract_version or bundle_contract_version,
+    )
     return horizon_dir
 
 
@@ -173,6 +221,120 @@ def test_load_ensemble_bundle_succeeds_with_three_valid_components(tmp_path):
     _write_three_components(tmp_path)
     ensemble = load_ensemble_bundle(tmp_path, sensor_id="s1", horizon=1)
     assert set(ensemble.components) == set(SUPPORTED_FAMILIES)
+
+
+def test_load_ensemble_bundle_raises_when_decision_threshold_is_not_half(tmp_path):
+    """decision_threshold=0.5 is a requirement of ensemble_agreement_v1
+    itself, frozen and never tuned -- not merely a cross-component
+    agreement. All 3 components agreeing on 0.6 must still be rejected."""
+    _write_three_components(tmp_path, decision_threshold=0.6)
+    with pytest.raises(EnsembleBundleIncompatible, match="decision_threshold"):
+        load_ensemble_bundle(tmp_path, sensor_id="s1", horizon=1)
+
+
+def test_load_ensemble_bundle_raises_when_a_component_contract_version_disagrees_with_the_manifest(
+    tmp_path,
+):
+    """The 3 components can agree with *each other* on contract_version
+    while all 3 disagree with what ensemble_manifest.json itself declares —
+    that must still be rejected, not only pairwise component disagreement."""
+    _write_three_components(
+        tmp_path,
+        bundle_contract_version="producer_daily_h123_v1",
+        manifest_contract_version="producer_daily_h123_v2",
+    )
+    with pytest.raises(EnsembleBundleIncompatible, match="contract_version"):
+        load_ensemble_bundle(tmp_path, sensor_id="s1", horizon=1)
+
+
+# --------------------------------------------------------------------------
+# compute_ensemble_identity -- covers the effective preparation too, and is
+# insensitive to dict/JSON key insertion order
+# --------------------------------------------------------------------------
+
+
+def _load_identity(tmp_path, **kwargs):
+    _write_three_components(tmp_path, **kwargs)
+    ensemble = load_ensemble_bundle(tmp_path, sensor_id="s1", horizon=1)
+    return compute_ensemble_identity(ensemble.manifest, ensemble.components)
+
+
+def test_ensemble_identity_changes_when_lags_change(tmp_path):
+    identity_a = _load_identity(tmp_path / "a", lags=[1])
+    identity_b = _load_identity(tmp_path / "b", lags=[1, 2, 3])
+    assert identity_a != identity_b
+
+
+def test_ensemble_identity_changes_when_rolling_windows_change(tmp_path):
+    identity_a = _load_identity(tmp_path / "a", rolling_windows=[3])
+    identity_b = _load_identity(tmp_path / "b", rolling_windows=[3, 7])
+    assert identity_a != identity_b
+
+
+def test_ensemble_identity_changes_when_decision_threshold_changes(tmp_path):
+    # decision_threshold=0.5 is required by ensemble_agreement_v1 (see the
+    # cross-check test above), so this exercises identity sensitivity via a
+    # direct call to compute_ensemble_identity on a bundle that never goes
+    # through the 0.5-enforcing cross-check itself.
+    _write_three_components(tmp_path / "a", decision_threshold=0.5)
+    _write_three_components(tmp_path / "b", decision_threshold=0.5)
+    ensemble_a = load_ensemble_bundle(tmp_path / "a", sensor_id="s1", horizon=1)
+    ensemble_b = load_ensemble_bundle(tmp_path / "b", sensor_id="s1", horizon=1)
+    identity_a = compute_ensemble_identity(ensemble_a.manifest, ensemble_a.components)
+    # Tamper with the loaded (in-memory only) metadata to simulate a
+    # different effective decision_threshold without re-triggering the
+    # cross-check that would otherwise reject it.
+    for bundle in ensemble_b.components.values():
+        bundle.metadata["decision_threshold"] = 0.6
+    identity_b = compute_ensemble_identity(ensemble_b.manifest, ensemble_b.components)
+    assert identity_a != identity_b
+
+
+def test_ensemble_identity_changes_when_a_component_artifact_changes(tmp_path):
+    identity_a = _load_identity(tmp_path / "a")
+    identity_b = _load_identity(
+        tmp_path / "b", duplicate_probabilities={"logistic_regression": 0.777}
+    )
+    assert identity_a != identity_b
+
+
+def test_ensemble_identity_is_unaffected_by_weights_dict_key_insertion_order(tmp_path):
+    _write_three_components(tmp_path)
+    ensemble = load_ensemble_bundle(tmp_path, sensor_id="s1", horizon=1)
+    identity_sorted_keys = compute_ensemble_identity(ensemble.manifest, ensemble.components)
+
+    reordered_manifest = dict(ensemble.manifest)
+    reordered_manifest["weights"] = {
+        family: ensemble.manifest["weights"][family]
+        for family in reversed(sorted(ensemble.manifest["weights"]))
+    }
+    identity_reordered = compute_ensemble_identity(reordered_manifest, ensemble.components)
+
+    reordered_components = dict(reversed(list(ensemble.components.items())))
+    identity_components_reordered = compute_ensemble_identity(
+        ensemble.manifest, reordered_components
+    )
+
+    assert identity_sorted_keys == identity_reordered == identity_components_reordered
+
+
+def test_load_ensemble_bundle_raises_on_duplicate_hash_between_second_and_third_family(tmp_path):
+    """A byte-identical duplicate between the second and third family
+    (alphabetically: logistic_regression, random_forest), while the first
+    (hist_gradient_boosting_classifier) is distinct from both, must still be
+    caught — checking every candidate only against a fixed reference would
+    miss this, since neither duplicate would compare unequal to the
+    reference alone."""
+    _write_three_components(
+        tmp_path,
+        duplicate_probabilities={
+            "hist_gradient_boosting_classifier": 0.1,
+            "logistic_regression": 0.5,
+            "random_forest": 0.5,
+        },
+    )
+    with pytest.raises(EnsembleBundleIncompatible, match="logistic_regression y random_forest"):
+        load_ensemble_bundle(tmp_path, sensor_id="s1", horizon=1)
 
 
 def test_load_ensemble_bundle_raises_when_a_family_directory_is_missing(tmp_path):

@@ -4,6 +4,8 @@ pattern already used by backend/tests/test_producer_v2_emission.py."""
 
 from __future__ import annotations
 
+import json as json_module
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -85,6 +87,79 @@ def client(tmp_path):
             yield test_client, tmp_path, root
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def client_with_malformed_manifest_at_horizon_2(tmp_path):
+    """horizon_1 and horizon_3 are fully valid 3-family ensembles; horizon_2's
+    `ensemble_manifest.json` has `policy_version=[]` (unhashable) and
+    `families` containing an object instead of a string -- both would raise
+    a bare `TypeError` from a `set()`/`in`-on-a-set operation on unvalidated
+    input if `_validate_manifest` didn't type-check first."""
+    root = tmp_path / "bundles"
+    sensor_id = "synthetic-sensor"
+    for horizon in (1, 3):
+        for family, probability in [
+            ("logistic_regression", 0.99),
+            ("random_forest", 0.49),
+            ("hist_gradient_boosting_classifier", 0.40),
+        ]:
+            _write_component(
+                root, sensor_id=sensor_id, horizon=horizon, family=family, probability=probability
+            )
+        write_ensemble_manifest(
+            root / sensor_id / f"horizon_{horizon}", sensor_id=sensor_id, horizon=horizon
+        )
+    horizon_2_dir = root / sensor_id / "horizon_2"
+    horizon_2_dir.mkdir(parents=True, exist_ok=True)
+    malformed_manifest = {
+        "format_version": 1,
+        "mode": "ensemble",
+        "policy_version": [],  # unhashable: must not raise a bare TypeError
+        "sensor_id": sensor_id,
+        "horizon_days": 2,
+        "contract_version": "producer_daily_h123_v1",
+        "families": [
+            "logistic_regression",
+            {"not": "a string"},  # unhashable: must not raise a bare TypeError
+            "hist_gradient_boosting_classifier",
+        ],
+        "weights": {
+            "logistic_regression": 1 / 3,
+            "random_forest": 1 / 3,
+            "hist_gradient_boosting_classifier": 1 / 3,
+        },
+    }
+    (horizon_2_dir / "ensemble_manifest.json").write_text(
+        json_module.dumps(malformed_manifest), encoding="utf-8"
+    )
+    save_dataset(f"sensor__{sensor_id}", _frame(), data_dir=tmp_path)
+    app.dependency_overrides[get_dataset_data_dir] = lambda: tmp_path
+    app.dependency_overrides[is_producer_v2_enabled] = lambda: True
+    app.dependency_overrides[get_producer_bundle_root] = lambda: root
+    try:
+        with TestClient(app) as test_client:
+            yield test_client
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_a_malformed_manifest_at_one_horizon_leaves_it_unavailable_without_blocking_the_others(
+    client_with_malformed_manifest_at_horizon_2,
+):
+    http = client_with_malformed_manifest_at_horizon_2
+    response = emit(http)
+    assert response.status_code == 201, response.text
+    body = response.json()
+    slots = {slot["horizon_days"]: slot for slot in body["slots"]}
+
+    assert slots[2]["status"] == "unavailable"
+    assert "EnsembleManifestInvalidError" in slots[2]["reason_code"]
+    assert "TypeError" not in slots[2]["reason_code"]
+
+    for horizon in (1, 3):
+        assert slots[horizon]["status"] == "available"
+        assert slots[horizon]["ensemble"]["policy_version"] == "ensemble_agreement_v1"
 
 
 def emit(client, key="request-1", sensor="synthetic-sensor", body=None):

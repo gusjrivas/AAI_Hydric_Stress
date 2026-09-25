@@ -164,6 +164,12 @@ def fitted_partitions():
         "feature_names": feature_names,
         "fitted": fitted,
         "X_train": X_train,
+        # The exact threshold used to build y_train/y_calib above (via
+        # `add_multihorizon_targets`) -- exported into the bundle's event
+        # metadata as-is, never a placeholder, so the contract never
+        # advertises a different event than the one the labels actually
+        # encode.
+        "threshold": threshold,
     }
 
 
@@ -210,7 +216,7 @@ def test_three_real_families_serialize_load_and_infer_through_the_real_bundle(
             rolling_windows=list(DEFAULT_ROLLING_WINDOWS),
             event={
                 "variable": "soil_moisture",
-                "threshold": 0.3,
+                "threshold": fitted_partitions["threshold"],
                 "unit": "m3/m3",
                 "comparison": "lt",
             },
@@ -230,6 +236,17 @@ def test_three_real_families_serialize_load_and_infer_through_the_real_bundle(
 
     ensemble = load_ensemble_bundle(root, sensor_id=sensor_id, horizon=HORIZON)
     assert set(ensemble.components) == set(FAMILY_PARAMS)
+
+    # The event exported in every component's contract must be the exact
+    # same threshold used above to build y_train/y_calib -- never a
+    # placeholder that happens to differ from what the labels encode.
+    for family, component in ensemble.components.items():
+        exported_threshold = component.metadata["contract"]["event"]["threshold"]
+        expected_threshold = fitted_partitions["threshold"]
+        assert exported_threshold == expected_threshold, (
+            f"{family}: el evento exportado ({exported_threshold}) no coincide con el "
+            f"umbral usado para etiquetar entrenamiento/calibración ({expected_threshold})"
+        )
 
     as_of_date = date(2024, 7, 15)  # inside evaluation, after calibrated_through
     result = predict_ensemble_bundle(

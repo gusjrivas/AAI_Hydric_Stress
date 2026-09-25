@@ -16,6 +16,7 @@ import json
 import math
 from dataclasses import dataclass
 from datetime import date
+from itertools import combinations
 from pathlib import Path
 from typing import Any
 
@@ -112,15 +113,19 @@ def _validate_manifest(manifest: Any, *, sensor_id: str, horizon: int) -> dict[s
         )
     if not isinstance(manifest.get("contract_version"), str) or not manifest["contract_version"]:
         raise EnsembleManifestInvalidError("contract_version debe ser texto no vacío.")
-    if manifest.get("policy_version") not in SUPPORTED_POLICY_VERSIONS:
-        raise EnsembleManifestInvalidError(
-            f"policy_version no soportada: {manifest.get('policy_version')!r}."
-        )
+
+    # Type-check before any set()/`in`-on-a-set operation: an unhashable
+    # policy_version (e.g. a list) or an unhashable family (e.g. a dict)
+    # must raise a typed manifest error, never a bare TypeError.
+    policy_version = manifest.get("policy_version")
+    if not isinstance(policy_version, str) or policy_version not in SUPPORTED_POLICY_VERSIONS:
+        raise EnsembleManifestInvalidError(f"policy_version no soportada: {policy_version!r}.")
 
     families = manifest.get("families")
+    if not isinstance(families, list) or not all(isinstance(item, str) for item in families):
+        raise EnsembleManifestInvalidError("families debe ser una lista de strings.")
     if (
-        not isinstance(families, list)
-        or len(families) != len(SUPPORTED_FAMILIES)
+        len(families) != len(SUPPORTED_FAMILIES)
         or len(set(families)) != len(SUPPORTED_FAMILIES)
         or set(families) != set(SUPPORTED_FAMILIES)
     ):
@@ -175,14 +180,22 @@ def load_ensemble_bundle(bundle_root: Path, *, sensor_id: str, horizon: int) -> 
                 f"ensemble_component_unavailable:{family}:{error.reason}"
             ) from error
 
-    _cross_check_components(components)
+    _cross_check_components(manifest, components)
     return EnsembleBundle(manifest=manifest, components=components)
 
 
-def _cross_check_components(components: dict[str, OperationalBundle]) -> None:
+_ENSEMBLE_AGREEMENT_V1_DECISION_THRESHOLD = 0.5
+
+
+def _cross_check_components(
+    manifest: dict[str, Any], components: dict[str, OperationalBundle]
+) -> None:
     families = sorted(components)
     reference_family = families[0]
     reference = components[reference_family].metadata
+
+    # Equality checks: transitive, so comparing every candidate against one
+    # fixed reference is sufficient (A==ref and B==ref implies A==B).
     for family in families[1:]:
         candidate = components[family].metadata
         for field in _CROSS_CHECK_BUNDLE_FIELDS:
@@ -205,15 +218,49 @@ def _cross_check_components(components: dict[str, OperationalBundle]) -> None:
                     f"event.{field}: {ref_event.get(field)!r} ({reference_family}) != "
                     f"{cand_event.get(field)!r} ({family})"
                 )
-        # Same model_identity/calibrator_identity sha256 across two distinct
-        # families would mean they are not actually independent artifacts.
+
+    # contract_version is a manifest field, not a per-component one: check
+    # every component against the manifest itself, not only against a
+    # sibling component (two components could agree with each other while
+    # both disagreeing with the manifest that names them).
+    for family in families:
+        contract_version = components[family].metadata["contract"]["contract_version"]
+        if contract_version != manifest["contract_version"]:
+            raise EnsembleBundleIncompatible(
+                f"contract_version del componente {family} ({contract_version!r}) "
+                f"no coincide con ensemble_manifest.json ({manifest['contract_version']!r})."
+            )
+
+    # `decision_threshold=0.5` is a requirement of the ensemble_agreement_v1
+    # policy itself (frozen, not tuned) — the equality check above only
+    # guarantees the 3 components agree with *each other*, not with this
+    # specific value.
+    if manifest["policy_version"] == "ensemble_agreement_v1":
+        threshold = reference.get("decision_threshold")
+        if threshold != _ENSEMBLE_AGREEMENT_V1_DECISION_THRESHOLD:
+            raise EnsembleBundleIncompatible(
+                f"decision_threshold debe ser {_ENSEMBLE_AGREEMENT_V1_DECISION_THRESHOLD} "
+                f"para ensemble_agreement_v1; obtenido {threshold!r}."
+            )
+
+    # Uniqueness (inequality) is NOT transitive the way equality is: A!=ref
+    # and B!=ref never implies A!=B, so every pair must be checked directly
+    # — comparing only against a fixed reference misses a duplicate between
+    # the two non-reference families. Distinct hashes only rule out that two
+    # components are byte-identical copies of the same artifact; they do not
+    # prove statistical independence between the fitted models, nor
+    # accredit that a component's artifact actually is the family its
+    # directory name claims.
+    for family_a, family_b in combinations(families, 2):
+        contract_a = components[family_a].metadata["contract"]
+        contract_b = components[family_b].metadata["contract"]
         if (
-            ref_contract["model_identity"]["sha256"] == cand_contract["model_identity"]["sha256"]
-            or ref_contract["calibrator_identity"]["sha256"]
-            == cand_contract["calibrator_identity"]["sha256"]
+            contract_a["model_identity"]["sha256"] == contract_b["model_identity"]["sha256"]
+            or contract_a["calibrator_identity"]["sha256"]
+            == contract_b["calibrator_identity"]["sha256"]
         ):
             raise EnsembleBundleIncompatible(
-                f"model_identity/calibrator_identity: {reference_family} y {family} "
+                f"model_identity/calibrator_identity: {family_a} y {family_b} "
                 "comparten el mismo hash de artefacto — no son componentes independientes."
             )
 
@@ -223,14 +270,31 @@ def compute_ensemble_identity(
 ) -> str:
     """Deterministic identity: policy + weights + the manifest's own
     relevant fields (contract_version) + each component's model/calibrator/
-    contract hashes (which already encode event/preparation, since
-    `bundle.json["files"]["contract.json"]` covers the full contract,
-    including event and feature preparation). The policy version alone
-    never identifies the concrete artifacts used."""
+    contract hashes + the *effective* preparation declared in `bundle.json`
+    (`feature_columns`, `feature_names`, `lags`, `rolling_windows`,
+    `decision_threshold`). This last part is NOT redundant with the contract
+    hashes: `contract.json` (`HorizonContract.to_dict()`) covers the event
+    and temporal cuts, but `feature_columns`/`feature_names`/`lags`/
+    `rolling_windows`/`decision_threshold` are sibling top-level fields of
+    `bundle.json` outside `contract.json`, so a change to any of them would
+    otherwise go unnoticed by the identity. `_cross_check_components`
+    already guarantees these are identical across all 3 components, so
+    reading them off any single one (the alphabetically-first family) is
+    exact, not an approximation. `json.dumps(..., sort_keys=True)` makes the
+    result independent of this dict's construction/insertion order. The
+    policy version alone never identifies the concrete artifacts used."""
+    reference = components[min(components)].metadata
     payload = {
         "policy_version": manifest["policy_version"],
         "contract_version": manifest["contract_version"],
         "weights": {family: manifest["weights"][family] for family in sorted(manifest["weights"])},
+        "preparation": {
+            "feature_columns": list(reference["feature_columns"]),
+            "feature_names": list(reference["feature_names"]),
+            "lags": list(reference["lags"]),
+            "rolling_windows": list(reference["rolling_windows"]),
+            "decision_threshold": reference["decision_threshold"],
+        },
         "components": {
             family: {
                 "model_sha256": bundle.metadata["files"]["model.joblib"],
@@ -322,5 +386,9 @@ def predict_ensemble_bundle(
             ensemble.manifest, ensemble.components
         ),
         "policy_version": ensemble.manifest["policy_version"],
+        "weights": {
+            family: ensemble.manifest["weights"][family]
+            for family in sorted(ensemble.manifest["weights"])
+        },
         "components": components_detail,
     }

@@ -169,6 +169,7 @@ def emit_forecasts(
                         ensemble={
                             "policy_version": result["policy_version"],
                             "ensemble_identity_sha256": result["ensemble_identity_sha256"],
+                            "weights": result["weights"],
                             "components": result["components"],
                             "combined_probability": result["combined_probability"],
                             "combined_alert": result["combined_alert"],

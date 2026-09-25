@@ -170,20 +170,28 @@ AgreementCategory = Literal[
 ]
 
 
+EnsembleFamily = Literal[
+    "logistic_regression", "random_forest", "hist_gradient_boosting_classifier"
+]
+_ENSEMBLE_FAMILIES = ("logistic_regression", "random_forest", "hist_gradient_boosting_classifier")
+_ENSEMBLE_AGREEMENT_V1_WEIGHT = 1.0 / 3.0
+
+
 class EnsembleComponentVote(StrictModel):
-    family: Literal["logistic_regression", "random_forest", "hist_gradient_boosting_classifier"]
+    family: EnsembleFamily
     model_reference: ModelReference
     calibrated_through: date
-    score: float
-    decision_threshold: float
+    score: float = Field(ge=0.0, le=1.0)
+    decision_threshold: float = Field(ge=0.0, le=1.0)
     alert: bool
 
 
 class EnsembleDetail(StrictModel):
     policy_version: str
     ensemble_identity_sha256: str
+    weights: dict[EnsembleFamily, float]
     components: list[EnsembleComponentVote] = Field(min_length=3, max_length=3)
-    combined_probability: float
+    combined_probability: float = Field(ge=0.0, le=1.0)
     combined_alert: bool
     positive_votes: int
     agreement_category: AgreementCategory
@@ -192,12 +200,17 @@ class EnsembleDetail(StrictModel):
     @model_validator(mode="after")
     def validate_coherence(self):
         families = [component.family for component in self.components]
-        if (
-            sorted(set(families))
-            != sorted(["logistic_regression", "random_forest", "hist_gradient_boosting_classifier"])
-            or len(families) != 3
-        ):
+        if sorted(set(families)) != sorted(_ENSEMBLE_FAMILIES) or len(families) != 3:
             raise ValueError("components debe tener exactamente las 3 familias, sin duplicados.")
+
+        if self.policy_version == "ensemble_agreement_v1":
+            if set(self.weights) != set(_ENSEMBLE_FAMILIES):
+                raise ValueError("weights debe declarar exactamente las 3 familias.")
+            if any(
+                abs(value - _ENSEMBLE_AGREEMENT_V1_WEIGHT) > 1e-9 for value in self.weights.values()
+            ):
+                raise ValueError("weights debe ser 1/3 uniforme para ensemble_agreement_v1.")
+
         expected_votes = sum(1 for component in self.components if component.alert)
         if expected_votes != self.positive_votes:
             raise ValueError("positive_votes no coincide con los votos individuales de components.")
@@ -212,6 +225,22 @@ class EnsembleDetail(StrictModel):
         expected_probability = sum(component.score for component in self.components) / 3
         if abs(expected_probability - self.combined_probability) > 1e-9:
             raise ValueError("combined_probability no coincide con el promedio de components.")
+
+        thresholds = {component.decision_threshold for component in self.components}
+        if len(thresholds) != 1:
+            raise ValueError(
+                "decision_threshold debe ser igual entre los componentes del ensamble."
+            )
+        threshold = thresholds.pop()
+        for component in self.components:
+            if component.alert != (component.score >= threshold):
+                raise ValueError(
+                    f"alert de {component.family} no coincide con score >= decision_threshold."
+                )
+        if self.combined_alert != (self.combined_probability >= threshold):
+            raise ValueError(
+                "combined_alert no coincide con combined_probability >= decision_threshold."
+            )
         return self
 
 
