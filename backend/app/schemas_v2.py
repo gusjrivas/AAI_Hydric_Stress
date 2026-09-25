@@ -192,9 +192,11 @@ class EnsembleDetail(StrictModel):
     @model_validator(mode="after")
     def validate_coherence(self):
         families = [component.family for component in self.components]
-        if sorted(set(families)) != sorted(
-            ["logistic_regression", "random_forest", "hist_gradient_boosting_classifier"]
-        ) or len(families) != 3:
+        if (
+            sorted(set(families))
+            != sorted(["logistic_regression", "random_forest", "hist_gradient_boosting_classifier"])
+            or len(families) != 3
+        ):
             raise ValueError("components debe tener exactamente las 3 familias, sin duplicados.")
         expected_votes = sum(1 for component in self.components if component.alert)
         if expected_votes != self.positive_votes:

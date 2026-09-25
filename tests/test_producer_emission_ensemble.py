@@ -130,7 +130,9 @@ def test_ensemble_configured_and_complete_is_available_with_combined_view(tmp_pa
             _write_ensemble_component(
                 bundle_root, sensor_id="s1", horizon=horizon, family=family, probability=probability
             )
-        write_ensemble_manifest(bundle_root / "s1" / f"horizon_{horizon}", sensor_id="s1", horizon=horizon)
+        write_ensemble_manifest(
+            bundle_root / "s1" / f"horizon_{horizon}", sensor_id="s1", horizon=horizon
+        )
 
     status_code, body = _emit_via_real_entrypoint(tmp_path, bundle_root)
 

@@ -167,7 +167,9 @@ def fitted_partitions():
     }
 
 
-def test_attach_feature_names_does_not_change_probabilities_for_the_real_families(fitted_partitions):
+def test_attach_feature_names_does_not_change_probabilities_for_the_real_families(
+    fitted_partitions,
+):
     feature_names = fitted_partitions["feature_names"]
     X_train = fitted_partitions["X_train"]
     sample = X_train[:5]
@@ -179,11 +181,15 @@ def test_attach_feature_names_does_not_change_probabilities_for_the_real_familie
             before = estimator.predict_proba(sample)
             attach_feature_names(estimator, list(feature_names))
             after = estimator.predict_proba(sample_frame)
-            assert np.array_equal(before, after), f"{family}.{role} probabilities changed after packaging"
+            assert np.array_equal(
+                before, after
+            ), f"{family}.{role} probabilities changed after packaging"
             assert list(estimator.feature_names_in_) == list(feature_names)
 
 
-def test_three_real_families_serialize_load_and_infer_through_the_real_bundle(tmp_path, fitted_partitions):
+def test_three_real_families_serialize_load_and_infer_through_the_real_bundle(
+    tmp_path, fitted_partitions
+):
     root = tmp_path / "bundles"
     sensor_id = "synthetic-sensor"
     feature_columns = fitted_partitions["feature_columns"]
@@ -202,7 +208,12 @@ def test_three_real_families_serialize_load_and_infer_through_the_real_bundle(tm
             feature_names=list(feature_names),
             lags=list(DEFAULT_LAGS),
             rolling_windows=list(DEFAULT_ROLLING_WINDOWS),
-            event={"variable": "soil_moisture", "threshold": 0.3, "unit": "m3/m3", "comparison": "lt"},
+            event={
+                "variable": "soil_moisture",
+                "threshold": 0.3,
+                "unit": "m3/m3",
+                "comparison": "lt",
+            },
             variables=[
                 {"name": "soil_moisture", "unit": "m3/m3"},
                 {"name": "temperature", "unit": "degC"},
@@ -213,7 +224,9 @@ def test_three_real_families_serialize_load_and_infer_through_the_real_bundle(tm
             calibrated_through=CALIBRATION_END.isoformat(),
             data_snapshot_sha256=fitted_partitions["dataset_sha256"],
         )
-    write_ensemble_manifest(root / sensor_id / f"horizon_{HORIZON}", sensor_id=sensor_id, horizon=HORIZON)
+    write_ensemble_manifest(
+        root / sensor_id / f"horizon_{HORIZON}", sensor_id=sensor_id, horizon=HORIZON
+    )
 
     ensemble = load_ensemble_bundle(root, sensor_id=sensor_id, horizon=HORIZON)
     assert set(ensemble.components) == set(FAMILY_PARAMS)
@@ -229,7 +242,9 @@ def test_three_real_families_serialize_load_and_infer_through_the_real_bundle(tm
 
     assert result["policy_version"] == "ensemble_agreement_v1"
     assert 0.0 <= result["combined_probability"] <= 1.0
-    assert result["combined_alert"] == (result["combined_probability"] >= result["decision_threshold"])
+    assert result["combined_alert"] == (
+        result["combined_probability"] >= result["decision_threshold"]
+    )
     assert result["positive_votes"] in (0, 1, 2, 3)
     for component in result["components"]:
         # A genuine inference per real, distinct family, not three copies of

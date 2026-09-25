@@ -149,7 +149,8 @@ def load_ensemble_bundle(bundle_root: Path, *, sensor_id: str, horizon: int) -> 
     manifest_path = horizon_dir / "ensemble_manifest.json"
     if not manifest_path.exists():
         raise EnsembleManifestMissingError(
-            f"ensemble_manifest.json ausente en {manifest_path} (ensemble/ existe pero sin manifiesto)."
+            f"ensemble_manifest.json ausente en {manifest_path} "
+            "(ensemble/ existe pero sin manifiesto)."
         )
     try:
         raw = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -217,7 +218,9 @@ def _cross_check_components(components: dict[str, OperationalBundle]) -> None:
             )
 
 
-def compute_ensemble_identity(manifest: dict[str, Any], components: dict[str, OperationalBundle]) -> str:
+def compute_ensemble_identity(
+    manifest: dict[str, Any], components: dict[str, OperationalBundle]
+) -> str:
     """Deterministic identity: policy + weights + the manifest's own
     relevant fields (contract_version) + each component's model/calibrator/
     contract hashes (which already encode event/preparation, since
@@ -315,7 +318,9 @@ def predict_ensemble_bundle(
         "decision_threshold": decision_threshold,
         "trained_through": trained_through,
         "calibrated_through": calibrated_through,
-        "ensemble_identity_sha256": compute_ensemble_identity(ensemble.manifest, ensemble.components),
+        "ensemble_identity_sha256": compute_ensemble_identity(
+            ensemble.manifest, ensemble.components
+        ),
         "policy_version": ensemble.manifest["policy_version"],
         "components": components_detail,
     }

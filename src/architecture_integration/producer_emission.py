@@ -73,11 +73,6 @@ def emit_forecasts(
         # Keep the legacy API importable with its original dependency versions.
         # The stricter operational environment is needed only for explicit v2 inference.
         try:
-            from predictive_modeling.operational_inference import (
-                BundleUnavailable,
-                load_operational_bundle,
-                predict_operational_bundle,
-            )
             from predictive_modeling.ensemble_bundle import (
                 EnsembleBundleIncompatible,
                 EnsembleComponentMissingError,
@@ -86,6 +81,11 @@ def emit_forecasts(
                 is_ensemble_configured,
                 load_ensemble_bundle,
                 predict_ensemble_bundle,
+            )
+            from predictive_modeling.operational_inference import (
+                BundleUnavailable,
+                load_operational_bundle,
+                predict_operational_bundle,
             )
         except ImportError:
             return [
@@ -138,7 +138,9 @@ def emit_forecasts(
                     )
                     continue
                 reference_family = next(iter(sorted(ensemble.components)))
-                reference_event = ensemble.components[reference_family].metadata["contract"]["event"]
+                reference_event = ensemble.components[reference_family].metadata["contract"][
+                    "event"
+                ]
                 slots.append(
                     SlotSeed(
                         horizon_days=result["horizon_days"],

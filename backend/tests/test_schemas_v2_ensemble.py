@@ -1,9 +1,8 @@
 from datetime import date
 
 import pytest
-from pydantic import ValidationError
-
 from app.schemas_v2 import EnsembleComponentVote, EnsembleDetail, ModelReference
+from pydantic import ValidationError
 
 
 def _component(family, score, alert, trained_through="2026-01-01"):

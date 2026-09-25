@@ -149,7 +149,9 @@ def write_single_bundle(
         "format_version": 1,
         "contract": contract_dict,
         "feature_columns": list(feature_columns),
-        "feature_names": list(feature_names) if feature_names is not None else list(feature_columns),
+        "feature_names": (
+            list(feature_names) if feature_names is not None else list(feature_columns)
+        ),
         "lags": list(lags) if lags is not None else [],
         "rolling_windows": list(rolling_windows) if rolling_windows is not None else [],
         "decision_threshold": decision_threshold,

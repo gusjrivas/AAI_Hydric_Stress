@@ -4,20 +4,23 @@ from datetime import date
 import numpy as np
 import pytest
 
+from predictive_modeling import ensemble_bundle as ensemble_bundle_module
 from predictive_modeling.ensemble_bundle import (
-    EnsembleBundle,
+    SUPPORTED_FAMILIES,
     EnsembleBundleIncompatible,
     EnsembleComponentMissingError,
     EnsembleManifestInvalidError,
     EnsembleManifestMissingError,
-    SUPPORTED_FAMILIES,
     is_ensemble_configured,
     load_ensemble_bundle,
     predict_ensemble_bundle,
 )
-from predictive_modeling import ensemble_bundle as ensemble_bundle_module
 from predictive_modeling.operational_inference import BundleUnavailable
-from tests.helpers.synthetic_bundles import StubEstimator, write_ensemble_manifest, write_single_bundle
+from tests.helpers.synthetic_bundles import (
+    StubEstimator,
+    write_ensemble_manifest,
+    write_single_bundle,
+)
 
 # --------------------------------------------------------------------------
 # is_ensemble_configured
@@ -101,7 +104,9 @@ def test_load_ensemble_bundle_raises_on_non_uniform_weights(tmp_path):
 def test_load_ensemble_bundle_raises_on_wrong_family_set(tmp_path):
     d = tmp_path / "s1" / "horizon_1"
     d.mkdir(parents=True)
-    _write_full_manifest(d / "ensemble_manifest.json", families=["logistic_regression", "random_forest"])
+    _write_full_manifest(
+        d / "ensemble_manifest.json", families=["logistic_regression", "random_forest"]
+    )
     with pytest.raises(EnsembleManifestInvalidError):
         load_ensemble_bundle(tmp_path, sensor_id="s1", horizon=1)
 
@@ -209,7 +214,12 @@ def test_load_ensemble_bundle_raises_on_event_mismatch_between_components(tmp_pa
             calibrator=calibrator,
             model_identity_label=f"{family}_model",
             calibrator_identity_label=f"{family}_calibrator",
-            event={"variable": "soil_moisture", "threshold": threshold, "unit": "m3/m3", "comparison": "lt"},
+            event={
+                "variable": "soil_moisture",
+                "threshold": threshold,
+                "unit": "m3/m3",
+                "comparison": "lt",
+            },
         )
     write_ensemble_manifest(horizon_dir, sensor_id="s1", horizon=1)
     with pytest.raises(EnsembleBundleIncompatible, match="event.threshold"):
@@ -222,7 +232,9 @@ def test_load_ensemble_bundle_raises_on_event_mismatch_between_components(tmp_pa
 # --------------------------------------------------------------------------
 
 
-def _fake_predict_operational_bundle_factory(probabilities: dict[str, float], decision_threshold=0.5):
+def _fake_predict_operational_bundle_factory(
+    probabilities: dict[str, float], decision_threshold=0.5
+):
     def _fake(bundle, dataframe, *, sensor_id, units, as_of_date):
         family = bundle.metadata["_family"]
         p = probabilities[family]
@@ -240,7 +252,11 @@ def _fake_predict_operational_bundle_factory(probabilities: dict[str, float], de
                 "model_version": f"{family}-model-sha",
                 "horizon_days": 1,
                 "contract_version": "producer_daily_h123_v1",
-                "trained_through": {"logistic_regression": "2024-03-01", "random_forest": "2024-03-15", "hist_gradient_boosting_classifier": "2024-03-31"}[family],
+                "trained_through": {
+                    "logistic_regression": "2024-03-01",
+                    "random_forest": "2024-03-15",
+                    "hist_gradient_boosting_classifier": "2024-03-31",
+                }[family],
                 "calibration_version": f"{family}-calibrator-sha",
                 "assessment_reference": None,
             },
@@ -250,7 +266,7 @@ def _fake_predict_operational_bundle_factory(probabilities: dict[str, float], de
 
 
 def _build_ensemble_with_probabilities(tmp_path, probabilities: dict[str, float]):
-    horizon_dir = _write_three_components(tmp_path)
+    _write_three_components(tmp_path)
     ensemble = load_ensemble_bundle(tmp_path, sensor_id="s1", horizon=1)
     # Tag each component's metadata (in-memory only) so the fake predictor
     # knows which family it's "predicting" for.
@@ -260,13 +276,21 @@ def _build_ensemble_with_probabilities(tmp_path, probabilities: dict[str, float]
 
 
 def test_discrepancy_case_majority_says_possible_alert_but_average_says_no(tmp_path, monkeypatch):
-    probabilities = {"logistic_regression": 0.51, "random_forest": 0.51, "hist_gradient_boosting_classifier": 0.01}
+    probabilities = {
+        "logistic_regression": 0.51,
+        "random_forest": 0.51,
+        "hist_gradient_boosting_classifier": 0.01,
+    }
     ensemble = _build_ensemble_with_probabilities(tmp_path, probabilities)
     monkeypatch.setattr(
-        ensemble_bundle_module, "predict_operational_bundle", _fake_predict_operational_bundle_factory(probabilities)
+        ensemble_bundle_module,
+        "predict_operational_bundle",
+        _fake_predict_operational_bundle_factory(probabilities),
     )
 
-    result = predict_ensemble_bundle(ensemble, dataframe=None, sensor_id="s1", units={}, as_of_date=date(2026, 6, 1))
+    result = predict_ensemble_bundle(
+        ensemble, dataframe=None, sensor_id="s1", units={}, as_of_date=date(2026, 6, 1)
+    )
 
     assert result["positive_votes"] == 2
     assert result["agreement_category"] == "posible_alerta_acuerdo_parcial"
@@ -275,13 +299,21 @@ def test_discrepancy_case_majority_says_possible_alert_but_average_says_no(tmp_p
 
 
 def test_discrepancy_case_minority_says_alert_but_average_agrees(tmp_path, monkeypatch):
-    probabilities = {"logistic_regression": 0.99, "random_forest": 0.49, "hist_gradient_boosting_classifier": 0.49}
+    probabilities = {
+        "logistic_regression": 0.99,
+        "random_forest": 0.49,
+        "hist_gradient_boosting_classifier": 0.49,
+    }
     ensemble = _build_ensemble_with_probabilities(tmp_path, probabilities)
     monkeypatch.setattr(
-        ensemble_bundle_module, "predict_operational_bundle", _fake_predict_operational_bundle_factory(probabilities)
+        ensemble_bundle_module,
+        "predict_operational_bundle",
+        _fake_predict_operational_bundle_factory(probabilities),
     )
 
-    result = predict_ensemble_bundle(ensemble, dataframe=None, sensor_id="s1", units={}, as_of_date=date(2026, 6, 1))
+    result = predict_ensemble_bundle(
+        ensemble, dataframe=None, sensor_id="s1", units={}, as_of_date=date(2026, 6, 1)
+    )
 
     assert result["positive_votes"] == 1
     assert result["agreement_category"] == "sin_alerta_por_mayoria_con_discrepancia"
@@ -294,51 +326,112 @@ def test_discrepancy_case_minority_says_alert_but_average_agrees(tmp_path, monke
 @pytest.mark.parametrize(
     "probabilities,expected_votes,expected_category",
     [
-        ({"logistic_regression": 0.9, "random_forest": 0.9, "hist_gradient_boosting_classifier": 0.9}, 3, "alerta_por_unanimidad"),
-        ({"logistic_regression": 0.9, "random_forest": 0.9, "hist_gradient_boosting_classifier": 0.1}, 2, "posible_alerta_acuerdo_parcial"),
-        ({"logistic_regression": 0.9, "random_forest": 0.1, "hist_gradient_boosting_classifier": 0.1}, 1, "sin_alerta_por_mayoria_con_discrepancia"),
-        ({"logistic_regression": 0.1, "random_forest": 0.1, "hist_gradient_boosting_classifier": 0.1}, 0, "sin_alerta_por_unanimidad"),
+        (
+            {
+                "logistic_regression": 0.9,
+                "random_forest": 0.9,
+                "hist_gradient_boosting_classifier": 0.9,
+            },
+            3,
+            "alerta_por_unanimidad",
+        ),
+        (
+            {
+                "logistic_regression": 0.9,
+                "random_forest": 0.9,
+                "hist_gradient_boosting_classifier": 0.1,
+            },
+            2,
+            "posible_alerta_acuerdo_parcial",
+        ),
+        (
+            {
+                "logistic_regression": 0.9,
+                "random_forest": 0.1,
+                "hist_gradient_boosting_classifier": 0.1,
+            },
+            1,
+            "sin_alerta_por_mayoria_con_discrepancia",
+        ),
+        (
+            {
+                "logistic_regression": 0.1,
+                "random_forest": 0.1,
+                "hist_gradient_boosting_classifier": 0.1,
+            },
+            0,
+            "sin_alerta_por_unanimidad",
+        ),
     ],
 )
-def test_four_vote_combinations(tmp_path, monkeypatch, probabilities, expected_votes, expected_category):
+def test_four_vote_combinations(
+    tmp_path, monkeypatch, probabilities, expected_votes, expected_category
+):
     ensemble = _build_ensemble_with_probabilities(tmp_path, probabilities)
     monkeypatch.setattr(
-        ensemble_bundle_module, "predict_operational_bundle", _fake_predict_operational_bundle_factory(probabilities)
+        ensemble_bundle_module,
+        "predict_operational_bundle",
+        _fake_predict_operational_bundle_factory(probabilities),
     )
 
-    result = predict_ensemble_bundle(ensemble, dataframe=None, sensor_id="s1", units={}, as_of_date=date(2026, 6, 1))
+    result = predict_ensemble_bundle(
+        ensemble, dataframe=None, sensor_id="s1", units={}, as_of_date=date(2026, 6, 1)
+    )
 
     assert result["positive_votes"] == expected_votes
     assert result["agreement_category"] == expected_category
 
 
 def test_boundary_at_exactly_the_threshold_for_one_component_and_the_average(tmp_path, monkeypatch):
-    probabilities = {"logistic_regression": 0.5, "random_forest": 0.5, "hist_gradient_boosting_classifier": 0.5}
+    probabilities = {
+        "logistic_regression": 0.5,
+        "random_forest": 0.5,
+        "hist_gradient_boosting_classifier": 0.5,
+    }
     ensemble = _build_ensemble_with_probabilities(tmp_path, probabilities)
     monkeypatch.setattr(
-        ensemble_bundle_module, "predict_operational_bundle", _fake_predict_operational_bundle_factory(probabilities)
+        ensemble_bundle_module,
+        "predict_operational_bundle",
+        _fake_predict_operational_bundle_factory(probabilities),
     )
 
-    result = predict_ensemble_bundle(ensemble, dataframe=None, sensor_id="s1", units={}, as_of_date=date(2026, 6, 1))
+    result = predict_ensemble_bundle(
+        ensemble, dataframe=None, sensor_id="s1", units={}, as_of_date=date(2026, 6, 1)
+    )
 
     assert result["positive_votes"] == 3  # >= comparator: 0.5 >= 0.5 is True
     assert result["combined_probability"] == 0.5
     assert result["combined_alert"] is True
 
 
-def test_component_bundle_unavailable_at_predict_time_preserves_family_and_cause(tmp_path, monkeypatch):
+def test_component_bundle_unavailable_at_predict_time_preserves_family_and_cause(
+    tmp_path, monkeypatch
+):
     ensemble = _build_ensemble_with_probabilities(
-        tmp_path, {"logistic_regression": 0.6, "random_forest": 0.6, "hist_gradient_boosting_classifier": 0.6}
+        tmp_path,
+        {
+            "logistic_regression": 0.6,
+            "random_forest": 0.6,
+            "hist_gradient_boosting_classifier": 0.6,
+        },
     )
 
     def _raising_fake(bundle, dataframe, *, sensor_id, units, as_of_date):
         if bundle.metadata["_family"] == "random_forest":
             raise BundleUnavailable("model_not_available_at_date")
         return _fake_predict_operational_bundle_factory(
-            {"logistic_regression": 0.6, "random_forest": 0.6, "hist_gradient_boosting_classifier": 0.6}
+            {
+                "logistic_regression": 0.6,
+                "random_forest": 0.6,
+                "hist_gradient_boosting_classifier": 0.6,
+            }
         )(bundle, dataframe, sensor_id=sensor_id, units=units, as_of_date=as_of_date)
 
     monkeypatch.setattr(ensemble_bundle_module, "predict_operational_bundle", _raising_fake)
 
-    with pytest.raises(EnsembleComponentMissingError, match="random_forest.*model_not_available_at_date"):
-        predict_ensemble_bundle(ensemble, dataframe=None, sensor_id="s1", units={}, as_of_date=date(2026, 6, 1))
+    with pytest.raises(
+        EnsembleComponentMissingError, match="random_forest.*model_not_available_at_date"
+    ):
+        predict_ensemble_bundle(
+            ensemble, dataframe=None, sensor_id="s1", units={}, as_of_date=date(2026, 6, 1)
+        )

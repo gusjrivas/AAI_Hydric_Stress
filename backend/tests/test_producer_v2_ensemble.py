@@ -14,7 +14,11 @@ from fastapi.testclient import TestClient
 
 from data_ingestion.storage import save_dataset
 from predictive_modeling.contract import feature_names as expand_feature_names
-from tests.helpers.synthetic_bundles import StubEstimator, write_ensemble_manifest, write_single_bundle
+from tests.helpers.synthetic_bundles import (
+    StubEstimator,
+    write_ensemble_manifest,
+    write_single_bundle,
+)
 
 FEATURE_COLUMNS = ["temperature", "relative_humidity"]
 LAGS = [1]
@@ -66,8 +70,12 @@ def client(tmp_path):
             ("random_forest", 0.49),
             ("hist_gradient_boosting_classifier", 0.40),
         ]:
-            _write_component(root, sensor_id=sensor_id, horizon=horizon, family=family, probability=probability)
-        write_ensemble_manifest(root / sensor_id / f"horizon_{horizon}", sensor_id=sensor_id, horizon=horizon)
+            _write_component(
+                root, sensor_id=sensor_id, horizon=horizon, family=family, probability=probability
+            )
+        write_ensemble_manifest(
+            root / sensor_id / f"horizon_{horizon}", sensor_id=sensor_id, horizon=horizon
+        )
     save_dataset(f"sensor__{sensor_id}", _frame(), data_dir=tmp_path)
     app.dependency_overrides[get_dataset_data_dir] = lambda: tmp_path
     app.dependency_overrides[is_producer_v2_enabled] = lambda: True
@@ -106,9 +114,9 @@ def test_http_replay_returns_the_original_response_without_reevaluating(client):
     first = emit(http)
     # Corrupt a component after the first emission: a replay must never
     # re-touch artifacts, so this must not surface any new failure.
-    (root / "synthetic-sensor" / "horizon_1" / "ensemble" / "random_forest" / "model.joblib").write_bytes(
-        b"corrupted after the fact"
-    )
+    (
+        root / "synthetic-sensor" / "horizon_1" / "ensemble" / "random_forest" / "model.joblib"
+    ).write_bytes(b"corrupted after the fact")
     replay = emit(http)
     assert replay.status_code == 201
     assert replay.json() == first.json()

@@ -301,7 +301,9 @@ class OperationalRepository:
             "snapshot_id": snapshot_id,
             "data_age_days": data_age_days,
             "provenance": provenance,
-            "slots": [_slot_payload(seed) for seed in sorted(slots, key=lambda seed: seed.horizon_days)],
+            "slots": [
+                _slot_payload(seed) for seed in sorted(slots, key=lambda seed: seed.horizon_days)
+            ],
             "contract_version": contract_version,
         }
         request_hash = _request_hash(request_payload)

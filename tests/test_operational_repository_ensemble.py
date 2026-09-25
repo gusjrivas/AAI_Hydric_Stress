@@ -63,7 +63,9 @@ def test_slot_seed_requires_alert_to_match_combined_alert():
 
 def test_slot_seed_requires_score_to_match_combined_probability():
     with pytest.raises(ValueError, match="combined_probability"):
-        SlotSeed(**_base_kwargs(score=0.9, ensemble=_ensemble_detail(combined_probability=0.343333)))
+        SlotSeed(
+            **_base_kwargs(score=0.9, ensemble=_ensemble_detail(combined_probability=0.343333))
+        )
 
 
 def test_slot_seed_accepts_coherent_ensemble_detail():
@@ -177,7 +179,10 @@ def test_idempotency_hash_for_a_single_model_slot_is_unaffected_by_the_ensemble_
         "snapshot_id": "snap1",
         "data_age_days": 0,
         "provenance": "synthetic",
-        "slots": [_legacy_slot_payload(s) for s in sorted([seed, *other_seeds], key=lambda s: s.horizon_days)],
+        "slots": [
+            _legacy_slot_payload(s)
+            for s in sorted([seed, *other_seeds], key=lambda s: s.horizon_days)
+        ],
         "contract_version": "producer_daily_h123_v1",
     }
     assert _request_hash(legacy_payload) == stored_hash
