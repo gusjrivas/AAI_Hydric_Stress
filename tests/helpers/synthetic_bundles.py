@@ -91,6 +91,9 @@ def write_single_bundle(
     trained_through: str = DEFAULT_TRAINED_THROUGH,
     calibrated_through: str = DEFAULT_CALIBRATED_THROUGH,
     data_snapshot_sha256: str = DEFAULT_DATA_SNAPSHOT_SHA256,
+    feature_names: list[str] | None = None,
+    lags: list[int] | None = None,
+    rolling_windows: list[int] | None = None,
 ) -> Path:
     """Writes a real, loadable v2 bundle (model.joblib, calibrator.joblib,
     contract.json, bundle.json) at `root`. File hashes in `bundle.json` are
@@ -146,9 +149,9 @@ def write_single_bundle(
         "format_version": 1,
         "contract": contract_dict,
         "feature_columns": list(feature_columns),
-        "feature_names": list(feature_columns),
-        "lags": [],
-        "rolling_windows": [],
+        "feature_names": list(feature_names) if feature_names is not None else list(feature_columns),
+        "lags": list(lags) if lags is not None else [],
+        "rolling_windows": list(rolling_windows) if rolling_windows is not None else [],
         "decision_threshold": decision_threshold,
         "environment": capture_environment(),
         "files": {

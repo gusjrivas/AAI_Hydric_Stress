@@ -78,19 +78,108 @@ def emit_forecasts(
                 load_operational_bundle,
                 predict_operational_bundle,
             )
+            from predictive_modeling.ensemble_bundle import (
+                EnsembleBundleIncompatible,
+                EnsembleComponentMissingError,
+                EnsembleManifestInvalidError,
+                EnsembleManifestMissingError,
+                is_ensemble_configured,
+                load_ensemble_bundle,
+                predict_ensemble_bundle,
+            )
         except ImportError:
             return [
                 SlotSeed(h, "unavailable", reason_code="incompatible_environment")
                 for h in (1, 2, 3)
             ]
+        ensemble_errors = (
+            EnsembleManifestMissingError,
+            EnsembleManifestInvalidError,
+            EnsembleComponentMissingError,
+            EnsembleBundleIncompatible,
+        )
         slots = []
         for horizon in (1, 2, 3):
             if horizon not in missing:
                 slots.append(SlotSeed(horizon, "unavailable", reason_code="already_available"))
                 continue
+            horizon_root = bundle_root / repository.sensor_id / f"horizon_{horizon}"
+            if is_ensemble_configured(bundle_root, sensor_id=repository.sensor_id, horizon=horizon):
+                # Evidence of intent to configure an ensemble (ensemble/ or
+                # ensemble_manifest.json exists) — exclusively the ensemble
+                # path from here; never retried against the single-model
+                # bundle at the same horizon, even if one happens to exist.
+                try:
+                    ensemble = load_ensemble_bundle(
+                        bundle_root, sensor_id=repository.sensor_id, horizon=horizon
+                    )
+                    captured["artifact"].setdefault("bundles", {})[str(horizon)] = {
+                        "mode": "ensemble",
+                        "ensemble_manifest": ensemble.manifest,
+                        "components": {
+                            family: component.metadata
+                            for family, component in ensemble.components.items()
+                        },
+                    }
+                    result = predict_ensemble_bundle(
+                        ensemble,
+                        captured["frame"],
+                        sensor_id=repository.sensor_id,
+                        units=VARIABLE_UNITS,
+                        as_of_date=captured["batch"]["as_of_date"],
+                    )
+                except ensemble_errors as error:
+                    slots.append(
+                        SlotSeed(
+                            horizon,
+                            "unavailable",
+                            reason_code=f"{type(error).__name__}:{error}",
+                        )
+                    )
+                    continue
+                reference_family = next(iter(sorted(ensemble.components)))
+                reference_event = ensemble.components[reference_family].metadata["contract"]["event"]
+                slots.append(
+                    SlotSeed(
+                        horizon_days=result["horizon_days"],
+                        status="available",
+                        alert=result["combined_alert"],
+                        score=result["combined_probability"],
+                        score_kind="ensemble_mean_of_calibrated_components",
+                        display_probability=None,
+                        probability_status="not_qualified",
+                        probability_reason_code="incompatible_assessment",
+                        decision_threshold=result["decision_threshold"],
+                        event_threshold={
+                            "variable": reference_event["variable"],
+                            "value": reference_event["threshold"],
+                            "unit": reference_event["unit"],
+                            "comparison": reference_event["comparison"],
+                        },
+                        model_reference={
+                            "model_version": result["ensemble_identity_sha256"],
+                            "horizon_days": result["horizon_days"],
+                            "contract_version": ensemble.manifest["contract_version"],
+                            "trained_through": result["trained_through"],
+                            "calibration_version": None,
+                            "assessment_reference": None,
+                        },
+                        ensemble={
+                            "policy_version": result["policy_version"],
+                            "ensemble_identity_sha256": result["ensemble_identity_sha256"],
+                            "components": result["components"],
+                            "combined_probability": result["combined_probability"],
+                            "combined_alert": result["combined_alert"],
+                            "positive_votes": result["positive_votes"],
+                            "agreement_category": result["agreement_category"],
+                            "calibrated_through": result["calibrated_through"],
+                        },
+                    )
+                )
+                continue
             try:
                 bundle = load_operational_bundle(
-                    bundle_root / repository.sensor_id / f"horizon_{horizon}",
+                    horizon_root,
                     sensor_id=repository.sensor_id,
                     horizon=horizon,
                 )
