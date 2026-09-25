@@ -40,8 +40,10 @@ def load_feedback_log(name: str, data_dir: Path = DEFAULT_DATA_DIR) -> pd.DataFr
 
 def update_feedback_log_atomically(
     name: str,
-    update_fn: Callable[[pd.DataFrame], pd.DataFrame],
+    update_fn: Callable[[pd.DataFrame | None], pd.DataFrame],
     data_dir: Path = DEFAULT_DATA_DIR,
+    *,
+    create_if_missing: bool = False,
 ) -> pd.DataFrame:
     """Ejecuta `load -> update_fn -> save` como una única unidad bajo el
     mismo lock interproceso que ya protege `save_dataset` (F-09): sin
@@ -49,10 +51,24 @@ def update_feedback_log_atomically(
     segundo en escribir sobreescribe silenciosamente la actualización
     del primero ("lost update"). Escribe directamente con
     `atomic_write_bytes` (no vía `save_dataset`) para no anidar una
-    segunda adquisición del mismo lock dentro de esta."""
+    segunda adquisición del mismo lock dentro de esta.
+
+    Por defecto (`create_if_missing=False`, el comportamiento previo,
+    usado por `confirm_feedback`/`reject_feedback`), un archivo ausente
+    propaga `FileNotFoundError` antes de invocar `update_fn`. Con
+    `create_if_missing=True` (usado por `register_forecast_feedback`,
+    F-09 completado para `forecast.py`), un archivo ausente pasa `None`
+    a `update_fn`, que debe construir el registro inicial — sin eso, dos
+    primeras emisiones concurrentes para el mismo sensor competirían
+    por crear el archivo fuera de este lock."""
     lock_path = dataset_lock_path(name, data_dir)
     with interprocess_lock(lock_path):
-        log = load_dataset(name, data_dir=data_dir)
+        try:
+            log = load_dataset(name, data_dir=data_dir)
+        except FileNotFoundError:
+            if not create_if_missing:
+                raise
+            log = None
         updated = update_fn(log)
         buffer = io.BytesIO()
         updated.to_parquet(buffer, index=False)

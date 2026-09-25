@@ -1,6 +1,7 @@
 import multiprocessing
 
 import pandas as pd
+import pytest
 
 from data_ingestion.storage import load_dataset
 from human_feedback.registry import (
@@ -82,6 +83,30 @@ def test_update_feedback_log_atomically_survives_concurrent_updates_to_different
     row1 = final.loc[final["fecha"] == dates[1]].iloc[0]
     assert row0["estado_validacion"] == "confirmada"
     assert row1["estado_validacion"] == "rechazada"
+
+
+def test_update_feedback_log_atomically_creates_the_file_when_missing_and_requested(tmp_path):
+    def _apply(existing):
+        assert existing is None
+        return init_feedback_log(pd.to_datetime(["2024-02-01"]), pd.Series([1]))
+
+    result = update_feedback_log_atomically(
+        "feedback_new", _apply, data_dir=tmp_path, create_if_missing=True
+    )
+
+    assert len(result) == 1
+    loaded = load_dataset("feedback_new", data_dir=tmp_path)
+    pd.testing.assert_frame_equal(loaded, result)
+
+
+def test_update_feedback_log_atomically_still_raises_when_missing_and_not_requested(tmp_path):
+    def _apply(existing):
+        raise AssertionError(
+            "update_fn must not run when the file is missing and create_if_missing=False"
+        )
+
+    with pytest.raises(FileNotFoundError):
+        update_feedback_log_atomically("feedback_missing", _apply, data_dir=tmp_path)
 
 
 def test_integrate_feedback_with_predictions_joins_by_date():
