@@ -98,9 +98,7 @@ def register_forecast_feedback(
             ignore_index=True,
         )
 
-    return update_feedback_log_atomically(
-        name, _merge, data_dir=data_dir, create_if_missing=True
-    )
+    return update_feedback_log_atomically(name, _merge, data_dir=data_dir, create_if_missing=True)
 
 
 def upsert_feedback_log(
