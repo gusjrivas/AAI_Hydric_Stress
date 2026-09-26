@@ -27,6 +27,7 @@ from experiment_runner.pergamino_ensemble_demo_runner import (
     FIRST_ADMISSIBLE_DATE,
     INGESTION_END,
     INGESTION_START,
+    RUN_MANIFEST_FILENAME,
     DemoRunnerError,
     run_demo_from_frame,
 )
@@ -84,6 +85,66 @@ def test_run_demo_from_frame_covers_all_three_families_and_horizons(tmp_path, de
             assert (component_dir / "bundle.json").exists()
         manifest_path = output_dir / SENSOR_ID / f"horizon_{horizon}" / "ensemble_manifest.json"
         assert manifest_path.exists()
+
+
+def test_run_manifest_records_identity_config_partitions_and_counts(tmp_path, demo_frame):
+    import json
+
+    frame, dataset_sha256 = demo_frame
+    output_dir = tmp_path / "output"
+
+    run_demo_from_frame(
+        frame,
+        dataset_sha256,
+        output_dir,
+        sensor_id=SENSOR_ID,
+        horizons=(1, 2, 3),
+        input_hashes={"era5_csv": "a" * 64, "nasa_power_csv": "b" * 64},
+    )
+
+    manifest = json.loads((output_dir / RUN_MANIFEST_FILENAME).read_text())
+    assert manifest["status"] == "completado"
+    assert manifest["sensor_id"] == SENSOR_ID
+    assert manifest["permitted_frame_sha256"] == dataset_sha256
+    assert manifest["input_hashes"] == {"era5_csv": "a" * 64, "nasa_power_csv": "b" * 64}
+    assert "code_identity" in manifest and "environment" in manifest
+    assert set(manifest["effective_config"]["family_params"]) == set(FAMILY_PARAMS)
+    assert manifest["partitions"]["train"] == {
+        "start": DEMO_TRAIN.start.isoformat(),
+        "end": DEMO_TRAIN.end.isoformat(),
+    }
+    for horizon in (1, 2, 3):
+        report = manifest["horizons"][str(horizon)]
+        assert report["train_rows_used"] > 0
+        assert report["calibration_rows_used"] > 0
+        assert set(report["components"]) == set(FAMILY_PARAMS)
+        for family_files in report["components"].values():
+            assert set(family_files) == {"model.joblib", "calibrator.joblib", "contract.json"}
+
+
+def test_run_manifest_records_fallido_on_a_partial_run_without_deleting_prior_progress(
+    tmp_path, demo_frame
+):
+    import json
+
+    frame, dataset_sha256 = demo_frame
+    output_dir = tmp_path / "output"
+
+    with pytest.raises(KeyError):
+        # horizon=99 is not in add_multihorizon_targets' output (only 1/2/3
+        # ever get a threshold) -> KeyError inside the loop, after horizon 1
+        # has already completed and been recorded -- proves a failure
+        # mid-run is re-raised (never swallowed) and neither claims
+        # "completado" nor erases the horizons that did finish.
+        run_demo_from_frame(
+            frame, dataset_sha256, output_dir, sensor_id=SENSOR_ID, horizons=(1, 99)
+        )
+
+    manifest = json.loads((output_dir / RUN_MANIFEST_FILENAME).read_text())
+    assert manifest["status"] == "fallido"
+    assert "error" in manifest
+    assert "1" in manifest["horizons"]  # horizon 1's progress was preserved
+    assert (output_dir / SENSOR_ID / "horizon_1" / "ensemble_manifest.json").exists()
 
 
 def test_run_demo_from_frame_rejects_a_non_empty_output_dir(tmp_path, demo_frame):
