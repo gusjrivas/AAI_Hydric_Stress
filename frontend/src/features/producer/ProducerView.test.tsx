@@ -77,12 +77,40 @@ describe("ProducerView", () => {
     });
 
     render(<ProducerView />);
+    await userEvent.click(await screen.findByRole("button", { name: "Consultar próximos tres días" }));
     expect(await screen.findByText(/No hay información suficiente/)).toBeInTheDocument();
     // Sin ningún horizonte disponible, no debe mostrarse ningún banner de
     // alerta (ni "alerta" ni "sin alerta"): la ausencia de datos no es lo
     // mismo que "sin alerta".
     expect(screen.queryByText(/Requiere atención/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Sin alerta próxima/)).not.toBeInTheDocument();
+  });
+
+  it("never emits a forecast automatically on entering Mi cultivo, switching tabs, or switching sensors", async () => {
+    vi.spyOn(catalogApi, "listSectors").mockResolvedValue({ items: [sector], next_cursor: null });
+    vi.spyOn(catalogApi, "listSensors").mockResolvedValue({ items: [sensor], next_cursor: null });
+    vi.spyOn(readingsApi, "getSensorReadings").mockResolvedValue({
+      sensor_id: "sensor-a", calendar_timezone: "UTC", server_today: "2026-01-05", snapshot_id: null,
+      window: { start_date: "2026-01-01", end_date: "2026-01-01", expected_days: 1 }, status: "no_readings",
+      rows: [], missing_dates: [], variable_coverage: [], units: {}, last_reading_date: null,
+      data_age_days: null, provenance: "unknown",
+    });
+    vi.spyOn(forecastsApi, "listForecasts").mockResolvedValue({
+      items: [], next_cursor: null, pending_total: 0, reviewable_pending_total: 0,
+    });
+    const emit = vi.spyOn(forecastsApi, "emitForecasts").mockResolvedValue({
+      batch_id: "b1", revision: 1, as_of_date: "2026-01-05", data_age_days: 0, server_today: "2026-01-05",
+      provenance: "synthetic", calendar_timezone: "UTC",
+      slots: [1, 2, 3].map((h) => ({ horizon_days: h as 1 | 2 | 3, target_date: `2026-01-0${h + 1}`, status: "unavailable" as const, reason_code: "model_not_available" })),
+    });
+
+    render(<ProducerView />);
+    await screen.findByText("Datos simulados"); // sensor ya seleccionado, Mi cultivo montado
+    await userEvent.click(await screen.findByRole("button", { name: "Historial" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Datos" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Mi cultivo" }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(emit).not.toHaveBeenCalled();
   });
 
   it("prompts to pick a sensor before showing history", () => {

@@ -145,4 +145,96 @@ describe("HistoricalWalkthrough", () => {
     await waitFor(() => expect(submit).toHaveBeenCalled());
     expect(submit).toHaveBeenCalledWith("sensor-a", "2023-06-20", "fc-1", expect.objectContaining({ action: "confirm" }));
   });
+
+  it("clears the emission date and discards a late response for the date that was just cleared", async () => {
+    const resolvers: Array<(batch: ForecastBatch) => void> = [];
+    vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockImplementation(
+      () => new Promise((resolve) => resolvers.push(resolve)),
+    );
+    vi.spyOn(historicalApi, "getHistoricalReadings").mockReturnValue(new Promise(() => {}));
+
+    render(<HistoricalWalkthrough sensorId="sensor-a" />);
+    const emissionInput = screen.getByLabelText(/emisión seleccionada/i);
+    await userEvent.type(emissionInput, "2023-06-13");
+    await waitFor(() => expect(resolvers).toHaveLength(1));
+
+    await userEvent.clear(emissionInput);
+    expect(screen.queryByText(/viendo la emisión del/i)).not.toBeInTheDocument();
+
+    // The in-flight request for the date that was just cleared resolves
+    // late: it must never repopulate the screen now that nothing is
+    // selected.
+    await act(async () => { resolvers[0](batchFor("2023-06-13", "14")); });
+    expect(screen.queryByText(/viendo la emisión del/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/14 de jun/i)).not.toBeInTheDocument();
+  });
+
+  it("resets the selection and discards any in-flight request when the sensor changes", async () => {
+    const resolvers: Array<(batch: ForecastBatch) => void> = [];
+    vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockImplementation(
+      () => new Promise((resolve) => resolvers.push(resolve)),
+    );
+    vi.spyOn(historicalApi, "getHistoricalReadings").mockReturnValue(new Promise(() => {}));
+
+    const view = render(<HistoricalWalkthrough sensorId="sensor-a" />);
+    await userEvent.type(screen.getByLabelText(/emisión seleccionada/i), "2023-06-13");
+    await waitFor(() => expect(resolvers).toHaveLength(1));
+
+    view.rerender(<HistoricalWalkthrough sensorId="sensor-b" />);
+    expect(screen.getByLabelText(/emisión seleccionada/i)).toHaveValue("");
+    expect(screen.queryByText(/viendo la emisión del/i)).not.toBeInTheDocument();
+
+    // sensor-a's stale in-flight response must never populate sensor-b's screen.
+    await act(async () => { resolvers[0](batchFor("2023-06-13", "14")); });
+    expect(screen.queryByText(/viendo la emisión del/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/14 de jun/i)).not.toBeInTheDocument();
+  });
+
+  it("ignores a review update that resolves after the user already navigated away from that emission", async () => {
+    const batch = (() => {
+      const b = batchFor("2023-06-13", "14");
+      b.slots[0] = {
+        status: "available", forecast_id: "fc-1", sensor_id: "sensor-a", batch_id: "batch-2023-06-13",
+        as_of_date: "2023-06-13", horizon_days: 1, target_date: "2023-06-14",
+        contract_version: "producer_daily_h123_v1", issued_at: "2023-06-13T00:05:00Z", snapshot_id: "snap-1",
+        alert: false, score: 0.1, score_kind: "ensemble_mean_of_calibrated_components",
+        display_probability: null, probability_status: "not_qualified", probability_reason_code: null,
+        decision_threshold: 0.5, event_threshold: { variable: "soil_moisture", value: 0.18, unit: "m3/m3", comparison: "lt" },
+        model_reference: { model_version: "v1", horizon_days: 1, contract_version: "producer_daily_h123_v1", trained_through: "2022-12-31", calibration_version: "cal-1", assessment_reference: "assessment-1" },
+        review: { status: "pending", revision: 0, review_open_at: "2023-06-14T00:00:00Z", reviewable: true, blocked_reason: null, latest_review: null, training_eligibility: "no_review", applied_review_references: [] },
+        ensemble: null,
+      };
+      return b;
+    })();
+    vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockImplementation(async (_sid, asOfDate) =>
+      asOfDate === "2023-06-13" ? batch : batchFor(asOfDate as string, "20"),
+    );
+    vi.spyOn(historicalApi, "getHistoricalReadings").mockReturnValue(new Promise(() => {}));
+    let resolveSubmit!: (review: Awaited<ReturnType<typeof historicalApi.submitHistoricalReview>>) => void;
+    vi.spyOn(historicalApi, "submitHistoricalReview").mockReturnValue(
+      new Promise((resolve) => { resolveSubmit = resolve; }),
+    );
+
+    render(<HistoricalWalkthrough sensorId="sensor-a" />);
+    const emissionInput = screen.getByLabelText(/emisión seleccionada/i);
+    await userEvent.type(emissionInput, "2023-06-13");
+    await userEvent.click(await screen.findByRole("button", { name: /confirmar resultado/i }));
+    await userEvent.click(screen.getByRole("button", { name: /guardar opinión/i }));
+
+    // Navigate away before the review submission resolves.
+    await userEvent.clear(emissionInput);
+    await userEvent.type(emissionInput, "2023-06-14");
+    await waitFor(() => expect(screen.getByLabelText(/emisión seleccionada/i)).toHaveValue("2023-06-14"));
+
+    await act(async () => {
+      resolveSubmit({
+        status: "confirmed", revision: 1, review_open_at: "2023-06-14T00:00:00Z", reviewable: true,
+        blocked_reason: null, latest_review: null, training_eligibility: "no_review", applied_review_references: [],
+      });
+    });
+    // The stale confirmation must never resurrect the emission the user
+    // already left, nor leak into the now-displayed one.
+    expect(screen.queryByText(/confirmado por vos/i)).not.toBeInTheDocument();
+    expect(await screen.findByText(/viendo la emisión del/i)).toBeInTheDocument();
+  });
 });

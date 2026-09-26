@@ -34,11 +34,16 @@ export function EmissionPanel({
     return () => { alive.current = false; };
   }, []);
   useEffect(() => {
-    // Consulta automática al entrar a la pantalla: es la misma emisión
-    // idempotente por (sensor, fecha) que dispara el botón, así que no
-    // repite inferencia si ya se generó hoy. Prioriza mostrar estado sobre
-    // exigir un gesto manual, sin cambiar la semántica de la ruta.
-    void generate();
+    // Cambiar de sensor descarta el lote anterior: nunca se emite nada
+    // automáticamente al entrar ni al cambiar de sensor. `POST
+    // /forecasts` prepara una emisión (aunque sea idempotente) y es una
+    // acción operativa explícita, separada de cualquier navegación —
+    // incluida la de un sensor que forma parte de un recorrido histórico,
+    // donde jamás corresponde generar una emisión nueva.
+    setBatch(null);
+    setError(null);
+    requestId.current = null;
+    onBatch?.(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sensorId]);
   async function generate() {
@@ -78,7 +83,8 @@ export function EmissionPanel({
       {busy ? "Preparando pronósticos…" : error ? "Reintentar consulta" : batch ? "Actualizar" : "Consultar próximos tres días"}
     </button>
     {error && <p role="alert">{error}</p>}
-    {!batch && !error && <p role="status">Consultando los próximos tres días…</p>}
+    {!batch && !error && !busy && <div className="producer-outlook-placeholder"><span aria-hidden="true">1 → 2 → 3</span><p>Consultá para ver cada fecha por separado. Si faltan datos, te lo vamos a indicar.</p></div>}
+    {busy && <p role="status">Consultando los próximos tres días…</p>}
     {batch && <>
       <p className="producer-provenance">{provenanceLabel(batch.provenance)}</p>
       {batch.as_of_date && <p>Mediciones hasta el <strong>{displayForecastDate(batch.as_of_date)}</strong>. Fechas en UTC.</p>}

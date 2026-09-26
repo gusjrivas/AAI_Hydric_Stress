@@ -34,21 +34,34 @@ export function HistoricalWalkthrough({ sensorId }: { sensorId: string }) {
   const [revealedThrough, setRevealedThrough] = useState("");
   const effectiveReveal = revealedThrough || emissionDate;
 
+  // Cambiar de sensor invalida cualquier selección anterior: una fecha
+  // "preparada" para un sensor no significa nada para otro.
+  useEffect(() => {
+    setEmissionDate("");
+    setRevealedThrough("");
+  }, [sensorId]);
+
   const [batchState, setBatchState] = useState<BatchState>({ status: "idle" });
   const batchSeq = useRef(0);
   useEffect(() => {
+    // Se incrementa siempre, incluso al vaciar la selección: una
+    // respuesta tardía de la selección anterior nunca debe poder
+    // reemplazar el estado "idle" que corresponde a no tener nada
+    // seleccionado.
+    const seq = ++batchSeq.current;
     if (!emissionDate) {
       setBatchState({ status: "idle" });
       return;
     }
-    const seq = ++batchSeq.current;
     setBatchState({ status: "loading" });
     getHistoricalForecastBatch(sensorId, emissionDate, revealedThrough || undefined).then(
       (batch) => {
-        if (batchSeq.current === seq) setBatchState({ status: "ready", batch });
+        if (batchSeq.current !== seq) return;
+        setBatchState({ status: "ready", batch });
       },
       (error: Error) => {
-        if (batchSeq.current === seq) setBatchState({ status: "error", message: error.message });
+        if (batchSeq.current !== seq) return;
+        setBatchState({ status: "error", message: error.message });
       },
     );
   }, [sensorId, emissionDate, revealedThrough]);
@@ -56,38 +69,48 @@ export function HistoricalWalkthrough({ sensorId }: { sensorId: string }) {
   const [readingsState, setReadingsState] = useState<ReadingsState>({ status: "idle" });
   const readingsSeq = useRef(0);
   useEffect(() => {
+    const seq = ++readingsSeq.current;
     if (!effectiveReveal) {
       setReadingsState({ status: "idle" });
       return;
     }
-    const seq = ++readingsSeq.current;
     setReadingsState({ status: "loading" });
     getHistoricalReadings(sensorId, effectiveReveal, 10).then(
       (data) => {
-        if (readingsSeq.current === seq) setReadingsState({ status: "ready", data });
+        if (readingsSeq.current !== seq) return;
+        setReadingsState({ status: "ready", data });
       },
       (error: Error) => {
-        if (readingsSeq.current === seq) setReadingsState({ status: "error", message: error.message });
+        if (readingsSeq.current !== seq) return;
+        setReadingsState({ status: "error", message: error.message });
       },
     );
   }, [sensorId, effectiveReveal]);
 
   function reviewed(updated: Forecast) {
-    setBatchState((current) =>
-      current.status !== "ready"
-        ? current
-        : {
-            status: "ready",
-            batch: {
-              ...current.batch,
-              slots: current.batch.slots.map((slot) =>
-                slot.status === "available" && slot.forecast_id === updated.forecast_id
-                  ? { ...updated, status: "available" }
-                  : slot,
-              ),
-            },
-          },
-    );
+    setBatchState((current) => {
+      // El usuario ya navegó a otra selección desde que se emitió esta
+      // revisión: si el `forecast_id` ya no pertenece al lote vigente
+      // (por ejemplo, cambió la emisión seleccionada mientras el envío
+      // estaba en curso), no corresponde parchear nada, aunque la
+      // respuesta en sí sea válida para su propio pedido original.
+      if (current.status !== "ready") return current;
+      const stillDisplayed = current.batch.slots.some(
+        (slot) => slot.status === "available" && slot.forecast_id === updated.forecast_id,
+      );
+      if (!stillDisplayed) return current;
+      return {
+        status: "ready",
+        batch: {
+          ...current.batch,
+          slots: current.batch.slots.map((slot) =>
+            slot.status === "available" && slot.forecast_id === updated.forecast_id
+              ? { ...updated, status: "available" }
+              : slot,
+          ),
+        },
+      };
+    });
   }
 
   const submitReviewFn = (sid: string, forecastId: string, request: ReviewRequest) =>

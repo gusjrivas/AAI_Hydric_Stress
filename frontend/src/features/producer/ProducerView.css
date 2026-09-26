@@ -69,6 +69,9 @@
 .producer-outlook > p { color: var(--color-muted); max-width: 70ch; }
 .producer-outlook > button { background: var(--color-action); color: #fff; border-color: var(--color-action); margin: 8px 0 16px; }
 .producer-outlook > button:hover:not(:disabled) { background: var(--color-action-hover); border-color: var(--color-action-hover); }
+.producer-outlook-placeholder { display: flex; align-items: center; gap: 24px; padding: 20px; background: #f6f8f7; border-radius: 14px; margin-top: 12px; color: var(--color-muted); }
+.producer-outlook-placeholder span { font-size: 1.3rem; font-weight: 700; white-space: nowrap; color: var(--color-action); }
+@media (max-width: 640px) { .producer-outlook-placeholder { flex-direction: column; align-items: flex-start; gap: 4px; } }
 .producer-section-label { display: flex; justify-content: space-between; gap: 12px; padding: 8px 4px 0; font-size: .75rem; color: var(--color-muted); letter-spacing: .08em; font-weight: 700; }
 .producer-view .history-metrics > div { padding: 16px 20px; background: #f6f8f7; border-radius: 14px; }
 .producer-view .history-metrics dd { font-size: clamp(1.2rem, 3vw, 1.6rem); letter-spacing: -.02em; }
