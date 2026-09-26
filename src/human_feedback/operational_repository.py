@@ -535,6 +535,37 @@ class OperationalRepository:
             return None
         return self._render_forecast(forecast, now)
 
+    def get_batch_by_as_of_date(
+        self,
+        as_of_date: date,
+        *,
+        contract_version: str = OPERATIONAL_CONTRACT_VERSION,
+        now: datetime,
+    ) -> dict[str, Any] | None:
+        """Unambiguous, deterministic selection by *emission* date
+        (`as_of_date`), never by `target_date` -- `compute_batch_id` is a
+        pure function of `(sensor_id, as_of_date, contract_version)`, so
+        this never infers, never guesses "the latest available", and never
+        triggers `capture`/`predict`: only a dictionary lookup over
+        already-persisted batches, exactly like `get_forecast`. Returns
+        `None` when that exact date was never emitted -- never a partial or
+        invented result. Two calls with the same `as_of_date`, regardless
+        of how many *other* dates were emitted in between (A -> B -> A),
+        return byte-identical results, because the lookup key never
+        depends on what else has been emitted since.
+
+        `now` is accepted explicitly and never defaulted to the real wall
+        clock here: the caller (a historical-context route) is responsible
+        for supplying a simulated clock, so that `reviewable_pending_total`/
+        `_review_open_at`-derived state below reflects the point in the
+        simulated timeline being browsed, never real "today". The live
+        operational routes never call this method."""
+        document = self._read()
+        batch_id = compute_batch_id(self.sensor_id, as_of_date, contract_version)
+        if batch_id not in document["batches"]:
+            return None
+        return self._render_batch(document, batch_id, now)
+
     def list_forecasts(
         self,
         *,

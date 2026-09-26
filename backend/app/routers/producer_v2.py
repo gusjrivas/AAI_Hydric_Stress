@@ -5,7 +5,7 @@ from __future__ import annotations
 import base64
 import binascii
 import json
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timezone
 from pathlib import Path
 from typing import Any
 
@@ -403,3 +403,126 @@ def create_forecasts(
     )
     response.status_code = status_code
     return ForecastBatchResponse(**body)
+
+
+# ---------------------------------------------------------------------------
+# Historical context (reproduction, never preparation): read-only browsing
+# of already-emitted batches by their exact emission date (`as_of_date`),
+# with a simulated clock scoped to this one request. Never calls
+# `emit_forecasts`/`capture`/`predict` -- only dictionary lookups over
+# already-persisted state (`OperationalRepository.get_batch_by_as_of_date`,
+# `get_forecast`, `query_readings`). Never mutates the input snapshot.
+# The live routes above are untouched and keep using the real wall clock;
+# this section never changes a global clock, only passes an explicit
+# simulated `now` down through the same, unmodified repository methods.
+# ---------------------------------------------------------------------------
+
+
+def _historical_now(as_of_date: date) -> datetime:
+    """End-of-day of the simulated date being browsed: `review_open_at`
+    (target_date at midnight UTC) becomes reachable exactly once the
+    simulated clock reaches that target_date, never before -- and never
+    depends on the real wall clock."""
+    return datetime.combine(as_of_date, time.max, tzinfo=timezone.utc)
+
+
+@router.get(
+    "/sensors/{sensor_id}/historical/{as_of_date}/readings",
+    response_model=ReadingsResponse,
+    responses=ERROR_RESPONSES,
+)
+def get_historical_readings(
+    sensor_id: str,
+    as_of_date: date,
+    days: int = Query(default=30, ge=1, le=365),
+    repository: CatalogRepository = Depends(get_catalog_repository),
+) -> ReadingsResponse:
+    """Observations revealed exactly through `as_of_date` -- never a
+    separately client-supplied `end`, so the simulated clock and the
+    revealed window can never disagree. `server_today=as_of_date` so the
+    presented data age reflects the simulated date, never the real one."""
+    result = query_readings(
+        sensor_id,
+        repository.data_dir,
+        registered=repository.is_registered(sensor_id),
+        days=days,
+        end=as_of_date,
+        server_today=as_of_date,
+    )
+    return ReadingsResponse(**result)
+
+
+@router.get(
+    "/sensors/{sensor_id}/historical/{as_of_date}/forecasts",
+    response_model=ForecastBatchResponse,
+    responses=ERROR_RESPONSES,
+)
+def get_historical_forecasts(
+    sensor_id: str,
+    as_of_date: date,
+    operational_repository: OperationalRepository = Depends(get_operational_repository),
+) -> ForecastBatchResponse:
+    """Deterministic lookup by emission date, never by `target_date`, never
+    a POST. `A -> B -> A` navigation returns byte-identical results for
+    `A` regardless of what was emitted for `B` in between (the lookup key
+    depends only on `as_of_date`, never on emission order or count)."""
+    batch = operational_repository.get_batch_by_as_of_date(
+        as_of_date, now=_historical_now(as_of_date)
+    )
+    if batch is None:
+        raise OperationalRepositoryError(
+            "batch_not_prepared",
+            "No hay una emisión preparada para esta fecha histórica.",
+            404,
+        )
+    # `_render_batch` never adds these two (only `emit_snapshot`'s own
+    # top-level orchestration does, on the live path this method never
+    # goes through) -- `server_today` here is the simulated date being
+    # browsed, never the real one.
+    batch.setdefault("calendar_timezone", "UTC")
+    batch.setdefault("server_today", as_of_date.isoformat())
+    return ForecastBatchResponse(**batch)
+
+
+@router.post(
+    "/sensors/{sensor_id}/historical/{as_of_date}/forecasts/{forecast_id}/reviews",
+    response_model=ForecastReview,
+    status_code=status.HTTP_201_CREATED,
+    responses=ERROR_RESPONSES,
+)
+def create_historical_review(
+    sensor_id: str,
+    as_of_date: date,
+    forecast_id: str,
+    payload: ReviewCreate,
+    operational_repository: OperationalRepository = Depends(get_operational_repository),
+) -> ForecastReview:
+    """Feedback in the historical context, gated by the *simulated* clock
+    (`_review_open_at`/`submit_review` reject a review whose `target_date`
+    the simulated clock has not reached yet) -- never by the real wall
+    clock, which would make every historical forecast look reviewable
+    regardless of the date being browsed. Also refuses to review a
+    forecast_id that belongs to a later emission than `as_of_date`: moving
+    the clock back to `A` must never expose `B`'s forecasts as reachable
+    from `A`, even by a directly-supplied `forecast_id`."""
+    now = _historical_now(as_of_date)
+    existing = operational_repository.get_forecast(forecast_id, now=now)
+    if existing is None:
+        raise OperationalRepositoryError(
+            "forecast_not_found", "La emisión no existe para este sensor.", 404
+        )
+    if existing["as_of_date"] > as_of_date.isoformat():
+        raise OperationalRepositoryError(
+            "forecast_not_visible_at_this_historical_date",
+            "Esta emisión corresponde a una fecha posterior a la que se está navegando.",
+            404,
+        )
+    _status_code, review = operational_repository.submit_review(
+        forecast_id=forecast_id,
+        request_id=payload.request_id,
+        expected_revision=payload.expected_revision,
+        action=payload.action,
+        comment=payload.comment,
+        now=now,
+    )
+    return ForecastReview(**review)
