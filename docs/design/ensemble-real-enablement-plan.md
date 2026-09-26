@@ -45,11 +45,13 @@ El hallazgo más directamente relevante es explícitamente **negativo**: `opensp
 
 ## 5. Matriz por horizonte
 
-| Horizonte | Estado | Causa |
+**Actualización 2026-09-26:** el responsable autorizó y esta corrida ejecutó la demostración técnica real para los tres horizontes (`docs/design/ensemble-real-execution-report-2026-09-26.md`). La tabla queda como registro histórico de lo preparado antes de esa autorización; el estado real posterior a la ejecución es "DEMOSTRACIÓN TÉCNICA REALIZADA" para los tres, no una validación confirmatoria (sección 9 de ese reporte).
+
+| Horizonte | Estado (antes de la ejecución) | Causa |
 | --- | --- | --- |
-| +1 | **PREPARADO, NO EJECUTADO** | El ejecutor separado (sección 6) soporta +1 igual que +3 -- `add_multihorizon_targets`/`partition_labeled_horizon` son paramétricos en el horizonte. Nunca hubo, ni el ejecutor pretende que haya, una ejecución real de `controlled_daily_v4` a +1: sus modelos/calibradores para +1 serían enteramente nuevos, nunca heredados de la campaña cerrada. Falta correr contra los CSV reales (autorización pendiente, sección 4). |
-| +2 | **PREPARADO, NO EJECUTADO** | Idéntica situación que +1. |
-| +3 | **PREPARADO, NO EJECUTADO** | Único horizonte con antecedente real (`logistic_regression`, sección 2), pero el ejecutor tampoco reutiliza ese antecedente como artefacto (nunca se serializó, sección 2) -- reutiliza únicamente la elección de hiperparámetros, refiteada sobre una ventana propia (sección 6). Falta correr contra los CSV reales. |
+| +1 | PREPARADO, NO EJECUTADO | El ejecutor separado (sección 6) soporta +1 igual que +3 -- `add_multihorizon_targets`/`partition_labeled_horizon` son paramétricos en el horizonte. Nunca hubo, ni el ejecutor pretende que haya, una ejecución real de `controlled_daily_v4` a +1: sus modelos/calibradores para +1 serían enteramente nuevos, nunca heredados de la campaña cerrada. Falta correr contra los CSV reales (autorización pendiente, sección 4). |
+| +2 | PREPARADO, NO EJECUTADO | Idéntica situación que +1. |
+| +3 | PREPARADO, NO EJECUTADO | Único horizonte con antecedente real (`logistic_regression`, sección 2), pero el ejecutor tampoco reutiliza ese antecedente como artefacto (nunca se serializó, sección 2) -- reutiliza únicamente la elección de hiperparámetros, refiteada sobre una ventana propia (sección 6). Falta correr contra los CSV reales. |
 
 Los tres horizontes están **implementados y verificados con datos sintéticos** (código real, ejecutable, sección 6) pero **ninguno se ejecutó contra los CSV reales de Pergamino** en esta intervención. Ninguno alcanza el cuarto estado ("ensemble habilitado con artefactos reales admisibles", sección 8) todavía.
 
@@ -129,13 +131,13 @@ Cada corrida escribe `<output_dir>/run_manifest.json`, actualizado incrementalme
 
 Los cinco, todos verificados, no solo alguno:
 
-1. Las 3 familias tienen modelo + calibrador reales (no sintéticos), para los 3 horizontes que se quiera habilitar, empaquetados por este mismo ejecutor, con hashes registrados y procedencia documentada (commit, config, datos, comando exacto de 6.5).
-2. `load_ensemble_bundle`/`predict_ensemble_bundle` cargan e infieren correctamente sobre esos bundles reales, en el mismo entorno que los generó.
-3. Un smoke test HTTP real contra la API v2, con un `sensor_id` de demostración explícito (nunca productivo), devuelve un detalle `ensemble` coherente -- mismo patrón que 6.6, sobre datos reales.
-4. Autorización explícita y registrada del responsable para ejecutar 6.5 contra los CSV reales (la ejecución en sí, no solo esta preparación) -- esta intervención la deja lista, no la concede.
-5. El documento resultante distingue, para cada componente, qué reutiliza la elección de hiperparámetros de la campaña real (solo `logistic_regression`) y qué es enteramente nuevo (`random_forest`, `hist_gradient_boosting_classifier`, la calibración de las tres, y +1/+2 en su totalidad) -- nunca presentado como si viniera de la misma auditoría `PASS`/`FAIL` ya cerrada.
+1. Las 3 familias tienen modelo + calibrador reales (no sintéticos), para los 3 horizontes que se quiera habilitar, empaquetados por este mismo ejecutor, con hashes registrados y procedencia documentada (commit, config, datos, comando exacto de 6.5). **Cumplido 2026-09-26** — 9 modelos + 9 calibradores reales, `run_manifest.json` con `status=completado`, hashes verificados. Ver `docs/design/ensemble-real-execution-report-2026-09-26.md`.
+2. `load_ensemble_bundle`/`predict_ensemble_bundle` cargan e infieren correctamente sobre esos bundles reales, en el mismo entorno que los generó. **Cumplido 2026-09-26** — verificado para +1/+2/+3 con `as_of_date=2023-06-15`.
+3. Un smoke test HTTP real contra la API v2, con un `sensor_id` de demostración explícito (nunca productivo), devuelve un detalle `ensemble` coherente -- mismo patrón que 6.6, sobre datos reales. **Cumplido 2026-09-26** — emisión, repetición idempotente, consulta individual y listado, los cuatro `2xx`, con `ensemble` coherente en los tres horizontes.
+4. Autorización explícita y registrada del responsable para ejecutar 6.5 contra los CSV reales. **Cumplido 2026-09-26** — autorización explícita registrada (`docs/design/ensemble-real-execution-report-2026-09-26.md`, sección 0), que además resuelve las decisiones metodológicas de 6.1/6.2 (completar RF/HGB y agregar calibración) para el alcance de esta demostración.
+5. El documento resultante distingue, para cada componente, qué reutiliza la elección de hiperparámetros de la campaña real (solo `logistic_regression`) y qué es enteramente nuevo (`random_forest`, `hist_gradient_boosting_classifier`, la calibración de las tres, y +1/+2 en su totalidad) -- nunca presentado como si viniera de la misma auditoría `PASS`/`FAIL` ya cerrada. **Cumplido** — ver sección 9 de ese reporte.
 
-**Ninguno de los cinco se cumple hoy.** El código y las pruebas sintéticas están completos; la ejecución contra datos reales no se realizó.
+**Los cinco se cumplen a partir del 2026-09-26**, exclusivamente para la demostración técnica retrospectiva descrita en `docs/design/ensemble-real-execution-report-2026-09-26.md`. Esto no constituye ni se presenta como evidencia científica confirmatoria de HU7/HU8, ni como reparación de la campaña cerrada.
 
 ## 7. Umbral de decisión y demostración histórica
 
@@ -150,7 +152,7 @@ Definidos en `docs/superpowers/specs/2026-09-25-ensemble-operational-integration
 1. Single-model disponible (sin cambios).
 2. Ensemble configurado pero `unavailable` (artefactos incompletos/inválidos/ausentes).
 3. Integración probada con datos sintéticos (Hito 1 — alcanzado, PR #217 mergeado).
-4. Ensemble habilitado con artefactos reales admisibles — **no alcanzado**. Los tres horizontes están implementados y verificados solo con datos sintéticos (sección 6); falta la ejecución real (comando de 6.5) y la autorización explícita para realizarla (criterio de 6.7).
+4. Ensemble habilitado con artefactos reales admisibles — **alcanzado 2026-09-26 para la demostración técnica retrospectiva** (autorización explícita del responsable, `docs/design/ensemble-real-execution-report-2026-09-26.md`), para los tres horizontes. No equivale a validación científica confirmatoria de HU7/HU8 ni a cierre de la campaña `controlled_daily_v4_external_pergamino` (sección 9 del reporte).
 
 ## 9. Trazabilidad
 
