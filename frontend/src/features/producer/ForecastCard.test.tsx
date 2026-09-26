@@ -48,6 +48,7 @@ const baseForecast: Forecast = {
     training_eligibility: "no_review",
     applied_review_references: [],
   },
+  ensemble: null,
 };
 
 describe("ForecastCard", () => {
@@ -57,6 +58,30 @@ describe("ForecastCard", () => {
     render(<ForecastCard sensorId="sensor-a" forecast={baseForecast} />);
     expect(screen.getByText(/pendiente de revisar/i)).toBeInTheDocument();
     expect(screen.getByText(/72 %/)).toBeInTheDocument();
+  });
+
+  it("shows agreement between models as a separate dimension from the combined alert, never as a percentage", () => {
+    const withEnsemble: Forecast = {
+      ...baseForecast,
+      ensemble: {
+        policy_version: "ensemble_agreement_v1",
+        ensemble_identity_sha256: "abc",
+        weights: { logistic_regression: 1 / 3, random_forest: 1 / 3, hist_gradient_boosting_classifier: 1 / 3 },
+        components: [
+          { family: "logistic_regression", model_reference: baseForecast.model_reference, calibrated_through: "2025-12-31", score: 0.8, decision_threshold: 0.5, alert: true },
+          { family: "random_forest", model_reference: baseForecast.model_reference, calibrated_through: "2025-12-31", score: 0.6, decision_threshold: 0.5, alert: true },
+          { family: "hist_gradient_boosting_classifier", model_reference: baseForecast.model_reference, calibrated_through: "2025-12-31", score: 0.4, decision_threshold: 0.5, alert: false },
+        ],
+        combined_probability: 0.6,
+        combined_alert: true,
+        positive_votes: 2,
+        agreement_category: "posible_alerta_acuerdo_parcial",
+        calibrated_through: "2025-12-31",
+      },
+    };
+    render(<ForecastCard sensorId="sensor-a" forecast={withEnsemble} />);
+    expect(screen.getByText(/2 de 3 modelos indican alerta/i)).toBeInTheDocument();
+    expect(screen.queryByText(/66 %|67 %/)).not.toBeInTheDocument();
   });
 
   it("never shows 0% when display_probability is missing", () => {

@@ -1,28 +1,28 @@
 .forecasts-section p { margin: 8px 0 16px; max-width: 75ch; }
 .forecasts-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
-.forecasts-heading h3 { margin: 0; font-size: 1.35rem; }
-.forecasts-counts { color: #22583d; font-weight: 650; background: #ecf4e8; padding: 8px 12px; border-radius: 10px; font-size: .85rem; }
+.forecasts-heading h3 { margin: 0; font-size: 1.35rem; letter-spacing: -.02em; }
+.forecasts-counts { color: #1a2622; font-weight: 650; background: #f6f8f7; padding: 8px 12px; border-radius: 10px; font-size: .85rem; }
 .forecast-list { list-style: none; margin: 18px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 16px; }
 .forecast-list > li { min-width: 0; }
 .forecast-outlook-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.forecast-card { height: 100%; box-sizing: border-box; border: 1px solid #dce6df; border-top: 4px solid #829991; border-radius: 16px; padding: 20px; background: #fafcfb; }
-.forecast-card-clear { border-top-color: #438060; }
-.forecast-card-alert { border-top-color: #db9537; background: #fffaf2; }
+.forecast-card { height: 100%; box-sizing: border-box; border: 1px solid #e6eae8; border-radius: 14px; padding: 20px; background: #fff; }
+.forecast-card-clear { border-color: #e6eae8; }
+.forecast-card-alert { border-color: #f3c9ae; background: #fff8f3; }
 .forecast-card-header { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
-.forecast-card-target { font-weight: 750; font-size: 1.15rem; letter-spacing: -.02em; margin: 0 0 8px; }
-.forecast-card-details { font-size: .77rem; color: #526a5c; }
+.forecast-card-target { font-weight: 700; font-size: 1.1rem; letter-spacing: -.02em; margin: 0 0 8px; }
+.forecast-card-details { font-size: .77rem; color: #5b6b65; }
 .forecast-card-details summary { min-height: 32px; cursor: pointer; }
 .forecast-card-meta { line-height: 1.5; }
-.forecast-card-badge { font-size: .8rem; font-weight: 750; padding: 5px 11px; border-radius: 7px; background: #e6f2e9; color: #275c3d; }
-.forecast-card-badge.is-alert { background: #ffe4b2; color: #784510; }
+.forecast-card-badge { font-size: .8rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #f6f8f7; color: #5b6b65; }
+.forecast-card-badge.is-alert { background: #fff1e8; color: #b23a0a; }
 .forecast-card-guidance { font-weight: 600; line-height: 1.55; }
-.forecast-probability { font-size: .78rem; color: #5a6c60; line-height: 1.5; }
-.forecast-card-review-status { font-size: .83rem; font-weight: 650; padding-top: 14px; border-top: 1px solid #dce6df; }
-.forecast-card-latest-review, .forecast-card-blocked, .forecast-card-hint { font-size: .8rem; color: #53685d; line-height: 1.5; }
+.forecast-probability { font-size: .78rem; color: #5b6b65; line-height: 1.5; }
+.forecast-card-review-status { font-size: .83rem; font-weight: 650; padding-top: 14px; border-top: 1px solid #e6eae8; }
+.forecast-card-latest-review, .forecast-card-blocked, .forecast-card-hint { font-size: .8rem; color: #5b6b65; line-height: 1.5; }
 .forecast-card-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .forecast-card-buttons button { flex: 1 1 130px; font-size: .82rem; }
 .forecast-card-form textarea { width: 100%; box-sizing: border-box; min-height: 90px; margin-top: 8px; }
-.forecasts-subsection + .forecasts-subsection { border-top: 1px solid #dce6df; margin-top: 28px; padding-top: 10px; }
+.forecasts-subsection + .forecasts-subsection { border-top: 1px solid #e6eae8; margin-top: 28px; padding-top: 10px; }
 @media (max-width: 850px) { .forecast-outlook-grid { grid-template-columns: 1fr; } }
-.producer-history-disclosure { border-top: 1px solid #dce6df; padding-top: 20px; margin-top: 24px; }
-.producer-history-disclosure > summary { cursor: pointer; min-height: 44px; font-weight: 700; color: #24583e; }
+.producer-history-disclosure { border-top: 1px solid #e6eae8; padding-top: 20px; margin-top: 24px; }
+.producer-history-disclosure > summary { cursor: pointer; min-height: 44px; font-weight: 700; color: #1f6fb2; }

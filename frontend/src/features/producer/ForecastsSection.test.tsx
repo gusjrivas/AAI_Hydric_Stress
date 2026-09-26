@@ -42,6 +42,7 @@ function makeForecast(overrides: Partial<Forecast> = {}): Forecast {
       training_eligibility: "no_review",
       applied_review_references: [],
     },
+    ensemble: null,
     ...overrides,
   };
 }

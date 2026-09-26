@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ForecastCard } from "./ForecastCard";
 import { displayForecastDate, emitForecasts, newRequestId } from "./forecastsApi";
 import type { Forecast, ForecastBatch } from "./forecastsApi";
+import { provenanceLabel } from "./readingsApi";
 
 const REASONS: Record<string, string> = {
   no_readings: "Todavía no hay mediciones para este punto.",
@@ -11,7 +12,18 @@ const REASONS: Record<string, string> = {
   model_not_available_at_date: "Las mediciones son anteriores al período que puede usar este pronóstico.",
 };
 
-export function EmissionPanel({ sensorId, onChanged }: { sensorId: string; onChanged: () => void }) {
+export function EmissionPanel({
+  sensorId,
+  onChanged,
+  onBatch,
+}: {
+  sensorId: string;
+  onChanged: () => void;
+  /** Notifica el lote vigente al contenedor (p. ej. para el banner de
+   * alerta resumen en la parte superior de la pantalla) sin duplicar el
+   * estado: sigue siendo este componente el único que lo posee. */
+  onBatch?: (batch: ForecastBatch | null) => void;
+}) {
   const [batch, setBatch] = useState<ForecastBatch | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +33,19 @@ export function EmissionPanel({ sensorId, onChanged }: { sensorId: string; onCha
     alive.current = true;
     return () => { alive.current = false; };
   }, []);
+  useEffect(() => {
+    // Cambiar de sensor descarta el lote anterior: nunca se emite nada
+    // automáticamente al entrar ni al cambiar de sensor. `POST
+    // /forecasts` prepara una emisión (aunque sea idempotente) y es una
+    // acción operativa explícita, separada de cualquier navegación —
+    // incluida la de un sensor que forma parte de un recorrido histórico,
+    // donde jamás corresponde generar una emisión nueva.
+    setBatch(null);
+    setError(null);
+    requestId.current = null;
+    onBatch?.(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sensorId]);
   async function generate() {
     if (busy) return;
     requestId.current ??= newRequestId();
@@ -30,6 +55,7 @@ export function EmissionPanel({ sensorId, onChanged }: { sensorId: string; onCha
       const result = await emitForecasts(sensorId, requestId.current);
       if (!alive.current) return;
       setBatch(result);
+      onBatch?.(result);
       requestId.current = null;
       onChanged();
     } catch (failure) {
@@ -39,25 +65,37 @@ export function EmissionPanel({ sensorId, onChanged }: { sensorId: string; onCha
     }
   }
   function reviewed(forecast: Forecast) {
-    setBatch((current) => current ? { ...current, slots: current.slots.map((slot) =>
-      slot.status === "available" && slot.forecast_id === forecast.forecast_id
-        ? { ...forecast, status: "available" } : slot) } : current);
+    setBatch((current) => {
+      if (!current) return current;
+      const updated: ForecastBatch = { ...current, slots: current.slots.map((slot) =>
+        slot.status === "available" && slot.forecast_id === forecast.forecast_id
+          ? { ...forecast, status: "available" as const } : slot) };
+      onBatch?.(updated);
+      return updated;
+    });
     onChanged();
   }
   return <section className="producer-outlook" aria-labelledby="next-days-heading">
-    <p className="producer-eyebrow">02 / QUÉ SE ESPERA</p>
+    <p className="producer-eyebrow">PRÓXIMOS 3 DÍAS</p>
     <h3 id="next-days-heading">Los próximos tres días del cultivo</h3>
     <p>Consultá qué se espera para cada día a partir de la última medición disponible.</p>
     <button type="button" disabled={busy} onClick={() => void generate()}>
-      {busy ? "Preparando pronósticos…" : error ? "Reintentar consulta" : "Consultar próximos tres días"}
+      {busy ? "Preparando pronósticos…" : error ? "Reintentar consulta" : batch ? "Actualizar" : "Consultar próximos tres días"}
     </button>
     {error && <p role="alert">{error}</p>}
-    {!batch && !error && <div className="producer-outlook-placeholder"><span aria-hidden="true">1 → 2 → 3</span><p>Consultá para ver cada fecha por separado. Si faltan datos, te lo vamos a indicar.</p></div>}
+    {!batch && !error && !busy && <div className="producer-outlook-placeholder"><span aria-hidden="true">1 → 2 → 3</span><p>Consultá para ver cada fecha por separado. Si faltan datos, te lo vamos a indicar.</p></div>}
+    {busy && <p role="status">Consultando los próximos tres días…</p>}
     {batch && <>
+      <p className="producer-provenance">{provenanceLabel(batch.provenance)}</p>
       {batch.as_of_date && <p>Mediciones hasta el <strong>{displayForecastDate(batch.as_of_date)}</strong>. Fechas en UTC.</p>}
       {batch.data_age_days !== null && batch.data_age_days > 0 && <p role="status">
         La última medición tiene {batch.data_age_days} días de antigüedad. Los resultados corresponden a esas fechas; no describen necesariamente la situación de hoy.
       </p>}
+      {batch.slots.every((slot) => slot.status === "unavailable") && (
+        <p role="alert" className="producer-insufficient-data">
+          No hay información suficiente para emitir un pronóstico. Se recomienda verificar el estado del cultivo.
+        </p>
+      )}
       <ul className="forecast-list forecast-outlook-grid">
         {batch.slots.map((slot) => <li key={slot.horizon_days}>
           {slot.status === "available" ? <ForecastCard key={slot.forecast_id} sensorId={sensorId} forecast={slot} onChanged={reviewed} /> : <article className="forecast-card">
