@@ -29,7 +29,7 @@ export interface ReadingRow {
   precipitation: number | null;
   wind_speed: number | null;
   et0: number | null;
-  origin: "real" | "synthetic" | "unknown";
+  origin: "real" | "synthetic" | "external_reanalysis" | "unknown";
   quality_flags: string[];
 }
 
@@ -52,7 +52,7 @@ export interface ReadingsResult {
   units: Record<string, string>;
   last_reading_date: string | null;
   data_age_days: number | null;
-  provenance: "real" | "synthetic" | "mixed" | "unknown";
+  provenance: "real" | "synthetic" | "external_reanalysis" | "mixed" | "unknown";
 }
 
 /** Un sensor desconocido (404 con cuerpo de error v2). */
@@ -92,9 +92,15 @@ export function displayDate(value: string): string {
     .format(new Date(`${value}T00:00:00Z`));
 }
 
+// Etiqueta prevista para datos de reanálisis externo (ERA5-Land + NASA
+// POWER, Hito 2 del ensamble): nunca "Fuente real" (no es un sensor físico
+// propio) ni "Simulado" (no es sintético) -- una tercera categoría propia.
+const EXTERNAL_REANALYSIS_LABEL = "Datos externos de ERA5-Land y NASA POWER";
+
 const PROVENANCE_LABELS: Record<ReadingsResult["provenance"], string> = {
   real: "Datos registrados de la fuente",
   synthetic: "Datos simulados · Solo para demostración",
+  external_reanalysis: EXTERNAL_REANALYSIS_LABEL,
   mixed: "Fuentes reales y simuladas combinadas",
   unknown: "Procedencia no identificada",
 };
@@ -106,6 +112,7 @@ export function provenanceLabel(provenance: ReadingsResult["provenance"]): strin
 const ORIGIN_LABELS: Record<ReadingRow["origin"], string> = {
   real: "Fuente real",
   synthetic: "Simulado",
+  external_reanalysis: EXTERNAL_REANALYSIS_LABEL,
   unknown: "No identificado",
 };
 
