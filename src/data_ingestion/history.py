@@ -130,8 +130,22 @@ def query_readings(
     dates = _validate_calendar(dataframe)
     dataframe["__date"] = dates
     dataframe = dataframe.sort_values("__date").reset_index(drop=True)
+    # `last_date` (unfiltered, whole file) only anchors the displayed
+    # window when the caller doesn't pin `end` -- existing operational
+    # behavior (no clock argument), preserved as-is.
     last_date = dataframe["__date"].max() if len(dataframe) else None
     window_end = end or last_date or today
+    # `last_reading_date`/`data_age_days` must instead reflect only what
+    # is *admissible* under the effective clock (`today`: the real wall
+    # clock operationally, or the historical `server_today` when
+    # browsing a past date) -- never the whole file's latest row
+    # regardless of that clock. Scanned over the whole file, not just
+    # `window`: the last admissible reading can be earlier than
+    # `window_start` (a gap right before the displayed window), so
+    # restricting the search to the window slice would miss it and
+    # under-report age or report none at all.
+    admissible_dates = dataframe.loc[dataframe["__date"] <= today, "__date"]
+    admissible_last_date = admissible_dates.max() if len(admissible_dates) else None
     window_start = window_end - timedelta(days=days - 1)
     expected_dates = [window_start + timedelta(days=offset) for offset in range(days)]
     window = dataframe[(dataframe["__date"] >= window_start) & (dataframe["__date"] <= window_end)]
@@ -179,7 +193,11 @@ def query_readings(
         "server_today": today,
         "snapshot_id": snapshot.dataset_sha256,
         "window": {"start_date": window_start, "end_date": window_end, "expected_days": days},
-        "status": "ready" if len(dataframe) else "no_readings",
+        # Un archivo con datos pero ninguno admisible hasta `today` (todo
+        # posterior al reloj efectivo) debe verse igual que la ausencia de
+        # lecturas -- nunca "ready" con filas vacías y sin fecha de última
+        # lectura, que sería incoherente con esa ausencia.
+        "status": "ready" if admissible_last_date is not None else "no_readings",
         "rows": rows,
         "missing_dates": [item for item in expected_dates if item not in observed_dates],
         "variable_coverage": coverage,
@@ -193,8 +211,8 @@ def query_readings(
             }
             for variable in VARIABLE_UNITS
         ],
-        "last_reading_date": last_date,
-        "data_age_days": (today - last_date).days if last_date else None,
+        "last_reading_date": admissible_last_date,
+        "data_age_days": (today - admissible_last_date).days if admissible_last_date else None,
         "provenance": provenance,
     }
 

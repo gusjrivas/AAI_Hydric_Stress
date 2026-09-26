@@ -6,15 +6,18 @@ import {
   ReviewIdempotencyConflictError,
   ReviewNotOpenError,
   RevisionConflictError,
+  agreementLabel,
+  agreementVotesLabel,
   displayForecastDate,
   displayIssuedAt,
   displayProbability,
+  familyLabel,
   getForecast,
   newRequestId,
   reviewStatusLabel,
   submitReview,
 } from "./forecastsApi";
-import type { Forecast, ReviewAction } from "./forecastsApi";
+import type { Forecast, ReviewAction, ReviewRequest, ForecastReview } from "./forecastsApi";
 
 const HORIZON_LABELS: Record<1 | 2 | 3, string> = {
   1: "1 día después de la medición",
@@ -43,10 +46,23 @@ export function ForecastCard({
   sensorId,
   forecast: initialForecast,
   onChanged,
+  submitReviewFn = submitReview,
+  refetchFn = getForecast,
+  historicalNotice,
 }: {
   sensorId: string;
   forecast: Forecast;
   onChanged?: (forecast: Forecast) => void;
+  /** Punto de extensión para el modo histórico: mismo componente, mismo
+   * formulario y misma semántica confirmar/rechazar, pero dirigido a las
+   * rutas `/historical/...` gateadas por el reloj del recorrido en vez del
+   * reloj real de las rutas en vivo. */
+  submitReviewFn?: (sensorId: string, forecastId: string, request: ReviewRequest) => Promise<ForecastReview>;
+  refetchFn?: (sensorId: string, forecastId: string) => Promise<Forecast>;
+  /** Mensaje fijo para modo histórico (p. ej. aclarar que la revisión queda
+   * aislada de los procesos operativos), mostrado además del resto de los
+   * mensajes de estado. */
+  historicalNotice?: string;
 }) {
   const [localForecast, setForecast] = useState(initialForecast);
   const { updates, publish } = useForecastReviews();
@@ -81,7 +97,7 @@ export function ForecastCard({
     setSubmitting(true);
     setFormError(null);
     try {
-      const updatedReview = await submitReview(sensorId, forecast.forecast_id, {
+      const updatedReview = await submitReviewFn(sensorId, forecast.forecast_id, {
         requestId,
         expectedRevision: review.revision,
         action: draft.action,
@@ -105,7 +121,7 @@ export function ForecastCard({
         setRequestId(null);
         setNotice("Se registró otra opinión mientras completabas este formulario.");
         try {
-          const fresh = await getForecast(sensorId, forecast.forecast_id);
+          const fresh = await refetchFn(sensorId, forecast.forecast_id);
           setForecast(fresh);
           setNotice("Se registró otra opinión. Ya estás viendo el resultado actualizado.");
           publish(fresh);
@@ -162,7 +178,23 @@ export function ForecastCard({
 
       <p className="forecast-card-guidance">{forecast.alert ? "Puede haber falta de agua. Revisá cómo está el cultivo." : "No se anticipa una alerta para esta fecha. Seguí observando el cultivo."}</p>
       <p className="forecast-probability">{forecast.display_probability === null ? "Probabilidad no disponible: todavía no hay un porcentaje respaldado para mostrar." : `Posibilidad de alerta: ${displayProbability(forecast)}`}</p>
+      {forecast.ensemble && (
+        <div className="forecast-card-agreement">
+          <p><strong>Acuerdo entre modelos:</strong> {agreementLabel(forecast.ensemble)} ({agreementVotesLabel(forecast.ensemble)}).</p>
+          <details>
+            <summary>Ver detalle por modelo</summary>
+            <ul>
+              {forecast.ensemble.components.map((component) => (
+                <li key={component.family}>
+                  {familyLabel(component.family)}: {component.alert ? "indica alerta" : "no indica alerta"}
+                </li>
+              ))}
+            </ul>
+          </details>
+        </div>
+      )}
       <p className="forecast-card-review-status">Revisión: {reviewStatusLabel(review.status)}</p>
+      {historicalNotice && <p className="forecast-card-historical-notice">{historicalNotice}</p>}
 
       {review.latest_review && (
         <p className="forecast-card-latest-review">

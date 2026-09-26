@@ -14,13 +14,21 @@ from fastapi import APIRouter, Depends, Header, Query, Response, status
 from architecture_integration.producer_emission import emit_forecasts
 from data_ingestion.catalog import CatalogError, CatalogRepository
 from data_ingestion.history import query_readings
+from human_feedback.historical_review_store import HistoricalReviewStore
 from human_feedback.operational_repository import (
     OperationalRepository,
     OperationalRepositoryError,
 )
+from human_feedback.operational_repository import (
+    _review_open_at as _operational_review_open_at,
+)
+from human_feedback.operational_repository import (
+    _training_eligibility as _operational_training_eligibility,
+)
 
 from ..dependencies import (
     get_catalog_repository,
+    get_historical_review_store,
     get_operational_repository,
     get_producer_bundle_root,
     require_producer_v2_enabled,
@@ -426,6 +434,34 @@ def _historical_now(as_of_date: date) -> datetime:
     return datetime.combine(as_of_date, time.max, tzinfo=timezone.utc)
 
 
+def _historical_review_view(
+    forecast_like: dict[str, Any], state: dict[str, Any], now: datetime
+) -> dict[str, Any]:
+    """Renders `review` for the historical context strictly from
+    `HistoricalReviewStore` state (`state`) -- never from the batch's own
+    embedded (operational) `review` field. Reuses the exact same
+    `review_open_at`/`training_eligibility` computation the operational
+    path uses (same inputs it always took: `target_date`,
+    `contract_version`, `model_reference`), so an operational update on
+    the same `forecast_id` can never change what this returns: they read
+    from entirely different storage."""
+    review_open_at = _operational_review_open_at(forecast_like)
+    reviewable = now >= review_open_at
+    training_eligibility, applied_refs = _operational_training_eligibility(
+        forecast_like, state, now
+    )
+    return {
+        "status": state["status"],
+        "revision": state["revision"],
+        "review_open_at": review_open_at,
+        "reviewable": reviewable,
+        "blocked_reason": None if reviewable else "review_not_open",
+        "latest_review": state["latest_review"],
+        "training_eligibility": training_eligibility,
+        "applied_review_references": applied_refs,
+    }
+
+
 @router.get(
     "/sensors/{sensor_id}/historical/{as_of_date}/readings",
     response_model=ReadingsResponse,
@@ -460,15 +496,33 @@ def get_historical_readings(
 def get_historical_forecasts(
     sensor_id: str,
     as_of_date: date,
+    revealed_through: date | None = Query(default=None),
     operational_repository: OperationalRepository = Depends(get_operational_repository),
+    historical_review_store: HistoricalReviewStore = Depends(get_historical_review_store),
 ) -> ForecastBatchResponse:
     """Deterministic lookup by emission date, never by `target_date`, never
     a POST. `A -> B -> A` navigation returns byte-identical results for
     `A` regardless of what was emitted for `B` in between (the lookup key
-    depends only on `as_of_date`, never on emission order or count)."""
-    batch = operational_repository.get_batch_by_as_of_date(
-        as_of_date, now=_historical_now(as_of_date)
-    )
+    depends only on `as_of_date`, never on emission order or count).
+
+    `revealed_through` lets the caller walk the simulated clock forward
+    past the emission's own `as_of_date` -- e.g. to contrast an emission's
+    +3 target against an observation revealed on a later date -- without
+    changing which batch is selected. It only changes the clock used to
+    render `review.reviewable`/`review_open_at`/`blocked_reason`, so those
+    fields reflect the walked-forward "recorrido", never the emission
+    date, matching the same clock the reviews route will actually enforce
+    when the caller submits at that later date. It must never be earlier
+    than `as_of_date`: reviewability can never be computed against a point
+    in time before the emission being displayed even existed."""
+    if revealed_through is not None and revealed_through < as_of_date:
+        raise OperationalRepositoryError(
+            "invalid_reveal_window",
+            "La fecha de recorrido no puede ser anterior a la fecha de emisión.",
+            422,
+        )
+    now = _historical_now(revealed_through if revealed_through is not None else as_of_date)
+    batch = operational_repository.get_batch_by_as_of_date(as_of_date, now=now)
     if batch is None:
         raise OperationalRepositoryError(
             "batch_not_prepared",
@@ -477,10 +531,26 @@ def get_historical_forecasts(
         )
     # `_render_batch` never adds these two (only `emit_snapshot`'s own
     # top-level orchestration does, on the live path this method never
-    # goes through) -- `server_today` here is the simulated date being
-    # browsed, never the real one.
+    # goes through) -- `server_today` here is the *effective* simulated
+    # clock: `revealed_through` when the caller walked it forward past
+    # the emission, `as_of_date` otherwise. Never the real one, and
+    # never just `as_of_date` regardless of `revealed_through` (that
+    # would misreport the clock the review route will actually enforce).
     batch.setdefault("calendar_timezone", "UTC")
-    batch.setdefault("server_today", as_of_date.isoformat())
+    batch.setdefault(
+        "server_today",
+        (revealed_through if revealed_through is not None else as_of_date).isoformat(),
+    )
+    # `_render_batch` embeds the *operational* review (computed against
+    # this same repository's live reviews). The historical context must
+    # never show that: replace it with the isolated
+    # `HistoricalReviewStore` state for each available slot, so an
+    # operational review submitted through the live routes never changes
+    # what a historical card displays, and vice versa.
+    for slot in batch["slots"]:
+        if slot["status"] == "available":
+            state = historical_review_store.get_review_state(slot["forecast_id"])
+            slot["review"] = _historical_review_view(slot, state, now)
     return ForecastBatchResponse(**batch)
 
 
@@ -496,15 +566,25 @@ def create_historical_review(
     forecast_id: str,
     payload: ReviewCreate,
     operational_repository: OperationalRepository = Depends(get_operational_repository),
+    historical_review_store: HistoricalReviewStore = Depends(get_historical_review_store),
 ) -> ForecastReview:
     """Feedback in the historical context, gated by the *simulated* clock
-    (`_review_open_at`/`submit_review` reject a review whose `target_date`
-    the simulated clock has not reached yet) -- never by the real wall
-    clock, which would make every historical forecast look reviewable
-    regardless of the date being browsed. Also refuses to review a
-    forecast_id that belongs to a later emission than `as_of_date`: moving
-    the clock back to `A` must never expose `B`'s forecasts as reachable
-    from `A`, even by a directly-supplied `forecast_id`."""
+    (`review_open_at` rejects a review whose `target_date` the simulated
+    clock has not reached yet) -- never by the real wall clock, which
+    would make every historical forecast look reviewable regardless of
+    the date being browsed. Also refuses to review a forecast_id that
+    belongs to a later emission than `as_of_date`: moving the clock back
+    to `A` must never expose `B`'s forecasts as reachable from `A`, even
+    by a directly-supplied `forecast_id`.
+
+    Reads the forecast (target_date/alert/contract_version/model_reference)
+    from `OperationalRepository` -- those fields never change after
+    emission, reading them is not a write -- but the review itself is
+    written *only* to `HistoricalReviewStore`, never to
+    `OperationalRepository.submit_review`: an operational reviewer's
+    opinion on this same forecast_id, or this "prueba tecnica" review
+    itself, can never overwrite the other, because they are different
+    files."""
     now = _historical_now(as_of_date)
     existing = operational_repository.get_forecast(forecast_id, now=now)
     if existing is None:
@@ -517,12 +597,15 @@ def create_historical_review(
             "Esta emisión corresponde a una fecha posterior a la que se está navegando.",
             404,
         )
-    _status_code, review = operational_repository.submit_review(
+    review_open_at = _operational_review_open_at(existing)
+    _status_code, state = historical_review_store.submit_review(
         forecast_id=forecast_id,
         request_id=payload.request_id,
         expected_revision=payload.expected_revision,
         action=payload.action,
         comment=payload.comment,
+        forecast_alert=existing["alert"],
+        review_open_at=review_open_at,
         now=now,
     )
-    return ForecastReview(**review)
+    return ForecastReview(**_historical_review_view(existing, state, now))

@@ -14,6 +14,7 @@ from data_ingestion.catalog import CatalogRepository
 from data_ingestion.sensor_naming import validate_sensor_id
 from historical_replay.feedback import ReplayFeedbackStore
 from historical_replay.package_loader import LoadedReplayPackage, load_package
+from human_feedback.historical_review_store import HistoricalReviewStore
 from human_feedback.operational_repository import OperationalRepository
 
 from .config import (
@@ -59,6 +60,17 @@ def require_producer_v2_enabled(
 def get_producer_bundle_root(data_dir: Path = Depends(get_dataset_data_dir)) -> Path:
     """Administrator-controlled deployment directory; never a client-supplied path."""
     return Path(os.environ.get("PRODUCER_BUNDLE_ROOT", str(data_dir / "operational_bundles")))
+
+
+def get_historical_review_store(
+    sensor_id: str,
+    data_dir: Path = Depends(get_dataset_data_dir),
+) -> HistoricalReviewStore:
+    """Feedback del recorrido historico, aislado de
+    `OperationalRepository` (nunca el mismo archivo ni el mismo
+    directorio), aislable mediante dependency_overrides igual que el
+    resto de v2."""
+    return HistoricalReviewStore(data_dir, sensor_id)
 
 
 def require_historical_replay_enabled(

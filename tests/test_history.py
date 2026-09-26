@@ -89,6 +89,105 @@ def test_history_exposes_missing_dates_nulls_units_quality_and_provenance(tmp_pa
     }
 
 
+def test_last_reading_date_and_age_reflect_the_clock_not_the_whole_file(tmp_path):
+    """Regression: browsing a historical clock earlier than the file's
+    latest row must never report that later row as `last_reading_date`,
+    nor a negative `data_age_days` -- and the admissible last reading can
+    be *before* the displayed window's start, so it must be found by
+    scanning the whole file up to the clock, not just the window slice."""
+    dataframe = pd.DataFrame(
+        {
+            "timestamp": pd.to_datetime(["2023-06-13", "2023-06-20"]),
+            "soil_moisture": [0.30, 0.25],
+            "relative_humidity": [65.0, 64.0],
+            "solar_radiation": [18.0, 17.0],
+            "temperature": [22.0, 21.0],
+            "precipitation": [0.0, 0.0],
+            "wind_speed": [3.0, 3.2],
+            "et0": [4.0, 4.1],
+            "origen": [EXTERNAL_REANALYSIS_RAW_VALUE, EXTERNAL_REANALYSIS_RAW_VALUE],
+        }
+    )
+    save_dataset(dataset_name_for("sensor-a"), dataframe, data_dir=tmp_path)
+
+    # A 2-day window ending 2023-06-13 would only contain 06-12/06-13 --
+    # the admissible last reading (06-13 itself) is inside it here, but
+    # the search must not depend on that coincidence (see the second
+    # assertion below, where the window is narrower than the gap).
+    at_earlier_clock = query_readings(
+        "sensor-a",
+        tmp_path,
+        registered=False,
+        days=2,
+        end=date(2023, 6, 13),
+        server_today=date(2023, 6, 13),
+    )
+    assert at_earlier_clock["last_reading_date"] == date(2023, 6, 13)
+    assert at_earlier_clock["data_age_days"] == 0
+    assert all(row["date"] <= date(2023, 6, 13) for row in at_earlier_clock["rows"])
+
+    # A 1-day window ending 2023-06-16 excludes both actual rows from the
+    # window slice entirely -- the admissible last reading (06-13) is
+    # *before* window_start (06-16), so it can only be found by scanning
+    # the whole file up to the clock, never just the window.
+    with_gap_before_window = query_readings(
+        "sensor-a",
+        tmp_path,
+        registered=False,
+        days=1,
+        end=date(2023, 6, 16),
+        server_today=date(2023, 6, 16),
+    )
+    assert with_gap_before_window["last_reading_date"] == date(2023, 6, 13)
+    assert with_gap_before_window["data_age_days"] == 3
+    assert with_gap_before_window["rows"] == []
+
+    # Browsing forward to 06-20 legitimately reveals the later row.
+    at_later_clock = query_readings(
+        "sensor-a",
+        tmp_path,
+        registered=False,
+        days=2,
+        end=date(2023, 6, 20),
+        server_today=date(2023, 6, 20),
+    )
+    assert at_later_clock["last_reading_date"] == date(2023, 6, 20)
+    assert at_later_clock["data_age_days"] == 0
+
+
+def test_status_is_no_readings_when_nothing_is_admissible_yet_despite_a_nonempty_file(tmp_path):
+    """A file with data, none of it admissible under the effective clock
+    (all rows are in its future), must read the same as no readings at
+    all -- never "ready" with an empty row list and no last reading."""
+    dataframe = pd.DataFrame(
+        {
+            "timestamp": pd.to_datetime(["2023-06-20"]),
+            "soil_moisture": [0.25],
+            "relative_humidity": [64.0],
+            "solar_radiation": [17.0],
+            "temperature": [21.0],
+            "precipitation": [0.0],
+            "wind_speed": [3.2],
+            "et0": [4.1],
+            "origen": [EXTERNAL_REANALYSIS_RAW_VALUE],
+        }
+    )
+    save_dataset(dataset_name_for("sensor-a"), dataframe, data_dir=tmp_path)
+
+    result = query_readings(
+        "sensor-a",
+        tmp_path,
+        registered=False,
+        days=5,
+        end=date(2023, 6, 13),
+        server_today=date(2023, 6, 13),
+    )
+    assert result["status"] == "no_readings"
+    assert result["rows"] == []
+    assert result["last_reading_date"] is None
+    assert result["data_age_days"] is None
+
+
 def test_external_reanalysis_origin_is_recognized_and_never_reclassified(tmp_path):
     """`origen=EXTERNAL_REANALYSIS_RAW_VALUE` (ERA5-Land + NASA POWER, Hito 2)
     is a distinct, recognized category -- never "real" (would claim a

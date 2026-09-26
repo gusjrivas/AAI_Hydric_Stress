@@ -7,12 +7,13 @@ import {
   ReviewIdempotencyConflictError,
   ReviewNotOpenError,
   RevisionConflictError,
+  alertOutlookSummary,
   displayProbability,
   getForecast,
   listForecasts,
   submitReview,
 } from "./forecastsApi";
-import type { Forecast } from "./forecastsApi";
+import type { Forecast, ForecastBatch } from "./forecastsApi";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -52,6 +53,7 @@ const forecast: Forecast = {
     training_eligibility: "no_review",
     applied_review_references: [],
   },
+  ensemble: null,
 };
 
 function jsonResponse(status: number, body: unknown) {
@@ -197,4 +199,41 @@ it("maps the backend invalid_cursor response to a recoverable list restart", asy
 it("explains an invalid date range without exposing backend terminology", async () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { code: "invalid_date_range", message: "target_from invalid" } }), { status: 422 })));
   await expect(listForecasts("sensor-a", { targetFrom: "2026-09-10", targetTo: "2026-09-01" })).rejects.toThrow("La fecha inicial debe ser anterior o igual a la fecha final.");
+});
+
+describe("alertOutlookSummary", () => {
+  function batchWith(slots: ForecastBatch["slots"]): ForecastBatch {
+    return {
+      batch_id: "b1", revision: 1, as_of_date: "2026-01-05", data_age_days: 0,
+      server_today: "2026-01-05", provenance: "real", calendar_timezone: "UTC", slots,
+    };
+  }
+
+  it("returns null when every horizon is unavailable, never claiming 'no alert'", () => {
+    const batch = batchWith([
+      { horizon_days: 1, target_date: "2026-01-06", status: "unavailable", reason_code: "model_not_available" },
+      { horizon_days: 2, target_date: "2026-01-07", status: "unavailable", reason_code: "model_not_available" },
+      { horizon_days: 3, target_date: "2026-01-08", status: "unavailable", reason_code: "model_not_available" },
+    ]);
+    expect(alertOutlookSummary(batch)).toBeNull();
+  });
+
+  it("collects only the target dates the backend already decided alert=true, never recomputing", () => {
+    const batch = batchWith([
+      { ...forecast, status: "available", horizon_days: 1, target_date: "2026-01-06", alert: true, forecast_id: "fc-1" },
+      { ...forecast, status: "available", horizon_days: 2, target_date: "2026-01-07", alert: false, forecast_id: "fc-2" },
+      { horizon_days: 3, target_date: "2026-01-08", status: "unavailable", reason_code: "model_not_available" },
+    ]);
+    const summary = alertOutlookSummary(batch);
+    expect(summary?.alert).toBe(true);
+    expect(summary?.days).toEqual(["6 de ene de 2026"]);
+  });
+
+  it("reports no alert only when at least one horizon is available and none alerted", () => {
+    const batch = batchWith([
+      { ...forecast, status: "available", horizon_days: 1, target_date: "2026-01-06", alert: false, forecast_id: "fc-1" },
+    ]);
+    const summary = alertOutlookSummary(batch);
+    expect(summary).toEqual({ alert: false, days: [] });
+  });
 });

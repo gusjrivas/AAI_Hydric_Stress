@@ -283,3 +283,155 @@ def test_reveal_through_2023_06_20_lets_the_06_17_horizon_3_target_be_contrasted
     assert event["comparison"] == "lt"
     observed_stress = observed_value < event["value"]
     assert isinstance(observed_stress, bool)
+
+
+def test_revealed_through_walks_the_reviewable_clock_past_the_emission_date(client, bundle_root):
+    """UI necesita separar la emisión seleccionada (as_of_date) del punto
+    del recorrido hasta el que se avanzó (revealed_through): la elegibilidad
+    de revisión debe reflejar el reloj del recorrido, no la fecha de
+    emisión, sin que el backend simule nada del lado del cliente."""
+    http, tmp_path = client
+    _, frame = bundle_root
+    body = _prepare_day(http, tmp_path, frame, DAY_A)
+    slot1 = next(s for s in body["slots"] if s["horizon_days"] == 1)
+    target_date = date.fromisoformat(slot1["target_date"])
+    assert target_date == DAY_A + timedelta(days=1) == DAY_B
+
+    # Sin revealed_through: el reloj es el de la propia emisión (DAY_A),
+    # anterior al target_date -- todavía no reviewable.
+    at_emission = http.get(f"/api/v2/sensors/{SENSOR_ID}/historical/{DAY_A.isoformat()}/forecasts")
+    assert at_emission.status_code == 200
+    slot_at_emission = next(s for s in at_emission.json()["slots"] if s["horizon_days"] == 1)
+    assert slot_at_emission["review"]["reviewable"] is False
+    assert slot_at_emission["review"]["blocked_reason"] == "review_not_open"
+
+    # Con revealed_through == target_date: el reloj del recorrido ya
+    # alcanzó el target_date -- reviewable, sin cambiar qué emisión se
+    # seleccionó (sigue siendo la de DAY_A).
+    walked_forward = http.get(
+        f"/api/v2/sensors/{SENSOR_ID}/historical/{DAY_A.isoformat()}/forecasts",
+        params={"revealed_through": target_date.isoformat()},
+    )
+    assert walked_forward.status_code == 200
+    slot_walked = next(s for s in walked_forward.json()["slots"] if s["horizon_days"] == 1)
+    assert slot_walked["review"]["reviewable"] is True
+    assert slot_walked["review"]["blocked_reason"] is None
+    assert slot_walked["forecast_id"] == slot_at_emission["forecast_id"]
+
+
+def test_revealed_through_before_the_emission_date_is_rejected(client, bundle_root):
+    http, tmp_path = client
+    _, frame = bundle_root
+    _prepare_day(http, tmp_path, frame, DAY_B)
+
+    response = http.get(
+        f"/api/v2/sensors/{SENSOR_ID}/historical/{DAY_B.isoformat()}/forecasts",
+        params={"revealed_through": DAY_A.isoformat()},
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "invalid_reveal_window"
+
+
+def test_server_today_reflects_revealed_through_not_as_of_date(client, bundle_root):
+    """Regression: `server_today` used to always echo `as_of_date`, never
+    the walked-forward `revealed_through` -- misreporting the clock the
+    review route actually enforces."""
+    http, tmp_path = client
+    _, frame = bundle_root
+    _prepare_day(http, tmp_path, frame, DAY_A)
+    later = DAY_A + timedelta(days=3)
+
+    without_reveal = http.get(
+        f"/api/v2/sensors/{SENSOR_ID}/historical/{DAY_A.isoformat()}/forecasts"
+    )
+    assert without_reveal.json()["server_today"] == DAY_A.isoformat()
+
+    with_reveal = http.get(
+        f"/api/v2/sensors/{SENSOR_ID}/historical/{DAY_A.isoformat()}/forecasts",
+        params={"revealed_through": later.isoformat()},
+    )
+    assert with_reveal.json()["server_today"] == later.isoformat()
+
+
+def test_historical_readings_at_an_earlier_date_never_leak_a_later_last_reading_or_negative_age(
+    client, bundle_root
+):
+    """Regression: `last_reading_date`/`data_age_days` used to be computed
+    over the *whole* dataset file, ignoring the historical clock --
+    browsing 2023-06-13 with data saved through 2023-06-20 must never
+    report last_reading_date=2023-06-20 nor data_age_days=-7."""
+    http, tmp_path = client
+    _, frame = bundle_root
+    later_boundary = DAY_A + timedelta(days=7)  # 2023-06-20
+
+    full_frame = frame.loc[pd.to_datetime(frame["timestamp"]).dt.date <= later_boundary].copy()
+    full_frame["origen"] = EXTERNAL_REANALYSIS_ORIGEN
+    save_dataset(f"sensor__{SENSOR_ID}", full_frame, data_dir=tmp_path)
+
+    response = http.get(
+        f"/api/v2/sensors/{SENSOR_ID}/historical/{DAY_A.isoformat()}/readings",
+        params={"days": 10},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["last_reading_date"] == DAY_A.isoformat()
+    assert body["data_age_days"] == 0
+    row_dates = [date.fromisoformat(row["date"]) for row in body["rows"]]
+    assert all(d <= DAY_A for d in row_dates)
+
+    # Browsing forward to the later boundary now legitimately reveals it.
+    later_response = http.get(
+        f"/api/v2/sensors/{SENSOR_ID}/historical/{later_boundary.isoformat()}/readings",
+        params={"days": 10},
+    )
+    later_body = later_response.json()
+    assert later_body["last_reading_date"] == later_boundary.isoformat()
+    assert later_body["data_age_days"] == 0
+
+
+def test_operational_review_never_changes_a_historical_cards_review_state(client, bundle_root):
+    """Storage isolation, not just separate React components: a real
+    review submitted through the *live* route on the same forecast_id
+    must never be visible through the historical route, and a
+    "prueba tecnica" historical review must never be visible through the
+    live route."""
+    http, tmp_path = client
+    _, frame = bundle_root
+    body = _prepare_day(http, tmp_path, frame, DAY_A)
+    forecast_id = next(s for s in body["slots"] if s["horizon_days"] == 1)["forecast_id"]
+
+    # A real wall-clock review through the live route (real "today" is
+    # 2026+, long past this 2023 target_date, so it's legitimately open).
+    live_review = http.post(
+        f"/api/v2/sensors/{SENSOR_ID}/forecasts/{forecast_id}/reviews",
+        json={"request_id": "live-review-1", "expected_revision": 0, "action": "confirm"},
+    )
+    assert live_review.status_code == 201, live_review.text
+
+    # The historical card for that same forecast_id must still show its
+    # own (pending) state, untouched by the live review.
+    historical_after_live = http.get(
+        f"/api/v2/sensors/{SENSOR_ID}/historical/{DAY_A.isoformat()}/forecasts",
+        params={"revealed_through": DAY_B.isoformat()},
+    )
+    slot = next(s for s in historical_after_live.json()["slots"] if s["horizon_days"] == 1)
+    assert slot["review"]["status"] == "pending"
+    assert slot["review"]["revision"] == 0
+
+    # Submitting the historical ("prueba tecnica") review must not touch
+    # the live review just recorded.
+    historical_review = http.post(
+        f"/api/v2/sensors/{SENSOR_ID}/historical/{DAY_B.isoformat()}/forecasts/{forecast_id}/reviews",
+        json={
+            "request_id": "hist-review-isolation",
+            "expected_revision": 0,
+            "action": "reject",
+            "comment": "PRUEBA TECNICA -- no es feedback real de un productor ni de un experto.",
+        },
+    )
+    assert historical_review.status_code == 201, historical_review.text
+    assert historical_review.json()["status"] == "rejected"
+
+    live_forecast = http.get(f"/api/v2/sensors/{SENSOR_ID}/forecasts/{forecast_id}")
+    assert live_forecast.json()["review"]["status"] == "confirmed"
+    assert live_forecast.json()["review"]["revision"] == 1

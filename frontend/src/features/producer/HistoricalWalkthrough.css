@@ -1,0 +1,11 @@
+.producer-view .historical-walkthrough { margin-top: 22px; }
+.historical-walkthrough h3 { margin: 0 0 8px; font-size: clamp(1.2rem, 3vw, 1.5rem); letter-spacing: -.02em; }
+.historical-walkthrough > p { color: #5b6b65; max-width: 70ch; }
+.historical-walkthrough-controls { display: flex; flex-wrap: wrap; gap: 20px; margin: 16px 0; }
+.historical-walkthrough-controls label { display: flex; flex-direction: column; gap: 6px; font-size: .85rem; font-weight: 650; }
+.historical-walkthrough-clock { background: #f6f8f7; padding: 10px 14px; border-radius: 10px; font-size: .9rem; }
+.historical-walkthrough-observations { margin-top: 20px; }
+.historical-walkthrough-observations table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.historical-walkthrough-observations th, .historical-walkthrough-observations td { padding: 8px 12px; border-bottom: 1px solid #e6eae8; text-align: left; font-size: .88rem; }
+.historical-walkthrough-note { font-size: .8rem; color: #5b6b65; margin-top: 8px; }
+@media (max-width: 640px) { .historical-walkthrough-controls { flex-direction: column; } }
