@@ -6,6 +6,7 @@ import * as forecastApi from "./features/forecast/api";
 import * as catalogApi from "./features/producer/catalogApi";
 import * as qualityApi from "./features/quality/api";
 import * as lineageApi from "./features/lineage/api";
+import * as replayApi from "./features/historical-replay/api";
 
 const EMPTY_PREDICTOR: forecastApi.ActivePredictor = {
   sensor_id: "sensor-a",
@@ -277,5 +278,53 @@ describe("App — diseño coherente y accesibilidad (Entrega 4)", () => {
     const target = document.getElementById("main-content");
     expect(target).not.toBeNull();
     expect(target).toHaveAttribute("tabIndex", "-1");
+  });
+});
+
+describe("App — acceso a la reproducción histórica desde la navegación (recorrido guiado)", () => {
+  beforeEach(() => {
+    window.location.hash = "";
+    vi.restoreAllMocks();
+    vi.spyOn(forecastApi, "getActivePredictor").mockResolvedValue(EMPTY_PREDICTOR);
+    vi.spyOn(forecastApi, "listFeedback").mockResolvedValue({ rows: [] });
+    vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(null);
+    vi.spyOn(lineageApi, "getLineage").mockResolvedValue({ sensor_id: "sensor-a", chain: [] });
+    vi.spyOn(replayApi, "getCandidate").mockRejectedValue(
+      new replayApi.ReplayNotFoundError("Not Found"),
+    );
+    vi.spyOn(replayApi, "listOrigins").mockResolvedValue({ origins: [] });
+  });
+
+  it("lists 'Explorar una predicción' among the main destinations, without a duplicate link", async () => {
+    render(<App />);
+
+    const matches = screen.getAllByRole("link", { name: "Explorar una predicción" });
+    expect(matches).toHaveLength(1);
+  });
+
+  it("navigates to it, focuses its heading, marks it active, and hides the unrelated sensor form", async () => {
+    render(<App />);
+
+    await userEvent.click(screen.getByRole("link", { name: "Explorar una predicción" }));
+
+    const heading = await screen.findByRole("heading", { name: "Explorar una predicción" });
+    await waitFor(() => expect(heading).toHaveFocus());
+    expect(screen.getByRole("link", { name: "Explorar una predicción" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(document.title).toContain("Explorar una predicción");
+    expect(screen.queryByLabelText(/punto de medición \(sensor\)/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps the other destinations reachable after visiting the replay view", async () => {
+    render(<App />);
+
+    await userEvent.click(screen.getByRole("link", { name: "Explorar una predicción" }));
+    await screen.findByRole("heading", { name: "Explorar una predicción" });
+
+    await userEvent.click(screen.getByRole("link", { name: "Resumen" }));
+    await screen.findByRole("heading", { name: "Resumen" });
+    expect(screen.getByText(/sensor activo/i)).toHaveTextContent("sensor-a");
   });
 });

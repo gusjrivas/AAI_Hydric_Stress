@@ -18,8 +18,11 @@ import {
 import { addDaysIso, clampIso, compareIso } from "./dateUtils";
 import { classLabel } from "./labelRule";
 import { MoistureHistoryChart } from "./MoistureHistoryChart";
+import { ReplayCaseControls } from "./ReplayCaseControls";
+import { ReplayComparisonCard } from "./ReplayComparisonCard";
 import { ReplayEvidenceCard } from "./ReplayEvidenceCard";
 import { ReplayFeedbackForm } from "./ReplayFeedbackForm";
+import { ReplayPredictionSummary } from "./ReplayPredictionSummary";
 import { taggedFor, visibleFor, type ForSelection } from "./selectionScope";
 
 type PageStatus = "loading" | "unavailable" | "error" | "ready";
@@ -46,27 +49,26 @@ const LOADING_HISTORY: HistoryState = { status: "loading" };
 const LOADING_FEEDBACK: FeedbackState = { status: "loading" };
 
 /**
- * Pantalla "Reproducción histórica" (Paso 4, corregida en Paso 4.1, cierre
- * en Paso 4.1.1). Consume exclusivamente las respuestas ya filtradas del
- * backend — nunca descarga el paquete completo ni el dataset entero.
+ * Pantalla central "Explorar una predicción" (entrega "recorrido guiado":
+ * datos disponibles → predicción archivada → revelación → explicación).
+ * Consume exclusivamente las respuestas ya filtradas del backend — nunca
+ * descarga el paquete completo ni el dataset entero, y nunca oculta el
+ * futuro solo con CSS/JS: lo que no llega del backend, no se dibuja.
  *
- * Aislamiento de estado (Paso 4.1 §1, corregido en el cierre): cada
- * resultado (predicción, historial, feedback) se guarda etiquetado con el
- * `(origen, fecha simulada)` para el que se pidió (`selectionScope.ts`,
- * `taggedFor`). En el render, `visibleFor` decide si ese resultado
- * corresponde a la selección vigente — si no, se muestra el estado
- * `loading` en su lugar. Esta es la garantía real: es una comparación pura
- * hecha en cada render a partir del estado ya comprometido, **no depende de
- * que ningún `useEffect` haya corrido todavía**. El primer render posterior
- * a un cambio de selección (antes de que el efecto llegue a ejecutarse)
- * también queda cubierto, porque el resultado guardado de la selección
- * anterior no coincide con la selección ya vigente en ese mismo render.
+ * Aislamiento de estado: cada resultado (predicción, historial, feedback)
+ * se guarda etiquetado con el `(origen, fecha simulada)` para el que se
+ * pidió (`selectionScope.ts`, `taggedFor`). En el render, `visibleFor`
+ * decide si ese resultado corresponde a la selección vigente — si no, se
+ * usa el estado `loading` en su lugar. Esta garantía es una comparación
+ * pura hecha en cada render a partir del estado ya comprometido, no
+ * depende de que ningún `useEffect` haya corrido todavía: cambiar de caso
+ * descarta visualmente el resultado anterior de inmediato, sin esperar a
+ * que termine ninguna solicitud en vuelo.
  *
- * Aparte, un contador de generación (`generationRef`) sigue resolviendo la
- * carrera asincrónica entre promesas (p. ej. A→B→A, donde dos resultados
- * distintos podrían llegar etiquetados para el mismo `(origen, fecha)`):
- * solo la promesa iniciada en la generación todavía vigente puede escribir
- * estado al resolver.
+ * Un contador de generación (`generationRef`) resuelve además la carrera
+ * asincrónica entre promesas para el mismo `(origen, fecha)` (p. ej.
+ * A→B→A): solo la promesa iniciada en la generación todavía vigente puede
+ * escribir estado al resolver.
  */
 export function HistoricalReplayPage() {
   const [pageStatus, setPageStatus] = useState<PageStatus>("loading");
@@ -89,23 +91,7 @@ export function HistoricalReplayPage() {
   const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
   const [feedbackSubmitError, setFeedbackSubmitError] = useState<string | null>(null);
 
-  // Contador monotónico de generación: resuelve la carrera asincrónica
-  // entre promesas para el mismo `(origen, fecha)` (p. ej. A→B→A). Solo la
-  // respuesta cuya generación sigue siendo la vigente al llegar puede
-  // escribir estado (Paso 4.1 §1). La ausencia de datos obsoletos en el
-  // render, en cambio, la garantiza el etiquetado de selección de arriba,
-  // no este contador.
   const generationRef = useRef(0);
-  // Evita escribir estado tras desmontar (limpieza al desmontar, Paso 4.1.1
-  // §1). Se reafirma en `true` en cada montaje del efecto, no solo en el
-  // `useRef` inicial: bajo `StrictMode` (activo en este proyecto,
-  // `main.tsx`) React invoca montaje→limpieza→montaje una segunda vez en
-  // desarrollo para detectar exactamente este tipo de error, y una versión
-  // anterior de esta guarda que solo ponía `mountedRef.current = false` en
-  // la limpieza quedaba permanentemente en `false` tras ese doble montaje
-  // — bloqueando para siempre cualquier actualización de estado real.
-  // Encontrado verificando el arranque en un navegador real, no solo con
-  // los tests (que no usan `StrictMode`).
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
@@ -144,10 +130,6 @@ export function HistoricalReplayPage() {
 
   useEffect(() => {
     if (!selectedOrigin || !simulatedDate) return;
-    // Nueva generación: solo protege contra respuestas de promesas que
-    // lleguen fuera de orden para el mismo (origen, fecha) — la ausencia de
-    // datos obsoletos en el render la garantiza el etiquetado de selección,
-    // no esta línea (ver comentario de la función).
     const myGeneration = ++generationRef.current;
     const origin = selectedOrigin;
     const clock = simulatedDate;
@@ -157,9 +139,6 @@ export function HistoricalReplayPage() {
     setHistoryState(taggedFor(origin, clock, LOADING_HISTORY));
     setFeedbackState(taggedFor(origin, clock, LOADING_FEEDBACK));
     setFeedbackSubmitError(null);
-    // Un envío de feedback en vuelo pertenece a la selección anterior: no
-    // debe seguir bloqueando el formulario de la nueva selección, aunque su
-    // respuesta (ya ignorada por generación) todavía no haya llegado.
     setFeedbackSubmitting(false);
 
     getPrediction(origin, clock)
@@ -214,10 +193,25 @@ export function HistoricalReplayPage() {
     );
   }
 
-  function resetClock() {
-    if (!origins.length || !candidate) return;
-    setSelectedOrigin(origins[0]);
-    setSimulatedDate(origins[0]);
+  // "Volver al inicio de este caso" (Paso "recorrido guiado" §B): conserva
+  // el origen seleccionado, solo reubica el reloj en él. A diferencia del
+  // "Reiniciar" anterior, nunca cambia de caso.
+  function resetToCaseStart() {
+    if (!selectedOrigin) return;
+    setSimulatedDate(selectedOrigin);
+  }
+
+  // Cambiar de origen sitúa también el reloj en ese origen y oculta de
+  // inmediato cualquier resultado posterior (Paso "recorrido guiado" §B) —
+  // ya no son selecciones independientes.
+  function selectOrigin(origin: string) {
+    setSelectedOrigin(origin);
+    setSimulatedDate(origin);
+  }
+
+  function revealTarget(targetDate: string) {
+    if (!candidate) return;
+    setSimulatedDate(clampIso(targetDate, candidate.periodo_inicio, candidate.periodo_fin));
   }
 
   function handleFeedbackSubmit(input: {
@@ -225,10 +219,6 @@ export function HistoricalReplayPage() {
     etiqueta_corregida?: 0 | 1 | null;
     observacion?: string | null;
   }) {
-    // Captura el origen/fecha/generación vigentes en el momento del envío:
-    // si el usuario navega a otra selección antes de que responda el POST,
-    // esa respuesta no debe poblar la pantalla de la nueva selección
-    // (Paso 4.1 §1).
     const origin = selectedOrigin;
     const clock = simulatedDate;
     const myGeneration = generationRef.current;
@@ -278,78 +268,78 @@ export function HistoricalReplayPage() {
     );
   }
 
-  // Filtro de selección vigente (Paso 4.1, cierre §1): si el resultado
-  // guardado no corresponde a `(selectedOrigin, simulatedDate)` — por
-  // ejemplo, es el de la selección anterior y el efecto todavía no corrió
-  // para la nueva — se usa el estado `loading` en su lugar. Esto es cierto
-  // en todo render, incluido el primero posterior a un cambio de selección.
   const predictionVisible = visibleFor(predictionState, selectedOrigin, simulatedDate, LOADING_PREDICTION);
   const historyVisible = visibleFor(historyState, selectedOrigin, simulatedDate, LOADING_HISTORY);
   const feedbackVisible = visibleFor(feedbackState, selectedOrigin, simulatedDate, LOADING_FEEDBACK);
 
   const prediction = predictionVisible.status === "ready" ? predictionVisible.data : null;
-  // RH-07: el formulario solo se habilita cuando la observación fue
-  // efectivamente revelada (target_observed === true) — no simplemente
-  // cuando el estado ya no es undefined, lo que también incluiría
-  // target_observed === false (objetivo que nunca maduró en este run).
+  // El formulario solo se habilita cuando la observación fue efectivamente
+  // revelada (target_observed === true) — no simplemente cuando el estado
+  // ya no es undefined, lo que también incluiría target_observed === false
+  // (objetivo que nunca maduró en este run).
   const revealed = prediction?.target_observed === true;
+
+  // La fecha objetivo se deriva del origen y del horizonte fijo del
+  // candidato (RH-11: la diferencia siempre coincide con `horizon_days`),
+  // así que puede mostrarse desde el primer render, sin esperar a que
+  // cargue la predicción — y coincide exactamente con `target_timestamp`
+  // una vez que la predicción llega.
+  const targetDate = prediction?.target_timestamp ?? addDaysIso(selectedOrigin, candidate.horizon_days);
 
   return (
     <div className="hr-page">
       <p className="hr-badge" role="note">
         Reproducción histórica retrospectiva — no son emisiones de un sistema en producción.
       </p>
+      <p className="hr-intro">
+        Elegí una fecha, consultá qué anticipó el modelo y avanzá para comparar con lo que ocurrió.
+      </p>
       <p className="hr-disclaimer">
-        Se reproduce un backtest sobre datos reales del experimento {candidate.experiment_id}{" "}
-        (dataset <strong>{candidate.evidencia.dataset_name}</strong>), no alertas emitidas
-        históricamente por un sistema desplegado. La clase mostrada es un
-        <strong> proxy estadístico relativo</strong>, no un diagnóstico agronómico; su utilidad
-        agronómica no fue demostrada.
+        Alerta basada en un umbral estadístico de humedad, sin diagnóstico agronómico validado.
       </p>
 
       <ReplayEvidenceCard candidate={candidate} />
 
-      <section className="hr-controls" aria-label="Selección y reloj simulado">
-        <label>
-          Origen de la predicción
-          <select
-            value={selectedOrigin}
-            onChange={(event) => setSelectedOrigin(event.target.value)}
-          >
-            {origins.map((origin) => (
-              <option key={origin} value={origin}>
-                {origin}
-              </option>
-            ))}
-          </select>
-        </label>
+      <ReplayCaseControls
+        origins={origins}
+        selectedOrigin={selectedOrigin}
+        simulatedDate={simulatedDate}
+        targetDate={targetDate}
+        minDate={candidate.periodo_inicio}
+        maxDate={candidate.periodo_fin}
+        onSelectOrigin={selectOrigin}
+        onMoveClock={moveClock}
+        onResetToCaseStart={resetToCaseStart}
+        onRevealTarget={() => revealTarget(targetDate)}
+      />
 
-        <p className="hr-clock" aria-live="polite">
-          Fecha simulada: <strong>{simulatedDate}</strong>
-        </p>
-
-        <div className="hr-clock-controls">
-          <button type="button" onClick={() => moveClock(-1)} disabled={simulatedDate === candidate.periodo_inicio}>
-            ◀ Retroceder
-          </button>
-          <button type="button" onClick={() => moveClock(1)} disabled={simulatedDate === candidate.periodo_fin}>
-            Avanzar ▶
-          </button>
-          <button type="button" onClick={resetClock}>
-            Reiniciar
-          </button>
-        </div>
-      </section>
-
-      <section aria-label="Historial de humedad" className="hr-history">
-        <h3>Historial de humedad (hasta el reloj simulado)</h3>
+      <section aria-label="Historial de humedad integrado" className="hr-history">
+        <h3>Historial de humedad</h3>
         {historyVisible.status === "loading" && <p role="status">Cargando historial…</p>}
         {historyVisible.status === "error" && (
           <p role="alert" className="hr-error">
             Error al consultar el historial: {historyVisible.message}
           </p>
         )}
-        {historyVisible.status === "ready" && <MoistureHistoryChart rows={historyVisible.rows} />}
+        {historyVisible.status === "ready" && (
+          <MoistureHistoryChart
+            key={selectedOrigin}
+            rows={historyVisible.rows}
+            originDate={selectedOrigin}
+            targetDate={targetDate}
+            simulatedDate={simulatedDate}
+            threshold={{
+              value: candidate.regla_etiqueta.umbral,
+              unit: candidate.regla_etiqueta.unidad,
+              variable: candidate.regla_etiqueta.variable,
+            }}
+            predictedClass={
+              prediction
+                ? { value: prediction.y_pred as 0 | 1, label: classLabel(prediction.y_pred as 0 | 1, candidate.regla_etiqueta) }
+                : null
+            }
+          />
+        )}
       </section>
 
       <section aria-label="Predicción archivada" className="hr-prediction">
@@ -362,7 +352,7 @@ export function HistoricalReplayPage() {
         )}
         {predictionVisible.status === "unknown-origin" && (
           <p role="alert" className="hr-error">
-            No hay ninguna predicción archivada para este origen.
+            Predicción no disponible: no hay ninguna predicción archivada para este origen.
           </p>
         )}
         {predictionVisible.status === "error" && (
@@ -371,67 +361,48 @@ export function HistoricalReplayPage() {
           </p>
         )}
         {prediction && (
-          <div className="hr-prediction-card">
-            <dl>
-              <div>
-                <dt>Origen</dt>
-                <dd>{prediction.timestamp_origen}</dd>
-              </div>
-              <div>
-                <dt>Fecha objetivo</dt>
-                <dd>{prediction.target_timestamp}</dd>
-              </div>
-              <div>
-                <dt>Clase predicha (proxy estadístico relativo)</dt>
-                <dd className="hr-class-badge" data-class={prediction.y_pred}>
-                  {classLabel(prediction.y_pred as 0 | 1, candidate.regla_etiqueta)}
-                </dd>
-              </div>
-            </dl>
-
-            {prediction.target_observed === undefined && (
-              <p role="status" className="hr-status">
-                Observación posterior: todavía no revelada en la fecha simulada.
-              </p>
-            )}
-            {prediction.target_observed === false && (
-              <p role="status" className="hr-status">
-                Observación no disponible: el objetivo no maduró en este run.
-              </p>
-            )}
-            {prediction.target_observed === true && (
-              <div className="hr-observation">
-                <dl>
-                  <div>
-                    <dt>Observación revelada</dt>
-                    <dd>{classLabel(prediction.y_true as 0 | 1, candidate.regla_etiqueta)}</dd>
-                  </div>
-                  <div>
-                    <dt>Coincidencia con la predicción</dt>
-                    <dd className={prediction.coincide ? "hr-match" : "hr-mismatch"}>
-                      {prediction.coincide ? "Coincide" : "Discrepa"}
-                    </dd>
-                  </div>
-                  {prediction.medicion_original && (
-                    <div>
-                      <dt>Medición original</dt>
-                      <dd>
-                        {prediction.medicion_original.estado}
-                        {prediction.medicion_original.valor !== null &&
-                          ` (${prediction.medicion_original.valor.toFixed(3)} m³/m³)`}
-                      </dd>
-                    </div>
-                  )}
-                </dl>
-              </div>
-            )}
-          </div>
+          <ReplayPredictionSummary
+            targetDate={prediction.target_timestamp}
+            horizonDays={candidate.horizon_days}
+            yPred={prediction.y_pred as 0 | 1}
+            rule={candidate.regla_etiqueta}
+          />
         )}
       </section>
+
+      {prediction && (
+        <section aria-label="Resultado" className="hr-result">
+          <h3>Resultado</h3>
+          {prediction.target_observed === undefined && (
+            <p role="status" className="hr-status">
+              Resultado todavía oculto: la fecha simulada todavía no alcanzó el objetivo. Usá "Ver
+              qué ocurrió el {targetDate}" para revelarlo.
+            </p>
+          )}
+          {prediction.target_observed === false && (
+            <p role="status" className="hr-status">
+              Observación no disponible: el objetivo no maduró en este run (no se interpreta como
+              "sin alerta").
+            </p>
+          )}
+          {prediction.target_observed === true && (
+            <ReplayComparisonCard
+              yPred={prediction.y_pred as 0 | 1}
+              yTrue={prediction.y_true as 0 | 1}
+              rule={candidate.regla_etiqueta}
+              medicionOriginal={prediction.medicion_original ?? null}
+            />
+          )}
+        </section>
+      )}
 
       {revealed && (
         <section aria-label="Feedback de demostración" className="hr-feedback-section">
           <h3>Feedback de demostración</h3>
+          <p className="hr-status">
+            El pronóstico original se conserva tal cual: registrar una observación no cambia
+            automáticamente las predicciones futuras.
+          </p>
           {feedbackVisible.status === "loading" && <p role="status">Cargando feedback…</p>}
           {feedbackVisible.status === "error" && (
             <p role="alert" className="hr-error">
@@ -441,9 +412,6 @@ export function HistoricalReplayPage() {
           )}
           {feedbackVisible.status === "ready" && (
             <ReplayFeedbackForm
-              // Remonta el formulario (y su estado interno de borrador) al
-              // cambiar de predicción — nunca conserva un borrador de otra
-              // selección (Paso 4.1 §1).
               key={`${selectedOrigin}|${simulatedDate}`}
               existing={feedbackVisible.entries}
               submitting={feedbackSubmitting}
