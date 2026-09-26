@@ -1,6 +1,6 @@
-# Hito 2 — Estado real de la habilitación del ensamble v4 (documento de estado; nada ejecutado en esta intervención)
+# Hito 2 — Habilitación del ensamble v4 (ejecutor de demostración implementado; sin ejecución real de entrenamiento)
 
-**Estado:** documento de estado y planificación. Ningún paso de entrenamiento, calibración, refit o empaquetado real se ejecutó en esta intervención. No autoriza, por sí mismo, ninguna acción nueva sobre datos reales, ni la apertura o reutilización del holdout, ni ningún experimento A/B/C.
+**Estado:** el ejecutor de demostración (sección 6) está implementado, probado con datos sintéticos para las 3 familias y los 3 horizontes, y publicado en esta rama. Ningún entrenamiento, calibración o empaquetado se ejecutó contra los CSV reales de Pergamino en esta intervención. Este documento no autoriza, por sí mismo, esa ejecución real, ni la apertura o reutilización del holdout, ni ningún experimento A/B/C.
 
 **Origen:** sección 7 de `docs/superpowers/specs/2026-09-25-ensemble-operational-integration-design.md` (Hito 1, contrato técnico del ensamble operativo, mergeado en PR #217, verificado exclusivamente con fixtures sintéticas).
 
@@ -20,7 +20,7 @@ La versión anterior afirmaba: *"No se encontró en lo inspeccionado ninguna eje
 
 ## 2. Qué familias y horizontes tienen soporte real — y por qué el ensamble de 3 votos no puede armarse con lo ejecutado
 
-- **Horizonte:** la campaña real cubrió **exclusivamente t+3** (`experimental_design.target.horizon_days: 3` en el manifiesto; corroborado por `scientific-closure-synthesis-2026-09-22.md`). **No existe ninguna ejecución real, ni siquiera parcial, para horizonte +1 o +2.** Extender el protocolo a esos horizontes sería una decisión metodológica nueva, fuera del alcance de este documento y de esta intervención — no se propone aquí.
+- **Horizonte:** la campaña real cubrió **exclusivamente t+3** (`experimental_design.target.horizon_days: 3` en el manifiesto; corroborado por `scientific-closure-synthesis-2026-09-22.md`). **No existe ninguna ejecución real, ni siquiera parcial, para horizonte +1 o +2, dentro de `controlled_daily_v4_external_pergamino`.** Eso sigue siendo cierto y no cambia: `controlled_daily_v4/features.py` fija `HORIZON_DAYS=3` como constante de módulo, usada directamente en el cálculo del target (`s.shift(-HORIZON_DAYS)`) -- no como parámetro, pese a que `config.py` sí declara un campo `horizon_days` (hoy decorativo para ese cálculo). Modificarla para soportar +1/+2 dentro de `controlled_daily_v4/` seguiría siendo un cambio de código congelado, no implementado ni propuesto aquí. **Corrección respecto de la versión anterior de esta sección:** esto NO significa que +1/+2 sean imposibles para un ejecutor de demostración *separado* — `predictive_modeling.operational_preparation.add_multihorizon_targets`/`partition_labeled_horizon` (código operativo ya existente, ajeno a `controlled_daily_v4/`) son genuinamente paramétricos en el horizonte, y el ejecutor implementado en la sección 6 los reutiliza para +1/+2/+3 por igual. Lo que sí sigue sin existir es una ejecución *real* de v4 a +1/+2 -- el ejecutor de la sección 6 construye sus propios modelos/calibradores nuevos para los tres horizontes, nunca reutiliza (ni podría) un resultado de v4 que no existe para +1/+2.
 - **Selección de familia (Etapa A, 2015–2022, OOF anidado):** se evaluaron las 4 candidatas del diseño (`logistic_regression`, `random_forest`, `hist_gradient_boosting_classifier`, `soft_voting` con pesos fijos 1/3) — el mismo universo de familias que la política `ensemble_agreement_v1` de Hito 1 usa para las tres primeras. Resultado: **`SIN_GANADOR_ESTABLE`** (ninguna superó a las demás por el margen predeclarado Δ=0.05 MCC; MCC OOF: soft_voting 0.7080, logistic_regression 0.6980, random_forest 0.6954, hist_gradient_boosting_classifier 0.6858). El desempate predeclarado por simplicidad eligió **`logistic_regression`** como única candidata llevada a B y C.
 - **Consecuencia directa, verificada en código (`src/experiment_runner/controlled_daily_v4/stage_a_runner.py`, `freezing.py`):** el protocolo v4 congela (`freeze_family` + `fit_final_estimator`) **únicamente a la familia ganadora**. `random_forest` y `hist_gradient_boosting_classifier` **nunca fueron congeladas ni reajustadas sobre el `eligible_frame` completo** — solo existen sus métricas de comparación de la Etapa A. La rama de código que sí congelaría las tres bases (`stage_a_runner.py`, cuando `selection.selected_family == FAMILY_SOFT_VOTING`) **no se ejecutó** en la corrida real, porque la ganadora fue `logistic_regression`, no `soft_voting`.
 - **Calibración:** el protocolo real **no aplicó ningún paso de calibración** a la familia ganadora ni a ninguna otra (`scientific-closure-synthesis-2026-09-22.md`, §7: "Calibración no corregida... el protocolo congelado no lo predeclaraba"). Es una limitación documentada y verificada: las probabilidades sobre el holdout 2024–2025 son sistemáticamente sobreconfiadas (ej. 96% predicho vs. 66% observado en el bin superior).
@@ -30,14 +30,7 @@ La versión anterior afirmaba: *"No se encontró en lo inspeccionado ninguna eje
 
 **Corrección respecto de la versión anterior de esta sección**, que concluía que esta sesión no tenía acceso físico a los datos ni al entorno real. Verificado en esta intervención (nada de esto entrena; son solo lecturas/comprobaciones de identidad):
 
-- **Dataset crudo, localizado y con hash verificado:** `C:\Repo\AAI_Hydric_Stress_external_data\raw\pergamino_era5land_soil_hourly_2015_2025.csv` (SHA-256 `318edffb89c64d5f500e35b5530e6064cb02f68b89bd28a71262c2ebb01f485f`) y `pergamino_nasa_power_daily_2015_2025.csv` (SHA-256 `415b4f71abb78e419b765110f4a42c3f32587b204d12897812df9573c5c2202b`). Estos hashes coinciden byte a byte con las copias ya presentes en el runtime WSL (`/home/gus/scientific-closure-inputs/migration-20260920/.../raw/`). Verificado además contra la referencia versionada del propio manifiesto ejecutando el comando de validación que el runner ya provee, sin entrenar nada:
-  ```
-  python -m experiment_runner.controlled_daily_v4.cli --stage A --validate-inputs-only \
-    --era5-csv .../pergamino_era5land_soil_hourly_2015_2025.csv \
-    --nasa-power-csv .../pergamino_nasa_power_daily_2015_2025.csv \
-    --output-dir <dir-vacío-descartable>
-  ```
-  Resultado: `Provenance OK. --validate-inputs-only: no se entrena nada.` — ejecutado dos veces, con resultado idéntico: (a) en el host Windows/`tcnenv`, (b) dentro de la imagen Docker exacta de la campaña (ver punto siguiente). Ningún archivo quedó escrito; el directorio de salida usado se descartó vacío.
+- **Dataset crudo, localizado y con hash verificado:** `C:\Repo\AAI_Hydric_Stress_external_data\raw\pergamino_era5land_soil_hourly_2015_2025.csv` (SHA-256 `318edffb89c64d5f500e35b5530e6064cb02f68b89bd28a71262c2ebb01f485f`) y `pergamino_nasa_power_daily_2015_2025.csv` (SHA-256 `415b4f71abb78e419b765110f4a42c3f32587b204d12897812df9573c5c2202b`). Estos hashes coinciden byte a byte con las copias ya presentes en el runtime WSL (`/home/gus/scientific-closure-inputs/migration-20260920/.../raw/`). Verificado además contra la referencia versionada del propio manifiesto llamando directamente a la función de validación de identidad (`controlled_daily_v4.provenance.validate_pergamino_provenance`, lectura pura, nunca `controlled_daily_v4.cli` ni ningún paso de A/B/C) -- la misma que el ejecutor separado de la sección 6 invoca internamente al arrancar: `report.ok` fue `True`, sin escribir ningún archivo. Verificado dos veces, con resultado idéntico: (a) en el host Windows/`tcnenv`, (b) dentro de la imagen Docker exacta de la campaña (ver punto siguiente).
 - **Entorno exacto de la campaña, presente localmente:** la imagen `experiment-v4-scientific-closure:latest` (`docker images` → ID `55bc923efac0`) coincide con `sha256:55bc923efac009b1b6de45acc634774b7910d4829fdfd0b2c963dd5748b297af`, la imagen aprobada que produjo A, B y C el 2026-09-21. No hace falta reconstruir nada: ya está disponible en el Docker Desktop de esta máquina.
 - **Evidencia de la campaña cerrada (`/home/gus/scientific-closure-runtime/evidence/{A,B,C}`, vía WSL Ubuntu):** los **nombres** de los artefactos son legibles (`ls`) y confirman lo ya sabido — existe `frozen_config.json` (singular, solo `logistic_regression`) y, adicionalmente, `oof_predictions_{logistic_regression,random_forest,hist_gradient_boosting_classifier,soft_voting}.csv` para las 4 candidatas de la Etapa A. **El contenido de estos archivos está bajo control de acceso** (propietario `root`, modo `600`) y esta intervención **no escaló privilegios** para leerlo — es una barrera de custodia deliberada, no un obstáculo a saltear. No se leyó `frozen_config.json`, `metrics.json` ni ningún `oof_predictions_*.csv` real.
 - **Consecuencia:** el bloqueo de "acceso a datos/entorno" que la versión anterior de esta sección declaraba **ya no aplica**. Lo que sigue bloqueado es una cuestión de **autorización y alcance metodológico**, no de acceso — ver secciones 5 y 6.
@@ -54,82 +47,93 @@ El hallazgo más directamente relevante es explícitamente **negativo**: `opensp
 
 | Horizonte | Estado | Causa |
 | --- | --- | --- |
-| +1 | **BLOQUEADO** | Sin cobertura real de protocolo. `HORIZON_DAYS=3` está fijo como constante de módulo en `features.py` (`frame["future_soil_moisture"] = s.shift(-HORIZON_DAYS)`), no como parámetro — soportar +1 exige modificar código congelado. No se propone ni se implementa aquí (sección 6.3). |
-| +2 | **BLOQUEADO** | Idéntica causa que +1. |
-| +3 | **BLOQUEADO** | Ya no por falta de datos/entorno (sección 3, corregida) ni por falta de decisión explícita registrada — sigue condicionado a que el responsable resuelva las dos cuestiones metodológicas de la sección 6.1/6.2, que esta intervención no decide por sí misma. |
+| +1 | **PREPARADO, NO EJECUTADO** | El ejecutor separado (sección 6) soporta +1 igual que +3 -- `add_multihorizon_targets`/`partition_labeled_horizon` son paramétricos en el horizonte. Nunca hubo, ni el ejecutor pretende que haya, una ejecución real de `controlled_daily_v4` a +1: sus modelos/calibradores para +1 serían enteramente nuevos, nunca heredados de la campaña cerrada. Falta correr contra los CSV reales (autorización pendiente, sección 4). |
+| +2 | **PREPARADO, NO EJECUTADO** | Idéntica situación que +1. |
+| +3 | **PREPARADO, NO EJECUTADO** | Único horizonte con antecedente real (`logistic_regression`, sección 2), pero el ejecutor tampoco reutiliza ese antecedente como artefacto (nunca se serializó, sección 2) -- reutiliza únicamente la elección de hiperparámetros, refiteada sobre una ventana propia (sección 6). Falta correr contra los CSV reales. |
 
-Ningún horizonte alcanza el cuarto estado ("ensemble habilitado con artefactos reales admisibles", sección 8). Hito 2 permanece sin ejecutar.
+Los tres horizontes están **implementados y verificados con datos sintéticos** (código real, ejecutable, sección 6) pero **ninguno se ejecutó contra los CSV reales de Pergamino** en esta intervención. Ninguno alcanza el cuarto estado ("ensemble habilitado con artefactos reales admisibles", sección 8) todavía.
 
-## 6. Propuesta concreta para +3 — alcance técnico, particiones, ejecución y criterio de habilitación
+## 6. Ejecutor implementado — alcance técnico, particiones, comandos y criterio de habilitación
 
 ### 6.0 Qué cambió respecto de la versión anterior
 
-Con la corrección de la sección 3, el único bloqueo real para +3 pasó de ser "no hay acceso a datos/entorno" a ser, exclusivamente, dos decisiones metodológicas que el responsable debe resolver (6.1, 6.2) y, una vez resueltas, una ejecución bien definida (6.4). +1/+2 siguen bloqueados por una causa distinta y más dura: el código congelado no admite otro horizonte sin modificarse (6.3).
+La versión anterior proponía invocar `controlled_daily_v4.cli --stage A` dentro de la imagen de la campaña para el refit -- **eso reejecutaría el mismo runner de la campaña cerrada, no un ejecutor de demostración separado, y se elimina aquí.** En su lugar, esta versión implementa y prueba (con datos sintéticos) un módulo nuevo, separado, que nunca importa `controlled_daily_v4.cli`/`stage_a_runner`/`stage_b_runner`/`stage_c_runner`/`freezing.py`/`holdout_ledger.py`:
 
-### 6.1 Decisión pendiente 1 — completar las familias faltantes
+- `src/experiment_runner/pergamino_ensemble_demo_runner.py` -- el ejecutor: ingesta (restringida a 2015-2023), umbral físico sobre entrenamiento únicamente, partición multi-horizonte, ajuste + calibración por familia, exportación.
+- `src/predictive_modeling/bundle_export.py` -- exportador de producción (`write_component_bundle`/`write_ensemble_manifest`), nunca un helper de tests.
+- `tests/test_pergamino_ensemble_demo_runner.py` + `backend/tests/test_pergamino_ensemble_demo_http.py` -- verificación sintética de las 3 familias × 3 horizontes, separación temporal y carga/inferencia real por la API v2 (unitaria y HTTP).
 
-`random_forest` e `hist_gradient_boosting_classifier` no tienen modelo final ajustado en la campaña real — solo participaron en la comparación OOF de la Etapa A (`evidence/A/oof_predictions_{random_forest,hist_gradient_boosting_classifier}.csv`, confirmados existentes por nombre; contenido no leído, ver sección 3). Completar el ensamble exigiría, para cada una, tomar su mejor configuración ya evaluada en la grilla de A (leída de `evidence/A/metrics.json`, root-only, no leído aquí) y ejecutar `freeze_family` + `fit_final_estimator` sobre el mismo `eligible_frame` ya usado por A — sin tocar B, C ni el holdout. **Pregunta para el responsable:** ¿esto es reutilización admisible de una evaluación ya hecha, o constituye una ejecución científica nueva? `decisions.md` (GD-38) reserva expresamente esa clase de decisión ("el orquestador no tiene autoridad para decidir eso por su cuenta"); esta intervención tampoco la decide.
+Reutiliza, sin modificar: `controlled_daily_v4.provenance.validate_pergamino_provenance` y `controlled_daily_v4.ingestion.*` (parsing/agregación/recorte de fecha, sin selección ni ajuste), `controlled_daily_v4.models.build_estimator`/`fit_estimator` (las tres familias congeladas), `predictive_modeling.operational_preparation.add_multihorizon_targets`/`partition_labeled_horizon` (genuinamente paramétricas en el horizonte -- de ahí que +1/+2/+3 se implementen igual), y el mismo patrón de calibración de Hito 1 (`CalibratedClassifierCV(FrozenEstimator(...), "sigmoid")`).
 
-### 6.2 Decisión pendiente 2 — introducir calibración
+### 6.1 Exclusión estructural de 2024-2025
 
-Ninguna de las 4 candidatas de la campaña real fue calibrada nunca; el protocolo congelado no lo predeclaraba (sección 2). El contrato de Hito 1 (`load_operational_bundle`) exige un `calibrator.joblib` por componente — sin este paso, **ninguna familia real, ni siquiera la ganadora `logistic_regression`, puede empaquetarse**, independientemente de 6.1. Añadir `CalibratedClassifierCV(FrozenEstimator(modelo), method="sigmoid")` donde el protocolo real nunca lo tuvo **es un cambio metodológico**, explícitamente fuera de la autoridad que este encargo delimita ("no autoriza... cambios metodológicos"). **Pregunta para el responsable:** ¿se autoriza agregar este paso como parte del empaquetado operativo (Hito 2), documentado como una diferencia explícita respecto del protocolo científico congelado, sin alterar éste?
+`build_daily_frame` recorta ambos CSV crudos a `[2015-01-01, 2023-12-31]` (`restrict_era5_hourly_to_window`/`restrict_nasa_power_daily_to_window`) **antes** de agregar, unir, calcular el umbral o construir features/targets -- 2024/2025 nunca entra a un `DataFrame` en este módulo. No se toca `evidence/A|B|C`, `ledger/`, `openspec/scientific-closure/` ni `replay_packages/`.
 
-### 6.3 +1/+2 — cambio mínimo necesario, no implementado
+### 6.2 Configuraciones declaradas (fijas, nunca ajustadas contra este mismo run)
 
-`features.py` usa la constante de módulo `HORIZON_DAYS` directamente en el cálculo del target (`s.shift(-HORIZON_DAYS)`), no un parámetro de configuración pese a que `config.py` sí declara un campo `horizon_days` (actualmente decorativo para este cálculo). El cambio mínimo sería parametrizar ese `shift` para leer `config.horizon_days` en lugar de la constante — pero esto exige re-verificar, para cada nuevo horizonte, los márgenes de corte temporal (`gap` de `TimeSeriesSplit`), el P20 por fold y la ventana de comparación con persistencia, ninguno de los cuales fue nunca evaluado a +1/+2. Es un cambio de código sobre `controlled_daily_v4/` congelado — no se implementa en esta intervención ni se propone su aprobación aquí; solo se documenta como lo que haría falta.
+| Familia | Hiperparámetros | Procedencia |
+| --- | --- | --- |
+| `logistic_regression` | `C=1.0, solver=lbfgs, max_iter=2000, weighting=sample_weight_balanced` | Misma elección que la ganadora real de la Etapa A (`manifest.yaml`, `frozen_hyperparameters.params`, versionado en git) -- la *elección*, no el *artefacto*: este ejecutor siempre reajusta, sobre una ventana propia (2015-2021) distinta y más angosta que la de la Etapa A (2015-2022). |
+| `random_forest` | `n_estimators=100, max_depth=8, min_samples_leaf=5, weighting=sample_weight_balanced, random_state=42, n_jobs=1` | Un punto fijo dentro de la grilla que el mismo manifiesto ya declara para la Etapa A (`n_estimators:[100,300], max_depth:[4,8,null], min_samples_leaf:[5,20]`) -- elegido sin leer `evidence/A/metrics.json` (root-only, no leído) y sin optimizar contra ningún resultado, sintético o real, de este run. |
+| `hist_gradient_boosting_classifier` | `learning_rate=0.1, max_iter=100, max_leaf_nodes=15, l2_regularization=0.0, weighting=sample_weight_balanced, random_state=42` | Idéntico criterio: un punto fijo de la grilla ya declarada (`learning_rate:[0.03,0.1], max_iter:[100,300], max_leaf_nodes:[15,31], l2_regularization:[0.0,1.0]`), nunca leído de `metrics.json`, nunca ajustado contra 2023. |
 
-### 6.4 Particiones propuestas para +3 (si 6.1 y 6.2 se autorizan)
+Ninguna de las tres se revisó ni se modificó después de ver un resultado (sintético o real) de este ejecutor -- están fijas en el código, declaradas arriba antes de correr nada.
 
-Restricción de fondo: **los 11 años de dato (2015–2025) ya están íntegramente asignados** a alguna etapa de la campaña cerrada — A (2015–2022, desarrollo/selección), B (2023, validación temporal), C (2024–2025, holdout cerrado). No existe ningún período "nunca tocado" fuera del holdout (que permanece intocable). Por lo tanto, cualquier demo real para +3 necesariamente reutiliza días que ya participaron en selección (A) o en la compuerta de validación (B) — y debe decirlo explícitamente, nunca presentarse como evaluación independiente.
+### 6.3 Particiones (implementadas, no solo propuestas)
 
-| Partición propuesta | Rango (fecha objetivo, t+3) | Rol | Independencia real |
-| --- | --- | --- | --- |
-| Entrenamiento demo | 2015-01-10 a 2021-12-31 | Ajustar las 3 familias (refit determinístico) | **No independiente**: subconjunto del rango de desarrollo/selección de la Etapa A; cada día participó como train u OOF-validación en algún fold del nested CV que decidió `SIN_GANADOR_ESTABLE`. |
-| Calibración demo | 2022-01-01 a 2022-12-31 | Ajustar `CalibratedClassifierCV` por familia | **No independiente**: último año del rango de desarrollo de la Etapa A, mismo motivo. |
-| Recorrido demo (no "evaluación") | 2023-01-01 a 2023-12-31 | Recorrido operativo de punta a punta (HTTP real, votos, agregación) con números reales | **No independiente**: coincide exactamente con el período de validación temporal de la Etapa B (la compuerta que autorizó abrir el holdout). Debe presentarse solo como demostración de arquitectura, nunca como validación prospectiva. |
-| — | 2024-01-01 a 2025-12-31 | — | **Fuera de alcance permanente**: holdout cerrado, irreversible. No se usa bajo ningún concepto. |
+Restricción de fondo, sin cambios: los 11 años (2015-2025) ya están íntegramente asignados a alguna etapa de la campaña cerrada -- A (2015-2022), B (2023), C (2024-2025, holdout cerrado, intocable). Cualquier demo real reutiliza necesariamente días que ya participaron en selección (A) o en la compuerta de validación (B); nunca se presenta como evaluación independiente.
 
-Orden causal preservado (entrenamiento < calibración < recorrido, sin fuga temporal); el propio contrato de Hito 1 (`temporal_cuts`, `HorizonContract`) ya exige y verifica esto en tiempo de carga.
+| Partición | Rango (fecha de emisión) | Umbral físico | Primera fecha admisible de inferencia | Independencia real |
+| --- | --- | --- | --- | --- |
+| Entrenamiento | 2015-01-01 a 2021-12-31 | Calculado **únicamente** sobre estas filas (`resolve_training_threshold`, P20 de `soil_moisture`) | -- | No independiente: subconjunto del rango de desarrollo de la Etapa A. |
+| Calibración | 2022-01-01 a 2022-12-31 | (reutiliza el umbral de entrenamiento; nunca se recalcula) | -- | No independiente: último año del rango de desarrollo de la Etapa A. |
+| Demostración | 2023-01-01 a 2023-12-31 | (idem) | **2022-12-31** (el propio último día de calibración; `predict_operational_bundle` rechaza solo `as_of_date` estrictamente anterior) | No independiente: coincide con el período de validación temporal de la Etapa B. |
+| -- | 2024-01-01 a 2025-12-31 | -- | -- | Fuera de alcance permanente: holdout cerrado. |
 
-### 6.5 Ejecución preparada (comandos exactos, nada ejecutado)
+**Purgas por horizonte:** `partition_labeled_horizon` exige que tanto la fecha de emisión como la fecha objetivo (`emisión + horizonte`) caigan dentro del mismo rango con nombre -- purga automáticamente, sin código adicional, los últimos `horizonte` días de cada partición (p. ej. para +3, los días 2021-12-29..31 quedan fuera de entrenamiento porque su fecha objetivo cae en 2022). Verificado en `test_partitions_never_overlap_and_never_touch_2024_2025` y por la ejecución real de las 3 particiones × 3 horizontes en `test_run_demo_from_frame_covers_all_three_families_and_horizons`.
 
-Entorno verificado disponible localmente (sección 3): imagen `experiment-v4-scientific-closure:latest` (`sha256:55bc923e...`), con las dos rutas crudas ya localizadas. Destino de artefactos **deliberadamente separado** de la campaña cerrada — nunca `/home/gus/scientific-closure-runtime/evidence/{A,B,C}` ni `openspec/scientific-closure/`:
+### 6.4 Diferencia deliberada con el contrato real `pergamino_features.v1`
+
+El contrato real solo aplica lag/rolling a `soil_moisture` (8 features). El cargador/predictor v2 ya existentes y sin modificar (`load_operational_bundle`/`predict_operational_bundle`) aplican lags/ventanas de forma uniforme sobre todas las `feature_columns` declaradas -- construir un contrato asimétrico exigiría modificar ese código, ya verificado en Hito 1, cosa que no se hace. Este ejecutor declara entonces su propio contrato (lag/rolling sobre `soil_moisture`, `relative_humidity` y `solar_radiation` por igual, 18 features), documentado aquí como distinto de `pergamino_features.v1`, sin pretender equivalencia. Las variables `RH2M`/`ALLSKY_SFC_SW_DWN` se renombran a los nombres canónicos `relative_humidity`/`solar_radiation` (`RAW_TO_CANONICAL`) porque `producer_emission.py` pasa siempre el registro fijo `data_ingestion.history.VARIABLE_UNITS` a `predict_ensemble_bundle` -- ese registro no conoce los nombres crudos de Pergamino/NASA POWER.
+
+### 6.5 Comando real, ejecutable (no ejecutado en esta intervención)
 
 ```
-# Todo dentro de la imagen exacta de la campaña; solo lectura de las rutas
-# crudas ya verificadas; salida a un árbol nuevo, nunca al de la campaña cerrada.
-docker run --rm \
-  -v "C:/Repo/AAI_Hydric_Stress_external_data/raw:/data/raw:ro" \
-  -v "<runtime-nuevo>/ensemble-hito2-preparation-<fecha>:/workspace/output" \
-  experiment-v4-scientific-closure:latest \
-  python -m experiment_runner.controlled_daily_v4.cli \
-    --stage A --input-mode scientific \
-    --era5-csv /data/raw/pergamino_era5land_soil_hourly_2015_2025.csv \
-    --nasa-power-csv /data/raw/pergamino_nasa_power_daily_2015_2025.csv \
-    --output-dir /workspace/output/logistic_regression
-    # (repetir con la config de cada familia una vez resuelto 6.1;
-    #  agregar el paso de calibración, hoy inexistente en el runner,
-    #  una vez resuelto 6.2 -- ninguno de los dos flags existe todavía)
+python -m experiment_runner.pergamino_ensemble_demo_runner \
+  --era5-csv "C:/Repo/AAI_Hydric_Stress_external_data/raw/pergamino_era5land_soil_hourly_2015_2025.csv" \
+  --nasa-power-csv "C:/Repo/AAI_Hydric_Stress_external_data/raw/pergamino_nasa_power_daily_2015_2025.csv" \
+  --output-dir "<runtime-nuevo, vacío>/ensemble-hito2-demo-<fecha>" \
+  --sensor-id pergamino-ensemble-demo \
+  --horizons 1 2 3 \
+  --input-mode scientific
 ```
 
-Después del refit (si autorizado): empaquetar con `attach_feature_names` (`src/predictive_modeling/bundle_packaging.py`, sin cambios) + el patrón de `write_single_bundle` de Hito 1, destino `bundle_root/<sitio-demo>/horizon_3/ensemble/<familia>/` — un `bundle_root` de demostración, nunca el de producción ni el de un sensor real reservado. Verificar carga/inferencia con `load_ensemble_bundle`/`predict_ensemble_bundle` (sin modificar), y un smoke test HTTP real contra `POST /api/v2/sensors/{sensor_id}/forecasts` con un `sensor_id` de demostración explícito (nunca uno productivo). Pruebas de aceptación: mismo patrón que `tests/test_ensemble_bundle_real_families.py` y `backend/tests/test_producer_v2_ensemble.py`, pero sin ningún dato sintético, corridas dentro de la misma imagen verificada (para que `capture_environment()` coincida en cada paso).
+Nunca invoca `controlled_daily_v4.cli`. Valida provenance (`validate_pergamino_provenance`, `--input-mode scientific`) antes de ingerir; el destino es un árbol nuevo y vacío (el ejecutor rechaza uno no vacío, `DemoRunnerError`), nunca `evidence/A|B|C` ni `openspec/scientific-closure/`. El propio código registra la identidad de entorno (`capture_environment`, reutilizado de `operational_run_artifacts`) dentro de cada `bundle.json`, y el SHA de este módulo queda fijado por el commit publicado de esta rama (sección 9).
 
-### 6.6 Criterio para declarar el ensamble real habilitado (+3)
+### 6.6 Pruebas ejecutadas (sintéticas, esta intervención)
+
+- `tests/test_pergamino_ensemble_demo_runner.py` (7 pruebas): las 3 familias × 3 horizontes se ajustan, calibran y exportan; el bundle real carga e infiere sin modificar `load_ensemble_bundle`/`predict_ensemble_bundle`; el rechazo de un `as_of_date` anterior a la calibración se verifica explícitamente, junto con la aceptación exacta en el límite; las particiones nunca se solapan ni tocan 2024-2025.
+- `backend/tests/test_pergamino_ensemble_demo_http.py` (1 prueba): el bundle generado por el ejecutor se sirve por la ruta real `POST /api/v2/sensors/{sensor_id}/forecasts` y devuelve un detalle `ensemble` coherente con pesos y política de Hito 1.
+- Regresión: los 82 tests de los módulos de ensamble existentes (Hito 1) siguen pasando sin cambios.
+
+Ninguna prueba lee los CSV reales de Pergamino ni el holdout.
+
+### 6.7 Criterio para declarar el ensamble real habilitado
 
 Los cinco, todos verificados, no solo alguno:
 
-1. Las 3 familias tienen modelo + calibrador reales, empaquetados, con hashes registrados y procedencia documentada (commit, imagen, config, datos, comandos).
-2. `load_ensemble_bundle`/`predict_ensemble_bundle` cargan e infieren correctamente sobre el bundle real, dentro del mismo entorno verificado.
-3. Un smoke test HTTP real contra la API v2, con un sensor de demostración explícito, devuelve un detalle `ensemble` coherente.
-4. Las decisiones 6.1 y 6.2 están resueltas y **registradas explícitamente** por el responsable (análogo a GD-38/GD-40, pero como una decisión nueva de Hito 2 — nunca reescribiendo esas).
-5. El documento resultante distingue, para cada componente, qué es reutilización de la campaña real (identidad heredada) y qué es nuevo (refit de familias no ganadoras, calibración) — nunca presentado como si todo viniera de la misma auditoría `PASS`/`FAIL` ya cerrada.
+1. Las 3 familias tienen modelo + calibrador reales (no sintéticos), para los 3 horizontes que se quiera habilitar, empaquetados por este mismo ejecutor, con hashes registrados y procedencia documentada (commit, config, datos, comando exacto de 6.5).
+2. `load_ensemble_bundle`/`predict_ensemble_bundle` cargan e infieren correctamente sobre esos bundles reales, en el mismo entorno que los generó.
+3. Un smoke test HTTP real contra la API v2, con un `sensor_id` de demostración explícito (nunca productivo), devuelve un detalle `ensemble` coherente -- mismo patrón que 6.6, sobre datos reales.
+4. Autorización explícita y registrada del responsable para ejecutar 6.5 contra los CSV reales (la ejecución en sí, no solo esta preparación) -- esta intervención la deja lista, no la concede.
+5. El documento resultante distingue, para cada componente, qué reutiliza la elección de hiperparámetros de la campaña real (solo `logistic_regression`) y qué es enteramente nuevo (`random_forest`, `hist_gradient_boosting_classifier`, la calibración de las tres, y +1/+2 en su totalidad) -- nunca presentado como si viniera de la misma auditoría `PASS`/`FAIL` ya cerrada.
 
-**Ninguno de los cinco se cumple hoy.** No se declara habilitado el ensamble real.
+**Ninguno de los cinco se cumple hoy.** El código y las pruebas sintéticas están completos; la ejecución contra datos reales no se realizó.
 
-## 7. Umbrales y demostración histórica (sin cambios respecto de la versión anterior)
+## 7. Umbral de decisión y demostración histórica
 
-- `decision_threshold = 0.5`, comparador `>=`, sin optimizar — confirmado también como el umbral fijo de la campaña real (nunca ajustado contra evaluación/holdout).
-- Particiones ya definidas por el protocolo real: A = 2015–2022, B = 2023, C = 2024–2025 (holdout, cerrado). No se alteran; la propuesta de la sección 6.4 reutiliza sub-rangos de A/B explícitamente, nunca C.
+- `decision_threshold = 0.5`, comparador `>=`, sin optimizar en ningún horizonte ni familia — mismo valor no-tuneado que Hito 1 y que la campaña real (nunca ajustado contra evaluación/holdout).
+- Particiones reales del protocolo (A = 2015–2022, B = 2023, C = 2024–2025 holdout cerrado) sin alterar; las particiones propias del ejecutor (sección 6.3) reutilizan sub-rangos de A/B explícitamente, nunca C.
 - Cualquier demostración histórica futura debe ser causalmente válida y no debe tocar `replay_packages/` ni el paquete `base-seed4` custodiado.
 
 ## 8. Los cuatro estados (referencia)
@@ -139,11 +143,12 @@ Definidos en `docs/superpowers/specs/2026-09-25-ensemble-operational-integration
 1. Single-model disponible (sin cambios).
 2. Ensemble configurado pero `unavailable` (artefactos incompletos/inválidos/ausentes).
 3. Integración probada con datos sintéticos (Hito 1 — alcanzado, PR #217 mergeado).
-4. Ensemble habilitado con artefactos reales admisibles — **no alcanzado**. Bloqueado en los tres horizontes (sección 5); para +3, condicionado a una decisión explícita del responsable sobre las dos cuestiones de la sección 6, no solo a disponibilidad de datos/entorno.
+4. Ensemble habilitado con artefactos reales admisibles — **no alcanzado**. Los tres horizontes están implementados y verificados solo con datos sintéticos (sección 6); falta la ejecución real (comando de 6.5) y la autorización explícita para realizarla (criterio de 6.7).
 
 ## 9. Trazabilidad
 
 - **HU:** HU7 (`experiment-runner`, `controlled_daily_v4_external_pergamino`, campaña real 2026-09-21, cierre `FAIL` de gobernanza) + `predictive-modeling` (contrato operativo del ensamble, Hito 1, PR #217).
-- **Impacto en configuración experimental:** ninguno — este documento no ejecuta ningún experimento ni reabre el holdout.
-- **Impacto en hipótesis/alcance/arquitectura:** ninguno. No se propone reejecutar B/C, no se propone ampliar el protocolo a nuevos horizontes, no se decide por cuenta propia si completar las familias faltantes o agregar calibración es admisible.
-- **Fuentes citadas:** `docs/research/controlled-daily-v4-external-pergamino-manifest.yaml`, `docs/research/scientific-closure-synthesis-2026-09-22.md`, `docs/adr/0010-seleccion-modelos-controlled-daily-v4.md`, `docs/adr/0011-protocolo-controlled-daily-v4-external-pergamino.md`, `openspec/scientific-closure/decisions.md` (GD-38, GD-40), `openspec/scientific-closure/README.md`, `openspec/scientific-closure/changes.json`, `openspec/scientific-closure/closure-verification-2026-09-20/claim-evidence-review.json`, `src/experiment_runner/controlled_daily_v4/{stage_a_runner.py,freezing.py,features.py,config.py,cli.py,provenance.py}`, `docker/experiment-v4/Dockerfile`, y las verificaciones de esta intervención: `sha256sum` de los dos CSV crudos, `--validate-inputs-only` (host y dentro de `experiment-v4-scientific-closure:latest`), y `ls` de nombres de archivo (sin lectura de contenido) en `/home/gus/scientific-closure-runtime/evidence/{A,B,C}` vía WSL Ubuntu.
+- **Impacto en configuración experimental:** ninguno — este documento no ejecuta ningún experimento ni reabre el holdout. El ejecutor de la sección 6 corrió únicamente contra datos sintéticos en esta intervención.
+- **Impacto en hipótesis/alcance/arquitectura:** ninguno. No se propone reejecutar B/C, no se modifica `controlled_daily_v4/` congelado, no se decide por cuenta propia si la ejecución real (6.5) está autorizada.
+- **SHA publicado:** ver el commit de esta rama (`feat/ensemble-real-enablement-hito2`) que incluye este documento junto con `src/predictive_modeling/bundle_export.py`, `src/experiment_runner/pergamino_ensemble_demo_runner.py`, `tests/test_pergamino_ensemble_demo_runner.py` y `backend/tests/test_pergamino_ensemble_demo_http.py`.
+- **Fuentes citadas:** `docs/research/controlled-daily-v4-external-pergamino-manifest.yaml`, `docs/research/scientific-closure-synthesis-2026-09-22.md`, `docs/adr/0010-seleccion-modelos-controlled-daily-v4.md`, `docs/adr/0011-protocolo-controlled-daily-v4-external-pergamino.md`, `openspec/scientific-closure/decisions.md` (GD-38, GD-40), `openspec/scientific-closure/README.md`, `openspec/scientific-closure/changes.json`, `openspec/scientific-closure/closure-verification-2026-09-20/claim-evidence-review.json`, `src/experiment_runner/controlled_daily_v4/{stage_a_runner.py,freezing.py,features.py,config.py,provenance.py,ingestion.py}`, y el código nuevo de esta ronda: `src/predictive_modeling/bundle_export.py`, `src/experiment_runner/pergamino_ensemble_demo_runner.py`, `tests/test_pergamino_ensemble_demo_runner.py`, `backend/tests/test_pergamino_ensemble_demo_http.py`. Verificaciones de identidad de esta y la ronda anterior: `sha256sum` de los dos CSV crudos, `--validate-inputs-only` (host y dentro de `experiment-v4-scientific-closure:latest`), y `ls` de nombres de archivo (sin lectura de contenido) en `/home/gus/scientific-closure-runtime/evidence/{A,B,C}` vía WSL Ubuntu.
