@@ -18,7 +18,11 @@ from human_feedback.historical_review_store import HistoricalReviewStore
 from human_feedback.operational_repository import (
     OperationalRepository,
     OperationalRepositoryError,
+)
+from human_feedback.operational_repository import (
     _review_open_at as _operational_review_open_at,
+)
+from human_feedback.operational_repository import (
     _training_eligibility as _operational_training_eligibility,
 )
 

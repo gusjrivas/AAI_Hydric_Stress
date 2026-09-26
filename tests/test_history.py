@@ -115,8 +115,12 @@ def test_last_reading_date_and_age_reflect_the_clock_not_the_whole_file(tmp_path
     # the search must not depend on that coincidence (see the second
     # assertion below, where the window is narrower than the gap).
     at_earlier_clock = query_readings(
-        "sensor-a", tmp_path, registered=False, days=2,
-        end=date(2023, 6, 13), server_today=date(2023, 6, 13),
+        "sensor-a",
+        tmp_path,
+        registered=False,
+        days=2,
+        end=date(2023, 6, 13),
+        server_today=date(2023, 6, 13),
     )
     assert at_earlier_clock["last_reading_date"] == date(2023, 6, 13)
     assert at_earlier_clock["data_age_days"] == 0
@@ -127,8 +131,12 @@ def test_last_reading_date_and_age_reflect_the_clock_not_the_whole_file(tmp_path
     # *before* window_start (06-16), so it can only be found by scanning
     # the whole file up to the clock, never just the window.
     with_gap_before_window = query_readings(
-        "sensor-a", tmp_path, registered=False, days=1,
-        end=date(2023, 6, 16), server_today=date(2023, 6, 16),
+        "sensor-a",
+        tmp_path,
+        registered=False,
+        days=1,
+        end=date(2023, 6, 16),
+        server_today=date(2023, 6, 16),
     )
     assert with_gap_before_window["last_reading_date"] == date(2023, 6, 13)
     assert with_gap_before_window["data_age_days"] == 3
@@ -136,8 +144,12 @@ def test_last_reading_date_and_age_reflect_the_clock_not_the_whole_file(tmp_path
 
     # Browsing forward to 06-20 legitimately reveals the later row.
     at_later_clock = query_readings(
-        "sensor-a", tmp_path, registered=False, days=2,
-        end=date(2023, 6, 20), server_today=date(2023, 6, 20),
+        "sensor-a",
+        tmp_path,
+        registered=False,
+        days=2,
+        end=date(2023, 6, 20),
+        server_today=date(2023, 6, 20),
     )
     assert at_later_clock["last_reading_date"] == date(2023, 6, 20)
     assert at_later_clock["data_age_days"] == 0
@@ -150,16 +162,25 @@ def test_status_is_no_readings_when_nothing_is_admissible_yet_despite_a_nonempty
     dataframe = pd.DataFrame(
         {
             "timestamp": pd.to_datetime(["2023-06-20"]),
-            "soil_moisture": [0.25], "relative_humidity": [64.0], "solar_radiation": [17.0],
-            "temperature": [21.0], "precipitation": [0.0], "wind_speed": [3.2], "et0": [4.1],
+            "soil_moisture": [0.25],
+            "relative_humidity": [64.0],
+            "solar_radiation": [17.0],
+            "temperature": [21.0],
+            "precipitation": [0.0],
+            "wind_speed": [3.2],
+            "et0": [4.1],
             "origen": [EXTERNAL_REANALYSIS_RAW_VALUE],
         }
     )
     save_dataset(dataset_name_for("sensor-a"), dataframe, data_dir=tmp_path)
 
     result = query_readings(
-        "sensor-a", tmp_path, registered=False, days=5,
-        end=date(2023, 6, 13), server_today=date(2023, 6, 13),
+        "sensor-a",
+        tmp_path,
+        registered=False,
+        days=5,
+        end=date(2023, 6, 13),
+        server_today=date(2023, 6, 13),
     )
     assert result["status"] == "no_readings"
     assert result["rows"] == []

@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -25,8 +25,8 @@ from uuid import uuid4
 from data_ingestion.sensor_naming import validate_sensor_id
 from data_ingestion.storage import StorageLockTimeout, atomic_write_bytes, interprocess_lock
 from human_feedback.operational_repository import (
-    OperationalRepositoryError,
     REVIEW_ACTIONS,
+    OperationalRepositoryError,
     _isoformat_z,
     _request_hash,
 )

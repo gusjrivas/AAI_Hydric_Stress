@@ -285,9 +285,7 @@ def test_reveal_through_2023_06_20_lets_the_06_17_horizon_3_target_be_contrasted
     assert isinstance(observed_stress, bool)
 
 
-def test_revealed_through_walks_the_reviewable_clock_past_the_emission_date(
-    client, bundle_root
-):
+def test_revealed_through_walks_the_reviewable_clock_past_the_emission_date(client, bundle_root):
     """UI necesita separar la emisión seleccionada (as_of_date) del punto
     del recorrido hasta el que se avanzó (revealed_through): la elegibilidad
     de revisión debe reflejar el reloj del recorrido, no la fecha de
@@ -301,13 +299,9 @@ def test_revealed_through_walks_the_reviewable_clock_past_the_emission_date(
 
     # Sin revealed_through: el reloj es el de la propia emisión (DAY_A),
     # anterior al target_date -- todavía no reviewable.
-    at_emission = http.get(
-        f"/api/v2/sensors/{SENSOR_ID}/historical/{DAY_A.isoformat()}/forecasts"
-    )
+    at_emission = http.get(f"/api/v2/sensors/{SENSOR_ID}/historical/{DAY_A.isoformat()}/forecasts")
     assert at_emission.status_code == 200
-    slot_at_emission = next(
-        s for s in at_emission.json()["slots"] if s["horizon_days"] == 1
-    )
+    slot_at_emission = next(s for s in at_emission.json()["slots"] if s["horizon_days"] == 1)
     assert slot_at_emission["review"]["reviewable"] is False
     assert slot_at_emission["review"]["blocked_reason"] == "review_not_open"
 
@@ -319,9 +313,7 @@ def test_revealed_through_walks_the_reviewable_clock_past_the_emission_date(
         params={"revealed_through": target_date.isoformat()},
     )
     assert walked_forward.status_code == 200
-    slot_walked = next(
-        s for s in walked_forward.json()["slots"] if s["horizon_days"] == 1
-    )
+    slot_walked = next(s for s in walked_forward.json()["slots"] if s["horizon_days"] == 1)
     assert slot_walked["review"]["reviewable"] is True
     assert slot_walked["review"]["blocked_reason"] is None
     assert slot_walked["forecast_id"] == slot_at_emission["forecast_id"]
@@ -349,7 +341,9 @@ def test_server_today_reflects_revealed_through_not_as_of_date(client, bundle_ro
     _prepare_day(http, tmp_path, frame, DAY_A)
     later = DAY_A + timedelta(days=3)
 
-    without_reveal = http.get(f"/api/v2/sensors/{SENSOR_ID}/historical/{DAY_A.isoformat()}/forecasts")
+    without_reveal = http.get(
+        f"/api/v2/sensors/{SENSOR_ID}/historical/{DAY_A.isoformat()}/forecasts"
+    )
     assert without_reveal.json()["server_today"] == DAY_A.isoformat()
 
     with_reveal = http.get(
