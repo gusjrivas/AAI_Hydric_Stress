@@ -366,3 +366,25 @@ export async function emitForecasts(sensorId: string, requestId: string): Promis
   if (response.status === 404 && !error) throw new ProducerV2UnavailableError();
   throw new Error(messages[error?.code ?? ""] ?? "No pudimos recuperar el resultado. Reintentá para consultar el mismo pedido.");
 }
+
+export interface AlertOutlookSummary {
+  alert: boolean;
+  /** Fechas con alerta, ya formateadas ("lunes 28" style), en orden. Vacío
+   * cuando `alert` es false. */
+  days: string[];
+}
+
+/** Resumen de la parte superior de "Mi cultivo": nunca recalcula
+ * `combined_alert`, solo agrupa los `alert: true` ya decididos por el
+ * backend en cada horizonte disponible. `null` cuando no hay ningún
+ * horizonte disponible (para mostrar el aviso de información insuficiente
+ * en su lugar, nunca "sin alerta"). */
+export function alertOutlookSummary(batch: ForecastBatch): AlertOutlookSummary | null {
+  const available = batch.slots.filter((slot) => slot.status === "available") as (Forecast & { status: "available" })[];
+  if (available.length === 0) return null;
+  const alerted = available.filter((slot) => slot.alert);
+  return {
+    alert: alerted.length > 0,
+    days: alerted.map((slot) => displayForecastDate(slot.target_date)),
+  };
+}

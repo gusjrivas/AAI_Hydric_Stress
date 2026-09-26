@@ -12,7 +12,18 @@ const REASONS: Record<string, string> = {
   model_not_available_at_date: "Las mediciones son anteriores al período que puede usar este pronóstico.",
 };
 
-export function EmissionPanel({ sensorId, onChanged }: { sensorId: string; onChanged: () => void }) {
+export function EmissionPanel({
+  sensorId,
+  onChanged,
+  onBatch,
+}: {
+  sensorId: string;
+  onChanged: () => void;
+  /** Notifica el lote vigente al contenedor (p. ej. para el banner de
+   * alerta resumen en la parte superior de la pantalla) sin duplicar el
+   * estado: sigue siendo este componente el único que lo posee. */
+  onBatch?: (batch: ForecastBatch | null) => void;
+}) {
   const [batch, setBatch] = useState<ForecastBatch | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +50,7 @@ export function EmissionPanel({ sensorId, onChanged }: { sensorId: string; onCha
       const result = await emitForecasts(sensorId, requestId.current);
       if (!alive.current) return;
       setBatch(result);
+      onBatch?.(result);
       requestId.current = null;
       onChanged();
     } catch (failure) {
@@ -48,13 +60,18 @@ export function EmissionPanel({ sensorId, onChanged }: { sensorId: string; onCha
     }
   }
   function reviewed(forecast: Forecast) {
-    setBatch((current) => current ? { ...current, slots: current.slots.map((slot) =>
-      slot.status === "available" && slot.forecast_id === forecast.forecast_id
-        ? { ...forecast, status: "available" } : slot) } : current);
+    setBatch((current) => {
+      if (!current) return current;
+      const updated: ForecastBatch = { ...current, slots: current.slots.map((slot) =>
+        slot.status === "available" && slot.forecast_id === forecast.forecast_id
+          ? { ...forecast, status: "available" as const } : slot) };
+      onBatch?.(updated);
+      return updated;
+    });
     onChanged();
   }
   return <section className="producer-outlook" aria-labelledby="next-days-heading">
-    <p className="producer-eyebrow">02 / QUÉ SE ESPERA</p>
+    <p className="producer-eyebrow">PRÓXIMOS 3 DÍAS</p>
     <h3 id="next-days-heading">Los próximos tres días del cultivo</h3>
     <p>Consultá qué se espera para cada día a partir de la última medición disponible.</p>
     <button type="button" disabled={busy} onClick={() => void generate()}>

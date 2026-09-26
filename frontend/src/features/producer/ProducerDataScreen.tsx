@@ -83,13 +83,9 @@ export function ProducerDataScreen({ sensorId }: { sensorId: string }) {
   const rowsWithFlags = data ? data.rows.filter((row) => row.quality_flags.length > 0) : [];
 
   return (
-    <section className="producer-data-screen" aria-labelledby="producer-data-title">
+    <section className="producer-data-screen">
       <div className="producer-data-header">
-        <div>
-          <p className="producer-eyebrow">DATOS</p>
-          <h3 id="producer-data-title">Datos disponibles</h3>
-          <p>Revisá qué variables hay, con qué unidad y desde qué procedencia. No se completan los huecos.</p>
-        </div>
+        <p>Revisá qué variables hay, con qué unidad y desde qué procedencia. No se completan los huecos.</p>
         <label>Período
           <select value={days} onChange={(event) => setDays(Number(event.target.value) as 7 | 30)}>
             <option value={7}>Últimos 7 días</option>
