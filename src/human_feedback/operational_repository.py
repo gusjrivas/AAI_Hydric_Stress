@@ -103,7 +103,13 @@ def _parse_iso_z(value: str) -> datetime:
 
 @dataclass(frozen=True)
 class SlotSeed:
-    """Resultado de un horizonte, producido por inferencia o por fixtures aislados."""
+    """Resultado de un horizonte, producido por inferencia o por fixtures aislados.
+
+    `ensemble` es `None` para el camino single-model (sin cambios); cuando el
+    horizonte se resolvió en modo ensamble, es el detalle completo devuelto por
+    `predictive_modeling.ensemble_bundle.predict_ensemble_bundle` (un único
+    objeto anidado — nunca se exponen sus claves como campos sueltos de nivel
+    superior, ver `schemas_v2.EnsembleDetail`, con la misma forma exacta)."""
 
     horizon_days: int
     status: str  # "available" | "unavailable"
@@ -117,6 +123,7 @@ class SlotSeed:
     decision_threshold: float | None = None
     event_threshold: dict[str, Any] | None = None
     model_reference: dict[str, Any] | None = None
+    ensemble: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if self.horizon_days not in SUPPORTED_HORIZONS:
@@ -134,6 +141,11 @@ class SlotSeed:
             or self.model_reference is None
         ):
             raise ValueError("Un slot available requiere sus campos obligatorios.")
+        if self.ensemble is not None:
+            if self.alert != self.ensemble["combined_alert"]:
+                raise ValueError("alert debe coincidir con ensemble['combined_alert'].")
+            if self.score != self.ensemble["combined_probability"]:
+                raise ValueError("score debe coincidir con ensemble['combined_probability'].")
 
 
 def _request_hash(payload: Any) -> str:
@@ -260,27 +272,37 @@ class OperationalRepository:
         if is_demo_reserved(self.sensor_id):
             raise _demo_write_locked()
 
+        def _slot_payload(seed: SlotSeed) -> dict[str, Any]:
+            payload = {
+                "horizon_days": seed.horizon_days,
+                "status": seed.status,
+                "reason_code": seed.reason_code,
+                "alert": seed.alert,
+                "score": seed.score,
+                "score_kind": seed.score_kind,
+                "display_probability": seed.display_probability,
+                "probability_status": seed.probability_status,
+                "probability_reason_code": seed.probability_reason_code,
+                "decision_threshold": seed.decision_threshold,
+                "event_threshold": seed.event_threshold,
+                "model_reference": seed.model_reference,
+            }
+            # Omit the key entirely (never add it as `None`) for a
+            # single-model slot: a legacy idempotency key retried after this
+            # change must still hash to exactly what was stored before it,
+            # or a legitimate retry would be rejected as `idempotency_conflict`
+            # purely because this field was introduced.
+            if seed.ensemble is not None:
+                payload["ensemble"] = seed.ensemble
+            return payload
+
         request_payload = {
             "as_of_date": as_of_date.isoformat(),
             "snapshot_id": snapshot_id,
             "data_age_days": data_age_days,
             "provenance": provenance,
             "slots": [
-                {
-                    "horizon_days": seed.horizon_days,
-                    "status": seed.status,
-                    "reason_code": seed.reason_code,
-                    "alert": seed.alert,
-                    "score": seed.score,
-                    "score_kind": seed.score_kind,
-                    "display_probability": seed.display_probability,
-                    "probability_status": seed.probability_status,
-                    "probability_reason_code": seed.probability_reason_code,
-                    "decision_threshold": seed.decision_threshold,
-                    "event_threshold": seed.event_threshold,
-                    "model_reference": seed.model_reference,
-                }
-                for seed in sorted(slots, key=lambda seed: seed.horizon_days)
+                _slot_payload(seed) for seed in sorted(slots, key=lambda seed: seed.horizon_days)
             ],
             "contract_version": contract_version,
         }
@@ -348,6 +370,7 @@ class OperationalRepository:
                         "decision_threshold": seed.decision_threshold,
                         "event_threshold": seed.event_threshold,
                         "model_reference": seed.model_reference,
+                        "ensemble": seed.ensemble,
                         "review": {"status": "pending", "revision": 0, "latest_review": None},
                     }
                     document["forecasts"][forecast_id] = forecast_record
@@ -614,6 +637,7 @@ class OperationalRepository:
             "decision_threshold": forecast["decision_threshold"],
             "event_threshold": forecast["event_threshold"],
             "model_reference": forecast["model_reference"],
+            "ensemble": forecast.get("ensemble"),
             "review": {
                 "status": review_state["status"],
                 "revision": review_state["revision"],
@@ -747,6 +771,16 @@ def _training_eligibility(
     recalibración real permanece fuera de alcance en esta entrega, por lo
     que `applied` nunca se alcanza aquí: solo la recalibración futura
     puede escribir `applied_review_references`.
+
+    Nota (integración de ensamble): en modo ensamble, `model_reference`
+    persiste `calibration_version=None` deliberadamente (no hay una única
+    versión de calibración cuando hay 3 calibradores distintos; el detalle
+    real vive en `ensemble.components[i].model_reference.calibration_version`,
+    sin perderse). Esto significa que una corrección madura (`reject`, target
+    ya vencido) sobre un forecast en modo ensamble cae siempre en
+    `incompatible_source_model` más abajo — es la consecuencia esperada y
+    documentada de esta decisión, no un defecto. No se introduce ningún
+    mecanismo de recalibración del ensamble para evitar este estado.
     """
     latest_review = review_state.get("latest_review")
     if latest_review is None:

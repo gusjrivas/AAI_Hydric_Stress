@@ -159,6 +159,89 @@ class ModelReference(StrictModel):
     trained_through: date | None
     calibration_version: str | None
     assessment_reference: str | None
+    calibrated_through: date | None = None
+
+
+AgreementCategory = Literal[
+    "alerta_por_unanimidad",
+    "posible_alerta_acuerdo_parcial",
+    "sin_alerta_por_mayoria_con_discrepancia",
+    "sin_alerta_por_unanimidad",
+]
+
+
+EnsembleFamily = Literal[
+    "logistic_regression", "random_forest", "hist_gradient_boosting_classifier"
+]
+_ENSEMBLE_FAMILIES = ("logistic_regression", "random_forest", "hist_gradient_boosting_classifier")
+_ENSEMBLE_AGREEMENT_V1_WEIGHT = 1.0 / 3.0
+
+
+class EnsembleComponentVote(StrictModel):
+    family: EnsembleFamily
+    model_reference: ModelReference
+    calibrated_through: date
+    score: float = Field(ge=0.0, le=1.0)
+    decision_threshold: float = Field(ge=0.0, le=1.0)
+    alert: bool
+
+
+class EnsembleDetail(StrictModel):
+    policy_version: str
+    ensemble_identity_sha256: str
+    weights: dict[EnsembleFamily, float]
+    components: list[EnsembleComponentVote] = Field(min_length=3, max_length=3)
+    combined_probability: float = Field(ge=0.0, le=1.0)
+    combined_alert: bool
+    positive_votes: int
+    agreement_category: AgreementCategory
+    calibrated_through: date
+
+    @model_validator(mode="after")
+    def validate_coherence(self):
+        families = [component.family for component in self.components]
+        if sorted(set(families)) != sorted(_ENSEMBLE_FAMILIES) or len(families) != 3:
+            raise ValueError("components debe tener exactamente las 3 familias, sin duplicados.")
+
+        if self.policy_version == "ensemble_agreement_v1":
+            if set(self.weights) != set(_ENSEMBLE_FAMILIES):
+                raise ValueError("weights debe declarar exactamente las 3 familias.")
+            if any(
+                abs(value - _ENSEMBLE_AGREEMENT_V1_WEIGHT) > 1e-9 for value in self.weights.values()
+            ):
+                raise ValueError("weights debe ser 1/3 uniforme para ensemble_agreement_v1.")
+
+        expected_votes = sum(1 for component in self.components if component.alert)
+        if expected_votes != self.positive_votes:
+            raise ValueError("positive_votes no coincide con los votos individuales de components.")
+        expected_category = {
+            3: "alerta_por_unanimidad",
+            2: "posible_alerta_acuerdo_parcial",
+            1: "sin_alerta_por_mayoria_con_discrepancia",
+            0: "sin_alerta_por_unanimidad",
+        }[self.positive_votes]
+        if expected_category != self.agreement_category:
+            raise ValueError("agreement_category no coincide con positive_votes.")
+        expected_probability = sum(component.score for component in self.components) / 3
+        if abs(expected_probability - self.combined_probability) > 1e-9:
+            raise ValueError("combined_probability no coincide con el promedio de components.")
+
+        thresholds = {component.decision_threshold for component in self.components}
+        if len(thresholds) != 1:
+            raise ValueError(
+                "decision_threshold debe ser igual entre los componentes del ensamble."
+            )
+        threshold = thresholds.pop()
+        for component in self.components:
+            if component.alert != (component.score >= threshold):
+                raise ValueError(
+                    f"alert de {component.family} no coincide con score >= decision_threshold."
+                )
+        if self.combined_alert != (self.combined_probability >= threshold):
+            raise ValueError(
+                "combined_alert no coincide con combined_probability >= decision_threshold."
+            )
+        return self
 
 
 class LatestReview(StrictModel):
@@ -208,7 +291,9 @@ class ForecastResponse(StrictModel):
     snapshot_id: str
     alert: bool
     score: float
-    score_kind: Literal["raw_model_score", "calibrated_probability"]
+    score_kind: Literal[
+        "raw_model_score", "calibrated_probability", "ensemble_mean_of_calibrated_components"
+    ]
     display_probability: float | None
     probability_status: Literal["development_assessed", "not_qualified"]
     probability_reason_code: str | None
@@ -216,6 +301,7 @@ class ForecastResponse(StrictModel):
     event_threshold: EventThreshold
     model_reference: ModelReference
     review: ForecastReview
+    ensemble: EnsembleDetail | None = None
 
 
 class ForecastListResponse(StrictModel):
