@@ -87,13 +87,28 @@ export function HistoricalWalkthrough({ sensorId }: { sensorId: string }) {
     );
   }, [sensorId, effectiveReveal]);
 
+  // Generación del contexto vigente en este render: sensor, emisión y
+  // reloj efectivo del recorrido, resumidos en el mismo contador que ya
+  // invalida el lote (`batchSeq`) -- se incrementa ante cualquier cambio
+  // de esos tres valores, incluida la selección vacía. Capturarlo aquí
+  // (no adentro de `reviewed`) fija el valor vigente en el momento en que
+  // se crean `reviewed`/`submitReviewFn`/`refetchFn` para las tarjetas
+  // que se están mostrando ahora; si el usuario cambia de contexto
+  // (incluso conservando la misma emisión, solo con otro reloj de
+  // recorrido) antes de que una operación en curso resuelva, `batchSeq`
+  // ya avanzó y esta generación queda obsoleta. Comparar únicamente
+  // `forecast_id` no alcanza: una respuesta tardía sobre la *misma*
+  // emisión pero bajo un reloj anterior lleva un `reviewable` calculado
+  // para el reloj viejo, no para el vigente.
+  const renderGeneration = batchSeq.current;
+
   function reviewed(updated: Forecast) {
     setBatchState((current) => {
-      // El usuario ya navegó a otra selección desde que se emitió esta
-      // revisión: si el `forecast_id` ya no pertenece al lote vigente
-      // (por ejemplo, cambió la emisión seleccionada mientras el envío
-      // estaba en curso), no corresponde parchear nada, aunque la
-      // respuesta en sí sea válida para su propio pedido original.
+      // La generación que originó esta actualización ya no es la
+      // vigente: descartar el resultado de la pantalla, sin revertir lo
+      // que ya se persistió en el backend (esto solo decide qué se
+      // muestra, nunca deshace una escritura).
+      if (batchSeq.current !== renderGeneration) return current;
       if (current.status !== "ready") return current;
       const stillDisplayed = current.batch.slots.some(
         (slot) => slot.status === "available" && slot.forecast_id === updated.forecast_id,
