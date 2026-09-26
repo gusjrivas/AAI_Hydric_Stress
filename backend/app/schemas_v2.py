@@ -111,7 +111,7 @@ class ReadingRow(StrictModel):
     precipitation: float | None
     wind_speed: float | None
     et0: float | None
-    origin: Literal["real", "synthetic", "unknown"]
+    origin: Literal["real", "synthetic", "external_reanalysis", "unknown"]
     quality_flags: list[str]
 
 
@@ -142,7 +142,7 @@ class ReadingsResponse(StrictModel):
     input_roles: list[InputRole]
     last_reading_date: date | None
     data_age_days: int | None
-    provenance: Literal["real", "synthetic", "mixed", "unknown"]
+    provenance: Literal["real", "synthetic", "external_reanalysis", "mixed", "unknown"]
 
 
 class EventThreshold(StrictModel):
@@ -367,5 +367,5 @@ class ForecastBatchResponse(StrictModel):
     calendar_timezone: Literal["UTC"]
     server_today: date
     data_age_days: int | None
-    provenance: Literal["real", "synthetic", "mixed", "unknown"]
+    provenance: Literal["real", "synthetic", "external_reanalysis", "mixed", "unknown"]
     slots: list[AvailableForecastSlot | UnavailableForecastSlot] = Field(min_length=3, max_length=3)

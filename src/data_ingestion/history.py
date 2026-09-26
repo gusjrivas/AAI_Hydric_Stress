@@ -33,6 +33,16 @@ class HistoryError(Exception):
         self.details = details or {}
 
 
+# Raw `origen` value written by the Hito 2 ensemble demo (ERA5-Land +
+# NASA POWER, `experiment_runner.pergamino_ensemble_demo_runner`) -- real
+# external reanalysis data, never our own physical sensor ("real" would
+# claim exactly that) and never synthetic. A new, explicit category, not a
+# reclassification of either existing one; any other unrecognized value
+# still falls through to "unknown".
+EXTERNAL_REANALYSIS_RAW_VALUE = "external_reanalysis_era5_nasa_power"
+EXTERNAL_REANALYSIS_ORIGIN = "external_reanalysis"
+
+
 def _origin(value: Any) -> str:
     if pd.isna(value):
         return "unknown"
@@ -40,6 +50,8 @@ def _origin(value: Any) -> str:
         return "real"
     if value in {"sintetico", "synthetic"}:
         return "synthetic"
+    if value == EXTERNAL_REANALYSIS_RAW_VALUE:
+        return EXTERNAL_REANALYSIS_ORIGIN
     return "unknown"
 
 
