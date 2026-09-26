@@ -53,6 +53,35 @@ export interface ForecastReview {
   applied_review_references: string[];
 }
 
+export type EnsembleFamily = "logistic_regression" | "random_forest" | "hist_gradient_boosting_classifier";
+
+export type AgreementCategory =
+  | "alerta_por_unanimidad"
+  | "posible_alerta_acuerdo_parcial"
+  | "sin_alerta_por_mayoria_con_discrepancia"
+  | "sin_alerta_por_unanimidad";
+
+export interface EnsembleComponentVote {
+  family: EnsembleFamily;
+  model_reference: ModelReference;
+  calibrated_through: string;
+  score: number;
+  decision_threshold: number;
+  alert: boolean;
+}
+
+export interface EnsembleDetail {
+  policy_version: string;
+  ensemble_identity_sha256: string;
+  weights: Record<EnsembleFamily, number>;
+  components: EnsembleComponentVote[];
+  combined_probability: number;
+  combined_alert: boolean;
+  positive_votes: number;
+  agreement_category: AgreementCategory;
+  calibrated_through: string;
+}
+
 export interface Forecast {
   forecast_id: string;
   sensor_id: string;
@@ -65,7 +94,7 @@ export interface Forecast {
   snapshot_id: string;
   alert: boolean;
   score: number;
-  score_kind: "raw_model_score" | "calibrated_probability";
+  score_kind: "raw_model_score" | "calibrated_probability" | "ensemble_mean_of_calibrated_components";
   display_probability: number | null;
   probability_status: "development_assessed" | "not_qualified";
   probability_reason_code: string | null;
@@ -73,6 +102,35 @@ export interface Forecast {
   event_threshold: EventThreshold;
   model_reference: ModelReference;
   review: ForecastReview;
+  ensemble: EnsembleDetail | null;
+}
+
+const FAMILY_LABELS: Record<EnsembleFamily, string> = {
+  logistic_regression: "Regresión logística",
+  random_forest: "Bosque aleatorio",
+  hist_gradient_boosting_classifier: "Boosting de gradiente",
+};
+
+export function familyLabel(family: EnsembleFamily): string {
+  return FAMILY_LABELS[family];
+}
+
+/** El acuerdo es una dimensión distinta de la alerta combinada: cuántos de
+ * los 3 modelos individuales coinciden, nunca una confianza ni una encuesta
+ * que reemplace `combined_alert`. */
+const AGREEMENT_LABELS: Record<AgreementCategory, string> = {
+  alerta_por_unanimidad: "Los 3 modelos coinciden en la alerta",
+  posible_alerta_acuerdo_parcial: "2 de 3 modelos indican alerta",
+  sin_alerta_por_mayoria_con_discrepancia: "1 de 3 modelos indica alerta",
+  sin_alerta_por_unanimidad: "Los 3 modelos coinciden en que no hay alerta",
+}
+
+export function agreementLabel(ensemble: EnsembleDetail): string {
+  return AGREEMENT_LABELS[ensemble.agreement_category];
+}
+
+export function agreementVotesLabel(ensemble: EnsembleDetail): string {
+  return `${ensemble.positive_votes} de ${ensemble.components.length} modelos indican alerta`;
 }
 
 export interface ForecastListFilters {
@@ -289,6 +347,8 @@ export type ForecastSlot = (Forecast & { status: "available" }) | { horizon_days
 export interface ForecastBatch {
   batch_id: string | null; revision: number; as_of_date: string | null;
   data_age_days: number | null; server_today: string; slots: ForecastSlot[];
+  provenance: "real" | "synthetic" | "external_reanalysis" | "mixed" | "unknown";
+  calendar_timezone: "UTC";
 }
 export async function emitForecasts(sensorId: string, requestId: string): Promise<ForecastBatch> {
   const response = await fetch(forecastsPath(sensorId), {

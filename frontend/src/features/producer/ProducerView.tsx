@@ -2,14 +2,17 @@ import { useCallback, useState } from "react";
 import { SectorSensorPicker } from "./SectorSensorPicker";
 import { ProducerHistoryPanel } from "./ProducerHistoryPanel";
 import { EmissionPanel } from "./EmissionPanel";
-import { ForecastsSection } from "./ForecastsSection";
 import { ForecastReviewsProvider } from "./ForecastReviewsContext";
+import { ProducerTabs } from "./ProducerTabs";
+import type { ProducerTab } from "./ProducerTabs";
+import { ProducerHistoryScreen } from "./ProducerHistoryScreen";
+import { ProducerDataScreen } from "./ProducerDataScreen";
 import type { SensorSummary } from "./catalogApi";
 import "./ProducerView.css";
 
 export function ProducerView() {
-  const [forecastRefresh, setForecastRefresh] = useState(0);
   const [sensor, setSensor] = useState<SensorSummary | null>(null);
+  const [tab, setTab] = useState<ProducerTab>("cultivo");
   const handleSelect = useCallback((selected: SensorSummary | null) => setSensor(selected), []);
   return (
     <div className="producer-view">
@@ -32,12 +35,16 @@ export function ProducerView() {
           {sensor.source_kind === "unknown" && <span className="producer-sensor-tag">Procedencia sin declarar</span>}
         </div>}
       </div>
-      {sensor ? <ForecastReviewsProvider key={sensor.sensor_id}>
-        <EmissionPanel sensorId={sensor.sensor_id} onChanged={() => setForecastRefresh((value) => value + 1)} />
-        <div className="producer-section-label"><span>03 / TUS MEDICIONES</span><span>Lo que ya pasó</span></div>
-        <ProducerHistoryPanel sensorId={sensor.sensor_id} />
-        <ForecastsSection key={`${sensor.sensor_id}:${forecastRefresh}`} sensorId={sensor.sensor_id} />
-      </ForecastReviewsProvider> : <div className="producer-empty" role="status">
+      {sensor ? <>
+        <ProducerTabs active={tab} onSelect={setTab} />
+        {tab === "cultivo" && <ForecastReviewsProvider key={sensor.sensor_id}>
+          <EmissionPanel sensorId={sensor.sensor_id} onChanged={() => {}} />
+          <div className="producer-section-label"><span>03 / TUS MEDICIONES</span><span>Lo que ya pasó</span></div>
+          <ProducerHistoryPanel sensorId={sensor.sensor_id} />
+        </ForecastReviewsProvider>}
+        {tab === "historial" && <ProducerHistoryScreen sensorId={sensor.sensor_id} />}
+        {tab === "datos" && <ProducerDataScreen sensorId={sensor.sensor_id} />}
+      </> : <div className="producer-empty" role="status">
         <h3>Empezá por tu sector</h3>
         <p>Elegí un punto de medición para ver su historial y sus pronósticos.</p>
       </div>}

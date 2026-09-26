@@ -52,6 +52,7 @@ const forecast: Forecast = {
     training_eligibility: "no_review",
     applied_review_references: [],
   },
+  ensemble: null,
 };
 
 function jsonResponse(status: number, body: unknown) {

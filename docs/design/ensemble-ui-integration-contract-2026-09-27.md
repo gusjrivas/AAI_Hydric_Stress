@@ -1,6 +1,6 @@
 # Contrato disponible para la integración de UI del ensamble (Hito 2)
 
-**Estado:** documenta el contrato **realmente disponible y verificado** hasta esta fecha — no una propuesta de diseño de pantallas. No declara validación científica ni utilidad agronómica demostrada; ver limitaciones en la sección 9. **Revisión 2 (corrige la Revisión 1):** la Revisión 1 usaba la idempotencia de `POST .../forecasts` como si fuera el mecanismo de reproducción histórica — no lo es (una idempotencia de emisión no es un contexto de reproducción: no separa preparación de navegación, no desambigua por fecha de emisión frente a `POST`s futuros, y evalúa "reviewable" contra el reloj real). Esta revisión documenta las rutas de solo lectura `/historical/...` agregadas para resolver eso — ver sección 8 para lo que cambió exactamente.
+**Estado:** documenta el contrato **realmente disponible y verificado** hasta esta fecha, incluida la UI de productor ya implementada sobre él. No declara validación científica ni utilidad agronómica demostrada; ver limitaciones en la sección 9. **Revisión 2 (corrige la Revisión 1):** la Revisión 1 usaba la idempotencia de `POST .../forecasts` como si fuera el mecanismo de reproducción histórica — no lo es (una idempotencia de emisión no es un contexto de reproducción: no separa preparación de navegación, no desambigua por fecha de emisión frente a `POST`s futuros, y evalúa "reviewable" contra el reloj real). Esa revisión agregó las rutas de solo lectura `/historical/...` para resolver eso. **Revisión 3 (esta):** implementa la UI de productor del ensamble (pantallas Mi cultivo / Historial / Datos, sin Ajustes) sobre esas rutas, y agrega un parámetro `revealed_through` a `GET .../historical/{as_of_date}/forecasts` para que la UI pueda separar la emisión seleccionada del punto hasta el que avanzó el recorrido sin simular esa elegibilidad del lado del cliente — ver sección 8b.
 
 ## 0. Origen
 
@@ -32,7 +32,7 @@ Todas bajo el prefijo `/api/v2` (`backend/app/routers/producer_v2.py`).
 | Ruta | Método | Uso previsto en UI |
 | --- | --- | --- |
 | `/sensors/{sensor_id}/historical/{as_of_date}/readings?days=N` | GET | Observaciones reveladas exactamente hasta `as_of_date` — nunca un `end` distinto; nunca dispara inferencia. |
-| `/sensors/{sensor_id}/historical/{as_of_date}/forecasts` | GET | Búsqueda **inequívoca por fecha de emisión** (nunca `target_date`, nunca "la más reciente"). `404 batch_not_prepared` si esa fecha nunca se emitió — nunca infiere. |
+| `/sensors/{sensor_id}/historical/{as_of_date}/forecasts?revealed_through=<date>` | GET | Búsqueda **inequívoca por fecha de emisión** (nunca `target_date`, nunca "la más reciente"). `404 batch_not_prepared` si esa fecha nunca se emitió — nunca infiere. `revealed_through` (opcional, ≥ `as_of_date`; si no, `422 invalid_reveal_window`) avanza solo el reloj usado para `review.reviewable`/`review_open_at`, sin cambiar qué emisión se seleccionó. |
 | `/sensors/{sensor_id}/historical/{as_of_date}/forecasts/{forecast_id}/reviews` | POST | Feedback gateado por el **reloj simulado** (`as_of_date`, fin de ese día), nunca por el reloj real. Rechaza (`404 forecast_not_visible_at_this_historical_date`) revisar una emisión posterior a `as_of_date`. |
 
 Campos relevantes de `ForecastResponse`/`AvailableForecastSlot` que la UI debe consumir sin reinterpretar:
@@ -100,12 +100,41 @@ Sin cambios: Python 3.13.14, `scikit-learn 1.9.0`, `pandas 2.3.3`, `numpy 2.5.1`
 4. Aislamiento del feedback histórico verificado estructuralmente (directorio explícito, no auto-descubierto), no solo por el comentario "prueba técnica".
 5. Revelación hasta 2023-06-20 verificada, contrastando el objetivo +3 del 2023-06-17 contra una observación ya existente, sin generar predicciones nuevas.
 
+## 8b. UI de productor del ensamble (Revisión 3)
+
+Implementada sobre la fachada v2 existente, dentro de `frontend/src/features/producer/`, como pestañas internas de la
+pantalla "Mi cultivo" (`ProducerTabs`) — nunca como rutas nuevas del `App.tsx` general, que sigue sirviendo el flujo
+de un solo modelo (`prediccion`/`calidad`/`linaje`) sin cambios:
+
+- **Mi cultivo** (`ProducerView` + `EmissionPanel`): consulta automática (idempotente, sin repetir inferencia) al
+  entrar; procedencia (`provenance`); 3 tarjetas de horizonte con `combined_alert` y acuerdo entre modelos
+  (`ForecastCard`, sección de acuerdo nueva); mensaje "No hay información suficiente..." cuando los 3 horizontes
+  están indisponibles; gráfico y tabla de mediciones (`ProducerHistoryPanel`, sin cambios).
+- **Historial** (`ProducerHistoryScreen`): lista persistida de emisiones con sus 3 horizontes y revisión
+  (`ForecastsSection`, sin cambios) más `HistoricalWalkthrough`, que separa explícitamente la **emisión
+  seleccionada** (`as_of_date`, vía `/historical/{as_of_date}/forecasts`) del **recorrido avanzado hasta**
+  (`revealed_through`, vía el mismo parámetro nuevo y vía `/historical/{revealed_through}/readings`), con revisión
+  histórica (`submitHistoricalReview`) gateada por ese reloj del recorrido y no por el de la emisión. Descarta
+  respuestas obsoletas por número de secuencia (no solo por clave), cubriendo A→B→A.
+- **Datos** (`ProducerDataScreen`): variables, unidad, procedencia, cobertura por variable (`variable_coverage`) y
+  anomalías por día (`quality_flags`) tal como las emite el backend — nunca se inventa una anomalía sin ese respaldo,
+  y un hueco nunca se muestra como cero.
+- **Sin pestaña "Ajustes":** este ensamble no tiene una capacidad real de ajustar los próximos pronósticos a partir
+  de observaciones. La capacidad existente de ese tipo (`RecalibrationPanel`, ruta `linaje`) pertenece al flujo de un
+  solo modelo y se conserva sin cambios en su propia ruta, sin exponerse en la navegación del productor del ensamble.
+
+Pruebas dirigidas nuevas (frontend, `vitest`): agregado del campo `ensemble` y su presentación separada de la alerta
+combinada; `revealed_through` reenviado como parámetro propio; descarte de respuestas obsoletas en A→B→A por
+secuencia; revisión histórica dirigida al reloj del recorrido, no al de la emisión; anomalías mostradas solo cuando
+`quality_flags` las respalda. Backend: 2 pruebas dirigidas nuevas para `revealed_through`
+(`test_pergamino_ensemble_historical_reproduction.py`), además de las 7 ya existentes.
+
 **Pendiente (fuera de alcance de esta revisión, no implementado):**
 
-- Pantallas de UI (explícitamente fuera de alcance de todo este trabajo hasta ahora).
-- Un mecanismo de "recorrido continuo" que muestre 2023 completo — solo la ventana 2023-06-13..17 (+ el punto 2023-06-15) está preparada.
+- Un mecanismo de "recorrido continuo" que muestre 2023 completo — solo la ventana 2023-06-13..17 (+ el punto 2023-06-15) está preparada; la UI depende de que el productor conozca esas fechas (errores `batch_not_prepared` para el resto).
 - Cualquier extensión de `historical_replay/replay_packages/` — deliberadamente descartada, no un pendiente a resolver ahí.
 - Autenticación/autorización de quién puede navegar el contexto histórico — las rutas `/historical/...` heredan únicamente el gate `PRODUCER_V2_ENABLED` existente, sin un control de acceso propio adicional.
+- Revisión visual real en navegador (escritorio y móvil): no se realizó en esta revisión por no contar con un navegador disponible en el entorno de ejecución. Verificado en su lugar mediante pruebas de componente (`vitest`) y build de producción (`tsc` + `vite build`); no debe interpretarse como una revisión visual ni una integración end-to-end reales.
 
 ## 9. Limitaciones — no declarar
 

@@ -283,3 +283,58 @@ def test_reveal_through_2023_06_20_lets_the_06_17_horizon_3_target_be_contrasted
     assert event["comparison"] == "lt"
     observed_stress = observed_value < event["value"]
     assert isinstance(observed_stress, bool)
+
+
+def test_revealed_through_walks_the_reviewable_clock_past_the_emission_date(
+    client, bundle_root
+):
+    """UI necesita separar la emisión seleccionada (as_of_date) del punto
+    del recorrido hasta el que se avanzó (revealed_through): la elegibilidad
+    de revisión debe reflejar el reloj del recorrido, no la fecha de
+    emisión, sin que el backend simule nada del lado del cliente."""
+    http, tmp_path = client
+    _, frame = bundle_root
+    body = _prepare_day(http, tmp_path, frame, DAY_A)
+    slot1 = next(s for s in body["slots"] if s["horizon_days"] == 1)
+    target_date = date.fromisoformat(slot1["target_date"])
+    assert target_date == DAY_A + timedelta(days=1) == DAY_B
+
+    # Sin revealed_through: el reloj es el de la propia emisión (DAY_A),
+    # anterior al target_date -- todavía no reviewable.
+    at_emission = http.get(
+        f"/api/v2/sensors/{SENSOR_ID}/historical/{DAY_A.isoformat()}/forecasts"
+    )
+    assert at_emission.status_code == 200
+    slot_at_emission = next(
+        s for s in at_emission.json()["slots"] if s["horizon_days"] == 1
+    )
+    assert slot_at_emission["review"]["reviewable"] is False
+    assert slot_at_emission["review"]["blocked_reason"] == "review_not_open"
+
+    # Con revealed_through == target_date: el reloj del recorrido ya
+    # alcanzó el target_date -- reviewable, sin cambiar qué emisión se
+    # seleccionó (sigue siendo la de DAY_A).
+    walked_forward = http.get(
+        f"/api/v2/sensors/{SENSOR_ID}/historical/{DAY_A.isoformat()}/forecasts",
+        params={"revealed_through": target_date.isoformat()},
+    )
+    assert walked_forward.status_code == 200
+    slot_walked = next(
+        s for s in walked_forward.json()["slots"] if s["horizon_days"] == 1
+    )
+    assert slot_walked["review"]["reviewable"] is True
+    assert slot_walked["review"]["blocked_reason"] is None
+    assert slot_walked["forecast_id"] == slot_at_emission["forecast_id"]
+
+
+def test_revealed_through_before_the_emission_date_is_rejected(client, bundle_root):
+    http, tmp_path = client
+    _, frame = bundle_root
+    _prepare_day(http, tmp_path, frame, DAY_B)
+
+    response = http.get(
+        f"/api/v2/sensors/{SENSOR_ID}/historical/{DAY_B.isoformat()}/forecasts",
+        params={"revealed_through": DAY_A.isoformat()},
+    )
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "invalid_reveal_window"

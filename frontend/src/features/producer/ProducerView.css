@@ -50,3 +50,12 @@
 .app-producer .producer-tools nav a { border-radius: 999px; }
 .producer-future-disclosure { padding: 16px 0; }
 .producer-future-disclosure > summary { cursor: pointer; min-height: 44px; font-weight: 650; color: #456651; }
+.producer-tabs-list { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.producer-tab { min-height: 44px; border: 1px solid #c8dacf; border-radius: 999px; padding: 8px 20px; background: #fff; color: #174d38; font: inherit; font-weight: 650; cursor: pointer; }
+.producer-tab[aria-current="page"] { background: #176449; border-color: #176449; color: #fff; }
+.producer-provenance { display: inline-flex; padding: 5px 12px; background: #eff6ed; color: #24583e; border-radius: 999px; font-size: .82rem; font-weight: 650; margin-bottom: 10px; }
+.producer-insufficient-data { margin-top: 10px; }
+.forecast-card-agreement { margin: 10px 0; padding: 10px 12px; background: #f5f8f1; border-radius: 12px; font-size: .9rem; }
+.forecast-card-agreement summary { cursor: pointer; font-size: .85rem; color: #456651; }
+.forecast-card-historical-notice { font-size: .8rem; color: #55705d; margin-top: 8px; }
+@media (max-width: 640px) { .producer-tabs-list { flex-direction: column; } .producer-tab { width: 100%; text-align: center; } }

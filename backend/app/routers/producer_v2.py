@@ -460,15 +460,32 @@ def get_historical_readings(
 def get_historical_forecasts(
     sensor_id: str,
     as_of_date: date,
+    revealed_through: date | None = Query(default=None),
     operational_repository: OperationalRepository = Depends(get_operational_repository),
 ) -> ForecastBatchResponse:
     """Deterministic lookup by emission date, never by `target_date`, never
     a POST. `A -> B -> A` navigation returns byte-identical results for
     `A` regardless of what was emitted for `B` in between (the lookup key
-    depends only on `as_of_date`, never on emission order or count)."""
-    batch = operational_repository.get_batch_by_as_of_date(
-        as_of_date, now=_historical_now(as_of_date)
-    )
+    depends only on `as_of_date`, never on emission order or count).
+
+    `revealed_through` lets the caller walk the simulated clock forward
+    past the emission's own `as_of_date` -- e.g. to contrast an emission's
+    +3 target against an observation revealed on a later date -- without
+    changing which batch is selected. It only changes the clock used to
+    render `review.reviewable`/`review_open_at`/`blocked_reason`, so those
+    fields reflect the walked-forward "recorrido", never the emission
+    date, matching the same clock the reviews route will actually enforce
+    when the caller submits at that later date. It must never be earlier
+    than `as_of_date`: reviewability can never be computed against a point
+    in time before the emission being displayed even existed."""
+    if revealed_through is not None and revealed_through < as_of_date:
+        raise OperationalRepositoryError(
+            "invalid_reveal_window",
+            "La fecha de recorrido no puede ser anterior a la fecha de emisión.",
+            422,
+        )
+    now = _historical_now(revealed_through if revealed_through is not None else as_of_date)
+    batch = operational_repository.get_batch_by_as_of_date(as_of_date, now=now)
     if batch is None:
         raise OperationalRepositoryError(
             "batch_not_prepared",

@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProducerView } from "./ProducerView";
 import * as catalogApi from "./catalogApi";
@@ -54,6 +55,7 @@ describe("ProducerView", () => {
     render(<ProducerView />);
 
     expect(await screen.findByText("Datos simulados")).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "Historial" }));
     expect(await screen.findByText(/todavía no hay pronósticos disponibles/i)).toBeInTheDocument();
     expect(screen.getByText(/no tenés pronósticos pendientes de revisar/i)).toBeInTheDocument();
   });
