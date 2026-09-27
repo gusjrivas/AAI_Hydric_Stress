@@ -40,4 +40,22 @@ confirmación y conserve íntegros los registros históricos superseded.
 
 - **GIVEN** review v2, review histórico, recalibración legacy/HU5 y complemento H
 - **WHEN** se explica el feedback en la defensa
-- **THEN** se declara que los reviews registran una opinión sobre `combined_alert` sin modificar los nueve bundles ni recalibrar, que `/recalibrate/{sensor_id}` es un circuito manual separado de un solo modelo, y que H es una simulación sin evidencia de beneficio humano
+- **THEN** se declara que los reviews registran una opinión sobre `combined_alert` sin modificar los nueve bundles ni recalibrar, que `/recalibrate/{sensor_id}` es un circuito manual separado de un solo modelo, y que H comprende una pista simulada con correcciones/recalibración y efectos mixtos y una pista humana controlada con 20 aceptaciones, cero correcciones, `NO_RECALIBRATION` y detección 0/4 limitada al ejercicio, sin atribución de beneficio humano
+
+#### Scenario: Exclusión temprana del período 2024–2025
+
+- **GIVEN** que el runner demostrativo carga transitoriamente los CSV completos
+- **WHEN** se describe su frontera temporal
+- **THEN** se declara que 2024–2025 se excluye antes de agregación, cálculo del umbral, features y targets y no se usa para entrenamiento, calibración ni demo, distinguiendo esa garantía de no reabrir la evaluación del holdout custodiado
+
+#### Scenario: Estados de elegibilidad del review
+
+- **GIVEN** un review operativo v2 del ensamble
+- **WHEN** se describe `training_eligibility`
+- **THEN** `incompatible_source_model` se limita a correcciones `reject` maduras; las confirmaciones maduras son `confirmation_only`; y los demás estados dependen de la existencia y madurez de la revisión
+
+#### Scenario: REVIEW-3 no ejecutada
+
+- **GIVEN** la ausencia de la pasada separada REVIEW-3 documentada por OBS-03
+- **WHEN** se reconcilia `sc-06/tasks.md`
+- **THEN** se registra como no ejecutada y documentada, sin atribuir su aceptación administrativa a GD-40, completarla retrospectivamente ni crear una tarea experimental nueva

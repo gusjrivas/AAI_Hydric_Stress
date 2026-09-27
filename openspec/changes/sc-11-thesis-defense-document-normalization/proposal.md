@@ -76,7 +76,16 @@ protocolos v3/v4, evidencia científica, ledgers, resultados y `.codebase-memory
   probabilidades con umbral 0,5; votos/categoría son metadata, mayoría queda
   pendiente y `display_probability` no está calificada.
 - Distingue el registro de review v2/histórico, que no modifica bundles ni
-  recalibra, del endpoint legacy/HU5 manual de un solo modelo y de H simulado.
+  recalibra, del endpoint legacy/HU5 manual de un solo modelo y de las dos
+  pistas de H: simulada y humana controlada, con sus límites propios.
+- Precisa que GD-40 no acepta administrativamente la ausencia de REVIEW-3:
+  esa pasada no se ejecutó y permanece documentada por OBS-03, sin completarla
+  retrospectivamente ni crear una tarea experimental nueva.
+- Precisa la carga transitoria y exclusión temprana de 2024–2025 en el runner
+  demostrativo, y separa esa garantía de no reabrir el holdout custodiado.
+- Limita `incompatible_source_model` a correcciones `reject` maduras del
+  ensamble; las confirmaciones maduras son `confirmation_only` y los restantes
+  estados dependen de madurez y existencia de revisión.
 
 ## Validation
 

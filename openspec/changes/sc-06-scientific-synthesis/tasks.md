@@ -6,10 +6,11 @@ administrativamente con no conformidad declarada, no con `PASS`
 científica: ningún PASS estructural equivale a cierre científico.
 
 **Normalización 2026-09-26.** No quedan tareas experimentales ni rondas de
-reintento pendientes en este change. T25 se ejecutó y terminó en `FAIL`. T08 y
-REVIEW-3 permanecen sin marcar como registro de no conformidades
-cerradas/aceptadas administrativamente por GD-40; no son una habilitación para
-repetir auditorías, A/B/C/H ni reabrir el holdout.
+reintento pendientes en este change. T25 se ejecutó y terminó en `FAIL`. T08
+permanece sin marcar por el incumplimiento histórico tratado en GD-38/GD-40.
+REVIEW-3 no se ejecutó y está documentada por OBS-03; GD-40 no registra su
+aceptación administrativa. Ninguna de las dos ausencias habilita repetir
+auditorías, A/B/C/H ni reabrir el holdout.
 
 **Corrección 2026-09-22 (hallazgo material M-02 de la auditoría Codex RB-05,
 `openspec/scientific-closure/rb05-audit-preparation-2026-09-22/reviews/review-audit-codex-round1-FAIL.md`):**
@@ -28,7 +29,7 @@ indirectamente vía `operations.md`.
 - [x] T25 (SC-GOV-025) Cierre científico. Comprobar: Auditoría final independiente requisito por requisito y evaluación de suficiencia científica sobre el alcance aprobado. Evidencia: scientific-closure-audit.json. **Completada con veredicto `FAIL`, 2026-09-22.** La auditoría requisito por requisito sobre los 25 SC-GOV corrió sobre el dossier RB-05 (`88ced62`) y terminó en `FAIL` (M-01..M-04, `openspec/changes/sc-06-scientific-synthesis/reviews/review-audit-rb05-codex-FAIL.md`). El hallazgo M-01 fue confirmado, declarado incumplimiento histórico no reparable documentalmente (`decisions.md` GD-38) y aceptado administrativamente por el responsable como desviación permanente (`decisions.md` GD-40). Marcada `[x]` porque la tarea —ejecutar la auditoría y registrar su veredicto— **se hizo**; el veredicto es negativo, no está pendiente
 - [x] REVIEW-1 Explorador reúne evidencia antes de implementar; registrar snapshot.
 - [x] REVIEW-2 Implementador acotado ejecuta checks y conserva evidencia.
-- [ ] REVIEW-3 evidence_checker contrasta integridad y formatos, sin juicio científico. **No conformidad cerrada/registrada:** no corrió como pasada separada; declarado en `session-identity.json` (OBS-03 del auditor). La ausencia no se completa retrospectivamente ni habilita repetir la campaña
+- [ ] REVIEW-3 evidence_checker contrasta integridad y formatos, sin juicio científico. **No ejecutada y documentada:** no corrió como pasada separada; consta en OBS-03 de `reviews/review-audit-reconciliation.md`. GD-40 no acepta administrativamente esta ausencia. No se completa retrospectivamente ni habilita repetir la campaña o crear una tarea experimental nueva
 - [x] REVIEW-4 scientific_critic intenta refutar cada criterio; corregir hallazgos y repetir. Corrió sobre el dossier RB-05 (no sobre la síntesis completa de `sc-06`): un hallazgo material (M-01 de esa ronda, cita mal atribuida), corregido el 2026-09-22. Ver `rb05-audit-preparation-2026-09-22/rb05-dossier.md` §2
 - [x] REVIEW-5 scientific_auditor independiente emite PASS/FAIL/BLOCKED sobre snapshot. Corrió dos veces: (a) `PASS` sobre el alcance de seis ítems de la reconciliación (`reviews/review-audit-reconciliation.md`); (b) `FAIL` sobre los 25 requisitos, snapshot `88ced62` (`rb05-audit-preparation-2026-09-22/reviews/review-audit-codex-round1-FAIL.md`). La (b) es la auditoría que T25 exige y su veredicto es `FAIL`, no `PASS`
 - [x] CLOSE Registrar SHA, evidencia, alcance y checkpoint. **Cerrado administrativamente con no conformidad declarada, 2026-09-22 (`decisions.md` GD-40), no con `PASS`.** El texto original de esta tarea («Solo con PASS... ») describe el cierre confirmatorio, que **no se alcanzó**; el cierre que sí ocurrió es distinto y se registra como tal: `change` en `FAIL`, `SC-GOV-025` y `GF` en `FAIL`, B y C reclasificados como evidencia retrospectiva exploratoria. No hay tareas experimentales pendientes dentro de esta campaña — una confirmación futura es una campaña nueva sobre datos no utilizados, no una reparación de ésta

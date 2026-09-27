@@ -15,8 +15,10 @@ los resultados favorables como los negativos y las desviaciones metodológicas.
   predeclarada de simplicidad cuando no apareció un ganador estable.
 - Evaluación en una segunda fuente agroclimática y análisis de episodios,
   calibración, falsos avisos y deriva de prevalencia.
-- Mecanismo HITL implementado y ensayado con correcciones simuladas, sin atribuir
-  causalmente una mejora al feedback humano.
+- Complemento H ejecutado en dos pistas: una simulada, con correcciones,
+  recalibración y efectos mixtos, y otra humana controlada, limitada a veinte
+  aceptaciones sin correcciones ni recalibración; ninguna acredita beneficio
+  humano.
 - Gobernanza que documenta limitaciones y una no conformidad en vez de ocultarla.
 
 ## Resultados que sí pueden presentarse
@@ -25,8 +27,10 @@ los resultados favorables como los negativos y las desviaciones metodológicas.
   predeclarado, no por superioridad.
 - B mostró no inferioridad frente a persistencia y C produjo una diferencia
   favorable en MCC, ambos como evidencia retrospectiva exploratoria.
-- H verificó el mecanismo técnico de corrección/recalibración con efectos de
-  signo mixto y sin demostrar beneficio humano.
+- La pista simulada de H verificó corrección/recalibración con efectos de signo
+  mixto. La pista humana controlada terminó en `NO_RECALIBRATION`: veinte
+  aceptaciones, cero correcciones y detección 0/4 de los errores determinables,
+  limitada a ese ejercicio y sin demostrar beneficio humano.
 - Los resultados numéricos son reales y fueron recomputados; la secuencia de
   auditoría entre gates no satisfizo el protocolo predeclarado.
 
@@ -35,8 +39,8 @@ los resultados favorables como los negativos y las desviaciones metodológicas.
 | Carril | Qué existe | Qué puede afirmarse | Límite obligatorio | Fuentes primarias |
 | --- | --- | --- | --- | --- |
 | **Melchor Romero — `controlled_daily_v3`** | Evidencia formal histórica sobre ocho configuraciones y cinco semillas, con horizonte t+3, dataset `melchor_romero_2024_consolidado` y resultados preservados | Permite describir el comportamiento comparativo histórico dentro de ese diseño: por ejemplo, `recent_fraction_0.5` tuvo las mayores medias de F1/MCC/AP de la tabla formal; sintéticos y anomalías tuvieron aportes mixtos | No es evidencia v4, no se extrapola a Pergamino y debe declararse la imputación causal de huecos de humedad. No prueba detección de anomalías reales, robustez general ni superioridad universal | `docs/research/reference-v3-formal-table.md`; `docs/research/reference-v3-formal-results.json`; `docs/research/hu8-resultados-discusion-conclusiones.md` §8 |
-| **Pergamino — `controlled_daily_v4` A/B/C/H** | A terminó en `SIN_GANADOR_ESTABLE`; B observó no inferioridad; C produjo una diferencia favorable en MCC; H ensayó correcciones supervisadas simuladas | Los valores numéricos se conservan y pueden presentarse con soporte, calibración, falsos avisos y demás limitaciones | B y C son evidencia retrospectiva exploratoria, no confirmatoria; H no demuestra beneficio humano; `GF` y `SC-GOV-025` terminaron en `FAIL` | `docs/research/scientific-closure-synthesis-2026-09-22.md`; `openspec/scientific-closure/traceability.md`; GD-38/GD-40 |
-| **Ensamble demostrativo de Pergamino** | Refit técnico propio de tres familias para +1/+2/+3: nueve modelos y nueve calibradores, tres manifests y verificación HTTP real | Demuestra que el contrato operativo del ensamble puede empaquetarse, cargarse e inferir en los tres horizontes con los datos permitidos de Pergamino | Tiene identidad, ventanas, calibración y contrato de features propios. No reutiliza artefactos ajustados de v4, no reejecuta A/B/C, no abre 2024–2025 y no aporta evidencia confirmatoria | `docs/design/ensemble-real-execution-report-2026-09-26.md` §§6–9; `src/experiment_runner/pergamino_ensemble_demo_runner.py:1-38,339-475` |
+| **Pergamino — `controlled_daily_v4` A/B/C/H** | A terminó en `SIN_GANADOR_ESTABLE`; B observó no inferioridad; C produjo una diferencia favorable en MCC; H tuvo una pista simulada y otra humana controlada | Los valores numéricos se conservan y pueden presentarse con soporte, calibración, falsos avisos y demás limitaciones. En H, la pista simulada produjo correcciones y recalibración con efectos mixtos; la humana registró 20 aceptaciones, cero correcciones, `NO_RECALIBRATION` y detección 0/4 de errores determinables | B y C son evidencia retrospectiva exploratoria, no confirmatoria; el 0/4 humano se limita a ese ejercicio, no acredita beneficio humano ni se generaliza; `GF` y `SC-GOV-025` terminaron en `FAIL` | `docs/research/scientific-closure-synthesis-2026-09-22.md` §6; `openspec/scientific-closure/traceability.md`; GD-38/GD-40 |
+| **Ensamble demostrativo de Pergamino** | Refit técnico propio de tres familias para +1/+2/+3: nueve modelos y nueve calibradores, tres manifests y verificación HTTP real | Demuestra que el contrato operativo del ensamble puede empaquetarse, cargarse e inferir en los tres horizontes con los datos permitidos de Pergamino | Tiene identidad, ventanas, calibración y contrato de features propios. Los CSV completos se cargan transitoriamente; 2024–2025 se excluye antes de agregación, cálculo del umbral, features y targets, y no se usa para entrenamiento, calibración ni demo. Esta garantía del runner es distinta de no reabrir la evaluación del holdout custodiado. No reutiliza artefactos ajustados de v4, no reejecuta A/B/C y no aporta evidencia confirmatoria | `docs/design/ensemble-real-execution-report-2026-09-26.md` §§6–9; `src/experiment_runner/pergamino_ensemble_demo_runner.py:40-50,280-325,354-475` |
 
 La separación entre carriles es parte del argumento científico: que dos carriles
 usen Pergamino o compartan constructores de modelos no los convierte en la misma
@@ -72,14 +76,17 @@ no debe mostrarse ni narrarse como riesgo calibrado para el productor.
 
 | Circuito | Qué hace | Qué no hace | Fuente primaria |
 | --- | --- | --- | --- |
-| **Review API v2 del pronóstico** | `POST /api/v2/sensors/{sensor_id}/forecasts/{forecast_id}/reviews` registra `confirm`/`reject`, revisión y comentario. En modo ensamble, el `alert` superior está obligado a coincidir con `ensemble.combined_alert`; la opinión se refiere a esa decisión binaria | No cambia los nueve bundles ni recalibra automáticamente. El repositorio sólo escribe el evento; `training_eligibility` declara que `applied` no se alcanza allí y que el ensamble resulta `incompatible_source_model` porque no tiene una única `calibration_version` | `backend/app/routers/producer_v2.py:365-385`; `src/human_feedback/operational_repository.py:686-843`; `src/human_feedback/operational_repository.py:144-148` |
+| **Review API v2 del pronóstico** | `POST /api/v2/sensors/{sensor_id}/forecasts/{forecast_id}/reviews` registra `confirm`/`reject`, revisión y comentario. En modo ensamble, el `alert` superior está obligado a coincidir con `ensemble.combined_alert`; la opinión se refiere a esa decisión binaria | No cambia los nueve bundles ni recalibra automáticamente. Sin revisión corresponde `no_review`; antes de la madurez, `waiting_target_maturity`; y una revisión no madura exige `requires_mature_revalidation`. Ya madura, una confirmación es `confirmation_only`; sólo una corrección `reject` madura del ensamble resulta `incompatible_source_model` por carecer de una única `calibration_version`. `applied` no se alcanza en este repositorio | `backend/app/routers/producer_v2.py:365-385`; `src/human_feedback/operational_repository.py:144-148,798-843` |
 | **Review del recorrido histórico** | Registra una prueba técnica bajo reloj simulado y en un store separado del review operativo | No es opinión real de productor/experto, no modifica bundles y no dispara recalibración. Los tests verifican hashes idénticos antes/después y aislamiento entre ambos stores | `backend/app/routers/producer_v2.py:416-425,557-610`; `src/human_feedback/historical_review_store.py`; `backend/tests/test_pergamino_ensemble_historical_reproduction.py:208-243,392-437` |
 | **Recalibración legacy/HU5** | `POST /recalibrate/{sensor_id}` carga el log HU5, selecciona correcciones rechazadas maduras, refitea un predictor y registra un sucesor con linaje | Es un circuito manual de **un solo modelo**; no consume el review histórico del ensamble ni recalibra sus tres componentes/nueve bundles como conjunto | `backend/app/routers/recalibration.py:34-113`; `src/human_feedback/recalibration.py:51-125`; `openspec/specs/human-feedback/spec.md` |
 
-El complemento científico H es otra cosa: una simulación controlada de
-correcciones. Sirve para evaluar el mecanismo bajo su diseño predeclarado, pero
-no convierte ninguno de estos circuitos en evidencia de mejora causada por
-feedback humano real.
+El complemento científico H es otra cosa y tuvo dos pistas. La simulada evaluó
+correcciones y recalibración bajo el diseño predeclarado, con efectos mixtos. La
+humana controlada registró veinte aceptaciones, ninguna corrección,
+`NO_RECALIBRATION` y detección 0/4 de los errores determinables. Ese resultado
+queda limitado al ejercicio y no se atribuye como beneficio humano ni se
+generaliza; ninguna pista convierte estos circuitos en evidencia de mejora
+causada por feedback humano real.
 
 ## Limitación en una frase
 
@@ -121,8 +128,11 @@ confirmación.
 **¿Por qué no repetirlo desde otra rama?** Porque cambiar de rama no recupera
 cegamiento: el holdout ya fue observado. Una confirmación exigiría datos nuevos.
 
-**¿Qué aporta el HITL?** Acredita el circuito técnico y el efecto de correcciones
-simuladas; no demuestra mejora causada por una persona real.
+**¿Qué aporta el HITL?** La pista simulada acredita el mecanismo técnico de
+corrección/recalibración, con efectos mixtos. La pista humana controlada sólo
+acredita ese ejercicio: 20 aceptaciones, cero correcciones, `NO_RECALIBRATION` y
+0/4 errores determinables detectados. No demuestra beneficio humano ni permite
+generalizar la tasa observada.
 
 **¿La alerta del ensamble sale por mayoría?** No. Sale del promedio aritmético
 de tres probabilidades comparado con 0,5. Los votos y la categoría de acuerdo
