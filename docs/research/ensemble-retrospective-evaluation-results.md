@@ -3,8 +3,9 @@
 > **Evaluacion retrospectiva exploratoria, no independiente: 2023 ya fue
 > utilizado en analisis anteriores del proyecto.**
 
-Este informe interpreta la unica evaluacion completada de los nueve bundles
-demostrativos fijos. No repara campañas cerradas, no es confirmatorio y no
+Este informe interpreta la salida canonica de los nueve bundles demostrativos
+fijos y documenta una duplicacion tecnica involuntaria de la ejecucion. No
+repara campañas cerradas, no es confirmatorio y no
 acredita utilidad agronomica, ahorro de agua ni probabilidades operativas.
 
 ## Respuesta ejecutiva
@@ -46,27 +47,48 @@ criterio experto que esta evaluacion no aporta.
   `6525f639276d5f809a701336090c58cc9dce888bd49f092b97af792c90201fdf`.
 - Runtime de bundles:
   `C:\Repo\AAI_Hydric_Stress_ensemble_demo_runtime\pergamino-ensemble-demo-2026-09-26T034114Z`.
-- Salida completada:
-  `C:\Repo\AAI_Hydric_Stress_ensemble_retrospective_runtime\pergamino-ensemble-retrospective-2023-attempt2-20260927T063059Z`.
+- Salida canonica completada (primera por orden temporal):
+  `C:\Repo\AAI_Hydric_Stress_ensemble_retrospective_runtime\pergamino-ensemble-retrospective-2023-20260927T062026Z`.
 - Respaldo verificado:
-  `D:\AAI_Hydric_Stress_ensemble_retrospective_backup\pergamino-ensemble-retrospective-2023-attempt2-20260927T063059Z`.
-- Estado: `completado`; inicio `2026-09-27T06:31:17Z`, fin
-  `2026-09-27T06:33:49Z`; arbol Git limpio.
-- Integridad: 8/8 archivos iguales entre salida y respaldo; 0 diferencias.
-  Los hashes de los bundles antes/despues fueron identicos.
+  `D:\AAI_Hydric_Stress_ensemble_retrospective_backup\pergamino-ensemble-retrospective-2023-20260927T062026Z`.
+- Estado canonico: `completado`; inicio `2026-09-27T06:28:11Z`, fin
+  `2026-09-27T06:30:35Z`; arbol Git limpio.
+- Integridad: 8 archivos actuales iguales entre salida y respaldo; 0
+  diferencias. `backup_verification.json` enumera los 7 archivos que existian
+  antes de escribirse el propio comprobante. Los hashes de los bundles
+  antes/despues fueron identicos.
 - Entradas: hashes crudos coincidentes con el manifiesto; una sola pasada
   secuencial; valores 2024--2025 no fueron parseados ni agregados. Se
   conservaron 8904 filas ERA5 horarias y 371 filas NASA del intervalo
   2022-12-26..2023-12-31. El frame diario tuvo 371 dias, sin duplicados ni
   faltantes en las cuatro variables utilizadas.
 
-El primer intento, en
-`C:\Repo\AAI_Hydric_Stress_ensemble_retrospective_runtime\pergamino-ensemble-retrospective-2023-20260927T062026Z`,
-fue interrumpido externamente por el volumen de advertencias repetidas antes
-de producir metricas; conserva manifiesto `iniciado` y snapshots parciales.
-No se sobrescribio ni se uso para decisiones. El reintento mantuvo exactamente
-el mismo SHA, protocolo, artefactos, periodo, reglas y semillas; solo capturo
-stdout/stderr en un log externo para evitar otra interrupcion.
+### Desviacion de ejecucion unica
+
+El controlador perdio la sesion de consola de la primera corrida mientras se
+emitian advertencias repetidas. Una lectura temprana encontro el manifiesto aun
+`iniciado`; un control posterior no encontro el proceso. Sin releer el
+manifiesto luego de que terminara, se inicio por error una segunda corrida a
+`2026-09-27T06:31:17Z`, 42 segundos despues del cierre real de la primera. La
+segunda salida y respaldo se preservan en:
+
+- `C:\Repo\AAI_Hydric_Stress_ensemble_retrospective_runtime\pergamino-ensemble-retrospective-2023-attempt2-20260927T063059Z`;
+- `D:\AAI_Hydric_Stress_ensemble_retrospective_backup\pergamino-ensemble-retrospective-2023-attempt2-20260927T063059Z`.
+
+Esto es una desviacion del requisito de corrida unica y no se presenta como
+cumplimiento. No hubo cambio de SHA, protocolo, artefactos, entradas, periodo,
+reglas, umbrales o semillas, ni observacion de metricas antes de lanzar la
+duplicacion. Ambas corridas finalizaron `completado`, con bundles inmutables y
+respaldos verificados. Sus cuatro productos cientificos son byte-identicos:
+
+- `metrics.json`: `6a6a31d35196313061aa4363c98d422f4d1446a9f996d7af51cd93f762e67732`;
+- `predictions.csv`: `9b773b186db56e35963ba6538f2f932cd6bab21487fce81568f88c8be02e9194`;
+- `ui_summary.json`: `2b640b360671e03fac9f8223380395667eb8d62df9845d39a2f9f508ce660998`;
+- `report.md`: `ee7ce7104793183ad48cb2a354620dfb051fb6022496cf22722176587fef10a7`.
+
+La primera salida se declara canonica exclusivamente por precedencia temporal,
+no por desempeño. La duplicacion no se usa como replica independiente ni como
+evidencia adicional de incertidumbre, reproducibilidad o calidad.
 
 ## Resultados diarios sobre casos comunes
 
@@ -198,8 +220,8 @@ externo de costos/uso.
 
 ## Artefactos fuente
 
-En la salida completada: `execution_manifest.json`, `predictions.csv`,
+En la salida canonica: `execution_manifest.json`, `predictions.csv`,
 `metrics.json`, `ui_summary.json`, `report.md`, `backup_verification.json` y
-`restricted_inputs/`. El log del reintento esta junto a la carpeta de salida
-con sufijo `.log`. Este informe referencia esos artefactos; no duplica las
-predicciones fechadas ni las curvas completas.
+`restricted_inputs/`. El log de la ejecucion duplicada esta junto a su carpeta
+de salida con sufijo `.log`. Este informe referencia esos artefactos; no
+duplica las predicciones fechadas ni las curvas completas.
