@@ -17,7 +17,7 @@ export function PergaminoDefensePage() {
         <p className="producer-eyebrow">AAI Hydric Stress · demostración de defensa</p>
         <h1>Recorrido histórico</h1>
         <p>Pergamino · emisiones persistidas del 13 al 17 de junio de 2023.</p>
-        <p className="defense-journey">Procedencia y calidad → pronóstico → acuerdo entre modelos → observación posterior → revisión humana</p>
+        <p className="defense-journey">Primero revisá de dónde vienen los datos. Elegí una emisión, mirá la decisión para +1, +2 y +3 días, y avanzá el reloj para contrastarla con lo observado y registrar tu revisión.</p>
       </div>
     </header>
     <section id="defense-forecast" aria-label="Pronóstico de una emisión">

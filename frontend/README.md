@@ -17,6 +17,7 @@ $env:PRODUCER_SOURCE_DATA_DIR = '<directorio externo con sensor__pergamino-ensem
 $env:PRODUCER_BUNDLE_ROOT = '<directorio externo que contiene pergamino-ensemble-demo/horizon_1..3>'
 .\scripts\prepare_defense_data.ps1 -SourceDataDir $env:PRODUCER_SOURCE_DATA_DIR -DemoDataDir '.demo-defense-data\session-1'
 $env:PRODUCER_DATA_DIR = (Resolve-Path '.demo-defense-data\session-1').Path
+$env:CORS_EXTRA_ORIGINS = 'http://127.0.0.1:5174'
 python scripts/run_producer_preview_backend.py
 ```
 
@@ -25,12 +26,14 @@ En otra terminal:
 ```powershell
 cd frontend
 npm ci
-npm run dev -- --host 127.0.0.1 --port 5173
+$env:VITE_API_BASE_URL = 'http://127.0.0.1:8000'
+npm run dev -- --host 127.0.0.1 --port 5174 --strictPort
 ```
 
-El backend escucha en `127.0.0.1:8000` y el frontend usa ese origen por
-defecto. Si se cambia el puerto o host, configurar `VITE_API_BASE_URL` y
-`CORS_EXTRA_ORIGINS` según los scripts existentes. `prepare_defense_data.ps1`
+El backend escucha en `127.0.0.1:8000`. Las dos variables de URL anteriores
+son necesarias para que el navegador pueda leer la API desde `127.0.0.1:5174`;
+si cambiás el puerto u host, actualizá ambas antes de levantar los servicios.
+`prepare_defense_data.ps1`
 rechaza un destino existente para conservar cada sesión, verifica los SHA-256
 de ambos insumos persistidos y nunca copia revisiones previas. La ruta
 `POST /forecasts` no forma parte de este recorrido.

@@ -30,6 +30,11 @@ type ReadingsState =
  * `emissionDate` sin cambiar la emisión seleccionada.
  */
 const PERGAMINO_DATES = ["2023-06-13", "2023-06-14", "2023-06-15", "2023-06-16", "2023-06-17"];
+const QUALITY_VARIABLE_LABELS: Record<string, string> = {
+  soil_moisture: "Humedad del suelo", temperature: "Temperatura", precipitation: "Precipitación",
+  relative_humidity: "Humedad del aire", solar_radiation: "Radiación solar",
+  wind_speed: "Velocidad del viento", et0: "Demanda de agua del ambiente (ET₀)",
+};
 export function HistoricalWalkthrough({ sensorId, defense = false }: { sensorId: string; defense?: boolean }) {
   const [emissionDate, setEmissionDate] = useState(defense ? PERGAMINO_DATES[0] : "");
   const [revealedThrough, setRevealedThrough] = useState("");
@@ -145,18 +150,21 @@ export function HistoricalWalkthrough({ sensorId, defense = false }: { sensorId:
     return match;
   };
 
+  const currentBatch = batchState.status === "ready" && batchState.context === context ? batchState.batch : null;
+  const availableCount = currentBatch?.slots.filter((slot) => slot.status === "available").length ?? 0;
+  const alertCount = currentBatch?.slots.filter((slot) => slot.status === "available" && slot.alert).length ?? 0;
+  const currentReadings = readingsState.status === "ready" && readingsState.context === context ? readingsState.data : null;
+  const variablesWithoutData = currentReadings?.variable_coverage.filter((item) => item.observed_days === 0).length ?? 0;
+
   return (
     <section className="historical-walkthrough" aria-labelledby="historical-walkthrough-title">
       <h3 id="historical-walkthrough-title">Recorrido histórico</h3>
-      <p>
-        Reproduce emisiones ya preparadas. Nunca genera un pronóstico nuevo ni modifica los resultados guardados. Las
-        opiniones que registrés acá quedan aisladas del historial operativo real.
-      </p>
+      <p>Elegí una emisión guardada y avanzá el reloj para ver las observaciones posteriores y registrar tu revisión. Solo hay cinco emisiones preparadas; este recorrido no genera pronósticos nuevos.</p>
 
       <div className="historical-walkthrough-controls">
-        {defense && <p className="historical-provenance"><strong>Pergamino · datos externos ERA5-Land/NASA POWER.</strong> No son mediciones de un sensor instalado ni observaciones agronómicas directas. Emisiones disponibles: 13 al 17 de junio de 2023. Melchor Romero y sensores de prueba: próximos recorridos.</p>}
+        {defense && <p className="historical-provenance"><strong>Origen: Pergamino · ERA5-Land/NASA POWER.</strong> Son datos externos, no mediciones de un sensor instalado ni observaciones agronómicas directas del cultivo. Hay emisiones del 13 al 17 de junio de 2023.</p>}
         <label>
-          Emisión seleccionada
+          Emisión seleccionada (cuándo se hizo el pronóstico)
           {defense ? <select value={emissionDate} onChange={(event) => { setEmissionDate(event.target.value); setRevealedThrough(""); }}>
             {PERGAMINO_DATES.map((date) => <option key={date} value={date}>{displayForecastDate(date)}</option>)}
           </select> : <input
@@ -169,7 +177,7 @@ export function HistoricalWalkthrough({ sensorId, defense = false }: { sensorId:
           />}
         </label>
         <label>
-          Recorrido hasta (observaciones y revisión)
+          Recorrido hasta (qué observaciones y revisiones se revelan)
           <input
             type="date"
             value={revealedThrough}
@@ -191,9 +199,13 @@ export function HistoricalWalkthrough({ sensorId, defense = false }: { sensorId:
         </p>
       )}
       {defense && <div className="historical-quality" aria-label="Procedencia y calidad de datos">
-        <h4>Procedencia y calidad de los datos disponibles</h4>
+        <h4>1 · Procedencia y calidad de datos</h4>
         {readingsState.status === "ready" && readingsState.context === context
-          ? <p>{readingsState.data.window.expected_days} días esperados; {readingsState.data.missing_dates.length} fechas sin datos. {readingsState.data.variable_coverage.map((item) => `${item.variable}: ${item.observed_days} disponibles, ${item.missing_days} faltantes`).join(" · ")}. Procedencia: {readingsState.data.provenance === "external_reanalysis" ? "ERA5-Land/NASA POWER" : readingsState.data.provenance}.</p>
+          ? <>
+            <p>Fuente: <strong>{readingsState.data.provenance === "external_reanalysis" ? "ERA5-Land/NASA POWER (datos externos)" : readingsState.data.provenance}</strong>. Ventana: {displayDate(readingsState.data.window.start_date)} a {displayDate(readingsState.data.window.end_date)}.</p>
+            <p><strong>{readingsState.data.window.expected_days} días esperados</strong> · <strong>{readingsState.data.missing_dates.length} {readingsState.data.missing_dates.length === 1 ? "fecha" : "fechas"} sin datos</strong> · <strong>{variablesWithoutData} {variablesWithoutData === 1 ? "variable" : "variables"} sin ningún dato en la ventana</strong>. Una fecha o variable faltante no se interpreta como ausencia de alerta.</p>
+            <details><summary>Ver disponibilidad por variable</summary><ul>{readingsState.data.variable_coverage.map((item) => <li key={item.variable}>{QUALITY_VARIABLE_LABELS[item.variable] ?? item.variable}: {item.observed_days} días con dato, {item.missing_days} sin dato</li>)}</ul></details>
+          </>
           : readingsState.status === "error" && readingsState.context === context
             ? <p role="alert">No se pudo consultar la disponibilidad: {readingsState.message} <button type="button" onClick={() => setReadingsRetry((n) => n + 1)}>Reintentar lecturas</button></p>
             : <p role="status">Cargando disponibilidad…</p>}
@@ -201,6 +213,11 @@ export function HistoricalWalkthrough({ sensorId, defense = false }: { sensorId:
 
       {(batchState.status === "loading" || (emissionDate && batchState.context !== context)) && <p role="status">Cargando emisión histórica…</p>}
       {batchState.status === "error" && batchState.context === context && <p role="alert">No se pudo consultar la emisión: {batchState.message} <button type="button" onClick={() => setBatchRetry((n) => n + 1)}>Reintentar emisión</button></p>}
+      {defense && currentBatch && <div className={`historical-decision-summary ${alertCount > 0 ? "is-alert" : ""}`}>
+        <p className="producer-eyebrow">2 · Pronóstico de la emisión seleccionada</p>
+        <strong>{availableCount === 0 ? "No hay pronósticos disponibles" : alertCount === 0 ? `Sin alerta prevista en ${availableCount} horizonte${availableCount === 1 ? "" : "s"} disponible${availableCount === 1 ? "" : "s"}` : `${alertCount} de ${availableCount} horizonte${availableCount === 1 ? "" : "s"} disponible${availableCount === 1 ? "" : "s"} con alerta prevista`}</strong>
+        <p>Son decisiones entregadas por el backend para el objetivo de humedad del protocolo. “Sin alerta” no garantiza ausencia de estrés en el cultivo.</p>
+      </div>}
       {batchState.status === "ready" && batchState.context === context && (
         <ul className="forecast-list forecast-outlook-grid">
           {batchState.batch.slots.map((slot) => (

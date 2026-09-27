@@ -165,14 +165,14 @@ export function ForecastCard({
     <article className={`forecast-card ${forecast.alert ? "forecast-card-alert" : "forecast-card-clear"}`} aria-label={`Pronóstico para el ${displayForecastDate(forecast.target_date)}`}>
       <header className="forecast-card-header">
         <div>
-          <p className="forecast-card-target">{displayForecastDate(forecast.target_date)}</p>
+          <p className="forecast-card-target">{historicalNotice ? `+${forecast.horizon_days} · Objetivo: ${displayForecastDate(forecast.target_date)}` : displayForecastDate(forecast.target_date)}</p>
           <details className="forecast-card-details"><summary>Ver de cuándo son los datos</summary><p className="forecast-card-meta">
             {HORIZON_LABELS[forecast.horizon_days]} · Emitido el {displayIssuedAt(forecast.issued_at)} a partir de
             datos del {displayForecastDate(forecast.as_of_date)}
           </p></details>
         </div>
         <span className={`forecast-card-badge ${forecast.alert ? "is-alert" : ""}`}>
-          {forecast.alert ? "Alerta" : "Sin alerta"}
+          {historicalNotice ? (forecast.alert ? "Alerta prevista" : "Sin alerta prevista") : (forecast.alert ? "Alerta" : "Sin alerta")}
         </span>
       </header>
 
