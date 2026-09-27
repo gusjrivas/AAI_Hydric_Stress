@@ -90,6 +90,23 @@ La primera salida se declara canonica exclusivamente por precedencia temporal,
 no por desempeño. La duplicacion no se usa como replica independiente ni como
 evidencia adicional de incertidumbre, reproducibilidad o calidad.
 
+### Veredicto de gobernanza postejecucion
+
+La auditoria cientifica independiente final emitio **FAIL** para el cierre del
+change: la segunda corrida comenzo despues de que la primera ya habia terminado
+correctamente, por lo que no se cumplio el requisito predeclarado de ejecutar
+una sola vez. La preservacion, identidad de resultados y explicacion de la
+desviacion no convierten ese incumplimiento en PASS. T05 y T06 permanecen
+abiertas y no se realizara una tercera ejecucion.
+
+El auditor verifico a la vez que este FAIL es de gobernanza y no invalida la
+trazabilidad del resultado numerico canonico: recomputo las 18 matrices y
+MCC/Brier, y los 12 Average Precision, sin discrepancias; confirmo integridad,
+cobertura, episodios, bootstrap, confiabilidad, limitaciones y
+`display_probability=false`. Por ello la primera salida sigue siendo utilizable
+solo como evidencia retrospectiva exploratoria no independiente, nunca como
+resultado confirmatorio ni como replica doble.
+
 ## Resultados diarios sobre casos comunes
 
 `Pos` es la cantidad de targets bajo P20. AP y Brier solo corresponden a
