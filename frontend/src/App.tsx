@@ -18,7 +18,6 @@ import { demoGateForSensor } from "./features/demo/lock";
 import { HistoricalReplayPage } from "./features/historical-replay/HistoricalReplayPage";
 
 const DEMO_HASH = "#demo";
-const HISTORICAL_REPLAY_HASH = "#reproduccion-historica";
 
 function useIsDemoRoute(): boolean {
   const [isDemo, setIsDemo] = useState(() => window.location.hash === DEMO_HASH);
@@ -30,20 +29,6 @@ function useIsDemoRoute(): boolean {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
   return isDemo;
-}
-
-function useIsHistoricalReplayRoute(): boolean {
-  const [isReplay, setIsReplay] = useState(
-    () => window.location.hash === HISTORICAL_REPLAY_HASH,
-  );
-  useEffect(() => {
-    function onHashChange() {
-      setIsReplay(window.location.hash === HISTORICAL_REPLAY_HASH);
-    }
-    window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
-  return isReplay;
 }
 
 const SENSOR_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
@@ -80,7 +65,7 @@ function App() {
 
   const route = useHashRoute();
   const isDemoRoute = useIsDemoRoute();
-  const isHistoricalReplayRoute = useIsHistoricalReplayRoute();
+  const isHistoricalReplayRoute = route === "reproduccion-historica";
   const isFirstRouteRender = useRef(true);
 
   useEffect(() => {
@@ -111,7 +96,7 @@ function App() {
         <h1>Seguimiento del agua en el cultivo</h1>
         <p className="app-intro">Consultá el pronóstico y registrá lo que observaste en el cultivo.</p>
         <p className="app-intro">Herramienta en evaluación. Ayuda a revisar la situación; no indica cuánto ni cuándo regar.</p>
-        {route !== "productor" && !isHistoricalReplayRoute && (
+        {route !== "productor" && route !== "reproduccion-historica" && (
           <>
             <form
               className="app-sensor-form"
@@ -152,20 +137,12 @@ function App() {
           </a>
         </p>
       )}
-      <p className="app-demo-link">
-        <a
-          href={HISTORICAL_REPLAY_HASH}
-          aria-current={isHistoricalReplayRoute ? "page" : undefined}
-        >
-          Reproducción histórica
-        </a>
-      </p>
 
       <main id="main-content" className="app-sections" tabIndex={-1}>
         {isHistoricalReplayRoute && (
           <section aria-labelledby="reproduccion-historica-heading">
             <h2 id="reproduccion-historica-heading" className="app-section-heading" tabIndex={-1}>
-              Reproducción histórica
+              Explorar una predicción
             </h2>
             <HistoricalReplayPage />
           </section>
