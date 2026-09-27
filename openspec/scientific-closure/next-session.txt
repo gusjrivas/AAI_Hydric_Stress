@@ -1,3 +1,25 @@
+PROMPT SIGUIENTE — vigente desde 2026-09-26 (NORMALIZACION DOCUMENTAL).
+Esta cabecera REEMPLAZA toda lectura operativa del texto posterior, que se
+conserva integro como registro historico.
+
+ESTADO CANONICO
+- RB-05 fue ejecutada; veredicto FAIL.
+- sc-06-scientific-synthesis, SC-GOV-025 y GF: FAIL.
+- H fue ejecutado y auditado.
+- R/N/S: NOT_APPLICABLE a nivel requisito; sc-07/sc-09/sc-10 permanecen
+  BLOCKED porque el gate REQUIRED es negativo.
+- B y C son evidencia retrospectiva exploratoria, nunca confirmatoria.
+- No quedan campanas v4 pendientes. No repetir A/B/C/H, no inicializar ledgers
+  y no reabrir ni reinspeccionar el holdout consumido.
+
+OBJETIVO DE UNA SESION POSTERIOR
+Trabajar solo sobre redaccion de tesis/defensa o sobre un change nuevo y
+explicitamente autorizado. Preservar evidencia, informes y eventos historicos.
+No intentar convertir el FAIL en PASS mediante redaccion ni mediante otra rama.
+Una validacion confirmatoria futura requeriria datos nuevos y un protocolo nuevo.
+
+=== TEXTO HISTORICO ANTERIOR (superseded) ===
+
 PROMPT SIGUIENTE — vigente desde 2026-09-21 (CAMPAÑA A -> B -> C EJECUTADA).
 Esta cabecera REEMPLAZA toda lectura del texto posterior, que se conserva
 integro como registro historico y cuyas afirmaciones sobre "A/B/C no ejecutadas",
