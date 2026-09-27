@@ -552,10 +552,10 @@ def method_metrics(
         score_array = np.asarray(list(scores), dtype=float)
         if len(score_array) != n or not np.isfinite(score_array).all():
             raise EvaluationError("Scores invalidos para metricas probabilisticas")
-        two_classes = 0 < int(y_array.sum()) < n
+        has_positive = int(y_array.sum()) > 0
         result["average_precision"] = _defined(
-            float(average_precision_score(y_array, score_array)) if two_classes else None,
-            None if two_classes else "requires_both_classes",
+            float(average_precision_score(y_array, score_array)) if has_positive else None,
+            None if has_positive else "requires_observed_positive",
         )
         result["brier"] = _defined(float(np.mean((score_array - y_array) ** 2)))
         result["reliability_bins"] = reliability_bins(y_array, score_array)
@@ -685,7 +685,7 @@ def observed_episodes(frame: pd.DataFrame, threshold: float) -> list[dict[str, A
     by_day = {
         timestamp.date(): (float(value) if pd.notna(value) and np.isfinite(value) else None)
         for timestamp, value in zip(frame[TIMESTAMP_COLUMN], frame[EVENT_VARIABLE])
-        if EVALUATION_START <= timestamp.date() <= EVALUATION_END
+        if FILTER_START <= timestamp.date() <= EVALUATION_END
     }
     episodes: list[dict[str, Any]] = []
     active: list[date] = []

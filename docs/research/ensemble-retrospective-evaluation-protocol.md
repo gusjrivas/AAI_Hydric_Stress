@@ -88,7 +88,10 @@ Se separan: (A) clasificacion diaria; (B) casos no secos en t y secos en t+h;
 (C) anticipacion de inicios. Un episodio son dias calendario consecutivos con
 observacion valida bajo P20. Un hueco rompe el episodio y censura el borde: no
 prueba recuperacion ni continuidad. Un inicio es determinable solo si el dia
-calendario anterior es valido y no seco. Para +h se inspecciona exclusivamente
+calendario anterior es valido y no seco. Para el borde de 2023 se conserva el
+lookback permitido y se consulta 2022-12-31: Jan 1 es determinable si ese dia
+es valido y no seco, y queda censurado si esta seco o ausente. Esto no vuelve
+admisible una emision anterior a 2023. Para +h se inspecciona exclusivamente
 la emision `inicio-h`, dentro de 2023 y evaluable; un episodio se cuenta una
 vez. Episodios se reportan descriptivamente, sin intervalos.
 

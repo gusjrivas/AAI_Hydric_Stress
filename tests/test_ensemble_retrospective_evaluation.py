@@ -294,6 +294,19 @@ def test_metrics_report_undefined_instead_of_zero_and_reliability_support():
     assert sum(item["n"] for item in defined["reliability_bins"]) == 4
     assert sum(item["positives"] for item in defined["reliability_bins"]) == 2
 
+    all_positive = evaluation.method_metrics([1, 1, 1], [1, 0, 1], [0.9, 0.4, 0.8])
+    assert all_positive["average_precision"] == {
+        "status": "defined",
+        "value": 1.0,
+        "reason": None,
+    }
+    no_positive = evaluation.method_metrics([0, 0, 0], [0, 0, 1], [0.1, 0.2, 0.8])
+    assert no_positive["average_precision"] == {
+        "status": "undefined",
+        "value": None,
+        "reason": "requires_observed_positive",
+    }
+
 
 def test_episode_gaps_break_continuity_and_censor_onsets():
     days = pd.date_range("2023-01-01", "2023-01-10", freq="D")
@@ -308,6 +321,45 @@ def test_episode_gaps_break_continuity_and_censor_onsets():
     assert episodes[0]["start_determinable"] is True
     assert episodes[1]["left_censored"] is True
     assert episodes[2]["start_determinable"] is True
+
+
+@pytest.mark.parametrize(
+    ("december_31", "start_determinable", "left_censored"),
+    [
+        (0.4, True, False),
+        (0.2, False, True),
+        (None, False, True),
+    ],
+)
+def test_january_first_episode_uses_permitted_lookback_without_admitting_2022_emission(
+    december_31, start_determinable, left_censored
+):
+    rows = [
+        {"timestamp": pd.Timestamp("2023-01-01"), "soil_moisture": 0.2},
+        {"timestamp": pd.Timestamp("2023-01-02"), "soil_moisture": 0.4},
+    ]
+    if december_31 is not None:
+        rows.insert(
+            0,
+            {
+                "timestamp": pd.Timestamp("2022-12-31"),
+                "soil_moisture": december_31,
+            },
+        )
+    frame = pd.DataFrame(rows)
+    episodes = evaluation.observed_episodes(frame, 0.3)
+    assert len(episodes) == 1
+    assert episodes[0]["start"] == "2023-01-01"
+    assert episodes[0]["start_determinable"] is start_determinable
+    assert episodes[0]["left_censored"] is left_censored
+
+    assessed = evaluation.episode_assessment(
+        episodes,
+        [],
+        1,
+        ["persistence"],
+    )
+    assert assessed["evaluable_for_horizon"] == 0
 
 
 def test_target_bounds_persistence_common_cases_and_fixed_p20(tmp_path, monkeypatch):
