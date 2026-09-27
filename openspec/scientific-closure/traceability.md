@@ -1,5 +1,26 @@
 # Matriz requisito → tarea → prueba → evidencia
 
+## Estado canónico vigente — 2026-09-26
+
+Esta sección supersede todas las tablas fechadas posteriores únicamente para el
+estado vigente; esas tablas se preservan como historia y evidencia de cómo
+evolucionó la evaluación.
+
+| Requisito / entidad | Estado vigente | Fundamento |
+| --- | --- | --- |
+| `SC-GOV-022` / H | `PASS_WITH_LIMITATIONS`; ejecutado y auditado | La evidencia sostiene el mecanismo y las correcciones simuladas, no beneficio humano real |
+| `SC-GOV-021` / R | `NOT_APPLICABLE` | GD-12 fue criticada y auditada en RB-03; R es `NOT_REQUIRED` para el alcance vigente |
+| `SC-GOV-023` / N | `NOT_APPLICABLE` | GD-12 fue criticada y auditada en RB-03; N es `NOT_REQUIRED` para el alcance vigente |
+| `SC-GOV-024` / S | `NOT_APPLICABLE` | GD-12 fue criticada y auditada en RB-03; S es `NOT_REQUIRED` para el alcance vigente |
+| `SC-GOV-025` | **`FAIL`** | RB-05 fue ejecutada y su auditoría requisito por requisito terminó en `FAIL` |
+| `GF` | **`FAIL`** | GD-40 acepta administrativamente M-01/RK-20 como desviación histórica, sin convertirla en cumplimiento |
+| `sc-06-scientific-synthesis` | **`FAIL`** | Cierre administrativo con no conformidad declarada |
+| `sc-07`, `sc-09`, `sc-10` | `BLOCKED` (changes) | Gate negativo: R/N/S no son `REQUIRED`; el bloqueo impide ejecutar, no indica evidencia pendiente |
+
+B y C conservan sus resultados numéricos como evidencia retrospectiva
+exploratoria y no confirmatoria. No hay campañas v4 pendientes, no se reabre el
+holdout y no se reescribe ningún evento histórico.
+
 Fuente estructurada: requirements.json. Criterios completos: spec científica.
 Estado histórico de este encabezado (2026-09-19): declaraba que «cada fila
 tiene estado PENDING». Esa afirmación es **incorrecta desde el 2026-09-20**

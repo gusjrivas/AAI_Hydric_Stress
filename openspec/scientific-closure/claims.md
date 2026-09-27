@@ -1,5 +1,20 @@
 # Afirmaciones y suficiencia
 
+## Lectura canónica vigente — 2026-09-26
+
+Esta sección supersede el estado operativo de las secciones históricas sin
+borrarlas. RB-05 fue ejecutada y terminó en `FAIL`; por ello CL-10 no está
+demostrada, `SC-GOV-025`, `GF` y `sc-06-scientific-synthesis` están en `FAIL`.
+H fue ejecutado y auditado con limitaciones. R, N y S son `NOT_APPLICABLE` a
+nivel requisito por RB-03, mientras sus changes permanecen `BLOCKED` por el
+gate negativo `NOT_REQUIRED`.
+
+La lectura permitida de B y C es **evidencia retrospectiva exploratoria**. Sus
+valores pueden citarse con soporte y limitaciones, pero no como confirmación de
+la hipótesis ni como validación confirmatoria del protocolo secuencial. No hay
+campañas v4 pendientes ni una vía legítima para recuperar cegamiento cambiando
+de rama: el holdout no se reabre.
+
 Ninguna fila afirma resultados futuros. La evaluación documental de
 `sc-01-evidence-scope` fija qué evidencia hace falta antes de observar A/B/C o
 complementos. El alcance conserva todas las hipótesis y componentes, pero no

@@ -1,5 +1,20 @@
 # Checkpoint de ejecución actual
 
+## Estado canónico vigente — 2026-09-26
+
+Esta sección reemplaza toda lectura operativa de las secciones posteriores, que
+se conservan como registro histórico. RB-05 fue ejecutada y auditada con
+veredicto **`FAIL`**. `sc-06-scientific-synthesis`, `SC-GOV-025` y `GF` están en
+**`FAIL`**. H fue ejecutado y auditado. R/N/S están `NOT_APPLICABLE` a nivel
+requisito y sus changes siguen `BLOCKED` porque su condición `REQUIRED` es
+falsa; no existe ejecución pendiente de esos complementos.
+
+A, B, C y H no se repiten. B y C son evidencia retrospectiva exploratoria, no
+confirmatoria. El holdout 2024–2025 ya fue abierto una vez y no se reabre. No
+queda ninguna campaña v4 pendiente dentro del alcance actual. El único trabajo
+vigente de este checkpoint es documental: mantener consistente la narrativa de
+tesis y defensa sin alterar resultados, hipótesis, configuración o arquitectura.
+
 ## Estado vigente — 2026-09-21, CAMPAÑA A → B → C EJECUTADA
 
 Esta sección **reemplaza toda lectura de las secciones posteriores**, incluida la

@@ -1,6 +1,23 @@
 # Sistema de cierre científico
 
-Estado inicial: PREPARATION_ONLY. No constituye autorización para A/B/C, apertura
+## Estado canónico vigente — 2026-09-26
+
+Esta sección supersede cualquier estado operativo anterior conservado en este
+archivo. RB-05 fue ejecutada y su veredicto fue **`FAIL`**. En consecuencia,
+`sc-06-scientific-synthesis`, `SC-GOV-025` y el gate `GF` están en **`FAIL`**,
+no en `PENDING`, `BLOCKED`, `PASS` ni `PASS_WITH_LIMITATIONS`. H fue ejecutado y
+auditado. R, N y S son `NOT_APPLICABLE` a nivel requisito por la decisión de
+suficiencia auditada; sus changes permanecen `BLOCKED` porque el gate
+`REQUIRED` es negativo, no porque falte ejecutar esos complementos.
+
+B y C se conservan como evidencia numérica retrospectiva **exploratoria** y no
+se presentan como validación confirmatoria. No quedan campañas v4 pendientes,
+no se repiten A/B/C/H y el holdout consumido no se reabre. Una confirmación
+futura requeriría datos nuevos y sería otro trabajo, no una reparación de esta
+campaña. La posición para tesis y defensa está en
+[`docs/research/thesis-defense-position.md`](../../docs/research/thesis-defense-position.md).
+
+Estado histórico inicial (superseded): PREPARATION_ONLY. No constituye autorización para A/B/C, apertura
 de holdout ni inicialización de ledger. El cierre del sistema de preparación y el
 cierre científico del Trabajo Final son decisiones distintas.
 
@@ -34,9 +51,9 @@ independiente autorizado. No reescribir documentos históricos.
   resultados efectivamente obtenidos en A, B, C y H, con sus limitaciones (RB-04).
 - [Reconciliación 2026-09-22](reconciliation-2026-09-22/): trazabilidad a la
   memoria (RB-06), tabla de reconciliación entre `65ca852` y `f355272`,
-  identidad de sesión. **`SC-GOV-025` y `GF` siguen `PENDIENTE`** hasta el
-  veredicto de una auditoría independiente única; ningún `PASS` estructural ni
-  ningún veredicto `FAIL` histórico se presenta aquí como cierre científico.
+  identidad de sesión. Esta descripción quedó **superseded** por RB-05 y GD-40:
+  `SC-GOV-025` y `GF` terminaron en `FAIL`; ningún `PASS` estructural se presenta
+  como cierre científico.
 - [Suficiencia de R/N/S — RB-03](sufficiency-review-2026-09-22/): `PASS` del
   auditor independiente sobre `65ca852`. Fuente autoritativa; no se reabre.
 - [Dossier RB-05](rb05-audit-preparation-2026-09-22/): estado documental de

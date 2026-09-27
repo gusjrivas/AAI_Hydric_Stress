@@ -1,5 +1,13 @@
 # Síntesis científica canónica del cierre — 2026-09-22
 
+**Estado canónico vigente — normalización 2026-09-26.** RB-05 fue ejecutada y
+terminó en `FAIL`; `sc-06-scientific-synthesis`, `SC-GOV-025` y `GF` están en
+`FAIL`. H fue ejecutado y auditado. R/N/S son `NOT_APPLICABLE` a nivel requisito
+y sus changes permanecen bloqueados por gate negativo. B y C se leen únicamente
+como evidencia retrospectiva exploratoria. No quedan campañas v4 pendientes y
+el holdout no se reabre. Esta cabecera y la §7.4 gobiernan cualquier frase
+histórica que pudiera sugerir una lectura confirmatoria.
+
 **Nota de reconciliación.** Este documento se redactó originalmente en la rama
 `feat/scientific-evidence-finalization` (commit `7e63d1c`, revisado y corregido
 hasta `f355272`, PR #211) y se incorpora aquí, a `feat/scientific-closure`, como
@@ -50,16 +58,17 @@ supera de forma **estable** a sus rivales y, al evaluarse una única vez sobre
 
 **Respuesta, en dos partes.**
 
-1. La primera mitad de la hipótesis —existencia de un ganador **estable**— quedó
-   **refutada**. La Etapa A terminó en `SIN_GANADOR_ESTABLE`.
-2. La segunda mitad —no inferioridad frente a persistencia— quedó **satisfecha**
-   para el candidato fijado por el desempate predeclarado, y el holdout final
-   confirmó una ventaja en MCC. Esto **no** rehabilita la primera mitad: el
-   modelo evaluado no es el mejor de su grilla, es el más simple de un conjunto
-   de equivalencia.
+1. En A no se identificó un ganador **estable**: la etapa terminó en
+   `SIN_GANADOR_ESTABLE` y el candidato se fijó por el desempate predeclarado de
+   simplicidad.
+2. En B se observó no inferioridad frente a persistencia y en C una diferencia
+   favorable en MCC. Por la desviación cronológica de gates M-01/RK-20, ambos
+   resultados son **evidencia retrospectiva exploratoria** y no confirman la
+   hipótesis ni el cumplimiento de la secuencia protocolar.
 
-Esta combinación es un resultado válido del protocolo. No es un defecto de
-software ni un fracaso experimental.
+La combinación constituye un resultado experimental informativo y
+reproducible, con una no conformidad de gobernanza declarada. No es un defecto
+de software, pero tampoco una validación confirmatoria.
 
 ---
 
