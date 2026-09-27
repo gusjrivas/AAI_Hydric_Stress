@@ -447,6 +447,19 @@ def _historical_review_view(
     from entirely different storage."""
     review_open_at = _operational_review_open_at(forecast_like)
     reviewable = now >= review_open_at
+    if not reviewable:
+        # Una revisión escrita al avanzar el reloj no debe filtrarse al
+        # regresar a una fecha anterior a su apertura.
+        return {
+            "status": "pending",
+            "revision": 0,
+            "review_open_at": review_open_at,
+            "reviewable": False,
+            "blocked_reason": "review_not_open",
+            "latest_review": None,
+            "training_eligibility": "no_review",
+            "applied_review_references": [],
+        }
     training_eligibility, applied_refs = _operational_training_eligibility(
         forecast_like, state, now
     )

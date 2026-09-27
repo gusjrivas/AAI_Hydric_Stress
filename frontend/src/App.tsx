@@ -16,6 +16,7 @@ import { DemoPage } from "./features/demo/DemoPage";
 import { useDemoSession } from "./features/demo/useDemoSession";
 import { demoGateForSensor } from "./features/demo/lock";
 import { HistoricalReplayPage } from "./features/historical-replay/HistoricalReplayPage";
+import { PergaminoDefensePage } from "./features/defense/PergaminoDefensePage";
 
 const DEMO_HASH = "#demo";
 const HISTORICAL_REPLAY_HASH = "#reproduccion-historica";
@@ -103,15 +104,18 @@ function App() {
   }
 
   return (
-    <div className={`app-page ${route === "productor" ? "app-producer" : ""}`}>
-      <a href="#main-content" className="skip-link">
+    <div className={`app-page ${route === "productor" ? "app-producer" : ""} ${route === "defensa-pergamino" ? "app-defense" : ""}`}>
+      <a href="#main-content" className="skip-link" onClick={(event) => {
+        event.preventDefault();
+        document.getElementById("main-content")?.focus();
+      }}>
         Saltar al contenido
       </a>
       <header className="app-sensor-header">
         <h1>Seguimiento del agua en el cultivo</h1>
         <p className="app-intro">Consultá el pronóstico y registrá lo que observaste en el cultivo.</p>
         <p className="app-intro">Herramienta en evaluación. Ayuda a revisar la situación; no indica cuánto ni cuándo regar.</p>
-        {route !== "productor" && !isHistoricalReplayRoute && (
+        {route !== "productor" && route !== "defensa-pergamino" && !isHistoricalReplayRoute && (
           <>
             <form
               className="app-sensor-form"
@@ -144,7 +148,7 @@ function App() {
         )}
       </header>
 
-      {route === "productor" ? <details className="producer-tools"><summary>Más herramientas y antecedentes</summary><DestinationNav active={route} /></details> : <DestinationNav active={route} />}
+      {route === "productor" || route === "defensa-pergamino" ? <details className="producer-tools"><summary>Más herramientas y antecedentes</summary><DestinationNav active={route} /></details> : <DestinationNav active={route} />}
       {demo.configured && (
         <p className="app-demo-link">
           <a href={DEMO_HASH} aria-current={isDemoRoute ? "page" : undefined}>
@@ -162,6 +166,7 @@ function App() {
       </p>
 
       <main id="main-content" className="app-sections" tabIndex={-1}>
+        {!isDemoRoute && route === "defensa-pergamino" && <PergaminoDefensePage />}
         {isHistoricalReplayRoute && (
           <section aria-labelledby="reproduccion-historica-heading">
             <h2 id="reproduccion-historica-heading" className="app-section-heading" tabIndex={-1}>

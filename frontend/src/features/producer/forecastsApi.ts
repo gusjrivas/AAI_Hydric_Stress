@@ -107,8 +107,8 @@ export interface Forecast {
 
 const FAMILY_LABELS: Record<EnsembleFamily, string> = {
   logistic_regression: "Regresión logística",
-  random_forest: "Bosque aleatorio",
-  hist_gradient_boosting_classifier: "Boosting de gradiente",
+  random_forest: "Random Forest",
+  hist_gradient_boosting_classifier: "HistGradientBoosting",
 };
 
 export function familyLabel(family: EnsembleFamily): string {

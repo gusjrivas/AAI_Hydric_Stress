@@ -29,20 +29,23 @@ type ReadingsState =
  * dónde llegó la elegibilidad de revisión-- y puede avanzar más allá de
  * `emissionDate` sin cambiar la emisión seleccionada.
  */
-export function HistoricalWalkthrough({ sensorId }: { sensorId: string }) {
-  const [emissionDate, setEmissionDate] = useState("");
+const PERGAMINO_DATES = ["2023-06-13", "2023-06-14", "2023-06-15", "2023-06-16", "2023-06-17"];
+export function HistoricalWalkthrough({ sensorId, defense = false }: { sensorId: string; defense?: boolean }) {
+  const [emissionDate, setEmissionDate] = useState(defense ? PERGAMINO_DATES[0] : "");
   const [revealedThrough, setRevealedThrough] = useState("");
   const effectiveReveal = revealedThrough || emissionDate;
 
   // Cambiar de sensor invalida cualquier selección anterior: una fecha
   // "preparada" para un sensor no significa nada para otro.
   useEffect(() => {
-    setEmissionDate("");
+    setEmissionDate(defense ? PERGAMINO_DATES[0] : "");
     setRevealedThrough("");
-  }, [sensorId]);
+  }, [sensorId, defense]);
 
-  const [batchState, setBatchState] = useState<BatchState>({ status: "idle" });
+  const [batchState, setBatchState] = useState<BatchState & { context?: string }>({ status: "idle" });
+  const [batchRetry, setBatchRetry] = useState(0);
   const batchSeq = useRef(0);
+  const context = `${sensorId}|${emissionDate}|${effectiveReveal}`;
   useEffect(() => {
     // Se incrementa siempre, incluso al vaciar la selección: una
     // respuesta tardía de la selección anterior nunca debe poder
@@ -53,20 +56,21 @@ export function HistoricalWalkthrough({ sensorId }: { sensorId: string }) {
       setBatchState({ status: "idle" });
       return;
     }
-    setBatchState({ status: "loading" });
+    setBatchState({ status: "loading", context });
     getHistoricalForecastBatch(sensorId, emissionDate, revealedThrough || undefined).then(
       (batch) => {
         if (batchSeq.current !== seq) return;
-        setBatchState({ status: "ready", batch });
+        setBatchState({ status: "ready", batch, context });
       },
       (error: Error) => {
         if (batchSeq.current !== seq) return;
-        setBatchState({ status: "error", message: error.message });
+        setBatchState({ status: "error", message: error.message, context });
       },
     );
-  }, [sensorId, emissionDate, revealedThrough]);
+  }, [sensorId, emissionDate, revealedThrough, context, batchRetry]);
 
-  const [readingsState, setReadingsState] = useState<ReadingsState>({ status: "idle" });
+  const [readingsState, setReadingsState] = useState<ReadingsState & { context?: string }>({ status: "idle" });
+  const [readingsRetry, setReadingsRetry] = useState(0);
   const readingsSeq = useRef(0);
   useEffect(() => {
     const seq = ++readingsSeq.current;
@@ -74,18 +78,18 @@ export function HistoricalWalkthrough({ sensorId }: { sensorId: string }) {
       setReadingsState({ status: "idle" });
       return;
     }
-    setReadingsState({ status: "loading" });
+    setReadingsState({ status: "loading", context });
     getHistoricalReadings(sensorId, effectiveReveal, 10).then(
       (data) => {
         if (readingsSeq.current !== seq) return;
-        setReadingsState({ status: "ready", data });
+        setReadingsState({ status: "ready", data, context });
       },
       (error: Error) => {
         if (readingsSeq.current !== seq) return;
-        setReadingsState({ status: "error", message: error.message });
+        setReadingsState({ status: "error", message: error.message, context });
       },
     );
-  }, [sensorId, effectiveReveal]);
+  }, [sensorId, effectiveReveal, context, readingsRetry]);
 
   // Generación del contexto vigente en este render: sensor, emisión y
   // reloj efectivo del recorrido, resumidos en el mismo contador que ya
@@ -150,16 +154,19 @@ export function HistoricalWalkthrough({ sensorId }: { sensorId: string }) {
       </p>
 
       <div className="historical-walkthrough-controls">
+        {defense && <p className="historical-provenance"><strong>Pergamino · datos externos ERA5-Land/NASA POWER.</strong> No son mediciones de un sensor instalado ni observaciones agronómicas directas. Emisiones disponibles: 13 al 17 de junio de 2023. Melchor Romero y sensores de prueba: próximos recorridos.</p>}
         <label>
           Emisión seleccionada
-          <input
+          {defense ? <select value={emissionDate} onChange={(event) => { setEmissionDate(event.target.value); setRevealedThrough(""); }}>
+            {PERGAMINO_DATES.map((date) => <option key={date} value={date}>{displayForecastDate(date)}</option>)}
+          </select> : <input
             type="date"
             value={emissionDate}
             onChange={(event) => {
               setEmissionDate(event.target.value);
               if (revealedThrough && revealedThrough < event.target.value) setRevealedThrough("");
             }}
-          />
+          />}
         </label>
         <label>
           Recorrido hasta (observaciones y revisión)
@@ -167,8 +174,13 @@ export function HistoricalWalkthrough({ sensorId }: { sensorId: string }) {
             type="date"
             value={revealedThrough}
             min={emissionDate || undefined}
+            max={defense ? "2023-06-20" : undefined}
             disabled={!emissionDate}
-            onChange={(event) => setRevealedThrough(event.target.value)}
+            onChange={(event) => {
+              const value = event.target.value;
+              if (defense && value && (value < emissionDate || value > "2023-06-20")) return;
+              setRevealedThrough(value);
+            }}
           />
         </label>
       </div>
@@ -178,13 +190,21 @@ export function HistoricalWalkthrough({ sensorId }: { sensorId: string }) {
           {" · "}Recorrido avanzado hasta el <strong>{displayForecastDate(effectiveReveal)}</strong>
         </p>
       )}
+      {defense && <div className="historical-quality" aria-label="Procedencia y calidad de datos">
+        <h4>Procedencia y calidad de los datos disponibles</h4>
+        {readingsState.status === "ready" && readingsState.context === context
+          ? <p>{readingsState.data.window.expected_days} días esperados; {readingsState.data.missing_dates.length} fechas sin datos. {readingsState.data.variable_coverage.map((item) => `${item.variable}: ${item.observed_days} disponibles, ${item.missing_days} faltantes`).join(" · ")}. Procedencia: {readingsState.data.provenance === "external_reanalysis" ? "ERA5-Land/NASA POWER" : readingsState.data.provenance}.</p>
+          : readingsState.status === "error" && readingsState.context === context
+            ? <p role="alert">No se pudo consultar la disponibilidad: {readingsState.message} <button type="button" onClick={() => setReadingsRetry((n) => n + 1)}>Reintentar lecturas</button></p>
+            : <p role="status">Cargando disponibilidad…</p>}
+      </div>}
 
-      {batchState.status === "loading" && <p role="status">Cargando emisión histórica…</p>}
-      {batchState.status === "error" && <p role="alert">{batchState.message}</p>}
-      {batchState.status === "ready" && (
+      {(batchState.status === "loading" || (emissionDate && batchState.context !== context)) && <p role="status">Cargando emisión histórica…</p>}
+      {batchState.status === "error" && batchState.context === context && <p role="alert">No se pudo consultar la emisión: {batchState.message} <button type="button" onClick={() => setBatchRetry((n) => n + 1)}>Reintentar emisión</button></p>}
+      {batchState.status === "ready" && batchState.context === context && (
         <ul className="forecast-list forecast-outlook-grid">
           {batchState.batch.slots.map((slot) => (
-            <li key={slot.horizon_days}>
+            <li key={`${context}|${slot.horizon_days}`}>
               {slot.status === "available" ? (
                 <ForecastCard
                   sensorId={sensorId}
@@ -196,10 +216,18 @@ export function HistoricalWalkthrough({ sensorId }: { sensorId: string }) {
                 />
               ) : (
                 <article className="forecast-card">
-                  <h4>{slot.target_date ? displayForecastDate(slot.target_date) : `Día ${slot.horizon_days}`}</h4>
+                  <h4>+{slot.horizon_days} · {slot.target_date ? displayForecastDate(slot.target_date) : "Fecha objetivo no disponible"}</h4>
                   <p><strong>Sin pronóstico disponible</strong></p>
+                  <p>Motivo: {slot.reason_code}</p>
                 </article>
               )}
+              {slot.target_date && <p className="historical-target-observation"><strong>Observación posterior:</strong> {slot.target_date > effectiveReveal
+                ? "Todavía no disponible según el reloj del recorrido."
+                : readingsState.status === "ready" && readingsState.context === context
+                  ? (() => { const row = readingsState.data.rows.find((item) => item.date === slot.target_date); return row && row.soil_moisture !== null ? `${formatReadingValue("soil_moisture", row.soil_moisture, readingsState.data.units.soil_moisture)} · ${originLabel(row.origin)}` : "Dato faltante en la fuente para esta fecha."; })()
+                  : readingsState.status === "error" && readingsState.context === context
+                    ? "No se pudo consultar la observación; reintentá las lecturas."
+                    : "Cargando dato posterior…"}</p>}
             </li>
           ))}
         </ul>
@@ -208,9 +236,9 @@ export function HistoricalWalkthrough({ sensorId }: { sensorId: string }) {
       {effectiveReveal && (
         <div className="historical-walkthrough-observations">
           <h4>Observaciones reveladas hasta el {displayForecastDate(effectiveReveal)}</h4>
-          {readingsState.status === "loading" && <p role="status">Cargando observaciones…</p>}
-          {readingsState.status === "error" && <p role="alert">{readingsState.message}</p>}
-          {readingsState.status === "ready" && (
+          {(readingsState.status === "loading" || readingsState.context !== context) && <p role="status">Cargando observaciones…</p>}
+          {readingsState.status === "error" && readingsState.context === context && <p role="alert">No se pudieron consultar las observaciones: {readingsState.message} <button type="button" onClick={() => setReadingsRetry((n) => n + 1)}>Reintentar lecturas</button></p>}
+          {readingsState.status === "ready" && readingsState.context === context && (
             readingsState.data.status === "no_readings" ? (
               <p role="status">No hay observaciones reveladas hasta esta fecha.</p>
             ) : (
