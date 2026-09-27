@@ -65,6 +65,7 @@ EVALUATION_END = date(2023, 12, 31)
 BLOCK_LENGTH = 30
 BOOTSTRAP_SEED = 20250109
 BOOTSTRAP_REPLICATES = 5000
+MIN_VALID_BOOTSTRAP_REPLICATES = 4000
 RELIABILITY_EDGES = tuple(i / 10 for i in range(11))
 PROTOCOL_RELATIVE = Path("docs/research/ensemble-retrospective-evaluation-protocol.md")
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -421,25 +422,71 @@ def _continuous_segments(days: list[date]) -> list[list[int]]:
     return segments
 
 
+def _draw_segmented_block_indices(
+    rng: np.random.Generator, segments: list[list[int]]
+) -> np.ndarray:
+    """Resample each continuous segment independently, preserving its size.
+
+    Every block is non-circular and originates wholly inside one segment. The
+    returned slices keep the original segment ordering, so no sampled block can
+    bridge an observational gap. A segment shorter than the fixed block length
+    has no admissible block and is rejected by the caller.
+    """
+    sampled: list[int] = []
+    for segment in segments:
+        candidates = [
+            segment[offset : offset + BLOCK_LENGTH]
+            for offset in range(len(segment) - BLOCK_LENGTH + 1)
+        ]
+        if not candidates:
+            raise EvaluationError("segment_shorter_than_block_length")
+        blocks_needed = math.ceil(len(segment) / BLOCK_LENGTH)
+        segment_sample: list[int] = []
+        for block_index in rng.integers(0, len(candidates), size=blocks_needed):
+            segment_sample.extend(candidates[int(block_index)])
+        sampled.extend(segment_sample[: len(segment)])
+    return np.asarray(sampled, dtype=int)
+
+
 def paired_block_bootstrap(
     rows: list[dict[str, Any]], comparisons: Mapping[str, tuple[str, str]]
 ) -> dict[str, Any]:
     days = [date.fromisoformat(row["emission_date"]) for row in rows]
-    candidates: list[list[int]] = []
-    for segment in _continuous_segments(days):
-        for offset in range(0, len(segment) - BLOCK_LENGTH + 1):
-            candidates.append(segment[offset : offset + BLOCK_LENGTH])
+    if days != sorted(days) or len(set(days)) != len(days):
+        raise EvaluationError("bootstrap requiere fechas unicas ordenadas")
+    segments = _continuous_segments(days)
+    segment_lengths = [len(segment) for segment in segments]
+    candidate_counts = [max(0, length - BLOCK_LENGTH + 1) for length in segment_lengths]
+    candidate_count = sum(candidate_counts)
     result: dict[str, Any] = {
         "method": "paired_non_circular_moving_block_bootstrap",
         "block_length_days": BLOCK_LENGTH,
         "seed": BOOTSTRAP_SEED,
         "replicates_requested": BOOTSTRAP_REPLICATES,
-        "candidate_blocks": len(candidates),
+        "minimum_valid_replicates": MIN_VALID_BOOTSTRAP_REPLICATES,
+        "segment_lengths": segment_lengths,
+        "candidate_blocks_by_segment": candidate_counts,
+        "candidate_blocks": candidate_count,
+        "resampled_rows_per_segment": segment_lengths,
         "comparisons": {},
     }
-    if not candidates:
+    short_segments = [length for length in segment_lengths if length < BLOCK_LENGTH]
+    if not segments:
         result["status"] = "undefined"
         result["reason"] = "no_continuous_30_day_block"
+        return result
+    if short_segments:
+        result["status"] = "undefined"
+        result["reason"] = "segment_shorter_than_block_length"
+        result["short_segment_lengths"] = short_segments
+        for name in comparisons:
+            result["comparisons"][name] = {
+                "status": "undefined",
+                "reason": "segment_shorter_than_block_length",
+                "replicates_defined": 0,
+                "replicates_discarded_undefined": BOOTSTRAP_REPLICATES,
+                "delta_mcc_ci95": None,
+            }
         return result
     rng = np.random.default_rng(BOOTSTRAP_SEED)
     y = np.asarray([row["target"] for row in rows], dtype=int)
@@ -450,12 +497,8 @@ def paired_block_bootstrap(
     }
     deltas = {name: [] for name in comparisons}
     undefined = Counter()
-    blocks_needed = math.ceil(len(rows) / BLOCK_LENGTH)
     for _ in range(BOOTSTRAP_REPLICATES):
-        selection: list[int] = []
-        for block_index in rng.integers(0, len(candidates), size=blocks_needed):
-            selection.extend(candidates[int(block_index)])
-        indices = np.asarray(selection[: len(rows)], dtype=int)
+        indices = _draw_segmented_block_indices(rng, segments)
         sample_y = y[indices]
         for name, (left, right) in comparisons.items():
             left_cm = confusion(sample_y, predictions[left][indices])
@@ -466,18 +509,23 @@ def paired_block_bootstrap(
                 undefined[name] += 1
             else:
                 deltas[name].append(left_mcc - right_mcc)
-    result["status"] = "defined"
+    all_supported = True
     for name, values in deltas.items():
+        supported = len(values) >= MIN_VALID_BOOTSTRAP_REPLICATES
+        all_supported &= supported
         result["comparisons"][name] = {
-            "status": "defined" if values else "undefined",
+            "status": "defined" if supported else "undefined",
+            "reason": None if supported else "insufficient_valid_replicates",
             "replicates_defined": len(values),
             "replicates_discarded_undefined": int(undefined[name]),
             "delta_mcc_ci95": (
                 [float(np.percentile(values, 2.5)), float(np.percentile(values, 97.5))]
-                if values
+                if supported
                 else None
             ),
         }
+    result["status"] = "defined" if all_supported else "undefined"
+    result["reason"] = None if all_supported else "insufficient_valid_replicates"
     return result
 
 

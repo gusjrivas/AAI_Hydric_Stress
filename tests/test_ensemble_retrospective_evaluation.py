@@ -324,7 +324,70 @@ def test_bootstrap_uses_paired_non_circular_blocks_and_counts_undefined():
     assert result["seed"] == 20250109
     assert result["replicates_requested"] == 5000
     assert result["candidate_blocks"] == 61
-    assert result["comparisons"]["average_minus_persistence"]["replicates_defined"] > 0
+    assert result["resampled_rows_per_segment"] == [90]
+    assert result["comparisons"]["average_minus_persistence"]["replicates_defined"] >= 4000
+    assert result["comparisons"]["average_minus_persistence"]["status"] == "defined"
+
+
+def _bootstrap_rows(days: list[date], *, constant_target: int | None = None):
+    rows = []
+    for index, day in enumerate(days):
+        target = constant_target if constant_target is not None else int(index % 3 == 0)
+        rows.append(
+            {
+                "emission_date": day.isoformat(),
+                "target": target,
+                "average_alert": int(index % 4 == 0),
+                "persistence_alert": int(index % 5 == 0),
+            }
+        )
+    return rows
+
+
+def test_bootstrap_preserves_each_continuous_segment_without_crossing_gap():
+    first = _days(date(2023, 1, 1), date(2023, 2, 9))  # 40 cases
+    second = _days(date(2023, 3, 1), date(2023, 4, 4))  # 35 cases
+    segments = evaluation._continuous_segments(first + second)
+    indices = evaluation._draw_segmented_block_indices(np.random.default_rng(7), segments)
+    assert len(indices) == 75
+    assert set(indices[:40]).issubset(set(range(40)))
+    assert set(indices[40:]).issubset(set(range(40, 75)))
+
+    result = evaluation.paired_block_bootstrap(
+        _bootstrap_rows(first + second),
+        {"average_minus_persistence": ("average", "persistence")},
+    )
+    assert result["segment_lengths"] == [40, 35]
+    assert result["resampled_rows_per_segment"] == [40, 35]
+    assert result["candidate_blocks_by_segment"] == [11, 6]
+
+
+def test_bootstrap_is_undefined_when_any_segment_is_shorter_than_block():
+    first = _days(date(2023, 1, 1), date(2023, 2, 4))  # 35 cases
+    second = _days(date(2023, 3, 1), date(2023, 3, 10))  # 10 cases
+    result = evaluation.paired_block_bootstrap(
+        _bootstrap_rows(first + second),
+        {"average_minus_persistence": ("average", "persistence")},
+    )
+    comparison = result["comparisons"]["average_minus_persistence"]
+    assert result["status"] == "undefined"
+    assert result["reason"] == "segment_shorter_than_block_length"
+    assert result["short_segment_lengths"] == [10]
+    assert comparison["delta_mcc_ci95"] is None
+
+
+def test_bootstrap_requires_four_thousand_valid_replicates_for_interval():
+    days = _days(date(2023, 1, 1), date(2023, 3, 1))
+    result = evaluation.paired_block_bootstrap(
+        _bootstrap_rows(days, constant_target=0),
+        {"average_minus_persistence": ("average", "persistence")},
+    )
+    comparison = result["comparisons"]["average_minus_persistence"]
+    assert result["status"] == "undefined"
+    assert result["reason"] == "insufficient_valid_replicates"
+    assert comparison["replicates_defined"] == 0
+    assert comparison["replicates_discarded_undefined"] == 5000
+    assert comparison["delta_mcc_ci95"] is None
 
 
 def test_evaluator_source_contains_no_fit_or_recalibration_calls():

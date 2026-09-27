@@ -64,10 +64,13 @@ vez. Episodios se reportan descriptivamente, sin intervalos.
 
 Comparaciones principales: bootstrap pareado de bloques moviles no circulares,
 longitud 30 dias, semilla `20250109`, 5000 replicas, IC95 percentil. Los bloques
-solo nacen dentro de segmentos de casos comunes consecutivos; no envuelven ni
-atraviesan huecos. Se estima delta MCC de cada familia, promedio y mayoria
+solo nacen dentro de segmentos de casos comunes consecutivos; cada segmento se
+remuestrea por separado conservando exactamente su cantidad de casos, sin
+envolver ni atravesar huecos. Un segmento menor a 30 dias hace indefinido el
+procedimiento en vez de descartarlo. Se estima delta MCC de cada familia, promedio y mayoria
 contra persistencia, y promedio contra mayoria. Replicas con MCC indefinido se
-descartan y cuentan. No se remuestrean dias como independientes ni se calculan
+descartan y cuentan; un IC solo se informa con al menos 4000 de 5000 replicas
+validas. No se remuestrean dias como independientes ni se calculan
 IC de episodios. Multiples contrastes siguen siendo exploratorios.
 
 ## Salidas, limites y criterio de detencion
