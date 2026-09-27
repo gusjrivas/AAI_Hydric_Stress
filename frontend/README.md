@@ -2,7 +2,7 @@
 
 ## Recorrido histórico de defensa: Pergamino
 
-Abrir `http://localhost:5173/#defensa-pergamino`. La pantalla consulta emisiones y
+Abrir `http://127.0.0.1:5174/#defensa-pergamino`. La pantalla consulta emisiones y
 lecturas **ya persistidas** por las rutas `GET /api/v2/sensors/pergamino-ensemble-demo/historical/...`;
 no emite nuevas predicciones. Hay cinco emisiones navegables, del **13 al 17 de
 junio de 2023**. El reloj puede avanzar hasta el 20 de junio; una lectura ausente
@@ -54,6 +54,7 @@ node scripts/project_retrospective_ui.mjs '<directorio de salida canónica>' fro
 
 1. Abrir el recorrido y señalar Pergamino, ERA5-Land/NASA POWER, la calidad de datos y las **cinco** fechas de emisión disponibles.
 2. Elegir `2023-06-13`. Comparar las tarjetas +1/+2/+3, fechas objetivo y el acuerdo de los tres modelos; abrir los scores. `as_of_date` es la emisión, `target_date` el objetivo.
+   El objetivo del protocolo y la humedad externa disponible al emitir se muestran como contexto; son valores distintos de los scores. Las 15 decisiones persistidas de estas cinco emisiones tienen `alert: false`: este conjunto no permite demostrar una alerta positiva sin salir del alcance autorizado.
 3. Avanzar el reloj al `2023-06-14`. Mostrar la observación posterior de +1 y que +2/+3 todavía no están disponibles según el reloj.
 4. Confirmar o rechazar +1 y guardar un comentario marcado como prueba técnica. Recargar y consultar la revisión persistida. Volver al `2023-06-13` para mostrar que el reloj oculta la revisión y la observación futuras.
 5. Navegar a `2023-06-14` y volver a `2023-06-13`; abrir el panel agregado 2023 y sus tablas. Explicar el carácter exploratorio no independiente, la desviación de ejecución duplicada y el FAIL de gobernanza.

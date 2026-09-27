@@ -312,7 +312,11 @@ describe("HistoricalWalkthrough", () => {
     vi.spyOn(historicalApi, "getHistoricalReadings").mockResolvedValue({
       sensor_id: "pergamino-ensemble-demo", calendar_timezone: "UTC", server_today: "2023-06-13",
       snapshot_id: null, window: { start_date: "2023-06-04", end_date: "2023-06-13", expected_days: 10 },
-      status: "ready", rows: [], missing_dates: ["2023-06-12"], variable_coverage: [], units: {},
+      status: "ready", rows: [{
+        date: "2023-06-13", soil_moisture: 0.375, relative_humidity: null, solar_radiation: null,
+        temperature: null, precipitation: null, wind_speed: null, et0: null,
+        origin: "external_reanalysis", quality_flags: [],
+      }], missing_dates: ["2023-06-12"], variable_coverage: [], units: {},
       last_reading_date: null, data_age_days: null, provenance: "external_reanalysis",
     });
 
@@ -321,6 +325,8 @@ describe("HistoricalWalkthrough", () => {
     expect(screen.getByText(/1 fecha sin datos/i)).toBeInTheDocument();
     expect(screen.getByText(/era5-land\/nasa power \(datos externos\)/i)).toBeInTheDocument();
     expect(screen.getAllByText(/sin pronóstico disponible/i)).toHaveLength(2);
+    expect(screen.getAllByText(/37\.5 %/i)).toHaveLength(2);
+    expect(screen.getByText(/18\.0 %/i)).toBeInTheDocument();
   });
 
   it("a submit response from an earlier reveal clock never overrides the card after the clock moved back on the same emission", async () => {

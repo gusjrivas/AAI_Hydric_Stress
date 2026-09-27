@@ -155,6 +155,8 @@ export function HistoricalWalkthrough({ sensorId, defense = false }: { sensorId:
   const alertCount = currentBatch?.slots.filter((slot) => slot.status === "available" && slot.alert).length ?? 0;
   const currentReadings = readingsState.status === "ready" && readingsState.context === context ? readingsState.data : null;
   const variablesWithoutData = currentReadings?.variable_coverage.filter((item) => item.observed_days === 0).length ?? 0;
+  const firstForecast = currentBatch?.slots.find((slot) => slot.status === "available");
+  const emissionReading = currentReadings?.rows.find((row) => row.date === emissionDate);
 
   return (
     <section className="historical-walkthrough" aria-labelledby="historical-walkthrough-title">
@@ -216,6 +218,11 @@ export function HistoricalWalkthrough({ sensorId, defense = false }: { sensorId:
       {defense && currentBatch && <div className={`historical-decision-summary ${alertCount > 0 ? "is-alert" : ""}`}>
         <p className="producer-eyebrow">2 · Pronóstico de la emisión seleccionada</p>
         <strong>{availableCount === 0 ? "No hay pronósticos disponibles" : alertCount === 0 ? `Sin alerta prevista en ${availableCount} horizonte${availableCount === 1 ? "" : "s"} disponible${availableCount === 1 ? "" : "s"}` : `${alertCount} de ${availableCount} horizonte${availableCount === 1 ? "" : "s"} disponible${availableCount === 1 ? "" : "s"} con alerta prevista`}</strong>
+        {firstForecast?.status === "available" && firstForecast.event_threshold.variable === "soil_moisture" && <p className="historical-humidity-context">
+          Objetivo del protocolo: humedad del suelo inferior a <strong>{formatReadingValue("soil_moisture", firstForecast.event_threshold.value, firstForecast.event_threshold.unit)}</strong>.
+          {currentReadings && <> Dato externo al emitir ({displayDate(emissionDate)}): <strong>{emissionReading?.soil_moisture == null ? "no disponible" : formatReadingValue("soil_moisture", emissionReading.soil_moisture, currentReadings.units.soil_moisture)}</strong>.</>}
+          {" "}El dato de humedad y los scores de los modelos son valores distintos.
+        </p>}
         <p>Son decisiones entregadas por el backend para el objetivo de humedad del protocolo. “Sin alerta” no garantiza ausencia de estrés en el cultivo.</p>
       </div>}
       {batchState.status === "ready" && batchState.context === context && (

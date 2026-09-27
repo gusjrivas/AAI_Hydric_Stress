@@ -48,7 +48,8 @@
 .app-defense .historical-quality ul { margin: 4px 0 0; padding-left: 20px; line-height: 1.7; }
 .app-defense .historical-decision-summary { padding: 20px 24px; border: 1px solid var(--color-border); border-radius: 16px; background: #f6f8f7; }
 .app-defense .historical-decision-summary.is-alert { background: #fff8f3; border-color: #f3c9ae; }
-.app-defense .historical-decision-summary strong { display: block; font-size: clamp(1.1rem, 2vw, 1.35rem); line-height: 1.35; }
+.app-defense .historical-decision-summary > strong { display: block; font-size: clamp(1.1rem, 2vw, 1.35rem); line-height: 1.35; }
+.app-defense .historical-humidity-context { margin: 12px 0; line-height: 1.55; }
 .app-defense .historical-decision-summary p:last-child { margin: 8px 0 0; color: var(--color-muted); font-size: .88rem; line-height: 1.5; }
 .app-defense .historical-walkthrough-observations { overflow-x: auto; }
 .app-defense .historical-walkthrough-observations table { min-width: 390px; }
