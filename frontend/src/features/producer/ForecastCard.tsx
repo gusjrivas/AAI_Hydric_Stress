@@ -165,34 +165,41 @@ export function ForecastCard({
     <article className={`forecast-card ${forecast.alert ? "forecast-card-alert" : "forecast-card-clear"}`} aria-label={`Pronóstico para el ${displayForecastDate(forecast.target_date)}`}>
       <header className="forecast-card-header">
         <div>
-          <p className="forecast-card-target">{displayForecastDate(forecast.target_date)}</p>
+          <p className="forecast-card-target">{historicalNotice ? `+${forecast.horizon_days} · Objetivo: ${displayForecastDate(forecast.target_date)}` : displayForecastDate(forecast.target_date)}</p>
           <details className="forecast-card-details"><summary>Ver de cuándo son los datos</summary><p className="forecast-card-meta">
             {HORIZON_LABELS[forecast.horizon_days]} · Emitido el {displayIssuedAt(forecast.issued_at)} a partir de
             datos del {displayForecastDate(forecast.as_of_date)}
           </p></details>
         </div>
         <span className={`forecast-card-badge ${forecast.alert ? "is-alert" : ""}`}>
-          {forecast.alert ? "Alerta" : "Sin alerta"}
+          {historicalNotice ? (forecast.alert ? "Alerta prevista" : "Sin alerta prevista") : (forecast.alert ? "Alerta" : "Sin alerta")}
         </span>
       </header>
 
       <p className="forecast-card-guidance">{forecast.alert ? "Puede haber falta de agua. Revisá cómo está el cultivo." : "No se anticipa una alerta para esta fecha. Seguí observando el cultivo."}</p>
-      <p className="forecast-probability">{forecast.display_probability === null ? "Probabilidad no disponible: todavía no hay un porcentaje respaldado para mostrar." : `Posibilidad de alerta: ${displayProbability(forecast)}`}</p>
+      {historicalNotice && <p className="forecast-card-historical-notice">El resultado refiere al objetivo de baja humedad del protocolo; no es un diagnóstico agronómico validado. La ausencia de alerta no garantiza ausencia de estrés. La falta de datos tampoco equivale a ausencia de alerta.</p>}
+      <p className="forecast-probability">{forecast.probability_status === "not_qualified" || forecast.display_probability === null ? "Probabilidad no disponible: todavía no hay un porcentaje respaldado para mostrar." : `Posibilidad de alerta: ${displayProbability(forecast)}`}</p>
       {forecast.ensemble && (
         <div className="forecast-card-agreement">
-          <p><strong>Acuerdo entre modelos:</strong> {agreementLabel(forecast.ensemble)} ({agreementVotesLabel(forecast.ensemble)}).</p>
+          <p><strong>Acuerdo entre modelos:</strong> {forecast.ensemble.components.length === 3
+            ? `${agreementLabel(forecast.ensemble)} (${agreementVotesLabel(forecast.ensemble)}).`
+            : `${forecast.ensemble.components.length} de 3 modelos disponibles; el faltante no cuenta como voto negativo.`}</p>
           <details>
             <summary>Ver detalle por modelo</summary>
             <ul>
               {forecast.ensemble.components.map((component) => (
                 <li key={component.family}>
-                  {familyLabel(component.family)}: {component.alert ? "indica alerta" : "no indica alerta"}
+                  {familyLabel(component.family)}: score {component.score.toFixed(3)} · {component.alert ? "indica alerta" : "no indica alerta"}
                 </li>
               ))}
             </ul>
+            {forecast.ensemble.components.length < 3 && <p>No disponibles: {(["logistic_regression", "random_forest", "hist_gradient_boosting_classifier"] as const)
+              .filter((family) => !forecast.ensemble?.components.some((component) => component.family === family))
+              .map(familyLabel).join(", ")}.</p>}
           </details>
         </div>
       )}
+      {historicalNotice && !forecast.ensemble && <p>Detalle de los tres modelos no disponible en esta emisión.</p>}
       <p className="forecast-card-review-status">Revisión: {reviewStatusLabel(review.status)}</p>
       {historicalNotice && <p className="forecast-card-historical-notice">{historicalNotice}</p>}
 
@@ -237,7 +244,9 @@ export function ForecastCard({
             void submit();
           }}
         >
-          <p>{reviewActionCopy(forecast)[draft.action]}</p>
+          <p>{historicalNotice
+            ? (draft.action === "confirm" ? "Confirmo la decisión mostrada para este objetivo de humedad." : "Rechazo la decisión mostrada para este objetivo de humedad.")
+            : reviewActionCopy(forecast)[draft.action]}</p>
           <label>
             Comentario (opcional)
             <textarea

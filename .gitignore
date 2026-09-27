@@ -47,6 +47,8 @@ data/feedback__demo-*.parquet
 # tampoco se borran (quedan como evidencia local de cada verificación).
 replay_feedback/
 .demo_replay_sessions/
+.demo-defense-data/
+frontend/.npm-cache/
 
 # ZIP de intercambio para revisión de código entre pasos de este mismo
 # *change*: no son entregables del repositorio, se generan y se leen

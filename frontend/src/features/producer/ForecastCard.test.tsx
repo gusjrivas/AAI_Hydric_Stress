@@ -90,6 +90,21 @@ describe("ForecastCard", () => {
     expect(screen.queryByText(/0 %/)).not.toBeInTheDocument();
   });
 
+  it("treats component values as scores and hides an unqualified display probability", async () => {
+    const component = { family: "logistic_regression" as const, model_reference: baseForecast.model_reference,
+      calibrated_through: "2025-12-31", score: 0.8234, decision_threshold: 0.5, alert: true };
+    render(<ForecastCard sensorId="sensor-a" forecast={{ ...baseForecast, probability_status: "not_qualified",
+      ensemble: { policy_version: "v1", ensemble_identity_sha256: "abc",
+        weights: { logistic_regression: 1 / 3, random_forest: 1 / 3, hist_gradient_boosting_classifier: 1 / 3 },
+        components: [component], combined_probability: 0.8234, combined_alert: true,
+        positive_votes: 1, agreement_category: "posible_alerta_acuerdo_parcial", calibrated_through: "2025-12-31" } }} />);
+    expect(screen.getByText(/probabilidad no disponible/i)).toBeInTheDocument();
+    expect(screen.queryByText(/72 %/)).not.toBeInTheDocument();
+    expect(screen.getByText(/1 de 3 modelos disponibles/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByText(/ver detalle por modelo/i));
+    expect(screen.getByText(/score 0\.823/i)).toBeInTheDocument();
+  });
+
   it("confirms a result with an optional comment and shows the saved outcome without a premature success message", async () => {
     const spy = vi.spyOn(forecastsApi, "submitReview").mockResolvedValue({
       ...baseForecast.review,

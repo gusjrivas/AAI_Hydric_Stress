@@ -1,0 +1,1258 @@
+{
+  "schema_version": "defense-retrospective-aggregate.v1",
+  "source_sha256": {
+    "ui_summary.json": "2b640b360671e03fac9f8223380395667eb8d62df9845d39a2f9f508ce660998",
+    "metrics.json": "6a6a31d35196313061aa4363c98d422f4d1446a9f996d7af51cd93f762e67732"
+  },
+  "period": {
+    "emissions": "2023-01-01..2023-12-31-h",
+    "targets": "2023"
+  },
+  "label": "Evaluacion retrospectiva exploratoria, no independiente: 2023 ya fue utilizado en analisis anteriores del proyecto",
+  "display_probability": false,
+  "limitations": [
+    "retrospective_non_independent_2023_previously_used",
+    "single_site_single_period",
+    "scores_not_operationally_qualified_probabilities",
+    "episode_metrics_descriptive_without_intervals",
+    "no_agronomic_cost_function"
+  ],
+  "horizons": {
+    "1": {
+      "support": {
+        "candidate_emissions": 364,
+        "common_cases": 364,
+        "coverage_fraction": 1
+      },
+      "metrics": {
+        "average": {
+          "average_precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.905406018336297
+          },
+          "brier": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.05498065597808354
+          },
+          "confusion_matrix": {
+            "fn": 5,
+            "fp": 22,
+            "tn": 230,
+            "tp": 107
+          },
+          "delta_mcc_vs_persistence": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.012106094613507201
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8879668049792531
+          },
+          "false_alerts": 22,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8375833129147617
+          },
+          "missed_positive_days": 5,
+          "n": 364,
+          "negatives": 252,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8294573643410853
+          },
+          "prevalence": 0.3076923076923077,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.9553571428571429
+          }
+        },
+        "hist_gradient_boosting_classifier": {
+          "average_precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8911985777278763
+          },
+          "brier": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.05855181026997667
+          },
+          "confusion_matrix": {
+            "fn": 1,
+            "fp": 24,
+            "tn": 228,
+            "tp": 111
+          },
+          "delta_mcc_vs_persistence": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.030479636990326964
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8987854251012146
+          },
+          "false_alerts": 24,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8559568552915815
+          },
+          "missed_positive_days": 1,
+          "n": 364,
+          "negatives": 252,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8222222222222222
+          },
+          "prevalence": 0.3076923076923077,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.9910714285714286
+          }
+        },
+        "logistic_regression": {
+          "average_precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.9472003519631942
+          },
+          "brier": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.05257302834476193
+          },
+          "confusion_matrix": {
+            "fn": 7,
+            "fp": 21,
+            "tn": 231,
+            "tp": 105
+          },
+          "delta_mcc_vs_persistence": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.0031861672395497864
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8823529411764706
+          },
+          "false_alerts": 21,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8286633855408043
+          },
+          "missed_positive_days": 7,
+          "n": 364,
+          "negatives": 252,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8333333333333334
+          },
+          "prevalence": 0.3076923076923077,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.9375
+          }
+        },
+        "majority": {
+          "confusion_matrix": {
+            "fn": 4,
+            "fp": 22,
+            "tn": 230,
+            "tp": 108
+          },
+          "delta_mcc_vs_persistence": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.019259573198666002
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8925619834710744
+          },
+          "false_alerts": 22,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8447367914999205
+          },
+          "missed_positive_days": 4,
+          "n": 364,
+          "negatives": 252,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8307692307692308
+          },
+          "prevalence": 0.3076923076923077,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.9642857142857143
+          }
+        },
+        "persistence": {
+          "confusion_matrix": {
+            "fn": 14,
+            "fp": 13,
+            "tn": 239,
+            "tp": 98
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8789237668161435
+          },
+          "false_alerts": 13,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8254772183012545
+          },
+          "missed_positive_days": 14,
+          "n": 364,
+          "negatives": 252,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8828828828828829
+          },
+          "prevalence": 0.3076923076923077,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.875
+          }
+        },
+        "random_forest": {
+          "average_precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8799079648668673
+          },
+          "brier": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.0628527916015703
+          },
+          "confusion_matrix": {
+            "fn": 5,
+            "fp": 22,
+            "tn": 230,
+            "tp": 107
+          },
+          "delta_mcc_vs_persistence": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.012106094613507201
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8879668049792531
+          },
+          "false_alerts": 22,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8375833129147617
+          },
+          "missed_positive_days": 5,
+          "n": 364,
+          "negatives": 252,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8294573643410853
+          },
+          "prevalence": 0.3076923076923077,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.9553571428571429
+          }
+        }
+      },
+      "episodes": {
+        "confidence_intervals": null,
+        "definition": "consecutive_valid_days_below_p20; gaps_break_and_censor",
+        "episodes_total": 14,
+        "evaluable_for_horizon": 14,
+        "left_censored": 0,
+        "limitation": "descriptive_only_no_episode_bootstrap",
+        "methods": {
+          "average": {
+            "detected_episodes": 9,
+            "evaluable_episodes": 14,
+            "missed_episodes": 5,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0.6428571428571429
+            }
+          },
+          "hist_gradient_boosting_classifier": {
+            "detected_episodes": 13,
+            "evaluable_episodes": 14,
+            "missed_episodes": 1,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0.9285714285714286
+            }
+          },
+          "logistic_regression": {
+            "detected_episodes": 8,
+            "evaluable_episodes": 14,
+            "missed_episodes": 6,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0.5714285714285714
+            }
+          },
+          "majority": {
+            "detected_episodes": 10,
+            "evaluable_episodes": 14,
+            "missed_episodes": 4,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0.7142857142857143
+            }
+          },
+          "persistence": {
+            "detected_episodes": 0,
+            "evaluable_episodes": 14,
+            "missed_episodes": 14,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0
+            }
+          },
+          "random_forest": {
+            "detected_episodes": 9,
+            "evaluable_episodes": 14,
+            "missed_episodes": 5,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0.6428571428571429
+            }
+          }
+        },
+        "right_censored": 1,
+        "starts_determinable": 14
+      },
+      "uncertainty": {
+        "average_minus_majority": {
+          "delta_mcc_ci95": [
+            -0.025701148253739446,
+            0
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        },
+        "average_minus_persistence": {
+          "delta_mcc_ci95": [
+            -0.032154197486823355,
+            0.0651862493690178
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        },
+        "hist_gradient_boosting_classifier_minus_persistence": {
+          "delta_mcc_ci95": [
+            -0.018655128598487447,
+            0.07086106340627606
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        },
+        "logistic_regression_minus_persistence": {
+          "delta_mcc_ci95": [
+            -0.03831075596312795,
+            0.04671891528854568
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        },
+        "majority_minus_persistence": {
+          "delta_mcc_ci95": [
+            -0.028601791415066483,
+            0.07795169041978917
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        },
+        "random_forest_minus_persistence": {
+          "delta_mcc_ci95": [
+            -0.032154197486823355,
+            0.0651862493690178
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        }
+      }
+    },
+    "2": {
+      "support": {
+        "candidate_emissions": 363,
+        "common_cases": 363,
+        "coverage_fraction": 1
+      },
+      "metrics": {
+        "average": {
+          "average_precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7833959510354379
+          },
+          "brier": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.09370278965531575
+          },
+          "confusion_matrix": {
+            "fn": 4,
+            "fp": 40,
+            "tn": 211,
+            "tp": 108
+          },
+          "delta_mcc_vs_persistence": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.0420013165796973
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8307692307692308
+          },
+          "false_alerts": 40,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7565719057595822
+          },
+          "missed_positive_days": 4,
+          "n": 363,
+          "negatives": 251,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7297297297297297
+          },
+          "prevalence": 0.3085399449035813,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.9642857142857143
+          }
+        },
+        "hist_gradient_boosting_classifier": {
+          "average_precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7065574114552293
+          },
+          "brier": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.11393483298183117
+          },
+          "confusion_matrix": {
+            "fn": 5,
+            "fp": 44,
+            "tn": 207,
+            "tp": 107
+          },
+          "delta_mcc_vs_persistence": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.01642802119956388
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8136882129277566
+          },
+          "false_alerts": 44,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7309986103794488
+          },
+          "missed_positive_days": 5,
+          "n": 363,
+          "negatives": 251,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7086092715231788
+          },
+          "prevalence": 0.3085399449035813,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.9553571428571429
+          }
+        },
+        "logistic_regression": {
+          "average_precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.875581876583047
+          },
+          "brier": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.07704147237405308
+          },
+          "confusion_matrix": {
+            "fn": 6,
+            "fp": 29,
+            "tn": 222,
+            "tp": 106
+          },
+          "delta_mcc_vs_persistence": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.0794933507714124
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8582995951417004
+          },
+          "false_alerts": 29,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7940639399512973
+          },
+          "missed_positive_days": 6,
+          "n": 363,
+          "negatives": 251,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7851851851851852
+          },
+          "prevalence": 0.3085399449035813,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.9464285714285714
+          }
+        },
+        "majority": {
+          "confusion_matrix": {
+            "fn": 4,
+            "fp": 41,
+            "tn": 210,
+            "tp": 108
+          },
+          "delta_mcc_vs_persistence": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.037477040939626005
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8275862068965517
+          },
+          "false_alerts": 41,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7520476301195109
+          },
+          "missed_positive_days": 4,
+          "n": 363,
+          "negatives": 251,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7248322147651006
+          },
+          "prevalence": 0.3085399449035813,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.9642857142857143
+          }
+        },
+        "persistence": {
+          "confusion_matrix": {
+            "fn": 23,
+            "fp": 21,
+            "tn": 230,
+            "tp": 89
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8018018018018018
+          },
+          "false_alerts": 21,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7145705891798849
+          },
+          "missed_positive_days": 23,
+          "n": 363,
+          "negatives": 251,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8090909090909091
+          },
+          "prevalence": 0.3085399449035813,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7946428571428571
+          }
+        },
+        "random_forest": {
+          "average_precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7366414090117649
+          },
+          "brier": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.10422199750289445
+          },
+          "confusion_matrix": {
+            "fn": 6,
+            "fp": 43,
+            "tn": 208,
+            "tp": 106
+          },
+          "delta_mcc_vs_persistence": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.013228214351121648
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8122605363984674
+          },
+          "false_alerts": 43,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7277988035310066
+          },
+          "missed_positive_days": 6,
+          "n": 363,
+          "negatives": 251,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7114093959731543
+          },
+          "prevalence": 0.3085399449035813,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.9464285714285714
+          }
+        }
+      },
+      "episodes": {
+        "confidence_intervals": null,
+        "definition": "consecutive_valid_days_below_p20; gaps_break_and_censor",
+        "episodes_total": 14,
+        "evaluable_for_horizon": 14,
+        "left_censored": 0,
+        "limitation": "descriptive_only_no_episode_bootstrap",
+        "methods": {
+          "average": {
+            "detected_episodes": 10,
+            "evaluable_episodes": 14,
+            "missed_episodes": 4,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0.7142857142857143
+            }
+          },
+          "hist_gradient_boosting_classifier": {
+            "detected_episodes": 10,
+            "evaluable_episodes": 14,
+            "missed_episodes": 4,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0.7142857142857143
+            }
+          },
+          "logistic_regression": {
+            "detected_episodes": 8,
+            "evaluable_episodes": 14,
+            "missed_episodes": 6,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0.5714285714285714
+            }
+          },
+          "majority": {
+            "detected_episodes": 10,
+            "evaluable_episodes": 14,
+            "missed_episodes": 4,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0.7142857142857143
+            }
+          },
+          "persistence": {
+            "detected_episodes": 3,
+            "evaluable_episodes": 14,
+            "missed_episodes": 11,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0.21428571428571427
+            }
+          },
+          "random_forest": {
+            "detected_episodes": 10,
+            "evaluable_episodes": 14,
+            "missed_episodes": 4,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0.7142857142857143
+            }
+          }
+        },
+        "right_censored": 1,
+        "starts_determinable": 14
+      },
+      "uncertainty": {
+        "average_minus_majority": {
+          "delta_mcc_ci95": [
+            0,
+            0.01739070940695305
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        },
+        "average_minus_persistence": {
+          "delta_mcc_ci95": [
+            -0.02209038313630368,
+            0.1197199282574384
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        },
+        "hist_gradient_boosting_classifier_minus_persistence": {
+          "delta_mcc_ci95": [
+            -0.053276604074978036,
+            0.09477729333399772
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        },
+        "logistic_regression_minus_persistence": {
+          "delta_mcc_ci95": [
+            0.026910246549013712,
+            0.16621953421751506
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        },
+        "majority_minus_persistence": {
+          "delta_mcc_ci95": [
+            -0.030933771315357753,
+            0.11503314103478661
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        },
+        "random_forest_minus_persistence": {
+          "delta_mcc_ci95": [
+            -0.05359875171438335,
+            0.10146060237663349
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        }
+      }
+    },
+    "3": {
+      "support": {
+        "candidate_emissions": 362,
+        "common_cases": 362,
+        "coverage_fraction": 1
+      },
+      "metrics": {
+        "average": {
+          "average_precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.6873718907918217
+          },
+          "brier": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.1258408087743996
+          },
+          "confusion_matrix": {
+            "fn": 7,
+            "fp": 52,
+            "tn": 198,
+            "tp": 105
+          },
+          "delta_mcc_vs_persistence": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.06453664474298004
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7806691449814126
+          },
+          "false_alerts": 52,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.680420759168571
+          },
+          "missed_positive_days": 7,
+          "n": 362,
+          "negatives": 250,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.6687898089171974
+          },
+          "prevalence": 0.30939226519337015,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.9375
+          }
+        },
+        "hist_gradient_boosting_classifier": {
+          "average_precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.619157105356621
+          },
+          "brier": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.1527643595807823
+          },
+          "confusion_matrix": {
+            "fn": 8,
+            "fp": 66,
+            "tn": 184,
+            "tp": 104
+          },
+          "delta_mcc_vs_persistence": {
+            "reason": null,
+            "status": "defined",
+            "value": -0.00035924218455885004
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7375886524822695
+          },
+          "false_alerts": 66,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.6155248722410321
+          },
+          "missed_positive_days": 8,
+          "n": 362,
+          "negatives": 250,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.611764705882353
+          },
+          "prevalence": 0.30939226519337015,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.9285714285714286
+          }
+        },
+        "logistic_regression": {
+          "average_precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8153355271743035
+          },
+          "brier": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.10424439391918819
+          },
+          "confusion_matrix": {
+            "fn": 11,
+            "fp": 39,
+            "tn": 211,
+            "tp": 101
+          },
+          "delta_mcc_vs_persistence": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.09198435940668337
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.8015873015873016
+          },
+          "false_alerts": 39,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7078684738322744
+          },
+          "missed_positive_days": 11,
+          "n": 362,
+          "negatives": 250,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7214285714285714
+          },
+          "prevalence": 0.30939226519337015,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.9017857142857143
+          }
+        },
+        "majority": {
+          "confusion_matrix": {
+            "fn": 6,
+            "fp": 58,
+            "tn": 192,
+            "tp": 106
+          },
+          "delta_mcc_vs_persistence": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.047527867462751616
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7681159420289855
+          },
+          "false_alerts": 58,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.6634119818883426
+          },
+          "missed_positive_days": 6,
+          "n": 362,
+          "negatives": 250,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.6463414634146342
+          },
+          "prevalence": 0.30939226519337015,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.9464285714285714
+          }
+        },
+        "persistence": {
+          "confusion_matrix": {
+            "fn": 31,
+            "fp": 28,
+            "tn": 222,
+            "tp": 81
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7330316742081447
+          },
+          "false_alerts": 28,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.615884114425591
+          },
+          "missed_positive_days": 31,
+          "n": 362,
+          "negatives": 250,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7431192660550459
+          },
+          "prevalence": 0.30939226519337015,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7232142857142857
+          }
+        },
+        "random_forest": {
+          "average_precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.6441176902722913
+          },
+          "brier": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.14069743479428026
+          },
+          "confusion_matrix": {
+            "fn": 7,
+            "fp": 59,
+            "tn": 191,
+            "tp": 105
+          },
+          "delta_mcc_vs_persistence": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.035522511661732814
+          },
+          "f1": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.7608695652173914
+          },
+          "false_alerts": 59,
+          "mcc": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.6514066260873238
+          },
+          "missed_positive_days": 7,
+          "n": 362,
+          "negatives": 250,
+          "positives": 112,
+          "precision": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.6402439024390244
+          },
+          "prevalence": 0.30939226519337015,
+          "recall": {
+            "reason": null,
+            "status": "defined",
+            "value": 0.9375
+          }
+        }
+      },
+      "episodes": {
+        "confidence_intervals": null,
+        "definition": "consecutive_valid_days_below_p20; gaps_break_and_censor",
+        "episodes_total": 14,
+        "evaluable_for_horizon": 14,
+        "left_censored": 0,
+        "limitation": "descriptive_only_no_episode_bootstrap",
+        "methods": {
+          "average": {
+            "detected_episodes": 9,
+            "evaluable_episodes": 14,
+            "missed_episodes": 5,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0.6428571428571429
+            }
+          },
+          "hist_gradient_boosting_classifier": {
+            "detected_episodes": 11,
+            "evaluable_episodes": 14,
+            "missed_episodes": 3,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0.7857142857142857
+            }
+          },
+          "logistic_regression": {
+            "detected_episodes": 6,
+            "evaluable_episodes": 14,
+            "missed_episodes": 8,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0.42857142857142855
+            }
+          },
+          "majority": {
+            "detected_episodes": 11,
+            "evaluable_episodes": 14,
+            "missed_episodes": 3,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0.7857142857142857
+            }
+          },
+          "persistence": {
+            "detected_episodes": 3,
+            "evaluable_episodes": 14,
+            "missed_episodes": 11,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0.21428571428571427
+            }
+          },
+          "random_forest": {
+            "detected_episodes": 11,
+            "evaluable_episodes": 14,
+            "missed_episodes": 3,
+            "recall": {
+              "reason": null,
+              "status": "defined",
+              "value": 0.7857142857142857
+            }
+          }
+        },
+        "right_censored": 1,
+        "starts_determinable": 14
+      },
+      "uncertainty": {
+        "average_minus_majority": {
+          "delta_mcc_ci95": [
+            -0.012834785369742068,
+            0.0681272146706817
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        },
+        "average_minus_persistence": {
+          "delta_mcc_ci95": [
+            -0.0423228743707863,
+            0.15406163607172343
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        },
+        "hist_gradient_boosting_classifier_minus_persistence": {
+          "delta_mcc_ci95": [
+            -0.12761425417793526,
+            0.09299610834391957
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        },
+        "logistic_regression_minus_persistence": {
+          "delta_mcc_ci95": [
+            0.009648453717610703,
+            0.19449821990710625
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        },
+        "majority_minus_persistence": {
+          "delta_mcc_ci95": [
+            -0.06964239924182308,
+            0.137188764378184
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        },
+        "random_forest_minus_persistence": {
+          "delta_mcc_ci95": [
+            -0.09312343878229488,
+            0.13752438882990917
+          ],
+          "reason": null,
+          "replicates_defined": 5000,
+          "replicates_discarded_undefined": 0,
+          "status": "defined"
+        }
+      }
+    }
+  }
+}

@@ -185,6 +185,24 @@ def test_historical_review_is_gated_by_the_simulated_clock_not_real_now(client, 
     assert on_time.status_code == 201
     assert on_time.json()["revision"] == 1
 
+    # Volver el reloj a DAY_A no revela la decisión ni el comentario
+    # registrados en DAY_B; al avanzar otra vez, se recuperan intactos.
+    rewound = http.get(f"/api/v2/sensors/{SENSOR_ID}/historical/{DAY_A.isoformat()}/forecasts")
+    earlier_review = next(s for s in rewound.json()["slots"] if s["horizon_days"] == 1)["review"]
+    assert earlier_review["status"] == "pending"
+    assert earlier_review["revision"] == 0
+    assert earlier_review["latest_review"] is None
+    assert earlier_review["reviewable"] is False
+
+    revealed = http.get(
+        f"/api/v2/sensors/{SENSOR_ID}/historical/{DAY_A.isoformat()}/forecasts",
+        params={"revealed_through": DAY_B.isoformat()},
+    )
+    later_review = next(s for s in revealed.json()["slots"] if s["horizon_days"] == 1)["review"]
+    assert later_review["status"] == "confirmed"
+    assert later_review["revision"] == 1
+    assert later_review["latest_review"]["comment"].startswith("PRUEBA TECNICA")
+
 
 def test_reviewing_a_later_emissions_forecast_is_refused_from_an_earlier_historical_date(
     client, bundle_root

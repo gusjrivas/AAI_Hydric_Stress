@@ -101,6 +101,14 @@ describe("App — navegación por hash (Entrega 2)", () => {
     vi.spyOn(lineageApi, "getLineage").mockResolvedValue({ sensor_id: "sensor-a", chain: [] });
   });
 
+  it("keeps the defense route when keyboard users skip to the main content", async () => {
+    window.location.hash = "#defensa-pergamino";
+    render(<App />);
+    await userEvent.click(screen.getByRole("link", { name: /saltar al contenido/i }));
+    expect(window.location.hash).toBe("#defensa-pergamino");
+    expect(screen.getByRole("heading", { name: "Recorrido histórico", level: 1 })).toBeInTheDocument();
+  });
+
   it("opens on Resumen by default and shows the five destinations in the nav", async () => {
     render(<App />);
 

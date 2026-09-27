@@ -26,6 +26,40 @@ function batchFor(asOfDate: string, targetSuffix: string): ForecastBatch {
 }
 
 describe("HistoricalWalkthrough", () => {
+  it("shows a recoverable reading error instead of leaving posterior observations loading", async () => {
+    vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockResolvedValue(batchFor("2023-06-13", "13"));
+    const readings = vi.spyOn(historicalApi, "getHistoricalReadings")
+      .mockRejectedValueOnce(new Error("Sin conexión"))
+      .mockResolvedValueOnce({
+        sensor_id: "pergamino-ensemble-demo", calendar_timezone: "UTC", server_today: "2023-06-13",
+        snapshot_id: null, window: { start_date: "2023-06-04", end_date: "2023-06-13", expected_days: 10 },
+        status: "ready", rows: [], missing_dates: ["2023-06-13"], variable_coverage: [], units: {},
+        last_reading_date: null, data_age_days: null, provenance: "external_reanalysis",
+      });
+    render(<HistoricalWalkthrough sensorId="pergamino-ensemble-demo" defense />);
+    expect(await screen.findAllByText(/no se pudo consultar la observación/i)).not.toHaveLength(0);
+    expect(screen.queryByText(/cargando dato posterior/i)).not.toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole("button", { name: /reintentar lecturas/i })[0]);
+    await waitFor(() => expect(readings).toHaveBeenCalledTimes(2));
+    expect(await screen.findAllByText(/dato faltante en la fuente/i)).not.toHaveLength(0);
+  });
+
+  it("limits defense navigation to the five persisted emission dates and does not show a later target as observed", async () => {
+    vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockResolvedValue(batchFor("2023-06-13", "14"));
+    vi.spyOn(historicalApi, "getHistoricalReadings").mockResolvedValue({
+      sensor_id: "pergamino-ensemble-demo", calendar_timezone: "UTC", server_today: "2023-06-13",
+      snapshot_id: null, window: { start_date: "2023-06-04", end_date: "2023-06-13", expected_days: 10 },
+      status: "ready", rows: [], missing_dates: ["2023-06-12"], variable_coverage: [], units: {},
+      last_reading_date: null, data_age_days: null, provenance: "external_reanalysis",
+    });
+    render(<HistoricalWalkthrough sensorId="pergamino-ensemble-demo" defense />);
+    const select = screen.getByLabelText(/emisión seleccionada/i);
+    expect(select).toHaveValue("2023-06-13");
+    expect(screen.getAllByRole("option")).toHaveLength(5);
+    expect(await screen.findAllByText(/todavía no disponible según el reloj/i)).toHaveLength(3);
+    expect(screen.getByText(/1 fecha sin datos/i)).toBeInTheDocument();
+    expect(historicalApi.getHistoricalForecastBatch).toHaveBeenCalledWith("pergamino-ensemble-demo", "2023-06-13", undefined);
+  });
   it("keeps the emission date and the walked-forward reveal date visually separate, never merged", async () => {
     vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockResolvedValue(batchFor("2023-06-13", "14"));
     vi.spyOn(historicalApi, "getHistoricalReadings").mockResolvedValue({
@@ -270,6 +304,30 @@ describe("HistoricalWalkthrough", () => {
       ensemble: null,
     };
   }
+
+  it("distinguishes an alert from missing horizons in the defense summary", async () => {
+    const batch = batchFor("2023-06-13", "14");
+    batch.slots[0] = { ...slotWithReviewable(false), alert: true };
+    vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockResolvedValue(batch);
+    vi.spyOn(historicalApi, "getHistoricalReadings").mockResolvedValue({
+      sensor_id: "pergamino-ensemble-demo", calendar_timezone: "UTC", server_today: "2023-06-13",
+      snapshot_id: null, window: { start_date: "2023-06-04", end_date: "2023-06-13", expected_days: 10 },
+      status: "ready", rows: [{
+        date: "2023-06-13", soil_moisture: 0.375, relative_humidity: null, solar_radiation: null,
+        temperature: null, precipitation: null, wind_speed: null, et0: null,
+        origin: "external_reanalysis", quality_flags: [],
+      }], missing_dates: ["2023-06-12"], variable_coverage: [], units: {},
+      last_reading_date: null, data_age_days: null, provenance: "external_reanalysis",
+    });
+
+    render(<HistoricalWalkthrough sensorId="pergamino-ensemble-demo" defense />);
+    expect(await screen.findByText("1 de 1 horizonte disponible con alerta prevista")).toBeInTheDocument();
+    expect(screen.getByText(/1 fecha sin datos/i)).toBeInTheDocument();
+    expect(screen.getByText(/era5-land\/nasa power \(datos externos\)/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/sin pronóstico disponible/i)).toHaveLength(2);
+    expect(screen.getAllByText(/37\.5 %/i)).toHaveLength(2);
+    expect(screen.getByText(/18\.0 %/i)).toBeInTheDocument();
+  });
 
   it("a submit response from an earlier reveal clock never overrides the card after the clock moved back on the same emission", async () => {
     // Misma emisión (13/06) en todo momento: solo cambia `revealedThrough`
