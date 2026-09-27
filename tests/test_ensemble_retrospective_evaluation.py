@@ -143,7 +143,7 @@ def _inference_frame() -> pd.DataFrame:
 
 
 def test_stream_filter_happens_before_numeric_ingestion_and_future_values_have_no_influence(
-    tmp_path,
+    tmp_path, monkeypatch
 ):
     first = tmp_path / "first"
     second = tmp_path / "second"
@@ -152,6 +152,14 @@ def test_stream_filter_happens_before_numeric_ingestion_and_future_values_have_n
     era5_a, nasa_a = _write_mixed_pair(first, future_value=999.0)
     era5_b, nasa_b = _write_mixed_pair(second, future_value=-999.0)
     filtered = []
+    sources = {era5_a.resolve(), nasa_a.resolve(), era5_b.resolve(), nasa_b.resolve()}
+    original_sha256_file = evaluation.sha256_file
+
+    def reject_second_source_read(path):
+        assert Path(path).resolve() not in sources
+        return original_sha256_file(path)
+
+    monkeypatch.setattr(evaluation, "sha256_file", reject_second_source_read)
     for index, (era5, nasa) in enumerate(((era5_a, nasa_a), (era5_b, nasa_b))):
         out_era5 = tmp_path / f"era5-{index}.csv"
         out_nasa = tmp_path / f"nasa-{index}.csv"
@@ -160,8 +168,42 @@ def test_stream_filter_happens_before_numeric_ingestion_and_future_values_have_n
         assert era_record["rows_excluded_after_2023"] == 48
         assert nasa_record["rows_excluded_after_2023"] == 2
         assert era_record["future_bytes_traversed_values_not_parsed_or_aggregated"] is True
+        assert era_record["source_read_passes"] == 1
+        assert nasa_record["source_read_passes"] == 1
+        assert era_record["source_signature_initial"] == era_record["source_signature_final"]
         filtered.append((out_era5.read_bytes(), out_nasa.read_bytes()))
     assert filtered[0] == filtered[1]
+
+
+def test_stream_filter_fails_closed_when_source_signature_changes():
+    with pytest.raises(evaluation.EvaluationError, match="cambio durante"):
+        evaluation._assert_source_stable(
+            {"size": 100, "mtime_ns": 1},
+            {"size": 101, "mtime_ns": 2},
+        )
+
+
+def test_frozen_identity_rejects_manifest_or_bundle_substitution(tmp_path):
+    expected = evaluation.EXPECTED_COMPONENT_HASHES[1]["logistic_regression"]
+    substituted = dict(expected)
+    substituted["model.joblib"] = "0" * 64
+    with pytest.raises(evaluation.EvaluationError, match="run_manifest sustituido"):
+        evaluation._assert_frozen_component_identity(
+            1, "logistic_regression", expected, substituted
+        )
+    with pytest.raises(evaluation.EvaluationError, match="bundle sustituido"):
+        evaluation._assert_frozen_component_identity(
+            1, "logistic_regression", substituted, expected
+        )
+
+    fake_manifest = tmp_path / "run_manifest.json"
+    fake_manifest.write_text("{}", encoding="utf-8")
+    with pytest.raises(evaluation.EvaluationError, match="identidad predeclarada"):
+        evaluation._require_file_sha256(
+            fake_manifest,
+            evaluation.EXPECTED_RUN_MANIFEST_SHA256,
+            "run_manifest",
+        )
 
 
 def test_restricted_ingestion_preserves_missing_sentinel_and_hourly_coverage_controls(tmp_path):
@@ -179,13 +221,32 @@ def test_restricted_ingestion_preserves_missing_sentinel_and_hourly_coverage_con
         duplicate_hour=(date(2023, 1, 2), 11),
     )
     _write_nasa(nasa, weather)
-    frame, details = evaluation.build_restricted_daily_frame(era5, nasa)
+    frame, observations, details = evaluation.build_restricted_daily_frame(era5, nasa)
     assert details["duplicate_timestamps"] == 0
     jan1 = frame.loc[frame["timestamp"] == pd.Timestamp("2023-01-01")].iloc[0]
     jan2 = frame.loc[frame["timestamp"] == pd.Timestamp("2023-01-02")].iloc[0]
     assert pd.isna(jan1["relative_humidity"])
     assert pd.isna(jan2["soil_moisture"])
     assert details["missing_by_column"]["soil_moisture"] == 1
+    assert len(observations) == len(days)
+
+
+def test_era5_observations_survive_a_missing_nasa_feature_day(tmp_path):
+    days = _days(date(2022, 12, 26), date(2023, 1, 4))
+    missing_nasa_day = date(2023, 1, 2)
+    era5 = tmp_path / "era5.csv"
+    nasa = tmp_path / "nasa.csv"
+    _write_era5(era5, {day: 0.2 if day == missing_nasa_day else 0.4 for day in days})
+    _write_nasa(
+        nasa,
+        {day: (60.0, 20.0) for day in days if day != missing_nasa_day},
+    )
+    frame, observations, _ = evaluation.build_restricted_daily_frame(era5, nasa)
+    assert pd.Timestamp(missing_nasa_day) not in set(frame["timestamp"])
+    observed = observations.set_index("timestamp")
+    assert observed.at[pd.Timestamp(missing_nasa_day), "soil_moisture"] == pytest.approx(0.2)
+    episodes = evaluation.observed_episodes(observations, 0.3)
+    assert any(item["start"] == missing_nasa_day.isoformat() for item in episodes)
 
 
 @pytest.mark.parametrize("horizon", [1, 2, 3])
@@ -284,8 +345,14 @@ def test_target_bounds_persistence_common_cases_and_fixed_p20(tmp_path, monkeypa
     monkeypatch.setattr(evaluation, "predict_ensemble_bundle", fake_ensemble)
     days = pd.date_range("2022-12-26", "2023-12-31", freq="D")
     moisture = np.full(len(days), 0.4)
-    moisture[(days == pd.Timestamp("2023-06-02"))] = 0.2
+    moisture[(days == pd.Timestamp("2023-06-04"))] = 0.2
     moisture[(days == pd.Timestamp("2023-07-01"))] = np.nan
+    observations = pd.DataFrame(
+        {
+            "timestamp": days,
+            "soil_moisture": moisture,
+        }
+    )
     frame = pd.DataFrame(
         {
             "timestamp": days,
@@ -294,11 +361,13 @@ def test_target_bounds_persistence_common_cases_and_fixed_p20(tmp_path, monkeypa
             "solar_radiation": 20.0,
         }
     )
-    rows, summary = evaluation.evaluate_horizon(frame, Ensemble(), 3)
+    # Simula ausencia NASA en el dia target: no debe borrar la observacion ERA5.
+    frame = frame.loc[frame["timestamp"] != pd.Timestamp("2023-06-04")].reset_index(drop=True)
+    rows, summary = evaluation.evaluate_horizon(frame, observations, Ensemble(), 3)
     assert rows[-1]["target_date"] == "2023-12-31"
     assert all(date.fromisoformat(row["target_date"]).year == 2023 for row in rows)
     june = next(row for row in rows if row["emission_date"] == "2023-06-01")
-    assert june["target"] == 0
+    assert june["target"] == 1
     assert june["persistence_alert"] == 0
     assert summary["physical_threshold_p20"] == 0.3
     assert summary["exclusions"]["invalid_target_observation"] == 1
