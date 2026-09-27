@@ -39,12 +39,23 @@ mayoria queda como comparacion secundaria: cambia deteccion por falsas alertas
 y no muestra una ventaja uniforme. Elegir entre ambas exige costos de uso o
 criterio experto que esta evaluacion no aporta.
 
+Tres niveles no intercambiables resumen el alcance: (1) carga, inferencia,
+linaje y cobertura acreditan **integracion tecnica**; (2) las metricas de 2023
+acreditan solo **desempeno historico exploratorio no independiente** de estos
+artefactos; (3) no existe **evidencia confirmatoria** nueva ni validacion
+agronomica. Ningun resultado de `controlled_daily_v3` o de la campana v4 se
+transfiere a estos nueve bundles.
+
 ## Identidad, ejecucion y custodia
 
 - Rama: `feat/ensemble-retrospective-evaluation`.
 - SHA ejecutable: `1e27ad46c1533dffd5b087c824f6e4cf710cbc17`.
 - Protocolo SHA-256:
   `6525f639276d5f809a701336090c58cc9dce888bd49f092b97af792c90201fdf`.
+- `execution_manifest.json` canonico SHA-256:
+  `780386ff58b490a452d77f968e61efcd15b998a97d28de2f908ab1a346d9d33b`.
+- `metrics.json` canonico SHA-256:
+  `6a6a31d35196313061aa4363c98d422f4d1446a9f996d7af51cd93f762e67732`.
 - Runtime de bundles:
   `C:\Repo\AAI_Hydric_Stress_ensemble_demo_runtime\pergamino-ensemble-demo-2026-09-26T034114Z`.
 - Salida canonica completada (primera por orden temporal):
@@ -109,6 +120,18 @@ resultado confirmatorio ni como replica doble.
 
 ## Resultados diarios sobre casos comunes
 
+### Soporte y condiciones
+
+| h | candidatos/comunes | cobertura | P20 | umbral | pos/neg | prevalencia | caso B | episodios | inicios det. | censura izq./der. | HGB/LR/RF disponibles | exclusiones |
+| --- | --- | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | --- | --- | ---: |
+| +1 | 364/364 | 1.0000 | 0.3131 | 0.5000 | 112/252 | 0.3077 | 14 | 14 | 14 | 0/1 | 364/364/364 | 0 |
+| +2 | 363/363 | 1.0000 | 0.3131 | 0.5000 | 112/251 | 0.3085 | 23 | 14 | 14 | 0/1 | 363/363/363 | 0 |
+| +3 | 362/362 | 1.0000 | 0.3131 | 0.5000 | 112/250 | 0.3094 | 31 | 14 | 14 | 0/1 | 362/362/362 | 0 |
+
+`Caso B` significa estado no seco en `t` y observacion bajo P20 en `t+h`.
+Todos los metodos de cada horizonte usan los mismos casos comunes; la
+disponibilidad individual se conserva para no ocultar fallos.
+
 `Pos` es la cantidad de targets bajo P20. AP y Brier solo corresponden a
 familias y promedio; persistencia es una prediccion determinista y mayoria no
 es un modelo probabilistico.
@@ -144,21 +167,29 @@ IC95 de `MCC(metodo)-MCC(referencia)`, bootstrap pareado no circular de bloques
 de 30 dias, 5000/5000 replicas validas. Los IC son exploratorios y no corrigen
 multiplicidad.
 
-| h | comparacion | delta puntual | IC95 | lectura limitada |
-| --- | --- | ---: | --- | --- |
-| +1 | promedio - persistencia | 0.0121 | [-0.0322, 0.0652] | diferencia incierta |
-| +1 | mayoria - persistencia | 0.0193 | [-0.0286, 0.0780] | diferencia incierta |
-| +1 | promedio - mayoria | -0.0072 | [-0.0257, 0.0000] | no respalda superioridad del promedio |
-| +2 | LR - persistencia | 0.0795 | [0.0269, 0.1662] | señal exploratoria positiva |
-| +2 | promedio - persistencia | 0.0420 | [-0.0221, 0.1197] | diferencia incierta |
-| +2 | mayoria - persistencia | 0.0375 | [-0.0309, 0.1150] | diferencia incierta |
-| +2 | promedio - mayoria | 0.0045 | [0.0000, 0.0174] | diferencia pequeña, secundaria |
-| +3 | LR - persistencia | 0.0920 | [0.0096, 0.1945] | señal exploratoria positiva |
-| +3 | promedio - persistencia | 0.0645 | [-0.0423, 0.1541] | diferencia incierta |
-| +3 | mayoria - persistencia | 0.0475 | [-0.0696, 0.1372] | diferencia incierta |
-| +3 | promedio - mayoria | 0.0170 | [-0.0128, 0.0681] | diferencia incierta |
+| h | comparacion | delta MCC | IC95 | replicas validas |
+| --- | --- | ---: | --- | ---: |
+| +1 | HGB - persistencia | 0.0305 | [-0.0187, 0.0709] | 5000/5000 |
+| +1 | LR - persistencia | 0.0032 | [-0.0383, 0.0467] | 5000/5000 |
+| +1 | RF - persistencia | 0.0121 | [-0.0322, 0.0652] | 5000/5000 |
+| +1 | promedio - persistencia | 0.0121 | [-0.0322, 0.0652] | 5000/5000 |
+| +1 | mayoria - persistencia | 0.0193 | [-0.0286, 0.0780] | 5000/5000 |
+| +1 | promedio - mayoria | -0.0072 | [-0.0257, 0.0000] | 5000/5000 |
+| +2 | HGB - persistencia | 0.0164 | [-0.0533, 0.0948] | 5000/5000 |
+| +2 | LR - persistencia | 0.0795 | [0.0269, 0.1662] | 5000/5000 |
+| +2 | RF - persistencia | 0.0132 | [-0.0536, 0.1015] | 5000/5000 |
+| +2 | promedio - persistencia | 0.0420 | [-0.0221, 0.1197] | 5000/5000 |
+| +2 | mayoria - persistencia | 0.0375 | [-0.0309, 0.1150] | 5000/5000 |
+| +2 | promedio - mayoria | 0.0045 | [0.0000, 0.0174] | 5000/5000 |
+| +3 | HGB - persistencia | -0.0004 | [-0.1276, 0.0930] | 5000/5000 |
+| +3 | LR - persistencia | 0.0920 | [0.0096, 0.1945] | 5000/5000 |
+| +3 | RF - persistencia | 0.0355 | [-0.0931, 0.1375] | 5000/5000 |
+| +3 | promedio - persistencia | 0.0645 | [-0.0423, 0.1541] | 5000/5000 |
+| +3 | mayoria - persistencia | 0.0475 | [-0.0696, 0.1372] | 5000/5000 |
+| +3 | promedio - mayoria | 0.0170 | [-0.0128, 0.0681] | 5000/5000 |
 
-Los restantes IC familia-persistencia cruzaron cero. Ausencia de diferencia
+Solo LR frente a persistencia en +2 y +3 tuvo limite inferior estrictamente
+positivo. Los demas intervalos cruzaron o tocaron cero; ausencia de diferencia
 no demuestra equivalencia.
 
 ## Deteccion, falsas alertas y episodios
@@ -175,11 +206,11 @@ Hubo 14 episodios observados bajo P20, todos con inicio determinable para los
 tres horizontes; uno quedo censurado a derecha. Deteccion descriptiva de
 inicios (detectados/14):
 
-| h | promedio | mayoria | persistencia | HGB | LR | RF |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| +1 | 9 | 10 | 0 | 13 | 8 | 9 |
-| +2 | 10 | 10 | 3 | 10 | 8 | 10 |
-| +3 | 9 | 11 | 3 | 11 | 6 | 11 |
+| h | HGB | LR | RF | promedio | persistencia | mayoria | total/inicios det. | censura izq./der. |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| +1 | 13/14 | 8/14 | 9/14 | 9/14 | 0/14 | 10/14 | 14/14 | 0/1 |
+| +2 | 10/14 | 8/14 | 10/14 | 10/14 | 3/14 | 10/14 | 14/14 | 0/1 |
+| +3 | 11/14 | 6/14 | 11/14 | 9/14 | 3/14 | 11/14 | 14/14 | 0/1 |
 
 En los casos diarios no secos en `t` que estaban bajo P20 en `t+h`, el
 promedio detecto 9/14, 19/23 y 24/31; mayoria 10/14, 19/23 y 26/31;
@@ -242,3 +273,9 @@ En la salida canonica: `execution_manifest.json`, `predictions.csv`,
 `restricted_inputs/`. El log de la ejecucion duplicada esta junto a su carpeta
 de salida con sufijo `.log`. Este informe referencia esos artefactos; no
 duplica las predicciones fechadas ni las curvas completas.
+
+Las tablas agregadas versionadas, derivadas sin leer predicciones, estan en
+`docs/research/tables/ensemble-retrospective-2023/`. Sus CSV conservan la
+precision numerica del JSON fuente y representan valores no disponibles como
+campo vacio mas `status`/`reason`, nunca como cero. El README de ese directorio
+registra hashes, identidad ejecutable/protocolo y comando de regeneracion.
