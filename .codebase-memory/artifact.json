@@ -1,0 +1,12 @@
+{
+    "schema_version": 2,
+    "commit": "bc7042bef068f79c70463125eaaf3065f0c9fcf1",
+    "indexed_at": "2026-09-27T02:14:51Z",
+    "project": "C-Repo-AAI_Hydric_Stress",
+    "nodes": 12900,
+    "edges": 35013,
+    "original_size": 40435712,
+    "compressed_size": 5198977,
+    "compression_level": 9,
+    "reconcile_basis": "git-clean-head"
+}
