@@ -1,0 +1,4 @@
+horizon_days,candidate_emissions,common_cases,coverage_fraction,physical_threshold_p20,decision_threshold,positives,negatives,prevalence,case_b_n,episodes_total,starts_determinable,left_censored,right_censored,evaluable_episodes,hgb_available,lr_available,rf_available,exclusions
+1,364,364,1.0,0.3130583333333333,0.5,112,252,0.3076923076923077,14,14,14,0,1,14,364,364,364,
+2,363,363,1.0,0.3130583333333333,0.5,112,251,0.3085399449035813,23,14,14,0,1,14,363,363,363,
+3,362,362,1.0,0.3130583333333333,0.5,112,250,0.30939226519337015,31,14,14,0,1,14,362,362,362,
