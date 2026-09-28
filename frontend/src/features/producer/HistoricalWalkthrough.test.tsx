@@ -439,4 +439,46 @@ describe("HistoricalWalkthrough", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(await screen.findAllByRole("button", { name: /confirmar resultado/i })).not.toHaveLength(0);
   });
+
+  it("generalizes to a second real site (Melchor Romero) without leaking Pergamino's dates, reveal limit, or provenance text, and resets cleanly A -> B -> A", async () => {
+    const resolvers: Array<(batch: ForecastBatch) => void> = [];
+    vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockImplementation(
+      () => new Promise((resolve) => resolvers.push(resolve)),
+    );
+    vi.spyOn(historicalApi, "getHistoricalReadings").mockReturnValue(new Promise(() => {}));
+
+    const view = render(<HistoricalWalkthrough sensorId="pergamino-ensemble-demo" defense />);
+    expect(screen.getByLabelText(/emisión seleccionada/i)).toHaveValue("2023-06-13");
+    expect(screen.getByText(/Origen: Pergamino/i)).toBeInTheDocument();
+    await waitFor(() => expect(resolvers).toHaveLength(1));
+
+    // A (Pergamino) -> B (Melchor Romero): a different site, own dates,
+    // own reveal limit, own provenance text -- never Pergamino's.
+    view.rerender(
+      <HistoricalWalkthrough
+        sensorId="melchor-romero-demo"
+        defense
+        availableDates={["2024-10-20", "2024-10-21", "2024-10-22", "2024-10-23", "2024-10-24"]}
+        revealMax="2024-10-27"
+        provenanceNotice={<p className="historical-provenance">Origen: Melchor Romero · ESA CCI/NASA POWER.</p>}
+      />,
+    );
+    expect(screen.getByLabelText(/emisión seleccionada/i)).toHaveValue("2024-10-20");
+    expect(screen.getByText(/Origen: Melchor Romero/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Origen: Pergamino/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/13 al 17 de junio/i)).not.toBeInTheDocument();
+
+    // Pergamino's stale in-flight response must never populate Melchor
+    // Romero's screen after the switch: the clock still reflects Melchor
+    // Romero's own selected emission (2024-10-20), never Pergamino's.
+    await act(async () => { resolvers[0](batchFor("2023-06-13", "14")); });
+    expect(screen.getByText(/viendo la emisión del/i)).toHaveTextContent(/20 de oct de 2024/i);
+    expect(screen.queryByText(/13 de jun/i)).not.toBeInTheDocument();
+
+    // B -> A again: back to Pergamino, with no Melchor Romero residue.
+    view.rerender(<HistoricalWalkthrough sensorId="pergamino-ensemble-demo" defense />);
+    expect(screen.getByLabelText(/emisión seleccionada/i)).toHaveValue("2023-06-13");
+    expect(screen.getByText(/Origen: Pergamino/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Origen: Melchor Romero/i)).not.toBeInTheDocument();
+  });
 });

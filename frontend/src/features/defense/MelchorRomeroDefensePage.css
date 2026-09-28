@@ -1,0 +1,9 @@
+.melchor-romero-defense { display: grid; gap: 28px; min-width: 0; }
+.melchor-romero-defense .historical-evidence-unavailable {
+  background: #f6f8f7;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  line-height: 1.6;
+  color: var(--color-muted);
+}
