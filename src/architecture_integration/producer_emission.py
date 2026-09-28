@@ -140,9 +140,7 @@ def emit_forecasts(
                     reason_code = (
                         f"{type(error).__name__}:{family}" if family else type(error).__name__
                     )
-                    slots.append(
-                        SlotSeed(horizon, "unavailable", reason_code=reason_code)
-                    )
+                    slots.append(SlotSeed(horizon, "unavailable", reason_code=reason_code))
                     continue
                 reference_family = next(iter(sorted(ensemble.components)))
                 reference_event = ensemble.components[reference_family].metadata["contract"][
