@@ -129,11 +129,15 @@ def emit_forecasts(
                         as_of_date=captured["batch"]["as_of_date"],
                     )
                 except ensemble_errors as error:
+                    # Only the exception's type name is exposed to the UI —
+                    # never `str(error)`, which can include internal
+                    # filesystem paths (e.g. EnsembleManifestMissingError's
+                    # message embeds the manifest's absolute path).
                     slots.append(
                         SlotSeed(
                             horizon,
                             "unavailable",
-                            reason_code=f"{type(error).__name__}:{error}",
+                            reason_code=type(error).__name__,
                         )
                     )
                     continue
