@@ -129,16 +129,19 @@ def emit_forecasts(
                         as_of_date=captured["batch"]["as_of_date"],
                     )
                 except ensemble_errors as error:
-                    # Only the exception's type name is exposed to the UI —
-                    # never `str(error)`, which can include internal
-                    # filesystem paths (e.g. EnsembleManifestMissingError's
-                    # message embeds the manifest's absolute path).
+                    # Only the exception's type name -- plus, when the
+                    # exception carries one, the safe `.family` attribute
+                    # (EnsembleComponentMissingError) -- is exposed to the
+                    # UI. Never `str(error)`: several of these messages
+                    # embed an internal filesystem path (e.g.
+                    # EnsembleManifestMissingError's) or other unsanitized
+                    # detail that shouldn't reach a demonstration UI.
+                    family = getattr(error, "family", None)
+                    reason_code = (
+                        f"{type(error).__name__}:{family}" if family else type(error).__name__
+                    )
                     slots.append(
-                        SlotSeed(
-                            horizon,
-                            "unavailable",
-                            reason_code=type(error).__name__,
-                        )
+                        SlotSeed(horizon, "unavailable", reason_code=reason_code)
                     )
                     continue
                 reference_family = next(iter(sorted(ensemble.components)))

@@ -281,7 +281,7 @@ export function HistoricalWalkthrough({
                 <article className="forecast-card">
                   <h4>+{slot.horizon_days} · {slot.target_date ? displayForecastDate(slot.target_date) : "Fecha objetivo no disponible"}</h4>
                   <p><strong>Sin pronóstico disponible</strong></p>
-                  <p>Motivo: {SLOT_UNAVAILABLE_REASONS[slot.reason_code] ?? "No se pudo usar el pronóstico de este día. Es necesario revisar su configuración."}</p>
+                  <p>Motivo: {SLOT_UNAVAILABLE_REASONS[slot.reason_code.split(":")[0]] ?? "No se pudo usar el pronóstico de este día. Es necesario revisar su configuración."}</p>
                 </article>
               )}
               {slot.target_date && <p className="historical-target-observation"><strong>Observación posterior:</strong> {slot.target_date > effectiveReveal

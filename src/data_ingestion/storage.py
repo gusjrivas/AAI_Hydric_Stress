@@ -231,7 +231,12 @@ def _append_reading_locked(name: str, new_row: pd.DataFrame, data_dir: Path) -> 
             updated = pd.concat([existing, new_row], ignore_index=True)
         except FileNotFoundError:
             updated = new_row
-        updated = updated.sort_values(TIMESTAMP_COLUMN).reset_index(drop=True)
+        # kind="stable" is required: drop_duplicates(keep="last") below relies
+        # on ties (rows for the same day, e.g. a same-day correction appended
+        # after the original) keeping their original relative order. The
+        # default quicksort has no such guarantee and can silently discard
+        # the newer row instead of the older one on larger series.
+        updated = updated.sort_values(TIMESTAMP_COLUMN, kind="stable").reset_index(drop=True)
         updated = updated.drop_duplicates(subset=TIMESTAMP_COLUMN, keep="last").reset_index(
             drop=True
         )

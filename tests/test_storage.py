@@ -133,6 +133,35 @@ def test_append_reading_replaces_row_for_same_timestamp(tmp_path):
     assert updated.loc[0, "temperature"] == 30.0
 
 
+def test_append_reading_replaces_row_for_same_timestamp_on_larger_series(tmp_path):
+    """Regresión: con series de más de ~16 filas, un sort no estable puede
+    dejar la fila vieja (no la corregida) al final del grupo de timestamps
+    empatados, y `drop_duplicates(keep="last")` conservaría entonces la
+    fila equivocada. `append_reading` debe seguir reemplazando la fila del
+    mismo día por la nueva, sin importar el tamaño de la serie."""
+    from data_ingestion.storage import append_reading
+
+    days = pd.date_range("2026-01-01", periods=40, freq="D")
+    for i, day in enumerate(days):
+        append_reading(
+            "serie_grande",
+            {"timestamp": day, "temperature": float(i), "origen": "real"},
+            data_dir=tmp_path,
+        )
+
+    target_day = days[19]
+    corrected = append_reading(
+        "serie_grande",
+        {"timestamp": target_day, "temperature": 999.0, "origen": "real"},
+        data_dir=tmp_path,
+    )
+
+    assert len(corrected) == 40
+    row = corrected.loc[corrected["timestamp"] == target_day]
+    assert len(row) == 1
+    assert row.iloc[0]["temperature"] == 999.0
+
+
 def test_load_dataset_snapshot_dataframe_and_sha_are_valid_and_consistent(tmp_path):
     """R2: el DataFrame y el SHA-256 de la instantánea corresponden al
     mismo contenido, y `cache_fingerprint` sigue siendo la clave (mtime,
