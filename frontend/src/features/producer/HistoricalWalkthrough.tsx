@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ForecastCard } from "./ForecastCard";
 import { getHistoricalForecastBatch, getHistoricalReadings, submitHistoricalReview } from "./historicalApi";
 import { displayForecastDate, type Forecast, type ForecastBatch, type ReviewRequest } from "./forecastsApi";
@@ -30,22 +30,52 @@ type ReadingsState =
  * `emissionDate` sin cambiar la emisión seleccionada.
  */
 const PERGAMINO_DATES = ["2023-06-13", "2023-06-14", "2023-06-15", "2023-06-16", "2023-06-17"];
+const PERGAMINO_REVEAL_MAX = "2023-06-20";
+const PERGAMINO_PROVENANCE_NOTICE = (
+  <p className="historical-provenance">
+    <strong>Origen: Pergamino · ERA5-Land/NASA POWER.</strong> Son datos externos, no mediciones de
+    un sensor instalado ni observaciones agronómicas directas del cultivo. Hay emisiones del 13 al
+    17 de junio de 2023.
+  </p>
+);
 const QUALITY_VARIABLE_LABELS: Record<string, string> = {
   soil_moisture: "Humedad del suelo", temperature: "Temperatura", precipitation: "Precipitación",
   relative_humidity: "Humedad del aire", solar_radiation: "Radiación solar",
   wind_speed: "Velocidad del viento", et0: "Demanda de agua del ambiente (ET₀)",
 };
-export function HistoricalWalkthrough({ sensorId, defense = false }: { sensorId: string; defense?: boolean }) {
-  const [emissionDate, setEmissionDate] = useState(defense ? PERGAMINO_DATES[0] : "");
+
+/**
+ * `availableDates`/`revealMax`/`provenanceNotice` generalize this component
+ * to a second real historical-demonstration site (Melchor Romero) without
+ * changing Pergamino's behavior: each defaults to Pergamino's own original
+ * values, so any existing call site that omits them (as
+ * `PergaminoDefensePage` still does) renders byte-identical output to
+ * before this change.
+ */
+export function HistoricalWalkthrough({
+  sensorId,
+  defense = false,
+  availableDates = PERGAMINO_DATES,
+  revealMax = PERGAMINO_REVEAL_MAX,
+  provenanceNotice = PERGAMINO_PROVENANCE_NOTICE,
+}: {
+  sensorId: string;
+  defense?: boolean;
+  availableDates?: string[];
+  revealMax?: string;
+  provenanceNotice?: ReactNode;
+}) {
+  const [emissionDate, setEmissionDate] = useState(defense ? availableDates[0] : "");
   const [revealedThrough, setRevealedThrough] = useState("");
   const effectiveReveal = revealedThrough || emissionDate;
 
-  // Cambiar de sensor invalida cualquier selección anterior: una fecha
-  // "preparada" para un sensor no significa nada para otro.
+  // Cambiar de sensor (o de sitio) invalida cualquier selección anterior:
+  // una fecha "preparada" para un sensor/sitio no significa nada para otro.
   useEffect(() => {
-    setEmissionDate(defense ? PERGAMINO_DATES[0] : "");
+    setEmissionDate(defense ? availableDates[0] : "");
     setRevealedThrough("");
-  }, [sensorId, defense]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sensorId, defense, availableDates[0]]);
 
   const [batchState, setBatchState] = useState<BatchState & { context?: string }>({ status: "idle" });
   const [batchRetry, setBatchRetry] = useState(0);
@@ -164,11 +194,11 @@ export function HistoricalWalkthrough({ sensorId, defense = false }: { sensorId:
       <p>Elegí una emisión guardada y avanzá el reloj para ver las observaciones posteriores y registrar tu revisión. Solo hay cinco emisiones preparadas; este recorrido no genera pronósticos nuevos.</p>
 
       <div className="historical-walkthrough-controls">
-        {defense && <p className="historical-provenance"><strong>Origen: Pergamino · ERA5-Land/NASA POWER.</strong> Son datos externos, no mediciones de un sensor instalado ni observaciones agronómicas directas del cultivo. Hay emisiones del 13 al 17 de junio de 2023.</p>}
+        {defense && provenanceNotice}
         <label>
           Emisión seleccionada (cuándo se hizo el pronóstico)
           {defense ? <select value={emissionDate} onChange={(event) => { setEmissionDate(event.target.value); setRevealedThrough(""); }}>
-            {PERGAMINO_DATES.map((date) => <option key={date} value={date}>{displayForecastDate(date)}</option>)}
+            {availableDates.map((date) => <option key={date} value={date}>{displayForecastDate(date)}</option>)}
           </select> : <input
             type="date"
             value={emissionDate}
@@ -184,11 +214,11 @@ export function HistoricalWalkthrough({ sensorId, defense = false }: { sensorId:
             type="date"
             value={revealedThrough}
             min={emissionDate || undefined}
-            max={defense ? "2023-06-20" : undefined}
+            max={defense ? revealMax : undefined}
             disabled={!emissionDate}
             onChange={(event) => {
               const value = event.target.value;
-              if (defense && value && (value < emissionDate || value > "2023-06-20")) return;
+              if (defense && value && (value < emissionDate || value > revealMax)) return;
               setRevealedThrough(value);
             }}
           />

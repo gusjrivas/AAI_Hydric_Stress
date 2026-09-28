@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
@@ -107,6 +107,23 @@ describe("App — navegación por hash (Entrega 2)", () => {
     await userEvent.click(screen.getByRole("link", { name: /saltar al contenido/i }));
     expect(window.location.hash).toBe("#defensa-pergamino");
     expect(screen.getByRole("heading", { name: "Recorrido histórico", level: 1 })).toBeInTheDocument();
+  });
+
+  it("renders Melchor Romero as its own real second site, distinct from Pergamino, and isolates state across Pergamino -> Melchor Romero -> Pergamino", async () => {
+    window.location.hash = "#defensa-pergamino";
+    render(<App />);
+    expect(screen.getByText(/Pergamino · emisiones persistidas/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Melchor Romero · emisiones persistidas/i)).not.toBeInTheDocument();
+
+    window.location.hash = "#defensa-melchor-romero";
+    await act(async () => window.dispatchEvent(new HashChangeEvent("hashchange")));
+    expect(await screen.findByText(/Melchor Romero · emisiones persistidas/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Pergamino · emisiones persistidas/i)).not.toBeInTheDocument();
+
+    window.location.hash = "#defensa-pergamino";
+    await act(async () => window.dispatchEvent(new HashChangeEvent("hashchange")));
+    expect(await screen.findByText(/Pergamino · emisiones persistidas/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Melchor Romero · emisiones persistidas/i)).not.toBeInTheDocument();
   });
 
   it("opens on Resumen by default and shows the five destinations in the nav", async () => {
