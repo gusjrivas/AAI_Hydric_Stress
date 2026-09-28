@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export const ROUTES = ["resumen", "defensa-pergamino", "defensa-melchor-romero", "productor", "prediccion", "calidad", "linaje", "evidencia"] as const;
+export const ROUTES = ["resumen", "defensa-pergamino", "defensa-melchor-romero", "laboratorio-sensores", "productor", "prediccion", "calidad", "linaje", "evidencia"] as const;
 export type RouteId = (typeof ROUTES)[number];
 
 export const DEFAULT_ROUTE: RouteId = "resumen";
@@ -9,6 +9,7 @@ export const DESTINATION_LABELS: Record<RouteId, string> = {
   resumen: "Resumen",
   "defensa-pergamino": "Recorrido histórico · Pergamino",
   "defensa-melchor-romero": "Recorrido histórico · Melchor Romero",
+  "laboratorio-sensores": "Laboratorio · Sensores de prueba",
   productor: "Mi cultivo",
   prediccion: "Historial y observaciones",
   calidad: "Datos disponibles",

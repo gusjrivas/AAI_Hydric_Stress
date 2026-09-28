@@ -18,10 +18,16 @@ import { demoGateForSensor } from "./features/demo/lock";
 import { HistoricalReplayPage } from "./features/historical-replay/HistoricalReplayPage";
 import { PergaminoDefensePage } from "./features/defense/PergaminoDefensePage";
 import { MelchorRomeroDefensePage } from "./features/defense/MelchorRomeroDefensePage";
+import { SensorLabPage } from "./features/lab/SensorLabPage";
 
 const DEFENSE_ROUTES = ["defensa-pergamino", "defensa-melchor-romero"] as const;
 function isDefenseRoute(route: string): route is (typeof DEFENSE_ROUTES)[number] {
   return (DEFENSE_ROUTES as readonly string[]).includes(route);
+}
+
+const LAB_ROUTE = "laboratorio-sensores";
+function isFullBleedRoute(route: string): boolean {
+  return isDefenseRoute(route) || route === LAB_ROUTE;
 }
 
 const DEMO_HASH = "#demo";
@@ -110,7 +116,7 @@ function App() {
   }
 
   return (
-    <div className={`app-page ${route === "productor" ? "app-producer" : ""} ${isDefenseRoute(route) ? "app-defense" : ""}`}>
+    <div className={`app-page ${route === "productor" ? "app-producer" : ""} ${isDefenseRoute(route) ? "app-defense" : ""} ${route === LAB_ROUTE ? "app-lab" : ""}`}>
       <a href="#main-content" className="skip-link" onClick={(event) => {
         event.preventDefault();
         document.getElementById("main-content")?.focus();
@@ -121,7 +127,7 @@ function App() {
         <h1>Seguimiento del agua en el cultivo</h1>
         <p className="app-intro">Consultá el pronóstico y registrá lo que observaste en el cultivo.</p>
         <p className="app-intro">Herramienta en evaluación. Ayuda a revisar la situación; no indica cuánto ni cuándo regar.</p>
-        {route !== "productor" && !isDefenseRoute(route) && !isHistoricalReplayRoute && (
+        {route !== "productor" && !isFullBleedRoute(route) && !isHistoricalReplayRoute && (
           <>
             <form
               className="app-sensor-form"
@@ -154,7 +160,7 @@ function App() {
         )}
       </header>
 
-      {route === "productor" || isDefenseRoute(route) ? <details className="producer-tools"><summary>Más herramientas y antecedentes</summary><DestinationNav active={route} /></details> : <DestinationNav active={route} />}
+      {route === "productor" || isFullBleedRoute(route) ? <details className="producer-tools"><summary>Más herramientas y antecedentes</summary><DestinationNav active={route} /></details> : <DestinationNav active={route} />}
       {demo.configured && (
         <p className="app-demo-link">
           <a href={DEMO_HASH} aria-current={isDemoRoute ? "page" : undefined}>
@@ -174,6 +180,7 @@ function App() {
       <main id="main-content" className="app-sections" tabIndex={-1}>
         {!isDemoRoute && route === "defensa-pergamino" && <PergaminoDefensePage />}
         {!isDemoRoute && route === "defensa-melchor-romero" && <MelchorRomeroDefensePage />}
+        {!isDemoRoute && route === LAB_ROUTE && <SensorLabPage />}
         {isHistoricalReplayRoute && (
           <section aria-labelledby="reproduccion-historica-heading">
             <h2 id="reproduccion-historica-heading" className="app-section-heading" tabIndex={-1}>
