@@ -181,6 +181,46 @@ Describe 'Stop-TrackedProcesses (PID reutilizado, idempotencia, sin terminación
         }
     }
 
+    It 'rollback (Stop-TrackedProcesses -OnlyThisRun) detiene el proceso propio ya arrancado ante el fallo de un servicio posterior, y deja intacto un proceso ajeno' {
+        # Arranca un proceso propio real y lo registra EXACTAMENTE como lo
+        # haría el flujo real (Add-TrackedProcess, mismo $runId del
+        # dot-source de este archivo) -- representa un servicio que ya
+        # arrancó con éxito (p. ej. el backend productor en -Mode all).
+        $ownProcess = Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile', '-Command', 'Start-Sleep -Seconds 30' -PassThru -WindowStyle Hidden
+        # Proceso AJENO real: nunca se registra con Add-TrackedProcess, no
+        # pertenece a esta ejecución -- simula un proceso de otra sesión
+        # de verificación corriendo en la misma máquina.
+        $foreignProcess = Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile', '-Command', 'Start-Sleep -Seconds 30' -PassThru -WindowStyle Hidden
+        try {
+            Start-Sleep -Milliseconds 300
+            Add-TrackedProcess -service 'own_first_service' -processId $ownProcess.Id -logBase (Join-Path $runDir 'own_first_service') | Out-Null
+
+            # "Provocar el fallo de un servicio posterior": se simula el
+            # mismo patrón try/catch que usa el flujo real del script
+            # (sección final del propio start_defense_demo.ps1) -- un
+            # segundo servicio falla después de que el primero ya está
+            # registrado, y el bloque catch invoca el rollback real.
+            $rollbackRan = $false
+            try {
+                throw "fallo simulado de un servicio posterior (p. ej. el backend del laboratorio no respondió)"
+            } catch {
+                Stop-TrackedProcesses -OnlyThisRun
+                $rollbackRan = $true
+            }
+            $rollbackRan | Should Be $true
+
+            # El proceso propio (servicio "posterior" simulado aparte) fue
+            # detenido por el rollback.
+            (Get-Process -Id $ownProcess.Id -ErrorAction SilentlyContinue) | Should Be $null
+            # El proceso AJENO, nunca registrado bajo este runId, permanece
+            # intacto -- el rollback nunca hace una terminación global.
+            (Get-Process -Id $foreignProcess.Id -ErrorAction SilentlyContinue) | Should Not Be $null
+        } finally {
+            Stop-Process -Id $ownProcess.Id -Force -ErrorAction SilentlyContinue
+            Stop-Process -Id $foreignProcess.Id -Force -ErrorAction SilentlyContinue
+        }
+    }
+
     It 'segunda ejecución de -Stop es segura (idempotente, no lanza error) cuando no hay nada que detener' {
         if (Test-Path $registryPath) { Remove-Item $registryPath -Force }
         { Stop-TrackedProcesses } | Should Not Throw

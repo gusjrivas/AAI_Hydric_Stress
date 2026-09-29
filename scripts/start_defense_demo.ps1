@@ -284,6 +284,7 @@ function Stop-TrackedProcesses([switch]$OnlyThisRun) {
     }
     $diagnostics = New-Object System.Collections.Generic.List[string]
     $remaining = New-Object System.Collections.Generic.List[object]
+    $anyFailure = $false
     foreach ($entry in $entries) {
         $shouldStop = -not $OnlyThisRun -or $entry.runId -eq $runId
         if (-not $shouldStop) {
@@ -295,11 +296,34 @@ function Stop-TrackedProcesses([switch]$OnlyThisRun) {
         if (Test-IdentityMatches -recorded $identity -current $current) {
             Write-Info "Deteniendo $($entry.service) (PID $($entry.pid)) y su árbol de procesos verificado."
             Stop-ProcessTreeVerified -processId $entry.pid -expectedIdentity $identity -diagnostics $diagnostics
+            # Parada VERIFICABLE (hallazgo de esta tarea): Stop-Process no
+            # garantiza que el proceso ya haya terminado al devolver el
+            # control. Se confirma activamente, con un plazo corto, que el
+            # PID con esa misma identidad ya no existe antes de darlo por
+            # detenido. Si sigue vivo, se conserva su identidad en
+            # registry.json (nunca se limpia como si hubiera terminado) y
+            # se marca la corrida como fallida -- se aplica tanto a -Stop
+            # directo como al rollback transaccional (ambos llaman a esta
+            # misma función).
+            $stillAlive = $false
+            $verifyDeadline = (Get-Date).AddSeconds(5)
+            do {
+                $recheck = Get-ProcessIdentity -processId $entry.pid
+                $stillAlive = Test-IdentityMatches -recorded $identity -current $recheck
+                if ($stillAlive) { Start-Sleep -Milliseconds 200 }
+            } while ($stillAlive -and (Get-Date) -lt $verifyDeadline)
+            if ($stillAlive) {
+                $diagnostics.Add("No se pudo confirmar la detención de $($entry.service) (PID $($entry.pid)): sigue vivo con la misma identidad 5 s después de intentar detenerlo.") | Out-Null
+                $remaining.Add($entry) | Out-Null
+                $anyFailure = $true
+            }
+            # Si ya no está vivo, se omite (se limpia del registro).
         } else {
             Write-Info "$($entry.service) (PID $($entry.pid)) ya no está corriendo, o el PID fue reciclado por otro proceso: no se detiene nada, se limpia solo el registro."
         }
-        # Se remueve del registro tanto si se detuvo como si ya no existía
-        # (idempotencia: la segunda corrida de -Stop no vuelve a intentarlo).
+        # Se remueve del registro solo si se detuvo con éxito o si ya no
+        # existía (idempotencia). Si sigue vivo pese al intento, se
+        # conserva -- ver bloque de arriba.
     }
     # Nota: envolver una System.Collections.Generic.List[object] vacía con
     # el operador @() de PowerShell dispara un ArgumentException real
@@ -308,6 +332,10 @@ function Stop-TrackedProcesses([switch]$OnlyThisRun) {
     # versión de PowerShell -- .ToArray() evita ese camino.
     Save-Registry -entries $remaining.ToArray()
     foreach ($d in $diagnostics) { Write-Info $d }
+    if ($anyFailure) {
+        Write-Err "Uno o más procesos propios no pudieron confirmarse detenidos; su identidad se conservó en registry.json para un próximo intento. No se anuncia 'Servicios detenidos'."
+        throw "Stop-TrackedProcesses: la detención no pudo verificarse para uno o más procesos (ver diagnósticos arriba)."
+    }
     Write-Info "Servicios detenidos (logs preservados en .defense-demo-run/)."
 }
 
@@ -592,11 +620,21 @@ try {
     Write-Info "Listo -- todos los servicios solicitados respondieron correctamente. Para detener: ./scripts/start_defense_demo.ps1 -Stop"
 }
 catch {
-    Write-Err $_.Exception.Message
+    $originalError = $_
+    Write-Err $originalError.Exception.Message
     Write-Info "Revirtiendo: deteniendo únicamente los procesos creados por ESTA invocación (runId $runId), preservando logs..."
-    Stop-TrackedProcesses -OnlyThisRun
+    try {
+        Stop-TrackedProcesses -OnlyThisRun
+    } catch {
+        # La parada verificable puede fallar (un proceso propio de ESTA
+        # invocación sigue vivo pese al intento) -- se informa fuerte, sin
+        # tragarse el error, pero el error ORIGINAL que causó el rollback
+        # sigue siendo el que se relanza abajo: es el más relevante para
+        # quien esté arrancando el script.
+        Write-Err "Rollback incompleto: $($_.Exception.Message)"
+    }
     Restore-EnvVars
-    throw
+    throw $originalError
 }
 finally {
     Restore-EnvVars
