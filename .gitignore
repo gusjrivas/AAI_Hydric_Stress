@@ -57,6 +57,10 @@ replay_feedback/
 .demo-defense-data/
 frontend/.npm-cache/
 
+# Estado efímero de arranque local (PIDs/logs) de
+# scripts/start_defense_demo.ps1 — nunca se versiona.
+.defense-demo-run/
+
 # ZIP de intercambio para revisión de código entre pasos de este mismo
 # *change*: no son entregables del repositorio, se generan y se leen
 # localmente. Se preservan en disco, nunca se versionan.

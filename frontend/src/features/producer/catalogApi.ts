@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "../../api/baseUrl";
+import { PRODUCER_API_BASE_URL } from "../../api/baseUrl";
 
 export interface Sector {
   sector_id: string;
@@ -31,7 +31,7 @@ export class ProducerV2UnavailableError extends Error {
 }
 
 async function getV2<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}/api/v2${path}`);
+  const response = await fetch(`${PRODUCER_API_BASE_URL}/api/v2${path}`);
   if (response.ok) return response.json();
   let body: unknown = null;
   try {

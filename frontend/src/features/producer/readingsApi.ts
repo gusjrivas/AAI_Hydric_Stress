@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "../../api/baseUrl";
+import { PRODUCER_API_BASE_URL } from "../../api/baseUrl";
 import { ProducerV2UnavailableError } from "./catalogApi";
 
 export type ReadingVariable =
@@ -85,7 +85,7 @@ export class SensorNotFoundError extends Error {
 
 export async function getSensorReadings(sensorId: string, days: number): Promise<ReadingsResult> {
   const response = await fetch(
-    `${API_BASE_URL}/api/v2/sensors/${encodeURIComponent(sensorId)}/readings?days=${days}`,
+    `${PRODUCER_API_BASE_URL}/api/v2/sensors/${encodeURIComponent(sensorId)}/readings?days=${days}`,
   );
   if (response.ok) return response.json();
 

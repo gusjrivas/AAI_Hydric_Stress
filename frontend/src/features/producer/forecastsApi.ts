@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "../../api/baseUrl";
+import { PRODUCER_API_BASE_URL } from "../../api/baseUrl";
 import { ProducerV2UnavailableError } from "./catalogApi";
 
 export type ReviewStatus = "pending" | "confirmed" | "rejected";
@@ -218,7 +218,7 @@ export class ForecastCursorExpiredError extends Error {
 }
 
 function forecastsPath(sensorId: string): string {
-  return `${API_BASE_URL}/api/v2/sensors/${encodeURIComponent(sensorId)}/forecasts`;
+  return `${PRODUCER_API_BASE_URL}/api/v2/sensors/${encodeURIComponent(sensorId)}/forecasts`;
 }
 
 export async function listForecasts(

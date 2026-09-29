@@ -80,6 +80,23 @@ describe("listForecasts", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => { throw new Error("no body"); } }));
     await expect(listForecasts("sensor-a")).rejects.toBeInstanceOf(ProducerV2UnavailableError);
   });
+
+  it("uses VITE_PRODUCER_API_BASE_URL, not VITE_API_BASE_URL, when both are configured with different values (-Mode all separation)", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "http://127.0.0.1:8299");
+    vi.stubEnv("VITE_PRODUCER_API_BASE_URL", "http://127.0.0.1:8199");
+    vi.resetModules();
+    const { listForecasts: freshListForecasts } = await import("./forecastsApi");
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, { items: [forecast], next_cursor: null, pending_total: 0, reviewable_pending_total: 0 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await freshListForecasts("sensor-a");
+    const url = new URL(fetchMock.mock.calls[0][0]);
+    expect(url.origin).toBe("http://127.0.0.1:8199");
+    expect(url.origin).not.toBe("http://127.0.0.1:8299");
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
 });
 
 describe("getForecast", () => {

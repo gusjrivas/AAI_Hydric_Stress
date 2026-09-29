@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "../../api/baseUrl";
+import { PRODUCER_API_BASE_URL } from "../../api/baseUrl";
 import { ProducerV2UnavailableError } from "./catalogApi";
 import {
   DemoWriteLockedError,
@@ -55,7 +55,7 @@ async function readErrorEnvelope(response: Response): Promise<ErrorEnvelope | nu
 }
 
 function historicalPath(sensorId: string, asOfDate: string): string {
-  return `${API_BASE_URL}/api/v2/sensors/${encodeURIComponent(sensorId)}/historical/${asOfDate}`;
+  return `${PRODUCER_API_BASE_URL}/api/v2/sensors/${encodeURIComponent(sensorId)}/historical/${asOfDate}`;
 }
 
 /** Lectura de solo lectura, nunca dispara inferencia ni emisión: reproduce
