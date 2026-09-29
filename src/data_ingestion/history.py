@@ -53,33 +53,71 @@ IMPUTATION_FLAG_SUFFIX = "_imputado"
 # Three states for the treatment of one variable's value on one row --
 # never conflated with `origin` (dataset-level provenance):
 #
-# - VARIABLE_STATE_OBSERVED: either this dataframe never tracks imputation
-#   for `variable` at all (the flag column is absent from its schema --
-#   the common case: most sensors/sites never impute, and their behavior
-#   here is unchanged from before this distinction existed), or it does
-#   track it and this row's flag is explicitly `False`.
+# - VARIABLE_STATE_OBSERVED: the flag column is absent from this
+#   dataframe's schema AND this sensor is not known to require it
+#   (`REQUIRED_IMPUTATION_FLAGS_BY_SENSOR`) -- the common case: most
+#   sensors/sites never impute, and their behavior here is unchanged
+#   from before this distinction existed. Or the column is present and
+#   this row's flag is explicitly `False`.
 # - VARIABLE_STATE_IMPUTED: the flag column is present in the schema and
 #   this row's flag is explicitly `True`.
-# - VARIABLE_STATE_UNVERIFIED: the flag column IS present in this
-#   dataframe's schema (this dataset/demo context does track imputation
-#   for `variable`) but this particular row's flag value is null/missing.
-#   A present-but-null flag is not evidence of a real observation -- it
-#   means the treatment of that specific value was never recorded, so it
-#   can neither be counted as observed nor as imputed. This is decided
-#   purely from dataset schema (does the tracking column exist at all),
-#   never from comparing this value against another row/date's value --
-#   value equality is never used to infer provenance (see
+# - VARIABLE_STATE_UNVERIFIED: either (a) the flag column IS present in
+#   this dataframe's schema (this dataset/demo context does track
+#   imputation for `variable`) but this particular row's flag value is
+#   null/missing, or (b) the column is absent but this sensor is known
+#   to require it -- an absent column is then itself evidence that the
+#   treatment of this value was never recorded, not evidence that it
+#   wasn't imputed. Neither case is evidence of a real observation: the
+#   treatment of that specific value can neither be counted as observed
+#   nor as imputed. This is decided purely from dataset schema (does the
+#   tracking column exist, and is this sensor in
+#   `REQUIRED_IMPUTATION_FLAGS_BY_SENSOR`) and an explicit, named
+#   sensor/variable association -- never from comparing this value
+#   against another row/date's value, never from column-name matching
+#   (`startswith`/partial matches). Value equality is never used to
+#   infer provenance (see
 #   `scripts/refresh_melchor_romero_historical_demo_readings.py`, which
 #   forbids the same pattern for the same reason).
 VARIABLE_STATE_OBSERVED = "observed"
 VARIABLE_STATE_IMPUTED = "imputed"
 VARIABLE_STATE_UNVERIFIED = "unverified"
 
+# Sensors whose prepared frame is known, by construction, to track
+# imputation for these specific variables (see
+# `src/experiment_runner/melchor_romero_historical_demo_runner.py`).
+# Explicit association only: never inferred from column-name matching
+# (no `startswith`/partial matches) and never from value equality across
+# rows. A dataframe for one of these sensors that is MISSING the flag
+# column for a required variable did not choose not to track it -- that
+# absence itself means the treatment of that value cannot be verified,
+# so it must not default to observed the way an ordinary sensor's
+# never-tracked variable does.
+REQUIRED_IMPUTATION_FLAGS_BY_SENSOR: dict[str, frozenset[str]] = {
+    "melchor-romero-demo": frozenset(
+        {
+            "soil_moisture",
+            "relative_humidity",
+            "solar_radiation",
+        }
+    ),
+}
 
-def _variable_state(source: Any, variable: str) -> str:
+
+def _variable_state(
+    source: Any,
+    variable: str,
+    *,
+    requires_imputation_flag: bool = False,
+) -> str:
     flag_column = f"{variable}{IMPUTATION_FLAG_SUFFIX}"
     if flag_column not in source.index:
-        return VARIABLE_STATE_OBSERVED
+        # Ordinarily "this dataframe never tracks imputation for
+        # `variable`" (VARIABLE_STATE_OBSERVED, unchanged behavior for
+        # sensors that never impute). But for a sensor known to require
+        # this flag (`REQUIRED_IMPUTATION_FLAGS_BY_SENSOR`), an absent
+        # column means the treatment of this value cannot be verified --
+        # never default to observed.
+        return VARIABLE_STATE_UNVERIFIED if requires_imputation_flag else VARIABLE_STATE_OBSERVED
     flag_value = source.get(flag_column)
     if pd.isna(flag_value):
         return VARIABLE_STATE_UNVERIFIED
@@ -193,6 +231,7 @@ def query_readings(
     expected_dates = [window_start + timedelta(days=offset) for offset in range(days)]
     window = dataframe[(dataframe["__date"] >= window_start) & (dataframe["__date"] <= window_end)]
 
+    required_flags = REQUIRED_IMPUTATION_FLAGS_BY_SENSOR.get(sensor_id, frozenset())
     rows = []
     observed_dates = set()
     origins = []
@@ -212,7 +251,11 @@ def query_readings(
             value = _number(source.get(variable), flags, variable)
             row[variable] = value
             if value is not None:
-                state = _variable_state(source, variable)
+                state = _variable_state(
+                    source,
+                    variable,
+                    requires_imputation_flag=variable in required_flags,
+                )
                 if state == VARIABLE_STATE_IMPUTED:
                     imputed_by_variable[variable] += 1
                     imputed_variables.append(variable)

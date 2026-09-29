@@ -353,7 +353,16 @@ def _save_history_with_imputation_flags(data_dir, sensor_id="melchor-romero-demo
             "soil_moisture": [0.3632737398, 0.3632737398, 0.3295690119],
             "soil_moisture_imputado": [False, True, False],
             "relative_humidity": [70.0, 71.0, 72.0],
+            # `melchor-romero-demo` is one of the sensors listed in
+            # `REQUIRED_IMPUTATION_FLAGS_BY_SENSOR` for all three of
+            # soil_moisture/relative_humidity/solar_radiation -- these two
+            # flag columns (all verified-`False`) keep this fixture
+            # focused on exercising soil_moisture's imputation scenario
+            # without also triggering "unverified" on the other two
+            # required variables via their absent flag columns.
+            "relative_humidity_imputado": [False, False, False],
             "solar_radiation": [18.0, 17.0, 16.0],
+            "solar_radiation_imputado": [False, False, False],
             "temperature": [None, None, None],
             "precipitation": [None, None, None],
             "wind_speed": [None, None, None],
@@ -466,7 +475,11 @@ def test_a_null_imputation_flag_is_reported_as_unverified_provenance_never_as_ob
             # imputation) was ever recorded for this row.
             "soil_moisture_imputado": [False, None, False],
             "relative_humidity": [70.0, 71.0, 72.0],
+            # Same rationale as `_save_history_with_imputation_flags`:
+            # keeps this fixture's assertions focused on soil_moisture.
+            "relative_humidity_imputado": [False, False, False],
             "solar_radiation": [18.0, 17.0, 16.0],
+            "solar_radiation_imputado": [False, False, False],
             "temperature": [None, None, None],
             "precipitation": [None, None, None],
             "wind_speed": [None, None, None],
