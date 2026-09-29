@@ -121,6 +121,13 @@ class ReadingRow(StrictModel):
     # real dataset can still contain imputed values. Always `[]` for
     # datasets that never impute (the common case).
     imputed_variables: list[str]
+    # Variables whose value on this date has an imputation-tracking column
+    # in the dataset schema (i.e. this dataset context DOES track
+    # imputation) but whose per-row flag for this date is present-but-null:
+    # neither confirmed real nor confirmed imputed. Never presented as an
+    # independent observation. Always `[]` for datasets that never track
+    # imputation at all, and disjoint from `imputed_variables`.
+    unverified_variables: list[str]
 
 
 class VariableCoverage(StrictModel):
@@ -131,6 +138,11 @@ class VariableCoverage(StrictModel):
     # was imputed, never counted towards `observed_days`. `0` for datasets
     # that never impute.
     imputed_days: int
+    # Days where this variable had a value but its imputation-tracking flag
+    # was present-but-null: provenance not verified, never counted towards
+    # `observed_days` or `imputed_days`. `0` for datasets that never track
+    # imputation for this variable.
+    unverified_days: int
 
 
 class InputRole(StrictModel):

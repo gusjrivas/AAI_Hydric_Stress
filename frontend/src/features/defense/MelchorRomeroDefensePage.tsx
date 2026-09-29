@@ -61,15 +61,16 @@ export function MelchorRomeroDefensePage() {
     <section aria-label="Evidencia agregada retrospectiva">
       <p className="producer-eyebrow">B · Evidencia agregada</p>
       <p className="historical-evidence-unavailable">
-        Estos cinco bundles demostrativos de Melchor Romero (los ajustados para esta demostración,
-        sección A de arriba) no tienen una evaluación agregada propia acreditada en esta entrega:
-        no se ejecutó ninguna corrida de evaluación retrospectiva agregada sobre ellos. Esto es
-        distinto de la evidencia histórica congelada de <code>controlled_daily_v3</code> (
+        Estas cinco emisiones demostrativas de Melchor Romero (las ajustadas para esta
+        demostración, sección A de arriba) no tienen una evaluación agregada propia acreditada en
+        esta entrega: no se ejecutó ninguna corrida de evaluación retrospectiva agregada sobre
+        ellas. Esto es distinto de la evidencia histórica congelada de <code>controlled_daily_v3</code> (
         <code>scientific-baseline-v3</code>), que sí existe sobre este mismo sitio y dataset, con su
-        propio alcance, y que estos cinco bundles nunca reejecutan, reinterpretan ni sustituyen.
+        propio alcance, y que estas cinco emisiones nunca reejecutan, reinterpretan ni sustituyen.
       </p>
       <p className="historical-evidence-unavailable">
-        Pergamino sí muestra un panel de evidencia agregada 2023 más abajo, pero corresponde a un
+        Pergamino sí muestra un panel de evidencia agregada 2023 en su propia pantalla de defensa
+        (<code>/defensa-pergamino</code>, no en esta), pero corresponde a un
         protocolo propio y separado -- la evaluación retrospectiva exploratoria del ensamble
         Pergamino 2023 (<code>docs/research/ensemble-retrospective-evaluation-protocol.md</code> /{" "}
         <code>-results.md</code>) -- no a la campaña científica{" "}

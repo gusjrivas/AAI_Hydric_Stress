@@ -45,6 +45,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import io
 import math
 import sys
 from pathlib import Path
@@ -76,52 +77,92 @@ def _values_match(existing: Any, fresh: Any) -> bool:
 
 def refresh_readings(*, sensor_id: str, data_dir: Path) -> dict[str, Any]:
     from data_ingestion.sensor_naming import dataset_name_for
-    from data_ingestion.storage import load_dataset_snapshot, save_dataset
+    from data_ingestion.storage import (
+        atomic_write_bytes,
+        dataset_lock_path,
+        interprocess_lock,
+        load_dataset_snapshot,
+    )
     from experiment_runner.melchor_romero_historical_demo_runner import (
         build_daily_frame_from_repo_dataset,
     )
 
     name = dataset_name_for(sensor_id)
-    existing_snapshot = load_dataset_snapshot(name, data_dir=data_dir)
-    existing = existing_snapshot.dataframe.copy()
-    if "timestamp" not in existing.columns:
-        raise RefreshError(f"{name}: no contiene la columna 'timestamp'.")
+    path = data_dir / f"{name}.parquet"
 
-    existing_dates = pd.to_datetime(existing["timestamp"]).dt.normalize()
+    # The entire load -> verify -> write cycle runs under the SAME
+    # interprocess lock `save_dataset` uses internally for this dataset
+    # (the documented pattern for a load-modify-save cycle spanning
+    # multiple `data_ingestion.storage` calls, `dataset_lock_path`'s own
+    # docstring, already used by `human_feedback.registry
+    # .update_feedback_log_atomically`). Without this, a concurrent writer
+    # could save a correction between this script's read and its write,
+    # and the write below would silently discard it (lost update). Writing
+    # via `atomic_write_bytes` directly, never `save_dataset`, avoids
+    # nesting a second acquisition of this same, non-reentrant lock inside
+    # this one.
+    with interprocess_lock(dataset_lock_path(name, data_dir)):
+        existing_snapshot = load_dataset_snapshot(name, data_dir=data_dir)
+        existing = existing_snapshot.dataframe.copy()
+        if "timestamp" not in existing.columns:
+            raise RefreshError(f"{name}: no contiene la columna 'timestamp'.")
 
-    fresh_frame, dataset_sha256 = build_daily_frame_from_repo_dataset()
-    fresh_indexed = fresh_frame.set_index(fresh_frame["timestamp"].dt.normalize())
+        existing_dates = pd.to_datetime(existing["timestamp"]).dt.normalize()
 
-    missing_in_source = sorted(set(existing_dates) - set(fresh_indexed.index))
-    if missing_in_source:
-        raise RefreshError(
-            "Hay fechas en el archivo de lecturas preparado que no existen en la fuente "
-            f"versionada actual: {[d.date().isoformat() for d in missing_in_source]}. No se "
-            "puede verificar la correspondencia; no se sobrescribió nada."
-        )
+        fresh_frame, dataset_sha256 = build_daily_frame_from_repo_dataset()
+        fresh_indexed = fresh_frame.set_index(fresh_frame["timestamp"].dt.normalize())
 
-    for column in _TRACKED_VARIABLES:
-        for reading_date, existing_value in zip(existing_dates, existing[column]):
-            fresh_value = fresh_indexed.loc[reading_date, column]
-            if not _values_match(existing_value, fresh_value):
-                raise RefreshError(
-                    f"{column} en {reading_date.date().isoformat()} no coincide con la fuente "
-                    f"versionada actual (archivo={existing_value!r}, fuente={fresh_value!r}). No "
-                    "se puede verificar la procedencia con certeza; no se sobrescribió nada."
-                )
+        missing_in_source = sorted(set(existing_dates) - set(fresh_indexed.index))
+        if missing_in_source:
+            raise RefreshError(
+                "Hay fechas en el archivo de lecturas preparado que no existen en la fuente "
+                f"versionada actual: {[d.date().isoformat() for d in missing_in_source]}. No se "
+                "puede verificar la correspondencia; no se sobrescribió nada."
+            )
 
-    updated = existing.copy()
-    changed_flags = 0
-    for column in _TRACKED_VARIABLES:
-        flag_column = f"{column}_imputado"
-        fresh_flags = [
-            bool(fresh_indexed.loc[reading_date, flag_column]) for reading_date in existing_dates
-        ]
-        if flag_column not in updated.columns or list(updated[flag_column]) != fresh_flags:
-            changed_flags += 1
-        updated[flag_column] = fresh_flags
+        for column in _TRACKED_VARIABLES:
+            for reading_date, existing_value in zip(existing_dates, existing[column]):
+                fresh_value = fresh_indexed.loc[reading_date, column]
+                if not _values_match(existing_value, fresh_value):
+                    raise RefreshError(
+                        f"{column} en {reading_date.date().isoformat()} no coincide con la "
+                        f"fuente versionada actual (archivo={existing_value!r}, "
+                        f"fuente={fresh_value!r}). No se puede verificar la procedencia con "
+                        "certeza; no se sobrescribió nada."
+                    )
 
-    save_dataset(name, updated, data_dir=data_dir)
+        # Re-verify the on-disk snapshot is still the exact one just read
+        # and checked, BEFORE writing -- still inside the same lock. This
+        # is the concurrency guard itself (never redundant with the
+        # per-value check above, which only validates against the versioned
+        # SOURCE dataset, not against a possible writer of THIS readings
+        # file that could have run between our read and this point). A
+        # mismatch means another writer saved a change concurrently; abort
+        # without overwriting it.
+        current_snapshot = load_dataset_snapshot(name, data_dir=data_dir)
+        if current_snapshot.dataset_sha256 != existing_snapshot.dataset_sha256:
+            raise RefreshError(
+                f"{name}: el archivo de lecturas cambió concurrentemente mientras se "
+                "verificaba (otro escritor guardó una corrección). No se sobrescribió nada; "
+                "reintentar."
+            )
+
+        updated = existing.copy()
+        changed_flags = 0
+        for column in _TRACKED_VARIABLES:
+            flag_column = f"{column}_imputado"
+            fresh_flags = [
+                bool(fresh_indexed.loc[reading_date, flag_column])
+                for reading_date in existing_dates
+            ]
+            if flag_column not in updated.columns or list(updated[flag_column]) != fresh_flags:
+                changed_flags += 1
+            updated[flag_column] = fresh_flags
+
+        buffer = io.BytesIO()
+        updated.to_parquet(buffer, index=False)
+        atomic_write_bytes(path, buffer.getvalue())
+
     return {
         "sensor_id": sensor_id,
         "rows_verified": int(len(existing)),

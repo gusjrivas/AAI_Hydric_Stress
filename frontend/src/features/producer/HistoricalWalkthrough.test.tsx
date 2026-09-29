@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { HistoricalWalkthrough } from "./HistoricalWalkthrough";
 import * as historicalApi from "./historicalApi";
 import type { ForecastBatch } from "./forecastsApi";
+import type { ReadingsResult } from "./readingsApi";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -315,7 +316,7 @@ describe("HistoricalWalkthrough", () => {
       status: "ready", rows: [{
         date: "2023-06-13", soil_moisture: 0.375, relative_humidity: null, solar_radiation: null,
         temperature: null, precipitation: null, wind_speed: null, et0: null,
-        origin: "external_reanalysis", quality_flags: [], imputed_variables: [],
+        origin: "external_reanalysis", quality_flags: [], imputed_variables: [], unverified_variables: [],
       }], missing_dates: ["2023-06-12"], variable_coverage: [], units: {},
       last_reading_date: null, data_age_days: null, provenance: "external_reanalysis",
     });
@@ -482,44 +483,125 @@ describe("HistoricalWalkthrough", () => {
     expect(screen.queryByText(/Origen: Melchor Romero/i)).not.toBeInTheDocument();
   });
 
-  it("F01: labels an imputed soil-moisture value explicitly (never as a plain real observation), labels a genuinely absent value as such, and excludes imputed days from the observed-coverage count", async () => {
-    const batch = batchFor("2024-10-23", "26");
-    batch.as_of_date = "2024-10-23";
-    batch.slots = [
+  function melchorRomeroAvailableSlot({
+    asOfDate,
+    horizonDays,
+    targetDate,
+    forecastId,
+  }: {
+    asOfDate: string;
+    horizonDays: 1 | 2 | 3;
+    targetDate: string;
+    forecastId: string;
+  }) {
+    return {
+      status: "available" as const,
+      forecast_id: forecastId,
+      sensor_id: "melchor-romero-demo",
+      batch_id: `batch-${asOfDate}`,
+      as_of_date: asOfDate,
+      horizon_days: horizonDays,
+      target_date: targetDate,
+      contract_version: "producer_daily_h123_v1",
+      issued_at: "2024-10-23T00:05:00Z",
+      snapshot_id: "snap-mr-1",
+      alert: false,
+      score: 0.1,
+      score_kind: "ensemble_mean_of_calibrated_components" as const,
+      display_probability: null,
+      probability_status: "not_qualified" as const,
+      probability_reason_code: null,
+      decision_threshold: 0.5,
+      // Objetivo del protocolo (humedad de suelo) -- el umbral en sí es
+      // independiente de los valores reales observados en la ventana.
+      event_threshold: { variable: "soil_moisture", value: 0.18, unit: "m3/m3", comparison: "lt" as const },
+      model_reference: {
+        model_version: "v1", horizon_days: horizonDays, contract_version: "producer_daily_h123_v1",
+        trained_through: "2024-09-04", calibration_version: "cal-mr-1", assessment_reference: "assessment-mr-1",
+      },
+      review: {
+        status: "pending" as const, revision: 0, review_open_at: `${targetDate}T00:00:00Z`,
+        reviewable: false, blocked_reason: "review_not_open" as const, latest_review: null,
+        training_eligibility: "no_review" as const, applied_review_references: [],
+      },
+      ensemble: null,
+    };
+  }
+
+  // 25/10, 26/10 y 27/10: los mismos tres valores reales/imputados que
+  // `tests/test_history.py::test_an_imputed_value_is_identified_and_excluded_from_observed_coverage`
+  // y el nuevo test HTTP de backend verifican contra la fuente versionada
+  // (`data/melchor_romero_2024_consolidado.parquet`) -- nunca inventados
+  // para este archivo. 2024-10-19 es un caso GENÉRICO de dato ausente,
+  // deliberadamente distinto de la fecha real 27/10 (que sí tiene valor
+  // propio en la fuente): nunca se conflan.
+  const MELCHOR_ROMERO_READINGS: ReadingsResult = {
+    sensor_id: "melchor-romero-demo", calendar_timezone: "UTC" as const, server_today: "2024-10-27",
+    snapshot_id: null, window: { start_date: "2024-10-18", end_date: "2024-10-27", expected_days: 10 },
+    status: "ready" as const,
+    rows: [
+      {
+        // Caso GENÉRICO de dato ausente en la ventana (nunca la fecha real
+        // 27/10, que sí tiene valor propio) -- ejercita el rótulo
+        // "Sin observación en la fuente" por separado del caso real 26/10.
+        date: "2024-10-19", soil_moisture: null, relative_humidity: null, solar_radiation: null,
+        temperature: null, precipitation: null, wind_speed: null, et0: null,
+        origin: "real" as const, quality_flags: [], imputed_variables: [], unverified_variables: [],
+      },
+      {
+        date: "2024-10-25", soil_moisture: 0.3632737398, relative_humidity: 70, solar_radiation: 18,
+        temperature: null, precipitation: null, wind_speed: null, et0: null,
+        origin: "real" as const, quality_flags: [], imputed_variables: [], unverified_variables: [],
+      },
+      {
+        // 26/10: la fuente no tenía dato; el frame preparado lo rellena
+        // por forward-fill desde el 25/10 (mismo valor) -- debe
+        // identificarse como imputado, nunca como observación real
+        // independiente (F01).
+        date: "2024-10-26", soil_moisture: 0.3632737398, relative_humidity: 71, solar_radiation: 17,
+        temperature: null, precipitation: null, wind_speed: null, et0: null,
+        origin: "real" as const, quality_flags: ["imputed:soil_moisture"], imputed_variables: ["soil_moisture"],
+        unverified_variables: [],
+      },
+      {
+        // 27/10: valor real propio en la fuente, distinto del 26/10 imputado.
+        date: "2024-10-27", soil_moisture: 0.3295690119, relative_humidity: 72, solar_radiation: 19,
+        temperature: null, precipitation: null, wind_speed: null, et0: null,
+        origin: "real" as const, quality_flags: [], imputed_variables: [], unverified_variables: [],
+      },
+    ],
+    missing_dates: ["2024-10-19"],
+    variable_coverage: [
+      { variable: "soil_moisture", observed_days: 8, missing_days: 1, imputed_days: 1, unverified_days: 0 },
+    ],
+    units: { soil_moisture: "m3/m3" },
+    last_reading_date: "2024-10-27", data_age_days: 0, provenance: "real" as const,
+  };
+
+  it("F01/F02: labels an imputed soil-moisture value explicitly (never as a plain real observation) from two different emissions that both target it, never leaks it before the walkthrough clock advances, and keeps a genuinely absent date separate from the real, non-imputed 27/10 value", async () => {
+    const batchFrom23 = batchFor("2024-10-23", "24");
+    batchFrom23.as_of_date = "2024-10-23";
+    batchFrom23.slots = [
       { horizon_days: 1, target_date: "2024-10-24", status: "unavailable", reason_code: "model_not_available" },
       { horizon_days: 2, target_date: "2024-10-25", status: "unavailable", reason_code: "model_not_available" },
-      { horizon_days: 3, target_date: "2024-10-26", status: "unavailable", reason_code: "model_not_available" },
+      // Emisión 23/10, horizonte +3 -> objetivo 26/10, CON pronóstico disponible.
+      melchorRomeroAvailableSlot({ asOfDate: "2024-10-23", horizonDays: 3, targetDate: "2024-10-26", forecastId: "fc-23-h3" }),
     ];
-    vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockResolvedValue(batch);
-    vi.spyOn(historicalApi, "getHistoricalReadings").mockResolvedValue({
-      sensor_id: "melchor-romero-demo", calendar_timezone: "UTC", server_today: "2024-10-27",
-      snapshot_id: null, window: { start_date: "2024-10-18", end_date: "2024-10-27", expected_days: 10 },
-      status: "ready",
-      rows: [
-        {
-          date: "2024-10-25", soil_moisture: 0.3632737398, relative_humidity: 70, solar_radiation: 18,
-          temperature: null, precipitation: null, wind_speed: null, et0: null,
-          origin: "real", quality_flags: [], imputed_variables: [],
-        },
-        {
-          // 26/10: la fuente no tenía dato; el frame preparado lo rellena
-          // por forward-fill desde el 25/10 -- debe identificarse como
-          // imputado, nunca como observación real independiente (F01).
-          date: "2024-10-26", soil_moisture: 0.3632737398, relative_humidity: 71, solar_radiation: 17,
-          temperature: null, precipitation: null, wind_speed: null, et0: null,
-          origin: "real", quality_flags: ["imputed:soil_moisture"], imputed_variables: ["soil_moisture"],
-        },
-        {
-          date: "2024-10-27", soil_moisture: null, relative_humidity: 72, solar_radiation: null,
-          temperature: null, precipitation: null, wind_speed: null, et0: null,
-          origin: "real", quality_flags: [], imputed_variables: [],
-        },
-      ],
-      missing_dates: [],
-      variable_coverage: [{ variable: "soil_moisture", observed_days: 8, missing_days: 1, imputed_days: 1 }],
-      units: { soil_moisture: "m3/m3" },
-      last_reading_date: "2024-10-26", data_age_days: 1, provenance: "real",
-    });
+    const batchFrom24 = batchFor("2024-10-24", "25");
+    batchFrom24.as_of_date = "2024-10-24";
+    batchFrom24.slots = [
+      { horizon_days: 1, target_date: "2024-10-25", status: "unavailable", reason_code: "model_not_available" },
+      // Emisión 24/10, horizonte +2 -> objetivo 26/10, CON pronóstico disponible.
+      melchorRomeroAvailableSlot({ asOfDate: "2024-10-24", horizonDays: 2, targetDate: "2024-10-26", forecastId: "fc-24-h2" }),
+      // Horizonte +3 -> objetivo 27/10 (valor real, no imputado): contraste
+      // explícito con el 26/10 imputado.
+      melchorRomeroAvailableSlot({ asOfDate: "2024-10-24", horizonDays: 3, targetDate: "2024-10-27", forecastId: "fc-24-h3" }),
+    ];
+
+    vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockImplementation(async (_sid, asOfDate) =>
+      asOfDate === "2024-10-23" ? batchFrom23 : batchFrom24,
+    );
+    vi.spyOn(historicalApi, "getHistoricalReadings").mockResolvedValue(MELCHOR_ROMERO_READINGS);
 
     render(
       <HistoricalWalkthrough
@@ -530,24 +612,51 @@ describe("HistoricalWalkthrough", () => {
       />,
     );
     await userEvent.selectOptions(screen.getByLabelText(/emisión seleccionada/i), "2024-10-23");
+
+    // Antes de avanzar el reloj del recorrido (arranca igual a la
+    // emisión, 23/10), el objetivo posterior (26/10, y los demás
+    // horizontes de esta emisión) todavía NO puede mostrarse -- ni como
+    // observación real ni como imputada.
+    expect((await screen.findAllByText(/todavía no disponible según el reloj/i)).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/valor imputado/i)).not.toBeInTheDocument();
+
     await userEvent.type(screen.getByLabelText(/recorrido hasta/i), "2024-10-27");
 
-    // Emisiones 23/10 +3 y 24/10 +2 apuntan al 26/10: el valor se muestra
-    // pero identificado explícitamente como imputado, nunca implicando que
-    // es una observación real con la que contrastar el pronóstico.
+    // Emisión 23/10 +3 apunta al 26/10: el valor se muestra pero
+    // identificado explícitamente como imputado, nunca implicando que es
+    // una observación real independiente con la que contrastar el
+    // pronóstico.
     expect(await screen.findByText(/valor imputado/i)).toBeInTheDocument();
     expect(screen.getByText(/no es una observación independiente/i)).toBeInTheDocument();
 
-    // 27/10: sin dato en la fuente -- rótulo explícito, nunca "no disponible" genérico.
-    expect(screen.getAllByText(/sin observación en la fuente/i).length).toBeGreaterThan(0);
-
     // 25/10: observación real conservada, contrastable, y distinguida del 26/10 imputado.
     expect(screen.getAllByText(/fuente real/i).length).toBeGreaterThan(0);
+    // 27/10 real: valor propio, nunca confundido con el 26/10 imputado.
+    expect(screen.getAllByText(/33\.0 %/i).length).toBeGreaterThan(0);
+    // 19/10: caso GENÉRICO de dato ausente, separado del 27/10 real.
+    expect(screen.getAllByText(/sin observación en la fuente/i).length).toBeGreaterThan(0);
 
     // Cobertura: el día imputado no cuenta como observación.
     await userEvent.click(screen.getByText(/ver disponibilidad por variable/i));
     expect(
       screen.getByText(/8 días con dato, 1 sin dato, 1 imputado \(no cuenta como observación\)/i),
     ).toBeInTheDocument();
+
+    // Cambiar a la emisión 24/10 -- reinicia el reloj del recorrido a la
+    // nueva emisión (24/10): el objetivo 26/10 (ahora horizonte +2) vuelve
+    // a estar oculto hasta volver a avanzar el reloj.
+    await userEvent.selectOptions(screen.getByLabelText(/emisión seleccionada/i), "2024-10-24");
+    expect((await screen.findAllByText(/todavía no disponible según el reloj/i)).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/valor imputado/i)).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText(/recorrido hasta/i), "2024-10-27");
+
+    // Emisión 24/10 +2 también apunta al 26/10: mismo valor imputado,
+    // identificado de la misma forma, nunca como observación independiente.
+    expect(await screen.findByText(/valor imputado/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/no es una observación independiente/i).length).toBeGreaterThan(0);
+    // Emisión 24/10 +3 apunta al 27/10, real -- explícitamente distinto
+    // del 26/10 imputado, en la misma tarjeta de "Observación posterior".
+    expect(screen.getAllByText(/fuente real/i).length).toBeGreaterThan(0);
   });
 });

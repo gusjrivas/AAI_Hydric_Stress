@@ -87,6 +87,7 @@ def test_history_exposes_missing_dates_nulls_units_quality_and_provenance(tmp_pa
         "observed_days": 2,
         "missing_days": 2,
         "imputed_days": 0,
+        "unverified_days": 0,
     }
 
 
@@ -410,13 +411,19 @@ def test_an_imputed_value_is_identified_and_excluded_from_observed_coverage(tmp_
     assert soil_coverage["observed_days"] == 2
     assert soil_coverage["imputed_days"] == 1
     assert soil_coverage["missing_days"] == 0
+    assert soil_coverage["unverified_days"] == 0
+    assert day_25["unverified_variables"] == []
+    assert day_26["unverified_variables"] == []
+    assert day_27["unverified_variables"] == []
 
 
 def test_imputed_variables_defaults_to_empty_when_the_dataset_never_imputes(tmp_path):
-    """A dataset without `<columna>_imputado` columns (every other
-    sensor/site in the repository) must behave exactly as before this
-    distinction existed: every non-null value counts as observed, and
-    `imputed_variables` is always empty."""
+    """A dataset without `<columna>_imputado` columns at all (the "marca
+    ausente" case -- every other sensor/site in the repository) must
+    behave exactly as before this distinction existed: every non-null
+    value counts as observed, `imputed_variables` is always empty, and
+    (F02 follow-up) `unverified_variables` is always empty too -- absence
+    of imputation tracking is never confused with an unverified value."""
     _save_history(tmp_path)
 
     result = query_readings(
@@ -429,7 +436,79 @@ def test_imputed_variables_defaults_to_empty_when_the_dataset_never_imputes(tmp_
     )
 
     assert all(row["imputed_variables"] == [] for row in result["rows"])
+    assert all(row["unverified_variables"] == [] for row in result["rows"])
     soil_coverage = next(
         item for item in result["variable_coverage"] if item["variable"] == "soil_moisture"
     )
     assert soil_coverage["imputed_days"] == 0
+    assert soil_coverage["unverified_days"] == 0
+
+
+def test_a_null_imputation_flag_is_reported_as_unverified_provenance_never_as_observed(tmp_path):
+    """F02 follow-up (independent-review finding): when a dataset's schema
+    DOES track imputation for a variable (the flag column exists -- this
+    IS the Melchor Romero historical-demo context) but a specific row's
+    flag value is present-but-null, that row's provenance for that
+    variable cannot be verified one way or the other. A null flag is not
+    evidence of a real observation: it must never be silently counted as
+    `observed_days`, must be excluded from `observed_days`/`missing_days`/
+    `imputed_days`, and must be reported as its own `unverified_days`/
+    `unverified_variables` category -- distinct from both "observed" and
+    "imputed". This is decided purely from dataset schema (the flag column
+    exists at all for this dataset), never from comparing this value
+    against another row's value."""
+    dataframe = pd.DataFrame(
+        {
+            "timestamp": pd.to_datetime(["2024-10-25", "2024-10-26", "2024-10-27"]),
+            "soil_moisture": [0.3632737398, 0.3632737398, 0.3295690119],
+            # 26/10's flag is present-but-null: neither `False` (a
+            # verified real observation) nor `True` (a verified
+            # imputation) was ever recorded for this row.
+            "soil_moisture_imputado": [False, None, False],
+            "relative_humidity": [70.0, 71.0, 72.0],
+            "solar_radiation": [18.0, 17.0, 16.0],
+            "temperature": [None, None, None],
+            "precipitation": [None, None, None],
+            "wind_speed": [None, None, None],
+            "et0": [None, None, None],
+            "origen": ["real", "real", "real"],
+        }
+    )
+    save_dataset(dataset_name_for("melchor-romero-demo"), dataframe, data_dir=tmp_path)
+
+    result = query_readings(
+        "melchor-romero-demo",
+        tmp_path,
+        registered=False,
+        days=3,
+        end=date(2024, 10, 27),
+        server_today=date(2024, 10, 27),
+    )
+
+    by_date = {row["date"]: row for row in result["rows"]}
+    day_25, day_26, day_27 = (
+        by_date[date(2024, 10, 25)],
+        by_date[date(2024, 10, 26)],
+        by_date[date(2024, 10, 27)],
+    )
+
+    assert day_25["imputed_variables"] == day_25["unverified_variables"] == []
+    assert day_27["imputed_variables"] == day_27["unverified_variables"] == []
+
+    # 26/10: the value is still returned (never hidden), but neither as a
+    # real observation nor as a confirmed imputation.
+    assert day_26["soil_moisture"] == pytest.approx(0.3632737398)
+    assert day_26["imputed_variables"] == []
+    assert day_26["unverified_variables"] == ["soil_moisture"]
+    assert "unverified_provenance:soil_moisture" in day_26["quality_flags"]
+    # Dataset-level origin (the dataset genuinely is real) is untouched by
+    # the per-value provenance uncertainty -- the two are never conflated.
+    assert day_26["origin"] == "real"
+
+    soil_coverage = next(
+        item for item in result["variable_coverage"] if item["variable"] == "soil_moisture"
+    )
+    assert soil_coverage["observed_days"] == 2
+    assert soil_coverage["imputed_days"] == 0
+    assert soil_coverage["unverified_days"] == 1
+    assert soil_coverage["missing_days"] == 0

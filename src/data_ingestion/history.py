@@ -47,22 +47,43 @@ EXTERNAL_REANALYSIS_ORIGIN = "external_reanalysis"
 # boolean). Distinct from `origen` (PROVENANCE_COLUMN, dataset-level: real
 # vs synthetic vs external reanalysis): a real, non-synthetic dataset can
 # still contain individual values completed by causal forward-fill because
-# the source lacked an observation for that day. When this column is
-# present for a variable, a row is only counted as "observed" if the flag
-# is false; when it is absent (the common case: most sensors/sites never
-# impute), every non-null value is treated as observed, exactly as before
-# this distinction existed.
+# the source lacked an observation for that day.
 IMPUTATION_FLAG_SUFFIX = "_imputado"
 
+# Three states for the treatment of one variable's value on one row --
+# never conflated with `origin` (dataset-level provenance):
+#
+# - VARIABLE_STATE_OBSERVED: either this dataframe never tracks imputation
+#   for `variable` at all (the flag column is absent from its schema --
+#   the common case: most sensors/sites never impute, and their behavior
+#   here is unchanged from before this distinction existed), or it does
+#   track it and this row's flag is explicitly `False`.
+# - VARIABLE_STATE_IMPUTED: the flag column is present in the schema and
+#   this row's flag is explicitly `True`.
+# - VARIABLE_STATE_UNVERIFIED: the flag column IS present in this
+#   dataframe's schema (this dataset/demo context does track imputation
+#   for `variable`) but this particular row's flag value is null/missing.
+#   A present-but-null flag is not evidence of a real observation -- it
+#   means the treatment of that specific value was never recorded, so it
+#   can neither be counted as observed nor as imputed. This is decided
+#   purely from dataset schema (does the tracking column exist at all),
+#   never from comparing this value against another row/date's value --
+#   value equality is never used to infer provenance (see
+#   `scripts/refresh_melchor_romero_historical_demo_readings.py`, which
+#   forbids the same pattern for the same reason).
+VARIABLE_STATE_OBSERVED = "observed"
+VARIABLE_STATE_IMPUTED = "imputed"
+VARIABLE_STATE_UNVERIFIED = "unverified"
 
-def _is_imputed(source: Any, variable: str) -> bool:
+
+def _variable_state(source: Any, variable: str) -> str:
     flag_column = f"{variable}{IMPUTATION_FLAG_SUFFIX}"
     if flag_column not in source.index:
-        return False
+        return VARIABLE_STATE_OBSERVED
     flag_value = source.get(flag_column)
     if pd.isna(flag_value):
-        return False
-    return bool(flag_value)
+        return VARIABLE_STATE_UNVERIFIED
+    return VARIABLE_STATE_IMPUTED if bool(flag_value) else VARIABLE_STATE_OBSERVED
 
 
 def _origin(value: Any) -> str:
@@ -177,6 +198,7 @@ def query_readings(
     origins = []
     observed_by_variable = {variable: 0 for variable in VARIABLE_UNITS}
     imputed_by_variable = {variable: 0 for variable in VARIABLE_UNITS}
+    unverified_by_variable = {variable: 0 for variable in VARIABLE_UNITS}
     for _, source in window.iterrows():
         reading_date = source["__date"]
         observed_dates.add(reading_date)
@@ -185,17 +207,24 @@ def query_readings(
             flags.append("future_date")
         row = {"date": reading_date, "quality_flags": flags}
         imputed_variables: list[str] = []
+        unverified_variables: list[str] = []
         for variable in VARIABLE_UNITS:
             value = _number(source.get(variable), flags, variable)
             row[variable] = value
             if value is not None:
-                if _is_imputed(source, variable):
+                state = _variable_state(source, variable)
+                if state == VARIABLE_STATE_IMPUTED:
                     imputed_by_variable[variable] += 1
                     imputed_variables.append(variable)
                     flags.append(f"imputed:{variable}")
+                elif state == VARIABLE_STATE_UNVERIFIED:
+                    unverified_by_variable[variable] += 1
+                    unverified_variables.append(variable)
+                    flags.append(f"unverified_provenance:{variable}")
                 else:
                     observed_by_variable[variable] += 1
         row["imputed_variables"] = imputed_variables
+        row["unverified_variables"] = unverified_variables
         row_origin = _origin(source.get(PROVENANCE_COLUMN))
         if row_origin == "unknown":
             flags.append("unknown_origin")
@@ -213,8 +242,18 @@ def query_readings(
         {
             "variable": variable,
             "observed_days": observed_by_variable[variable],
-            "missing_days": days - observed_by_variable[variable] - imputed_by_variable[variable],
+            "missing_days": (
+                days
+                - observed_by_variable[variable]
+                - imputed_by_variable[variable]
+                - unverified_by_variable[variable]
+            ),
             "imputed_days": imputed_by_variable[variable],
+            # Days where this variable had a value but the flag tracking its
+            # treatment was present-but-null: provenance not verified.
+            # Excluded from `observed_days` and `missing_days`, never
+            # presented as a real observation (see `_variable_state`).
+            "unverified_days": unverified_by_variable[variable],
         }
         for variable in VARIABLE_UNITS
     ]
@@ -260,7 +299,13 @@ def _empty_response(sensor_id: str, days: int, end: date, today: date) -> dict[s
         "rows": [],
         "missing_dates": [start + timedelta(days=offset) for offset in range(days)],
         "variable_coverage": [
-            {"variable": variable, "observed_days": 0, "missing_days": days, "imputed_days": 0}
+            {
+                "variable": variable,
+                "observed_days": 0,
+                "missing_days": days,
+                "imputed_days": 0,
+                "unverified_days": 0,
+            }
             for variable in VARIABLE_UNITS
         ],
         "units": VARIABLE_UNITS,

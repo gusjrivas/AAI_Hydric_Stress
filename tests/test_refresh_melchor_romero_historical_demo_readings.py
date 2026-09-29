@@ -94,6 +94,57 @@ def test_refresh_refuses_and_writes_nothing_when_a_value_does_not_match_the_sour
     assert before.equals(after)
 
 
+def test_refresh_aborts_without_overwriting_a_concurrent_correction(tmp_path, monkeypatch):
+    """Deterministically intercalates a concurrent writer's correction
+    BETWEEN this script's read/verify step and its final write, all inside
+    a single process/thread (no real concurrency needed): the script reads
+    and verifies against the source, then -- while still holding the lock,
+    just before it re-checks and writes -- a monkeypatched hook writes
+    directly to the readings file, bypassing the lock the same way a
+    process with a stale, pre-acquired snapshot never could once this
+    script's fix wraps read+verify+write under one lock. This simulates
+    exactly the race the finding described (another writer's save landing
+    between read and write) and asserts the script aborts, preserving the
+    concurrent correction instead of clobbering it."""
+    import experiment_runner.melchor_romero_historical_demo_runner as demo_runner_module
+
+    _write_legacy_readings(tmp_path)
+    name = dataset_name_for(SENSOR_ID)
+
+    original_builder = build_daily_frame_from_repo_dataset
+    concurrent_correction = load_dataset(name, data_dir=tmp_path).copy()
+    concurrent_correction.loc[0, "relative_humidity"] = -1.0  # sentinel
+
+    def _intercalate_then_build():
+        # Runs after the script's first (pre-write) snapshot was already
+        # captured and verified, and before its final re-check/write --
+        # exactly where a concurrent writer's save could land in the bug
+        # this fixes. Writes directly (not through `save_dataset`, which
+        # would deadlock on the non-reentrant lock this test's caller
+        # already holds) to simulate a writer with independent access to
+        # the file.
+        from data_ingestion.storage import atomic_write_bytes
+
+        buffer_path = tmp_path / f"{name}.parquet"
+        import io as _io
+
+        buffer = _io.BytesIO()
+        concurrent_correction.to_parquet(buffer, index=False)
+        atomic_write_bytes(buffer_path, buffer.getvalue())
+        return original_builder()
+
+    monkeypatch.setattr(
+        demo_runner_module, "build_daily_frame_from_repo_dataset", _intercalate_then_build
+    )
+
+    with pytest.raises(RefreshError, match="cambió concurrentemente"):
+        refresh_readings(sensor_id=SENSOR_ID, data_dir=tmp_path)
+
+    after = load_dataset(name, data_dir=tmp_path)
+    assert after.loc[0, "relative_humidity"] == -1.0
+    assert after.equals(concurrent_correction)
+
+
 def test_refresh_refuses_a_date_absent_from_the_current_source(tmp_path):
     frame, _ = build_daily_frame_from_repo_dataset()
     legacy = frame.iloc[:5][

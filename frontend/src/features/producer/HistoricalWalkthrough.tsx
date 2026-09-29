@@ -55,19 +55,27 @@ const QUALITY_VARIABLE_LABELS: Record<string, string> = {
 
 const NO_SOURCE_OBSERVATION_LABEL = "Sin observación en la fuente";
 const IMPUTED_VALUE_SUFFIX = "Valor imputado (completado a partir del último dato disponible, sin dato propio en la fuente para esta fecha). No es una observación independiente para contrastar con el pronóstico.";
+const UNVERIFIED_VALUE_SUFFIX = "Procedencia del valor no verificada (no se pudo confirmar si es una observación real o un valor imputado). No es una observación independiente para contrastar con el pronóstico.";
 
 /**
- * Humedad del suelo de una fila de lecturas, distinguiendo tres casos: sin
- * observación en la fuente (nunca se muestra un valor), observación real, e
+ * Humedad del suelo de una fila de lecturas, distinguiendo cuatro casos: sin
+ * observación en la fuente (nunca se muestra un valor), observación real,
  * imputación (un valor SÍ se muestra, pero identificado explícitamente y
  * nunca presentado como una observación independiente contra la que
- * contrastar un pronóstico -- ver F01, `data_quality.imputation`).
+ * contrastar un pronóstico -- ver F01, `data_quality.imputation`), y
+ * procedencia no verificada (un valor SÍ se muestra -- no se oculta que el
+ * dato existe -- pero, al no poder confirmarse si es real o imputado, se
+ * identifica explícitamente como no verificado y tampoco se cuenta como
+ * observación independiente).
  */
 function describeSoilMoistureObservation(row: ReadingRow | undefined, unit: string | undefined): string {
   if (!row || row.soil_moisture === null) return `${NO_SOURCE_OBSERVATION_LABEL}.`;
   const formatted = formatReadingValue("soil_moisture", row.soil_moisture, unit);
   if (row.imputed_variables.includes("soil_moisture")) {
     return `${formatted} · ${IMPUTED_VALUE_SUFFIX}`;
+  }
+  if (row.unverified_variables.includes("soil_moisture")) {
+    return `${formatted} · ${UNVERIFIED_VALUE_SUFFIX}`;
   }
   return `${formatted} · ${originLabel(row.origin)}`;
 }
@@ -264,7 +272,7 @@ export function HistoricalWalkthrough({
           ? <>
             <p>Fuente: <strong>{readingsState.data.provenance === "external_reanalysis" ? "ERA5-Land/NASA POWER (datos externos)" : readingsState.data.provenance}</strong>. Ventana: {displayDate(readingsState.data.window.start_date)} a {displayDate(readingsState.data.window.end_date)}.</p>
             <p><strong>{readingsState.data.window.expected_days} días esperados</strong> · <strong>{readingsState.data.missing_dates.length} {readingsState.data.missing_dates.length === 1 ? "fecha" : "fechas"} sin datos</strong> · <strong>{variablesWithoutData} {variablesWithoutData === 1 ? "variable" : "variables"} sin ningún dato en la ventana</strong>. Una fecha o variable faltante no se interpreta como ausencia de alerta.</p>
-            <details><summary>Ver disponibilidad por variable</summary><ul>{readingsState.data.variable_coverage.map((item) => <li key={item.variable}>{QUALITY_VARIABLE_LABELS[item.variable] ?? item.variable}: {item.observed_days} días con dato, {item.missing_days} sin dato{item.imputed_days > 0 ? `, ${item.imputed_days} imputado${item.imputed_days === 1 ? "" : "s"} (no cuenta como observación)` : ""}</li>)}</ul></details>
+            <details><summary>Ver disponibilidad por variable</summary><ul>{readingsState.data.variable_coverage.map((item) => <li key={item.variable}>{QUALITY_VARIABLE_LABELS[item.variable] ?? item.variable}: {item.observed_days} días con dato, {item.missing_days} sin dato{item.imputed_days > 0 ? `, ${item.imputed_days} imputado${item.imputed_days === 1 ? "" : "s"} (no cuenta como observación)` : ""}{item.unverified_days > 0 ? `, ${item.unverified_days} de procedencia no verificada (no cuenta como observación)` : ""}</li>)}</ul></details>
           </>
           : readingsState.status === "error" && readingsState.context === context
             ? <p role="alert">No se pudo consultar la disponibilidad: {readingsState.message} <button type="button" onClick={() => setReadingsRetry((n) => n + 1)}>Reintentar lecturas</button></p>
@@ -278,7 +286,7 @@ export function HistoricalWalkthrough({
         <strong>{availableCount === 0 ? "No hay pronósticos disponibles" : alertCount === 0 ? `Sin alerta prevista en ${availableCount} horizonte${availableCount === 1 ? "" : "s"} disponible${availableCount === 1 ? "" : "s"}` : `${alertCount} de ${availableCount} horizonte${availableCount === 1 ? "" : "s"} disponible${availableCount === 1 ? "" : "s"} con alerta prevista`}</strong>
         {firstForecast?.status === "available" && firstForecast.event_threshold.variable === "soil_moisture" && <p className="historical-humidity-context">
           Objetivo del protocolo: humedad del suelo inferior a <strong>{formatReadingValue("soil_moisture", firstForecast.event_threshold.value, firstForecast.event_threshold.unit)}</strong>.
-          {currentReadings && <> Dato externo al emitir ({displayDate(emissionDate)}): <strong>{emissionReading?.soil_moisture == null ? "no disponible" : formatReadingValue("soil_moisture", emissionReading.soil_moisture, currentReadings.units.soil_moisture)}</strong>{emissionReading?.imputed_variables.includes("soil_moisture") ? " (imputado, sin dato propio en la fuente para esta fecha)" : ""}.</>}
+          {currentReadings && <> Dato externo al emitir ({displayDate(emissionDate)}): <strong>{emissionReading?.soil_moisture == null ? "no disponible" : formatReadingValue("soil_moisture", emissionReading.soil_moisture, currentReadings.units.soil_moisture)}</strong>{emissionReading?.imputed_variables.includes("soil_moisture") ? " (imputado, sin dato propio en la fuente para esta fecha)" : emissionReading?.unverified_variables.includes("soil_moisture") ? " (procedencia no verificada)" : ""}.</>}
           {" "}El dato de humedad y los scores de los modelos son valores distintos.
         </p>}
         <p>Son decisiones entregadas por el backend para el objetivo de humedad del protocolo. “Sin alerta” no garantiza ausencia de estrés en el cultivo.</p>
@@ -331,7 +339,7 @@ export function HistoricalWalkthrough({
                     <tr key={row.date}>
                       <th scope="row">{displayDate(row.date)}</th>
                       <td>{row.soil_moisture === null ? NO_SOURCE_OBSERVATION_LABEL : formatReadingValue("soil_moisture", row.soil_moisture, readingsState.data.units.soil_moisture)}</td>
-                      <td>{row.soil_moisture === null ? "—" : row.imputed_variables.includes("soil_moisture") ? `${originLabel(row.origin)} · Imputado (sin dato propio este día)` : originLabel(row.origin)}</td>
+                      <td>{row.soil_moisture === null ? "—" : row.imputed_variables.includes("soil_moisture") ? `${originLabel(row.origin)} · Imputado (sin dato propio este día)` : row.unverified_variables.includes("soil_moisture") ? "Procedencia no verificada" : originLabel(row.origin)}</td>
                     </tr>
                   ))}
                 </tbody>
