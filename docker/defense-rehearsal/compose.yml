@@ -1,0 +1,76 @@
+# Ensayo aislado de la demo de defensa (laboratorio + Pergamino/Melchor
+# Romero) enteramente en Docker. No usa ni modifica los volúmenes de
+# MLflow/MinIO/Postgres ni `./data`: el laboratorio escribe en un volumen
+# nombrado propio y el productor sirve COPIAS de sus artefactos verificados
+# (bind mount de un directorio de trabajo, nunca los originales).
+#
+#   REHEARSAL_PRODUCER_DATA=<copia de data>  REHEARSAL_PRODUCER_BUNDLES=<copia de bundles>
+#   docker compose -f docker/defense-rehearsal/compose.yml up -d --build
+#
+# Dos backends (imagen única, procesos distintos) para preservar la
+# separación del #229: `lab-backend` (endpoints planos, sensores lab-*/demo-*)
+# y `producer-backend` (producer_v2: Pergamino/Melchor Romero).
+name: aai-defense-rehearsal
+
+x-backend: &backend
+  build:
+    context: ../..
+    dockerfile: backend/Dockerfile
+  image: aai-defense-rehearsal-backend:local
+  restart: "no"
+
+services:
+  lab-backend:
+    <<: *backend
+    environment:
+      MLFLOW_TRACKING_URI: file:///workspace/data/mlruns
+      CORS_EXTRA_ORIGINS: http://127.0.0.1:${REHEARSAL_UI_PORT:-15199},http://localhost:${REHEARSAL_UI_PORT:-15199}
+    ports:
+      - "127.0.0.1:${REHEARSAL_LAB_PORT:-18299}:8000"
+    volumes:
+      - lab_data:/workspace/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/openapi.json', timeout=5)"]
+      interval: 5s
+      timeout: 6s
+      retries: 20
+
+  producer-backend:
+    <<: *backend
+    command: ["python", "/workspace/scripts/run_producer_preview_backend.py"]
+    environment:
+      PRODUCER_DATA_DIR: /producer/data
+      PRODUCER_BUNDLE_ROOT: /producer/bundles
+      PRODUCER_PREVIEW_HOST: 0.0.0.0
+      PRODUCER_PREVIEW_PORT: "8000"
+      MLFLOW_TRACKING_URI: file:///tmp/mlruns
+      CORS_EXTRA_ORIGINS: http://127.0.0.1:${REHEARSAL_UI_PORT:-15199},http://localhost:${REHEARSAL_UI_PORT:-15199}
+    ports:
+      - "127.0.0.1:${REHEARSAL_PRODUCER_PORT:-18199}:8000"
+    volumes:
+      - ${REHEARSAL_PRODUCER_DATA:?copia de los datos del productor}:/producer/data
+      - ${REHEARSAL_PRODUCER_BUNDLES:?copia de los bundles del productor}:/producer/bundles:ro
+      - ../../scripts:/workspace/scripts:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v2/sensors', timeout=5)"]
+      interval: 5s
+      timeout: 6s
+      retries: 20
+
+  frontend:
+    build:
+      context: ../../frontend
+    environment:
+      VITE_API_BASE_URL: http://127.0.0.1:${REHEARSAL_LAB_PORT:-18299}
+      VITE_PRODUCER_API_BASE_URL: http://127.0.0.1:${REHEARSAL_PRODUCER_PORT:-18199}
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173", "--strictPort"]
+    ports:
+      - "127.0.0.1:${REHEARSAL_UI_PORT:-15199}:5173"
+    depends_on:
+      lab-backend:
+        condition: service_healthy
+      producer-backend:
+        condition: service_healthy
+
+volumes:
+  lab_data:

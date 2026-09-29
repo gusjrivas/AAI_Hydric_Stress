@@ -388,7 +388,7 @@ La UI DEBE ofrecer un modo "Laboratorio / Sensores de prueba" que reproduzca, so
 - **GIVEN** el laboratorio recién abierto
 - **WHEN** la persona inicia el Escenario A y avanza B → C → D
 - **THEN** cada paso llama a `POST /sensors/{sensor_id}/readings`, confirma por `GET /quality/{sensor_id}` y, cuando corresponde, vuelve a pedir `POST /forecast/{sensor_id}/run`
-- **AND** el rótulo permanente "Datos sintéticos / sensor de prueba. Demostración técnica" está siempre visible, y el reloj simulado se distingue explícitamente de la hora real.
+- **AND** el rótulo permanente "SIMULACIÓN · Datos sintéticos · Sin sensor físico conectado" está siempre visible, y el reloj simulado se distingue explícitamente de la hora real.
 
 #### Scenario: Anomalía marcada por el mecanismo real
 
@@ -409,6 +409,23 @@ La UI DEBE ofrecer un modo "Laboratorio / Sensores de prueba" que reproduzca, so
 - **WHEN** se reanuda el Escenario D
 - **THEN** las lecturas del período interrumpido se ingieren y se confirman por `GET /quality/{sensor_id}`, y se vuelve a pedir un pronóstico
 - **AND** la revisión humana sobre cada resultado usa `confirmAlert`/`rejectAlert` sin cambios: si la fecha objetivo del pronóstico más reciente todavía no venció, el backend real la rechaza (`409`) y la UI muestra ese motivo real, nunca la fabrica ni la oculta.
+
+#### Scenario: Ejecución invalidada, error sin reintento y recuperación con salida
+
+- **GIVEN** un paso del laboratorio con una solicitud pendiente
+- **WHEN** la pantalla se desmonta o se inicia una sesión nueva
+- **THEN** la ejecución anterior no inicia solicitudes de ingesta, consulta ni pronóstico nuevas ni modifica el estado vigente (una solicitud ya enviada puede terminar y sus datos se conservan)
+- **AND** un error de paso deja la sesión en `error` con A–D deshabilitados; la única salida es una sesión nueva (otro `sensor_id`, semilla y calendario reiniciados), sin sobrescribir ni reintentar lecturas ya aceptadas
+- **AND** el escenario D sin `period_end` termina en ese mismo estado de error con el mensaje controlado.
+
+#### Scenario: Revisión bloqueada mientras el día objetivo no terminó (UTC)
+
+- **GIVEN** una fila cuyo `fecha_objetivo` es igual o posterior al día UTC actual, o ausente/inválida
+- **THEN** Confirmar y Corregir están deshabilitados con el motivo correspondiente, se compone con el bloqueo de la demo acelerada sin relajarlo, se reevalúa al volver a la pestaña y al cambiar el día UTC, y se comprueba de nuevo antes de guardar; el backend sigue siendo la autoridad (409).
+
+#### Scenario: Respuestas fuera de orden de la demo acelerada
+
+- **THEN** para una misma `session_id` nunca se aplica una revisión inferior a la vigente (GET y comandos por igual) y se descartan respuestas de sesiones/generaciones anteriores o posteriores al desmontaje.
 
 Implementado en `frontend/src/features/lab/{SensorLabPage.tsx,useSensorLabScenarios.ts,readingGenerator.ts,labSensor.ts,sensorLabApi.ts}`, ruta `#laboratorio-sensores` (`useHashRoute.ts`, `App.tsx`). Reutiliza sin cambios `useForecastWorkspace` (invalidación de respuestas tardías, un único `activeMutation` en curso), `ForecastPage` (revisión humana) y `QualityPanel` (calidad/anomalías) — este *change* no agrega HITL ni detección de calidad propios, solo los orquesta desde un `sensor_id` de laboratorio. `sensor_id` usa el prefijo exclusivo `lab-` (`labSensor.ts`, `.gitignore`: `data/sensor__lab-*.parquet`, `data/feedback__lab-*.parquet`), nunca reutilizado por Pergamino (`pergamino-ensemble-demo`), Melchor Romero (`melchor-romero-demo`), la demo acelerada (`demo-*`) ni `melchor_romero_2024_consolidado`; "Reiniciar" genera un `sensor_id` nuevo en vez de borrar el anterior. El generador de lecturas sintéticas (`readingGenerator.ts`, PRNG `mulberry32` con semilla fija) es una implementación propia en TypeScript (el generador Python `data_ingestion.mock_sensor` no es importable desde el frontend) que espeja los mismos límites físicos de `data_quality.rules.AGRONOMIC_RANGES` documentados ahí.
 
