@@ -501,10 +501,71 @@ devolvió `404 batch_not_prepared` (aislamiento estructural por
 
 - 390 px de ancho: sigue bloqueado por la misma limitación de la
   herramienta `resize_window` en este entorno (sección 7).
-- Checkout genuinamente separado (sigue ensayado en este worktree).
+- Checkout genuinamente separado (sigue ensayado en este worktree) —
+  **resuelto en la ronda siguiente, sección 7.2**.
 - Ingesta de observaciones tardías (llegada fuera de orden) en Pergamino
   específicamente — se verificó el mecanismo de reloj/revelado, pero no
   un caso de respuesta de feedback deliberadamente demorada.
+
+## 7.2. Corrección del arranque combinado y ensayo en clon separado (2026-09-29, tercera sesión)
+
+Corrigió un defecto real de `-Mode all` (las dos URLs de frontend
+compartían un solo backend por error, sección 3.1) y reescribió
+`start_defense_demo.ps1` con validación previa completa, espera de
+disponibilidad real, registro estructurado de procesos y parada verificada
+(sección 5). Ensayado con `Invoke-Pester` (18/18, Pester 3.4.0) y, esta
+vez sí, en un **clon git genuinamente separado**, en otro directorio
+(`C:\pr229clone`, fuera de este worktree), fijado al commit candidato
+`669a7e5` (`git clone` + `git checkout 669a7e5`), sin reusar el entorno
+virtual, `node_modules`, datos de sesión ni configuración local del
+worktree de desarrollo:
+
+- **Dependencias instaladas siguiendo únicamente esta guía**:
+  `pip install -e ".[backend]"` (usando el intérprete de un venv
+  preexistente en esta máquina, apuntado explícitamente por ruta -- el
+  propio `pip install -e` reapunta ese venv compartido al nuevo clon, algo
+  a tener en cuenta si se corre en la misma máquina que otro checkout
+  activo del mismo venv) y `npm ci` dentro de `frontend/` (instaló 117
+  paquetes desde cero, sin `node_modules` previo).
+- **Datos**: se copiaron los artefactos canónicos ya verificados (no se
+  regeneró ni reentrenó nada) a un destino nuevo compartido por
+  `sensor_id` fuera del clon (`C:\pr229clone-rundata\`): Pergamino desde
+  el original `pergamino-walkthrough-2023-06-13_17` (nunca `session-2`),
+  Melchor Romero desde el directorio ya preparado en la sesión anterior de
+  esta misma tarea. Hashes verificados antes y después de la copia
+  (idénticos); los originales también se re-verificaron intactos
+  después de todo el ensayo.
+- **`./scripts/start_defense_demo.ps1 -Mode all -DataDir C:\pr229clone-rundata\combined-data -BundleRoot C:\pr229clone-rundata\combined-bundles -PythonExe <ruta> -ProducerPort 8199 -LabPort 8299 -FrontendPort 5273`**:
+  arrancó los tres servicios reales, cada uno verificado disponible antes
+  de anunciar "Listo".
+- **Verificado real en navegador** (`claude-in-chrome`, con un espía de
+  `window.fetch` para capturar la URL exacta de cada solicitud, más
+  confiable en este entorno que la herramienta de red del navegador):
+  - Pergamino y Melchor Romero resolvieron sus recorridos históricos
+    reales -- **todas** sus solicitudes (`.../historical/.../forecasts`,
+    `.../historical/.../readings`) fueron a `http://127.0.0.1:8199`
+    (`ProducerPort`).
+  - Laboratorio, Escenario A ejecutado por click real en la UI --
+    **todas** sus solicitudes (`/sensors/lab-*/readings`,
+    `/quality/lab-*`, `/forecast/lab-*`) fueron a
+    `http://127.0.0.1:8299` (`LabPort`), nunca al backend productor.
+  - `C:\pr229clone-rundata\combined-data\` (el `PRODUCER_DATA_DIR`
+    compartido de Pergamino/Melchor Romero) se inspeccionó después de
+    correr el Laboratorio: **cero archivos `lab-*`** -- confirma que la
+    separación de URLs realmente evita la contaminación cruzada que
+    motivó esta corrección.
+  - Hashes de los artefactos (lecturas/emisión de Pergamino, en el
+    original y en la copia) re-verificados idénticos después de todo el
+    ensayo.
+  - `-Stop` detuvo los tres servicios reales (verificado con
+    `Get-NetTCPConnection`: cero listeners en los tres puertos después);
+    una segunda invocación de `-Stop` no lanzó error ni tocó nada.
+- **No verificado en esta ronda**: 390 px de ancho (misma limitación de
+  herramienta ya declarada); observaciones tardías fuera de orden en
+  Pergamino; los flujos de feedback/revisión no se repitieron en el clon
+  (ya se habían verificado reales en la sesión anterior, sección 7.1, y
+  esta ronda se enfocó en la corrección de arranque/enrutamiento, dentro
+  del alcance acordado).
 
 ## 8. Limitaciones conocidas de esta entrega
 
@@ -522,3 +583,10 @@ devolvió `404 batch_not_prepared` (aislamiento estructural por
   (`docs/research/ensemble-retrospective-evaluation-protocol.md`), que
   permanece una evaluación exploratoria, no confirmatoria, sin resultado de
   superioridad atribuido.
+- Explícitamente fuera de alcance de este arranque combinado (quedan para
+  un trabajo posterior, no resueltos acá): defectos internos del
+  laboratorio de sensores relativos a navegación, reintento del Escenario
+  A o recuperación; condiciones de carrera de respuestas en la demo
+  acelerada; textos de entrenamiento y disponibilidad temporal del
+  feedback; verificación a 390 px; ingesta de observaciones fuera de orden
+  específicamente para Pergamino.
