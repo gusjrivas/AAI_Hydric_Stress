@@ -4,21 +4,24 @@ import { QualityPanel } from "../quality/QualityPanel";
 import { ForecastPage } from "../forecast/ForecastPage";
 import { useForecastWorkspace } from "../forecast/useForecastWorkspace";
 import { makeLabSensorId } from "./labSensor";
-import { LAB_GAP_DAYS, LAB_HISTORY_DAYS, useSensorLabScenarios } from "./useSensorLabScenarios";
+import { useSensorLabScenarios } from "./useSensorLabScenarios";
 import type { LabPhase } from "./useSensorLabScenarios";
 
 const PHASE_LABELS: Record<LabPhase, string> = {
   idle: "Sin iniciar",
-  seeding: "Cargando historial normal (Escenario A)…",
-  normal: "Escenario A · Lecturas normales",
-  "injecting-anomaly": "Inyectando anomalía de sensado (Escenario B)…",
-  anomaly: "Escenario B · Anomalía de sensado",
-  interrupting: "Interrumpiendo lecturas (Escenario C)…",
-  interrupted: "Escenario C · Interrupción de lecturas",
-  recovering: "Recuperando lecturas (Escenario D)…",
-  recovered: "Escenario D · Recuperación",
-  error: "Error en el paso solicitado",
+  seeding: "Generando historial de prueba (paso A)…",
+  normal: "Paso A · Historial de prueba generado",
+  "injecting-anomaly": "Enviando la lectura anómala (paso B)…",
+  anomaly: "Paso B · Lectura anómala enviada",
+  interrupting: "Simulando la interrupción (paso C)…",
+  interrupted: "Paso C · Envío del generador suspendido",
+  recovering: "Simulando la recuperación (paso D)…",
+  recovered: "Paso D · Lecturas de prueba para las fechas pendientes",
+  error: "El paso solicitado no pudo completarse",
 };
+
+export const LAB_ERROR_GUIDANCE =
+  "Este paso no pudo completarse. Para evitar modificar lecturas ya guardadas, iniciá una sesión nueva. Los datos de la sesión anterior se conservan.";
 
 function realNowLabel(): string {
   return new Intl.DateTimeFormat("es-AR", {
@@ -38,12 +41,12 @@ export function SensorLabPage() {
     runForecast: workspace.runForecast,
   });
 
-  function resetSession() {
+  function startNewSession() {
     setSensorId(makeLabSensorId());
     setQualityRefreshToken(0);
   }
 
-  const canStartA = lab.phase === "idle" || lab.phase === "error";
+  const canStartA = lab.phase === "idle";
   const canRunB = lab.phase === "normal";
   const canRunC = lab.phase === "anomaly";
   const canRunD = lab.phase === "interrupted";
@@ -51,23 +54,39 @@ export function SensorLabPage() {
   return (
     <div className="sensor-lab">
       <p className="sl-badge" role="note">
-        Datos sintéticos / sensor de prueba. Demostración técnica.
+        SIMULACIÓN · Datos sintéticos · Sin sensor físico conectado
       </p>
 
       <header className="sl-header">
         <p className="producer-eyebrow">AAI Hydric Stress · demostración técnica</p>
-        <h1>Laboratorio de sensores de prueba</h1>
+        <h1>Laboratorio de sensor simulado</h1>
         <p className="sl-journey">
-          Un sensor de laboratorio propio (nunca Pergamino, Melchor Romero ni un dataset científico)
-          reproduce, con semilla fija, cuatro escenarios encadenados: lecturas normales, una anomalía
-          de sensado, una interrupción de lecturas y su recuperación -- usando los endpoints reales de
-          ingesta, calidad, pronóstico y revisión humana de esta misma aplicación.
+          Este recorrido genera lecturas de prueba para mostrar cómo responde la aplicación ante datos
+          normales, un valor anómalo y una interrupción. Los días avanzan de forma simulada; no estamos
+          recibiendo mediciones de un cultivo.
         </p>
       </header>
 
+      <div className="sl-explain">
+        <section aria-labelledby="sl-simulated-heading">
+          <h2 id="sl-simulated-heading">Qué simulamos</h2>
+          <p>
+            Las lecturas, las fechas y la interrupción se generan para esta demostración. La temperatura
+            anómala se introduce deliberadamente.
+          </p>
+        </section>
+        <section aria-labelledby="sl-real-heading">
+          <h2 id="sl-real-heading">Qué funciona realmente</h2>
+          <p>
+            La aplicación recibe y guarda las lecturas de prueba, evalúa su calidad, ejecuta el predictor
+            operativo y permite registrar una revisión humana cuando corresponde.
+          </p>
+        </section>
+      </div>
+
       <dl className="sl-identity">
         <div>
-          <dt>Sensor demo</dt>
+          <dt>Sensor de prueba</dt>
           <dd>
             <code>{sensorId}</code>
           </dd>
@@ -85,34 +104,65 @@ export function SensorLabPage() {
           <dd aria-live="polite">{PHASE_LABELS[lab.phase]}</dd>
         </div>
       </dl>
+      <p className="sl-clock-note">
+        El reloj de esta pantalla organiza los escenarios. No cambia la fecha real del servidor ni
+        habilita por sí mismo la revisión de resultados futuros.
+      </p>
 
       <div className="sl-controls" role="group" aria-label="Escenarios del laboratorio">
-        <button type="button" onClick={() => void lab.runScenarioA()} disabled={!canStartA || lab.busy}>
-          {lab.phase === "seeding" ? "Cargando…" : `A · Iniciar laboratorio (${LAB_HISTORY_DAYS} días normales)`}
-        </button>
-        <button type="button" onClick={() => void lab.runScenarioB()} disabled={!canRunB || lab.busy}>
-          {lab.phase === "injecting-anomaly" ? "Inyectando…" : "B · Inyectar anomalía de sensado"}
-        </button>
-        <button type="button" onClick={() => void lab.runScenarioC()} disabled={!canRunC || lab.busy}>
-          {lab.phase === "interrupting" ? "Interrumpiendo…" : `C · Interrumpir lecturas (${LAB_GAP_DAYS} días)`}
-        </button>
-        <button type="button" onClick={() => void lab.runScenarioD()} disabled={!canRunD || lab.busy}>
-          {lab.phase === "recovering" ? "Recuperando…" : "D · Reanudar lecturas (recuperación)"}
-        </button>
-        <button type="button" className="sl-reset" onClick={resetSession}>
-          Reiniciar en una sesión nueva
+        <ol className="sl-steps">
+          <li>
+            <button type="button" onClick={() => void lab.runScenarioA()} disabled={!canStartA || lab.busy}>
+              {lab.phase === "seeding" ? "Generando…" : "A — Generar historial de prueba"}
+            </button>
+            <p>Carga 120 días sintéticos con variaciones normales y solicita un pronóstico.</p>
+          </li>
+          <li>
+            <button type="button" onClick={() => void lab.runScenarioB()} disabled={!canRunB || lab.busy}>
+              {lab.phase === "injecting-anomaly" ? "Enviando…" : "B — Introducir una lectura anómala"}
+            </button>
+            <p>
+              Envía una temperatura de 85 °C para comprobar si el control de calidad la señala. Una anomalía
+              de medición no equivale a una alerta de estrés hídrico.
+            </p>
+          </li>
+          <li>
+            <button type="button" onClick={() => void lab.runScenarioC()} disabled={!canRunC || lab.busy}>
+              {lab.phase === "interrupting" ? "Simulando…" : "C — Simular una interrupción"}
+            </button>
+            <p>
+              Avanza cuatro días simulados sin enviar lecturas. Los resultados anteriores siguen visibles,
+              pero no describen una situación actualizada. No se desconecta ningún dispositivo físico: se
+              suspende el envío del generador.
+            </p>
+          </li>
+          <li>
+            <button type="button" onClick={() => void lab.runScenarioD()} disabled={!canRunD || lab.busy}>
+              {lab.phase === "recovering" ? "Simulando…" : "D — Simular la recuperación"}
+            </button>
+            <p>
+              Genera y envía lecturas sintéticas para las fechas pendientes y vuelve a solicitar un
+              pronóstico. No se recuperan mediciones almacenadas por un dispositivo.
+            </p>
+          </li>
+        </ol>
+        <button type="button" className="sl-reset" onClick={startNewSession}>
+          Iniciar una sesión nueva
         </button>
       </div>
 
       {lab.error && (
-        <p role="alert" className="sl-error">
-          {lab.error}
-        </p>
+        <div role="alert" className="sl-error">
+          <p>{lab.error}</p>
+          <p>{LAB_ERROR_GUIDANCE}</p>
+        </div>
       )}
 
       {lab.phase === "interrupted" && (
         <p role="alert" className="sl-stale-banner">
-          <strong>Sin lecturas nuevas desde el {lab.lastQuality?.period_end ?? "última fecha confirmada"}.</strong>{" "}
+          <strong>
+            El generador simulado no envía lecturas desde el {lab.lastQuality?.period_end ?? "última fecha guardada"}.
+          </strong>{" "}
           No se muestra "sin alerta" como sustituto de datos faltantes ni se vuelve a pedir un pronóstico sin
           datos nuevos que lo sustenten: los resultados debajo son los últimos obtenidos, fechados, no un
           estado vigente. <strong>Verificar sensor y cultivo.</strong>
@@ -133,7 +183,7 @@ export function SensorLabPage() {
       )}
 
       <section aria-labelledby="sl-quality-heading" className="sl-section">
-        <h2 id="sl-quality-heading">Calidad de los datos del sensor de laboratorio</h2>
+        <h2 id="sl-quality-heading">Calidad de los datos de prueba</h2>
         <QualityPanel sensorId={sensorId} refreshToken={qualityRefreshToken} />
       </section>
 
@@ -144,14 +194,46 @@ export function SensorLabPage() {
             {workspace.runError}
           </p>
         )}
+        <p className="sl-review-note">
+          La revisión que registres aquí también forma parte del ejercicio con datos sintéticos. No
+          representa una observación independiente de un cultivo real.
+        </p>
         <ForecastPage sensorId={sensorId} workspace={workspace} />
       </section>
 
+      <details className="sl-future">
+        <summary>¿Cómo se conectaría un sensor real?</summary>
+        <p>
+          En una siguiente etapa, un sensor físico y un servicio de adquisición reemplazarían al generador de
+          esta pantalla. Ese servicio enviaría mediciones identificadas y fechadas a la entrada de datos de la
+          aplicación.
+        </p>
+        <ol>
+          <li>Elegir e instalar el sensor y verificar su calibración para el suelo y el cultivo.</li>
+          <li>
+            Convertir sus mediciones a las unidades y al formato que espera el sistema. Incorporar otras
+            fuentes si el sensor no mide todas las variables necesarias.
+          </li>
+          <li>
+            Implementar identificación, autenticación y envío, con manejo de cortes, duplicados y datos que
+            llegan tarde.
+          </li>
+          <li>
+            Validar en campo la calidad de los datos y el desempeño de los modelos antes de usar sus
+            resultados para apoyar decisiones de riego.
+          </li>
+        </ol>
+        <p>
+          Esta demostración verifica el recorrido con datos sintéticos. La conexión física y su validación en
+          campo quedan como trabajo futuro.
+        </p>
+      </details>
+
       <p className="sl-disclaimer">
-        Esta demostración usa el mismo pipeline de pronóstico operativo del resto de la aplicación
-        (`backend/app/pipeline.py::execute_configured_pipeline`), sobre lecturas sintéticas aisladas de este
-        sensor. No entrena otro modelo, no simula un pronóstico ni acredita desempeño predictivo sobre
-        sensores físicos reales; una revisión humana registrada acá no dispara entrenamiento ni recalibración.
+        El predictor operativo puede entrenarse o actualizarse con las lecturas sintéticas de esta sesión. Sus
+        resultados sirven para demostrar el funcionamiento del sistema; no prueban precisión en campo ni
+        mejoran la evidencia científica del trabajo. Guardar una revisión humana no inicia por sí solo
+        entrenamiento ni recalibración.
       </p>
     </div>
   );

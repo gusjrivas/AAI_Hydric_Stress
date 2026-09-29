@@ -15,6 +15,11 @@ export const LAB_SEED = 42;
 export const LAB_HISTORY_DAYS = 120;
 export const LAB_GAP_DAYS = 4;
 
+export const LAB_ERROR_NO_LAST_READING =
+  "No se pudo determinar la última lectura guardada. La recuperación se detuvo. Iniciá una sesión nueva.";
+
+const LAB_ERROR_NO_QUALITY = "El backend no devolvió el informe de calidad de las lecturas guardadas.";
+
 export type LabPhase =
   | "idle"
   | "seeding"
@@ -56,184 +61,234 @@ export interface SensorLabScenarios {
   runScenarioD: () => Promise<void>;
 }
 
+/** Señal interna: la ejecución dejó de ser vigente (pantalla desmontada
+ * o sesión reemplazada). No es un error de escenario y no se muestra. */
+class StaleRun extends Error {}
+
+interface RunContext {
+  sensorId: string;
+  /** Lanza `StaleRun` si la ejecución fue invalidada. Se invoca antes de
+   * cada solicitud nueva y después de cada `await`. */
+  ensure: () => void;
+}
+
 /**
  * Orquestación cliente del laboratorio (tercer modo de la UI de defensa):
  * un `sensor_id` propio por sesión, avance de escenarios A→B→C→D
  * mediante los endpoints reales de `alerting-ui`
  * (`POST /sensors/{id}/readings`, `GET /quality/{id}`,
  * `POST /forecast/{id}/run` vía `runForecast`), nunca un backend
- * paralelo. Sigue el mismo patrón de invalidación de respuestas tardías
- * que `useForecastWorkspace`: una referencia de sensor + un token de
- * sesión que se incrementa al cambiar de `sensor_id` (reinicio),
- * comparados antes de aplicar cualquier resultado asíncrono.
+ * paralelo.
+ *
+ * Ciclo de vida: cada ejecución captura una generación; desmontar la
+ * pantalla o cambiar de `sensorId` la invalida. Una ejecución invalidada
+ * no inicia solicitudes nuevas ni modifica el estado de la sesión
+ * vigente. Cancelar en el cliente no revierte un POST ya enviado: si el
+ * servidor lo recibió, sus datos se conservan.
+ *
+ * Reintentos: una sesión con error no admite nuevos pasos (evita
+ * reenviar valores distintos para fechas ya aceptadas); la salida es una
+ * sesión nueva con otro `sensor_id`, semilla y calendario reiniciados.
  */
 export function useSensorLabScenarios(
   sensorId: string,
   options: UseSensorLabScenariosOptions,
 ): SensorLabScenarios {
-  const sensorRef = useRef(sensorId);
-  const tokenRef = useRef(0);
+  const generationRef = useRef(0);
+  const runningRef = useRef(false);
+  const phaseRef = useRef<LabPhase>("idle");
+  const clockRef = useRef<string | null>(null);
   const rngRef = useRef(mulberry32(LAB_SEED));
   const prevValuesRef = useRef<LabReadingValues | null>(null);
+  const optionsRef = useRef(options);
+  useLayoutEffect(() => {
+    optionsRef.current = options;
+  });
 
   const [trackedSensorId, setTrackedSensorId] = useState(sensorId);
-  const [phase, setPhase] = useState<LabPhase>("idle");
+  const [phase, setPhaseState] = useState<LabPhase>("idle");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [log, setLog] = useState<LabLogEntry[]>([]);
-  const [clockDate, setClockDate] = useState<string | null>(null);
+  const [clockDate, setClockState] = useState<string | null>(null);
   const [lastQuality, setLastQuality] = useState<QualityReport | null>(null);
 
   if (sensorId !== trackedSensorId) {
     setTrackedSensorId(sensorId);
-    setPhase("idle");
+    setPhaseState("idle");
     setBusy(false);
     setError(null);
     setLog([]);
-    setClockDate(null);
+    setClockState(null);
     setLastQuality(null);
   }
 
+  // Inicio de ciclo de vida (montaje o nuevo sensor): reinicia el estado
+  // sincrónico. La limpieza (desmontaje o cambio de sensor) invalida toda
+  // ejecución en curso. Bajo StrictMode, montaje→limpieza→montaje deja una
+  // generación nueva y vigente antes de cualquier acción de la persona.
   useLayoutEffect(() => {
-    if (sensorRef.current !== sensorId) {
-      tokenRef.current += 1;
-      rngRef.current = mulberry32(LAB_SEED);
-      prevValuesRef.current = null;
-    }
-    sensorRef.current = sensorId;
+    generationRef.current += 1;
+    runningRef.current = false;
+    phaseRef.current = "idle";
+    clockRef.current = null;
+    rngRef.current = mulberry32(LAB_SEED);
+    prevValuesRef.current = null;
+    return () => {
+      generationRef.current += 1;
+      runningRef.current = false;
+    };
   }, [sensorId]);
+
+  function setPhase(next: LabPhase) {
+    phaseRef.current = next;
+    setPhaseState(next);
+  }
+
+  function setClock(next: string) {
+    clockRef.current = next;
+    setClockState(next);
+  }
 
   function appendLog(scenario: LabLogEntry["scenario"], message: string) {
     setLog((prev) => [...prev, { id: `${scenario}-${prev.length}-${Date.now()}`, scenario, message }]);
   }
 
-  function isCurrent(sensorAtCall: string, tokenAtCall: number): boolean {
-    return sensorRef.current === sensorAtCall && tokenRef.current === tokenAtCall;
-  }
-
-  async function withStep(nextPhase: LabPhase, action: (sensorAtCall: string, tokenAtCall: number) => Promise<void>) {
-    if (busy) return;
-    const sensorAtCall = sensorId;
-    const tokenAtCall = tokenRef.current;
+  async function withStep(
+    required: LabPhase,
+    nextPhase: LabPhase,
+    action: (ctx: RunContext) => Promise<void>,
+  ) {
+    // Bloqueo síncrono (no depende del estado React `busy`) y orden A→B→C→D.
+    if (runningRef.current || phaseRef.current !== required) return;
+    runningRef.current = true;
+    const generation = generationRef.current;
+    const ctx: RunContext = {
+      sensorId,
+      ensure: () => {
+        if (generationRef.current !== generation) throw new StaleRun();
+      },
+    };
     setBusy(true);
     setPhase(nextPhase);
     setError(null);
     try {
-      await action(sensorAtCall, tokenAtCall);
+      await action(ctx);
     } catch (err) {
-      if (isCurrent(sensorAtCall, tokenAtCall)) {
+      if (!(err instanceof StaleRun) && generationRef.current === generation) {
         setError((err as Error).message);
         setPhase("error");
       }
     } finally {
-      if (isCurrent(sensorAtCall, tokenAtCall)) setBusy(false);
+      if (generationRef.current === generation) {
+        runningRef.current = false;
+        setBusy(false);
+      }
     }
   }
 
-  async function refreshQuality(sensorAtCall: string, tokenAtCall: number): Promise<QualityReport | null> {
-    const report = await getQualityReport(sensorAtCall);
-    if (!isCurrent(sensorAtCall, tokenAtCall)) return null;
+  async function refreshQuality(ctx: RunContext, missingMessage = LAB_ERROR_NO_QUALITY): Promise<QualityReport> {
+    ctx.ensure();
+    const report = await getQualityReport(ctx.sensorId);
+    ctx.ensure();
+    if (report === null) throw new Error(missingMessage);
     setLastQuality(report);
     return report;
   }
 
+  async function ingest(ctx: RunContext, isoDate: string, reading: LabReadingValues) {
+    ctx.ensure();
+    await ingestLabReading(ctx.sensorId, isoDate, reading);
+    ctx.ensure();
+    prevValuesRef.current = reading;
+  }
+
+  async function forecast(ctx: RunContext) {
+    ctx.ensure();
+    await optionsRef.current.runForecast();
+    ctx.ensure();
+  }
+
   async function runScenarioA() {
-    await withStep("seeding", async (sensorAtCall, tokenAtCall) => {
+    await withStep("idle", "seeding", async (ctx) => {
       const endDate = labBackfillEndDateUtc();
       const startDate = addDaysUtc(endDate, -(LAB_HISTORY_DAYS - 1));
       let cursor = startDate;
       for (let i = 0; i < LAB_HISTORY_DAYS; i += 1) {
         const reading = generateNormalReading(prevValuesRef.current, rngRef.current);
-        await ingestLabReading(sensorAtCall, cursor, reading);
-        if (!isCurrent(sensorAtCall, tokenAtCall)) return;
-        prevValuesRef.current = reading;
+        await ingest(ctx, cursor, reading);
         cursor = addDaysUtc(cursor, 1);
       }
-      setClockDate(endDate);
-      const report = await refreshQuality(sensorAtCall, tokenAtCall);
-      if (!isCurrent(sensorAtCall, tokenAtCall)) return;
-      options.onIngested();
+      setClock(endDate);
+      const report = await refreshQuality(ctx);
+      optionsRef.current.onIngested();
       appendLog(
         "A",
-        `Historial sintético cargado: ${report?.total_rows ?? "?"} lecturas normales, del ${startDate} al ${endDate} (confirmado por GET /quality).`,
+        `Historial sintético cargado: ${report.total_rows} lecturas normales, del ${startDate} al ${endDate} (confirmado por GET /quality).`,
       );
-      await options.runForecast();
-      if (!isCurrent(sensorAtCall, tokenAtCall)) return;
+      await forecast(ctx);
       setPhase("normal");
     });
   }
 
   async function runScenarioB() {
-    if (!clockDate) return;
-    await withStep("injecting-anomaly", async (sensorAtCall, tokenAtCall) => {
-      const anomalyDate = addDaysUtc(clockDate, 1);
+    await withStep("normal", "injecting-anomaly", async (ctx) => {
+      const anomalyDate = addDaysUtc(clockRef.current as string, 1);
       const base = generateNormalReading(prevValuesRef.current, rngRef.current);
       const reading = injectRangeAnomaly(base);
-      await ingestLabReading(sensorAtCall, anomalyDate, reading);
-      if (!isCurrent(sensorAtCall, tokenAtCall)) return;
-      prevValuesRef.current = reading;
-      setClockDate(anomalyDate);
-      const report = await refreshQuality(sensorAtCall, tokenAtCall);
-      if (!isCurrent(sensorAtCall, tokenAtCall)) return;
-      options.onIngested();
-      const flagged = report?.out_of_range.temperature ?? [];
+      await ingest(ctx, anomalyDate, reading);
+      setClock(anomalyDate);
+      const report = await refreshQuality(ctx);
+      optionsRef.current.onIngested();
+      const flagged = report.out_of_range.temperature ?? [];
       const wasFlagged = flagged.some((d) => d.startsWith(anomalyDate));
       appendLog(
         "B",
         wasFlagged
-          ? `Lectura del ${anomalyDate} marcada por el backend: temperatura ${reading.temperature.toFixed(1)} °C fuera del rango físico esperado (motivo real: out_of_range.temperature de GET /quality).`
-          : `Lectura del ${anomalyDate} ingerida (temperatura ${reading.temperature.toFixed(1)} °C); el backend no la marcó en out_of_range en esta consulta -- se muestra el resultado real devuelto, no el esperado.`,
+          ? `Lectura del ${anomalyDate} marcada por el control de calidad: temperatura ${reading.temperature.toFixed(1)} °C fuera del rango físico esperado (motivo real: out_of_range.temperature de GET /quality). Es una anomalía de medición, no una alerta de estrés hídrico.`
+          : `Lectura del ${anomalyDate} ingerida (temperatura ${reading.temperature.toFixed(1)} °C); el control de calidad no la marcó fuera de rango en esta consulta -- se muestra el resultado real devuelto, no el esperado.`,
       );
-      await options.runForecast();
-      if (!isCurrent(sensorAtCall, tokenAtCall)) return;
+      await forecast(ctx);
       setPhase("anomaly");
     });
   }
 
   async function runScenarioC() {
-    if (!clockDate) return;
-    await withStep("interrupting", async (sensorAtCall, tokenAtCall) => {
-      const interruptedThrough = addDaysUtc(clockDate, LAB_GAP_DAYS);
-      setClockDate(interruptedThrough);
-      const report = await refreshQuality(sensorAtCall, tokenAtCall);
-      if (!isCurrent(sensorAtCall, tokenAtCall)) return;
+    await withStep("anomaly", "interrupting", async (ctx) => {
+      const interruptedThrough = addDaysUtc(clockRef.current as string, LAB_GAP_DAYS);
+      setClock(interruptedThrough);
+      const report = await refreshQuality(ctx);
       appendLog(
         "C",
-        `Sin nuevas lecturas durante ${LAB_GAP_DAYS} días simulados: el reloj simulado avanzó al ${interruptedThrough}, pero la última lectura confirmada por el backend sigue siendo del ${report?.period_end ?? "sin dato"} (${report?.total_rows ?? "?"} filas totales, sin cambio). No se vuelve a pedir un pronóstico: no hay datos nuevos que lo sustenten.`,
+        `Interrupción simulada: el generador dejó de enviar lecturas durante ${LAB_GAP_DAYS} días simulados (no se desconectó ningún dispositivo físico). El reloj simulado avanzó al ${interruptedThrough}, pero la última lectura guardada sigue siendo del ${report.period_end ?? "sin dato"} (${report.total_rows} filas totales, sin cambio). No se vuelve a pedir un pronóstico: no hay datos nuevos que lo sustenten.`,
       );
       setPhase("interrupted");
     });
   }
 
   async function runScenarioD() {
-    if (!clockDate) return;
-    await withStep("recovering", async (sensorAtCall, tokenAtCall) => {
-      const before = await refreshQuality(sensorAtCall, tokenAtCall);
-      if (!isCurrent(sensorAtCall, tokenAtCall)) return;
-      const lastConfirmed = before?.period_end;
-      if (!lastConfirmed) {
-        appendLog("D", "No se pudo confirmar la última lectura antes de reanudar; se aborta la recuperación.");
-        return;
-      }
+    await withStep("interrupted", "recovering", async (ctx) => {
+      const before = await refreshQuality(ctx, LAB_ERROR_NO_LAST_READING);
+      const lastConfirmed = before.period_end;
+      if (!lastConfirmed) throw new Error(LAB_ERROR_NO_LAST_READING);
       let cursor = addDaysUtc(lastConfirmed, 1);
-      const recoveryEnd = clockDate;
+      const recoveryEnd = clockRef.current as string;
       while (cursor <= recoveryEnd) {
         const reading = generateNormalReading(prevValuesRef.current, rngRef.current);
-        await ingestLabReading(sensorAtCall, cursor, reading);
-        if (!isCurrent(sensorAtCall, tokenAtCall)) return;
-        prevValuesRef.current = reading;
+        await ingest(ctx, cursor, reading);
         cursor = addDaysUtc(cursor, 1);
       }
-      const report = await refreshQuality(sensorAtCall, tokenAtCall);
-      if (!isCurrent(sensorAtCall, tokenAtCall)) return;
-      options.onIngested();
+      const report = await refreshQuality(ctx);
+      optionsRef.current.onIngested();
       appendLog(
         "D",
-        `Lecturas reanudadas hasta el ${report?.period_end ?? "?"} (${report?.total_rows ?? "?"} filas totales, confirmado por el backend).`,
+        `Se generaron y enviaron lecturas sintéticas para las fechas pendientes hasta el ${report.period_end ?? "?"} (${report.total_rows} filas totales, confirmado por el backend).`,
       );
-      await options.runForecast();
-      if (!isCurrent(sensorAtCall, tokenAtCall)) return;
-      appendLog("D", "Pronóstico vuelto a ejecutar con las lecturas recuperadas; ver disponibilidad real más abajo (train_rows/test_rows o el motivo si no se pudo emitir).");
+      await forecast(ctx);
+      appendLog(
+        "D",
+        "Se solicitó un nuevo pronóstico; su resultado, o el motivo real si no pudo emitirse, se muestra más abajo.",
+      );
       setPhase("recovered");
     });
   }

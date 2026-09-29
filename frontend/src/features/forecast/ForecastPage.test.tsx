@@ -183,7 +183,7 @@ describe("ForecastPage (Historial y observaciones)", () => {
           etiqueta_corregida: null,
           observacion: null,
           y_proba: 0.72,
-          fecha_objetivo: null,
+          fecha_objetivo: "2024-11-03",
         },
       ],
     });
@@ -221,7 +221,7 @@ describe("ForecastPage (Historial y observaciones)", () => {
           etiqueta_corregida: null,
           observacion: null,
           y_proba: 0.72,
-          fecha_objetivo: null,
+          fecha_objetivo: "2024-11-03",
         },
         {
           fecha: "2024-10-30",
@@ -230,7 +230,7 @@ describe("ForecastPage (Historial y observaciones)", () => {
           etiqueta_corregida: null,
           observacion: null,
           y_proba: 0.2,
-          fecha_objetivo: null,
+          fecha_objetivo: "2024-11-03",
         },
       ],
     });

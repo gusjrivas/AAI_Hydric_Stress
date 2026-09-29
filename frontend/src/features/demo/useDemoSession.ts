@@ -53,23 +53,64 @@ export function useDemoSession(): DemoSessionState {
   const inFlightRef = useRef(false);
   const lastProgressKeyRef = useRef("");
   const sessionRef = useRef<DemoSessionView | null>(null);
+  /** Generación de respuestas vigentes: cambia al adoptar una sesión
+   * distinta (otro `session_id`) y al desmontar. Toda solicitud captura
+   * la generación al salir; si difiere al volver, su respuesta se descarta. */
+  const generationRef = useRef(0);
+
+  useEffect(() => {
+    generationRef.current += 1;
+    return () => {
+      generationRef.current += 1;
+    };
+  }, []);
+
+  /** Punto único de aplicación de respuestas (GET y comandos). Devuelve
+   * false si la respuesta se descartó por ser de una generación anterior
+   * o por traer una revisión menor que la vigente de la misma sesión.
+   * Las revisiones de sesiones distintas nunca se comparan entre sí. */
+  const applyResponse = useCallback((next: DemoSessionView, generationAtCall: number): boolean => {
+    if (generationRef.current !== generationAtCall) return false;
+    const current = sessionRef.current;
+    if (current !== null) {
+      if (current.session_id === next.session_id) {
+        if (next.revision < current.revision) return false;
+      } else {
+        generationRef.current += 1; // sesión nueva: invalida lo que aún viaja de la anterior.
+      }
+    }
+    sessionRef.current = next;
+    setSession(next);
+    setConnectionError(null);
+    const key = progressKey(next);
+    if (key !== "" && key !== lastProgressKeyRef.current) {
+      lastProgressKeyRef.current = key;
+      setProgressToken((token) => token + 1);
+    } else if (key === "") {
+      lastProgressKeyRef.current = "";
+    }
+    return true;
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!configured || inFlightRef.current) return;
     inFlightRef.current = true;
+    const generationAtCall = generationRef.current;
     try {
       const next = await getDemoSession();
-      setSession(next);
-      sessionRef.current = next;
-      setConnectionError(null);
-      const key = progressKey(next);
-      if (key !== "" && key !== lastProgressKeyRef.current) {
-        lastProgressKeyRef.current = key;
-        setProgressToken((token) => token + 1);
-      } else if (key === "") {
-        lastProgressKeyRef.current = "";
+      if (next === null) {
+        // Sin sesión en el controlador: se aplica solo si la generación sigue vigente.
+        if (generationRef.current === generationAtCall) {
+          sessionRef.current = null;
+          setSession(null);
+          setConnectionError(null);
+          lastProgressKeyRef.current = "";
+        }
+      } else {
+        applyResponse(next, generationAtCall);
       }
     } catch (err) {
+      if (generationRef.current !== generationAtCall) return;
       setConnectionError(
         err instanceof DemoControlError
           ? err.message
@@ -79,7 +120,7 @@ export function useDemoSession(): DemoSessionState {
       setLoading(false);
       inFlightRef.current = false;
     }
-  }, [configured]);
+  }, [configured, applyResponse]);
 
   useEffect(() => {
     if (!configured) return;
@@ -121,6 +162,7 @@ export function useDemoSession(): DemoSessionState {
       if (pendingCommand !== null) return; // doble clic: se ignora, no se reenvía.
       const current = sessionRef.current;
       if (current === null) return;
+      const generationAtCall = generationRef.current;
       setPendingCommand(command);
       setCommandError(null);
       const order = {
@@ -131,10 +173,9 @@ export function useDemoSession(): DemoSessionState {
       try {
         const dispatch = command === "start" ? startDemo : command === "pause" ? pauseDemo : resumeDemo;
         const next = await dispatch(order);
-        setSession(next);
-        sessionRef.current = next;
-        setConnectionError(null);
+        applyResponse(next, generationAtCall);
       } catch (err) {
+        if (generationRef.current !== generationAtCall) return;
         setCommandError(
           err instanceof DemoControlError
             ? err.message
@@ -147,7 +188,7 @@ export function useDemoSession(): DemoSessionState {
         setPendingCommand(null);
       }
     },
-    [pendingCommand, refresh],
+    [pendingCommand, refresh, applyResponse],
   );
 
   return {

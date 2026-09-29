@@ -3,6 +3,20 @@ import "./ForecastPage.css";
 import { CorrectionForm } from "./CorrectionForm";
 import type { ForecastWorkspace } from "./useForecastWorkspace";
 import type { DemoWriteGate } from "../demo/lock";
+import {
+  TARGET_UNVERIFIABLE_MESSAGE,
+  targetImmatureMessage,
+  targetMaturity,
+  useUtcToday,
+  utcToday,
+} from "./targetMaturity";
+import type { TargetMaturity } from "./targetMaturity";
+
+function maturityMessage(maturity: TargetMaturity): string | null {
+  if (maturity.status === "immature") return targetImmatureMessage(maturity.target);
+  if (maturity.status === "unverifiable") return TARGET_UNVERIFIABLE_MESSAGE;
+  return null;
+}
 
 type AlertaFilter = "todas" | "alerta" | "sin_alerta";
 type EstadoFilter = "todas" | "pendiente" | "confirmada" | "rechazada";
@@ -26,7 +40,9 @@ export function ForecastPage({ workspace, demoGate }: ForecastPageProps) {
   const [fechaDesde, setFechaDesde] = useState(DEFAULT_FILTERS.desde);
   const [fechaHasta, setFechaHasta] = useState(DEFAULT_FILTERS.hasta);
   const [openCorrectionFecha, setOpenCorrectionFecha] = useState<string | null>(null);
+  const [guardErrors, setGuardErrors] = useState<Record<string, string>>({});
   const correctionButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const today = useUtcToday();
 
   const feedbackPendienteRevision = workspace.rows.filter(
     (row) => row.estado_validacion === "pendiente",
@@ -61,7 +77,34 @@ export function ForecastPage({ workspace, demoGate }: ForecastPageProps) {
     correctionButtonRefs.current[fecha]?.focus();
   }
 
-  async function handleSaveCorrection(fecha: string, etiquetaCorregida: 0 | 1, observacion: string) {
+  /** Comprobación con el día UTC real en el momento de actuar, para no
+   * depender de un valor de render ya vencido (formulario abierto). */
+  function blockedNow(row: { fecha: string; fecha_objetivo?: string | null }): boolean {
+    const message = maturityMessage(targetMaturity(row.fecha_objetivo, utcToday()));
+    setGuardErrors((prev) => {
+      if (message === null) {
+        if (!(row.fecha in prev)) return prev;
+        const next = { ...prev };
+        delete next[row.fecha];
+        return next;
+      }
+      return { ...prev, [row.fecha]: message };
+    });
+    return message !== null;
+  }
+
+  function handleConfirm(row: { fecha: string; fecha_objetivo?: string | null }) {
+    if (blockedNow(row)) return;
+    void workspace.confirm(row.fecha);
+  }
+
+  async function handleSaveCorrection(
+    row: { fecha: string; fecha_objetivo?: string | null },
+    etiquetaCorregida: 0 | 1,
+    observacion: string,
+  ) {
+    if (blockedNow(row)) return;
+    const fecha = row.fecha;
     const ok = await workspace.reject(fecha, etiquetaCorregida, observacion);
     if (ok) {
       setOpenCorrectionFecha(null);
@@ -173,6 +216,10 @@ export function ForecastPage({ workspace, demoGate }: ForecastPageProps) {
                   workspace.activeMutation === `reject:${row.fecha}`;
                 const correctionOpen = openCorrectionFecha === row.fecha;
                 const rowBlockedByDemo = demoGate ? !demoGate.isRowReviewable(row) : false;
+                const timeMessage = maturityMessage(targetMaturity(row.fecha_objetivo, today));
+                const rowBlockedByTime = timeMessage !== null;
+                const rowBlocked = rowBlockedByDemo || rowBlockedByTime;
+                const guardError = guardErrors[row.fecha] ?? null;
                 return (
                   <li key={row.fecha} className={`fp-row fp-row--${severity}`}>
                     <span className="fp-signal" aria-hidden="true" />
@@ -198,13 +245,13 @@ export function ForecastPage({ workspace, demoGate }: ForecastPageProps) {
                       ) : (
                         <span className="fp-gauge-value">No disponible</span>
                       )}
-                      <p className="fp-disclaimer">Señal de 0 a 1; no es un porcentaje de certeza.</p>
+                      <p className="fp-disclaimer">Señal del modelo de 0 a 1. No representa un porcentaje de certeza.</p>
                     </details>
                     <span className={`fp-badge fp-badge--${row.estado_validacion}`}>
                       {({ pendiente: "Por revisar", confirmada: "Coincide con lo observado", rechazada: "Corregido por una persona" } as Record<string, string>)[row.estado_validacion] ?? "Estado no disponible"}
                     </span>
                     <div className="fp-actions">
-                      <button onClick={() => workspace.confirm(row.fecha)} disabled={busy || rowBlockedByDemo}>
+                      <button onClick={() => handleConfirm(row)} disabled={busy || rowBlocked}>
                         {rowBusy && workspace.activeMutation === `confirm:${row.fecha}`
                           ? "Guardando..."
                           : "Confirmar"}
@@ -214,7 +261,7 @@ export function ForecastPage({ workspace, demoGate }: ForecastPageProps) {
                           correctionButtonRefs.current[row.fecha] = el;
                         }}
                         onClick={() => setOpenCorrectionFecha(row.fecha)}
-                        disabled={busy || rowBlockedByDemo}
+                        disabled={busy || rowBlocked}
                       >
                         Corregir resultado
                       </button>
@@ -222,20 +269,21 @@ export function ForecastPage({ workspace, demoGate }: ForecastPageProps) {
                     {rowBlockedByDemo && (
                       <p className="fp-disclaimer">{demoGate!.rowUnavailableReason(row)}</p>
                     )}
+                    {rowBlockedByTime && <p className="fp-disclaimer">{timeMessage}</p>}
                     {correctionOpen && (
                       <CorrectionForm
                         row={row}
                         saving={workspace.activeMutation === `reject:${row.fecha}`}
-                        serverError={workspace.rowErrors[row.fecha] ?? null}
+                        serverError={workspace.rowErrors[row.fecha] ?? guardError}
                         onCancel={() => closeCorrection(row.fecha)}
                         onSave={(etiquetaCorregida, observacion) =>
-                          void handleSaveCorrection(row.fecha, etiquetaCorregida, observacion)
+                          void handleSaveCorrection(row, etiquetaCorregida, observacion)
                         }
                       />
                     )}
-                    {!correctionOpen && workspace.rowErrors[row.fecha] && (
+                    {!correctionOpen && (workspace.rowErrors[row.fecha] ?? guardError) && (
                       <p role="alert" className="fp-error">
-                        {workspace.rowErrors[row.fecha]}
+                        {workspace.rowErrors[row.fecha] ?? guardError}
                       </p>
                     )}
                   </li>
