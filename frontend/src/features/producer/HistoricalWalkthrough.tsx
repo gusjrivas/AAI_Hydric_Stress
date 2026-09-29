@@ -38,6 +38,15 @@ const PERGAMINO_PROVENANCE_NOTICE = (
     17 de junio de 2023.
   </p>
 );
+const SLOT_UNAVAILABLE_REASONS: Record<string, string> = {
+  already_available: "Este horizonte ya tenía un pronóstico emitido.",
+  incompatible_environment: "El entorno de este servidor no puede ejecutar este pronóstico.",
+  EnsembleManifestMissingError: "Todavía no hay un ensamble configurado para este horizonte.",
+  EnsembleManifestInvalidError: "La configuración del ensamble para este horizonte no es válida.",
+  EnsembleComponentMissingError: "Falta al menos un modelo del ensamble para este horizonte.",
+  EnsembleBundleIncompatible: "Los modelos del ensamble no son compatibles entre sí para este horizonte.",
+};
+
 const QUALITY_VARIABLE_LABELS: Record<string, string> = {
   soil_moisture: "Humedad del suelo", temperature: "Temperatura", precipitation: "Precipitación",
   relative_humidity: "Humedad del aire", solar_radiation: "Radiación solar",
@@ -272,7 +281,7 @@ export function HistoricalWalkthrough({
                 <article className="forecast-card">
                   <h4>+{slot.horizon_days} · {slot.target_date ? displayForecastDate(slot.target_date) : "Fecha objetivo no disponible"}</h4>
                   <p><strong>Sin pronóstico disponible</strong></p>
-                  <p>Motivo: {slot.reason_code}</p>
+                  <p>Motivo: {SLOT_UNAVAILABLE_REASONS[slot.reason_code.split(":")[0]] ?? "No se pudo usar el pronóstico de este día. Es necesario revisar su configuración."}</p>
                 </article>
               )}
               {slot.target_date && <p className="historical-target-observation"><strong>Observación posterior:</strong> {slot.target_date > effectiveReveal

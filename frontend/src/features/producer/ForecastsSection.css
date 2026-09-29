@@ -3,9 +3,9 @@
 .forecasts-heading h3 { margin: 0; font-size: 1.35rem; letter-spacing: -.02em; }
 .forecasts-counts { color: #1a2622; font-weight: 650; background: #f6f8f7; padding: 8px 12px; border-radius: 10px; font-size: .85rem; }
 .forecast-list { list-style: none; margin: 18px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 16px; }
-.forecast-list > li { min-width: 0; }
+.forecast-list > li { min-width: 0; display: flex; flex-direction: column; }
 .forecast-outlook-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.forecast-card { height: 100%; box-sizing: border-box; border: 1px solid #e6eae8; border-radius: 14px; padding: 20px; background: #fff; }
+.forecast-card { flex: 1 0 auto; box-sizing: border-box; border: 1px solid #e6eae8; border-radius: 14px; padding: 20px; background: #fff; overflow-wrap: anywhere; }
 .forecast-card-clear { border-color: #e6eae8; }
 .forecast-card-alert { border-color: #f3c9ae; background: #fff8f3; }
 .forecast-card-header { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }

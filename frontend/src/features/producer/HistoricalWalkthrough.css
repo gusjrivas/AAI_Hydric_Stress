@@ -1,4 +1,5 @@
 .producer-view .historical-walkthrough { margin-top: 22px; }
+.historical-walkthrough { overflow-wrap: anywhere; min-width: 0; }
 .historical-walkthrough h3 { margin: 0 0 8px; font-size: clamp(1.2rem, 3vw, 1.5rem); letter-spacing: -.02em; }
 .historical-walkthrough > p { color: #5b6b65; max-width: 70ch; }
 .historical-walkthrough-controls { display: flex; flex-wrap: wrap; gap: 20px; margin: 16px 0; }

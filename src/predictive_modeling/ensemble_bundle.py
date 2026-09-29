@@ -168,17 +168,24 @@ def load_ensemble_bundle(bundle_root: Path, *, sensor_id: str, horizon: int) -> 
     for family in sorted(SUPPORTED_FAMILIES):
         family_dir = horizon_dir / "ensemble" / family
         if not family_dir.exists():
-            raise EnsembleComponentMissingError(
+            missing_error = EnsembleComponentMissingError(
                 f"ensemble_component_missing:{family}: no existe {family_dir}."
             )
+            # `.family` lets callers (e.g. producer_emission.py) build a safe,
+            # UI-facing reason_code without interpolating this message, whose
+            # text embeds an absolute filesystem path.
+            missing_error.family = family
+            raise missing_error
         try:
             components[family] = load_operational_bundle(
                 family_dir, sensor_id=sensor_id, horizon=horizon
             )
         except BundleUnavailable as error:
-            raise EnsembleComponentMissingError(
+            unavailable_error = EnsembleComponentMissingError(
                 f"ensemble_component_unavailable:{family}:{error.reason}"
-            ) from error
+            )
+            unavailable_error.family = family
+            raise unavailable_error from error
 
     _cross_check_components(manifest, components)
     return EnsembleBundle(manifest=manifest, components=components)
