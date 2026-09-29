@@ -509,6 +509,18 @@ devolvió `404 batch_not_prepared` (aislamiento estructural por
 
 ## 7.2. Corrección del arranque combinado y ensayo en clon separado (2026-09-29, tercera sesión)
 
+**Corrección de una afirmación imprecisa de esta misma sección** (señalada
+en una ronda posterior, ver sección 7.3): el ensayo de más abajo usó un
+**checkout de git genuinamente separado**, pero **reutilizó el intérprete
+Python de un venv preexistente en esta máquina** (`C:\tcnenv`, ya
+compartido por otras sesiones de verificación de este mismo Trabajo
+Final) — nunca se creó un venv nuevo. Describir ese ensayo como "entorno
+limpio" sin esa aclaración habría sido impreciso: lo que se verificó ahí
+es la independencia del *código* (checkout aparte, sin `node_modules` ni
+datos de sesión reusados) y la separación de URLs del frontend, no la
+independencia del *entorno Python*. La sección 7.3 documenta el intento
+real de usar un venv nuevo y su resultado.
+
 Corrigió un defecto real de `-Mode all` (las dos URLs de frontend
 compartían un solo backend por error, sección 3.1) y reescribió
 `start_defense_demo.ps1` con validación previa completa, espera de
@@ -567,6 +579,77 @@ worktree de desarrollo:
   esta ronda se enfocó en la corrección de arranque/enrutamiento, dentro
   del alcance acordado).
 
+## 7.3. Parada verificable, prueba de rollback efectivo, e intento de venv nuevo (2026-09-29, cuarta sesión)
+
+Tres correcciones puntuales sobre el arranque combinado (commit
+`18300e1` en adelante):
+
+**1. Parada verificable**: `Stop-TrackedProcesses` ahora confirma
+activamente, después de intentar detener cada proceso propio (hasta 5 s,
+sondeando cada 200 ms), que su identidad ya no coincide con ningún
+proceso vivo -- `Stop-Process` devolver el control no garantiza por sí
+solo que el proceso ya terminó. Si sigue vivo, su entrada se **conserva**
+en `registry.json` (nunca se limpia como si se hubiera detenido), se
+registra un diagnóstico, y la función lanza una excepción **en vez de**
+anunciar "Servicios detenidos". Se aplica igual a `-Stop` directo y al
+rollback transaccional (ambos llaman a la misma función); el sitio de
+llamada del rollback ahora atrapa por separado una falla de verificación
+para registrarla fuerte ("Rollback incompleto: ...") sin tapar el error
+original que causó el rollback, que sigue siendo el que se relanza.
+Verificado manualmente: un ciclo normal de `-Mode sensor-lab` arranque/
+parada sigue anunciando "Servicios detenidos" solo después de confirmar
+que ambos procesos ya no existen.
+
+**2. Prueba de rollback efectivo (Pester)**: nuevo caso que arranca un
+proceso propio real y lo registra exactamente como lo haría
+`Add-TrackedProcess` para un servicio ya arrancado con éxito, arranca
+además un proceso **ajeno** real (nunca registrado), simula el fallo de
+un servicio posterior con el mismo patrón try/throw/catch del flujo real,
+invoca el rollback real (`Stop-TrackedProcesses -OnlyThisRun`), y
+confirma que el proceso propio fue detenido mientras el proceso ajeno
+permanece intacto. **19/19 pruebas de Pester pasan** (antes 18/18).
+
+**3. Entorno Python genuinamente limpio -- intentado, bloqueado por una
+política de esta máquina**: se creó un venv **nuevo** (`python -m venv`,
+nunca el `C:\tcnenv` compartido) en dos ubicaciones distintas (raíz de
+`C:\` y una carpeta bajo el perfil de usuario, para descartar que fuera
+un problema de ruta), y se instaló con exactamente el comando pedido:
+
+```powershell
+python -m pip install -e ".[backend]"
+```
+
+La instalación se completó con éxito en ambos casos (todas las
+dependencias, incluido `scikit-learn`, se descargaron e instalaron sin
+error). Pero al intentar importar el backend (`producer_backend`, que
+importa `scikit-learn` transitivamente vía
+`architecture_integration.pipeline`), **ambos** venv nuevos fallaron con
+el mismo error, reproducible y no específico de la ruta:
+
+```
+ImportError: DLL load failed while importing _cyutility: Una directiva
+de Control de aplicaciones bloqueó este archivo.
+```
+
+Es una política de control de aplicaciones de Windows (tipo WDAC/
+AppLocker) de esta máquina específica, que bloquea la ejecución de DLLs
+recién instaladas (el módulo Cython compilado de `scikit-learn`) fuera de
+ubicaciones ya confiadas -- el venv compartido preexistente (`tcnenv`)
+funciona porque ya estaba instalado/confiado antes de esta política, o
+porque fue aprobado en algún momento anterior; un venv genuinamente nuevo
+no lo está. No es un defecto del código de este PR ni de
+`start_defense_demo.ps1`: el propio script se comportó exactamente como
+debía -- detectó el fallo real del lanzador Python durante la espera de
+disponibilidad, informó el servicio, el error y la ubicación del log, y
+revirtió sin dejar nada corriendo (confirmado).
+
+**No se pudo completar** la repetición funcional del arranque combinado,
+la disponibilidad y la parada usando un venv genuinamente nuevo en esta
+máquina, por esta política externa al código del PR. Se deja registrado
+como impedimento real, no como resultado inventado. La sección 7.2 queda
+corregida (nota al inicio) para no describir ese ensayo anterior como de
+"entorno Python limpio".
+
 ## 8. Limitaciones conocidas de esta entrega
 
 - Pergamino no puede recorrerse de punta a punta desde un **clon git
@@ -583,6 +666,14 @@ worktree de desarrollo:
   (`docs/research/ensemble-retrospective-evaluation-protocol.md`), que
   permanece una evaluación exploratoria, no confirmatoria, sin resultado de
   superioridad atribuido.
+- **No verificado con un venv Python genuinamente nuevo**: en esta
+  máquina, un venv recién creado (nunca usado antes) no puede importar
+  `scikit-learn` por una política de control de aplicaciones de Windows
+  que bloquea DLLs recién instaladas fuera de ubicaciones ya confiadas
+  (sección 7.3) — bloqueo real del entorno, no del código de este PR. El
+  arranque combinado, la espera de disponibilidad y la parada solo están
+  verificados de punta a punta con el venv compartido preexistente de
+  esta máquina.
 - Explícitamente fuera de alcance de este arranque combinado (quedan para
   un trabajo posterior, no resueltos acá): defectos internos del
   laboratorio de sensores relativos a navegación, reintento del Escenario
