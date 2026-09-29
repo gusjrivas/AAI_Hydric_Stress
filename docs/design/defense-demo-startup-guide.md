@@ -28,13 +28,25 @@ de artefactos ni su lógica.
 
 ## 1. Requisitos previos
 
-- Python con las dependencias del repo instaladas (`pip install -e .` o
-  equivalente) y accesible en `PATH` como `python`.
-- Node.js/npm instalados; `frontend/` con `npm install` ya corrido.
+- Python con las dependencias del backend instaladas:
+  ```powershell
+  pip install -e ".[backend]"
+  ```
+  accesible en `PATH` como `python`, o pasado explícitamente con
+  `-PythonExe "<ruta completa>"` si no lo está (frecuente en esta máquina
+  de desarrollo).
+- Node.js/npm instalados; `frontend/` con dependencias instaladas de forma
+  reproducible (usa el lockfile, no resuelve versiones nuevas):
+  ```powershell
+  cd frontend
+  npm ci
+  ```
 - Puertos libres (por defecto 8199 backend Pergamino/Melchor Romero, 8299
   backend Laboratorio, 5199 frontend — verificar con `Get-NetTCPConnection`
   antes de arrancar, puede haber otra sesión de verificación usando otros
-  puertos en la misma máquina).
+  puertos en la misma máquina). `start_defense_demo.ps1` ya valida rango,
+  duplicados y disponibilidad de los puertos que va a usar **antes** de
+  arrancar cualquier proceso (sección 6).
 - Ningún artefacto se referencia por ruta personal (`C:\Users\...`,
   `D:\...`, `/home/...`) en código versionado: todas las ubicaciones se
   pasan por variable de entorno o parámetro de línea de comandos.
@@ -164,12 +176,46 @@ desde la UI contra el pipeline real.
 ```
 
 Cada arranque valida los artefactos requeridos (delegado a
-`run_producer_preview_backend.py`) y falla con un mensaje concreto si falta
-algo — nunca sirve datos sintéticos en su lugar. El feedback generado
-durante la demo queda aislado de las lecturas/predicciones originales:
+`run_producer_preview_backend.py`, cuya salida de error hace fallar todo el
+arranque) y falla con un mensaje concreto si falta algo — nunca sirve datos
+sintéticos en su lugar. El feedback generado durante la demo queda aislado
+de las lecturas/predicciones originales:
 `historical_feedback/<sensor_id>.json` dentro del `PRODUCER_DATA_DIR` para
 Pergamino/Melchor Romero, y `data/feedback__lab-*.parquet` (prefijo
 exclusivo, gitignored) para el Laboratorio.
+
+### 3.1. Dos backends, dos URLs de frontend (`-Mode all`)
+
+`-Mode all` arranca DOS backends distintos: el "productor" (`producer_v2`,
+Pergamino/Melchor Romero) en `-ProducerPort`, y el "laboratorio" (endpoints
+genéricos planos) en `-LabPort`. El frontend necesita saber a cuál de los
+dos mandar cada solicitud.
+
+**Hallazgo de esta entrega**: antes de esta corrección, el frontend tenía
+una sola variable (`VITE_API_BASE_URL`) para todo, así que en `-Mode all`
+los cuatro clientes de `frontend/src/features/producer/*Api.ts`
+(`catalogApi`, `readingsApi`, `forecastsApi`, `historicalApi`) terminaban
+enviando sus solicitudes al mismo backend que el laboratorio -- en la
+práctica, las lecturas del laboratorio de sensores (`lab-*`) podían
+terminar escribiéndose en el `PRODUCER_DATA_DIR` compartido con Pergamino/
+Melchor Romero en vez de en `data/` del repositorio.
+
+Corrección: `frontend/src/api/baseUrl.ts` ahora expone dos constantes:
+
+- `API_BASE_URL` (`VITE_API_BASE_URL`): laboratorio, forecast operativo,
+  calidad y linaje -- todos los clientes que NO son de `producer/`.
+- `PRODUCER_API_BASE_URL` (`VITE_PRODUCER_API_BASE_URL`): exclusivamente
+  los cuatro clientes de `producer/` listados arriba. Si no está definida,
+  cae en `API_BASE_URL` (mismo comportamiento que antes de que existiera
+  esta variable, para no romper el uso con un solo backend).
+
+`start_defense_demo.ps1` asigna ambas automáticamente (`Resolve-FrontendBaseUrls`, ver también las pruebas de Pester):
+
+| `-Mode` | `VITE_API_BASE_URL` (laboratorio, etc.) | `VITE_PRODUCER_API_BASE_URL` (Pergamino/Melchor Romero) |
+| --- | --- | --- |
+| `all` | `http://127.0.0.1:<LabPort>` | `http://127.0.0.1:<ProducerPort>` |
+| `sensor-lab` | `http://127.0.0.1:<LabPort>` | `http://127.0.0.1:<LabPort>` (mismo backend) |
+| `pergamino` / `melchor-romero` | `http://127.0.0.1:<ProducerPort>` | `http://127.0.0.1:<ProducerPort>` (mismo backend) |
 
 ## 4. URLs y recorrido sugerido
 
@@ -186,14 +232,66 @@ exclusivo, gitignored) para el Laboratorio.
   anomalías y sensor de prueba, confirmando el rótulo de datos sintéticos y
   que los scores no se presentan como probabilidades calibradas.
 
-## 5. Detener
+## 5. Disponibilidad real, arranque transaccional y parada segura
+
+**Disponibilidad real, no solo "el proceso existe"**: después de arrancar
+cada servicio, el script espera (máximo `-ReadyTimeoutSeconds`, default 60,
+con un timeout corto de 3 s por solicitud) hasta confirmar una respuesta
+válida real:
+
+- Backend productor: `GET /api/v2/sensors` responde 200.
+- Backend del laboratorio: `GET /openapi.json` responde 200 **y** publica
+  una ruta de ingesta de lecturas (`.../readings`) -- no solo que el
+  servidor HTTP conteste algo.
+- Frontend: respuesta HTTP en el puerto exacto pedido (arrancado con
+  `--strictPort`, así que nunca "resuelve" un puerto ocupado usando otro
+  distinto en silencio).
+
+Si el proceso termina durante la espera (por ejemplo, el lanzador Python
+falló su propia validación de artefactos), se detecta y se informa el
+servicio, el error, y la ubicación del log -- nunca se anuncia "Listo"
+hasta que TODOS los servicios pedidos responden correctamente.
+
+**Arranque transaccional**: cada invocación tiene un identificador propio
+y registra en `.defense-demo-run/registry.json` (gitignored) qué procesos
+creó ella misma -- servicio, PID, instante de creación del proceso (no
+solo el PID, que Windows recicla), ejecutable, identificador de la
+ejecución. Si algo falla en cualquier paso, se revierte: se detienen
+**únicamente** los procesos que esa invocación creó (nunca los de otra
+ejecución concurrente), verificando su identidad antes de matarlos, y
+preservando los logs para diagnóstico.
+
+Si ya hay una ejecución propia todavía activa (verificada por identidad de
+proceso, no solo por la existencia de un PID), una invocación nueva se
+niega a arrancar sin sobrescribir ese registro ni detenerla
+automáticamente -- corré `-Stop` primero.
+
+**Parada segura**:
 
 ```powershell
 ./scripts/start_defense_demo.ps1 -Stop
 ```
 
-Detiene únicamente los procesos que el propio script arrancó (PIDs
-registrados en `.defense-demo-run/`, gitignored), nunca procesos ajenos.
+- Detiene únicamente procesos cuya identidad (PID + instante de creación +
+  ejecutable) coincide con lo registrado. Un PID que Windows recicló para
+  otro proceso distinto **nunca se detiene** -- se informa un diagnóstico
+  en vez de arriesgarse a matar algo ajeno.
+- No hay terminación global por nombre de proceso ni por puerto.
+- Se detiene el árbol completo de cada servicio (por ejemplo, `cmd.exe` →
+  `npm` → `node`/Vite), verificando en cada nivel que el proceso hijo
+  realmente desciende del ya validado.
+- Es idempotente: correrlo una segunda vez (o sin nada que detener) no
+  produce errores ni toca procesos ajenos.
+- Archivos `.pid` sueltos de una versión anterior de este script (sin
+  identidad grabada) nunca se usan para matar nada -- se informa que no se
+  puede verificar su propietario.
+- Restaura, en un bloque `finally` (tanto ante éxito como ante error), las
+  variables de entorno que el script haya modificado en la sesión de
+  PowerShell (`CORS_EXTRA_ORIGINS`, `PRODUCER_DATA_DIR`,
+  `PRODUCER_BUNDLE_ROOT`, `PRODUCER_PREVIEW_PORT`, `VITE_API_BASE_URL`,
+  `VITE_PRODUCER_API_BASE_URL`). Los procesos ya arrancados conservan el
+  entorno que recibieron al momento de arrancar -- restaurarlas después no
+  los afecta.
 
 ## 6. Problemas comunes
 
@@ -210,8 +308,20 @@ registrados en `.defense-demo-run/`, gitignored), nunca procesos ajenos.
 - **`batch_not_prepared` al pedir una fecha**: esa fecha no fue preparada en
   el `PRODUCER_DATA_DIR` usado; no es un error del arranque.
 - **Frontend: "no se reconoce como un comando" / falla `npm`**: falta
-  `frontend/node_modules` (correr `npm install` en `frontend/` una vez, en
-  cualquier checkout nuevo) o falta `npm` en `PATH`.
+  `frontend/node_modules` (correr `npm ci` en `frontend/` una vez, en
+  cualquier checkout nuevo) o falta `npm` en `PATH`. El script valida esto
+  antes de arrancar nada, con un mensaje concreto.
+- **"Ya hay una ejecución propia de este script activa"**: hay entradas en
+  `.defense-demo-run/registry.json` cuya identidad (PID + instante de
+  creación + ejecutable) sigue coincidiendo con procesos reales. Corré
+  `-Stop` primero. El script nunca sobrescribe ese registro ni detiene esa
+  ejecución automáticamente.
+- **"...ya no está corriendo, o el PID fue reciclado..." al correr `-Stop`
+  pero el servicio sigue respondiendo**: significa que la identidad
+  grabada (instante de creación + ejecutable) ya no coincide con ese PID
+  -- por diseño, no se detiene un proceso cuya identidad no se puede
+  confirmar. Verificar manualmente con `Get-CimInstance Win32_Process
+  -Filter "ProcessId=<pid>"` y detener a mano si corresponde.
 - **Frontend inalcanzable en `http://127.0.0.1:<puerto>/` pero sí en
   `http://localhost:<puerto>/`**: en algunas máquinas Vite se bindea por
   defecto solo a IPv6 (`[::1]`). El script ya fuerza `--host 127.0.0.1`; si
