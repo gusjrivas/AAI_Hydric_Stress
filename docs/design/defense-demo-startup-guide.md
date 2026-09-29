@@ -54,39 +54,90 @@ versionado y prepara las 5 emisiones históricas reales
 (`2024-10-20`..`2024-10-24`). No requiere ningún insumo externo al
 repositorio ni credenciales.
 
-### Pergamino — **no reproducible únicamente desde este repositorio**
+### Pergamino — **disponible localmente y verificado; no incluido en un clon limpio**
 
-Verificado contra `origin/main` en esta tarea: `scripts/prepare_defense_data.ps1`
-exige un `-SourceDataDir` que ya contenga
-`sensor__pergamino-ensemble-demo.parquet` y
-`ui_metadata/operational_v2__pergamino-ensemble-demo.json` con hashes
-SHA-256 fijos (`F6F9E19A...`/`FCD7AC52...`, ver el script), y los 9 bundles
-reales del ensamble (`PRODUCER_BUNDLE_ROOT`). Esos tres artefactos se
-generaron en una corrida real única, autorizada explícitamente el
-2026-09-26 sobre CSVs externos de ERA5-Land/NASA POWER que **no están
-versionados en este repositorio** (`docs/design/ensemble-real-execution-report-2026-09-26.md`).
+Es importante distinguir dos cosas distintas que un lector podría
+confundir: **disponibilidad local** (¿existen los artefactos, en esta
+máquina, ya generados y verificables por hash?) y **distribución
+reproducible** (¿puede cualquiera obtenerlos con un `git clone` de este
+repositorio?). Para Pergamino, la primera es **sí** (verificado en esta
+tarea, ver abajo); la segunda sigue siendo **no**, deliberadamente — los
+artefactos son grandes, de procedencia externa (reanálisis ERA5-Land/NASA
+POWER) y no corresponde versionarlos en git.
 
-Por mandato de esta tarea, **no se reentrenó ni se regeneraron emisiones**
-para suplir esta ausencia. Para recorrer Pergamino:
+**Aclaración sobre un apartado previo potencialmente ambiguo**: un
+inventario anterior de esta tarea mencionó `run_manifest.json` y luego, en
+otra sección, "NO LOCALIZADO". Esa frase se refería exclusivamente a si
+los dos CSV fuente (`pergamino_era5land_soil_hourly_2015_2025.csv`,
+`pergamino_nasa_power_daily_2015_2025.csv`) aparecen en el historial de
+algún commit de este repositorio (`git log --all` sobre esos nombres de
+archivo) — no aparecen, por diseño, ya que son deliberadamente externos y
+nunca se versionaron. **No significa que falte ningún artefacto en
+disco.** Los tres conjuntos de artefactos de Pergamino (CSV fuente,
+lecturas+emisión del recorrido histórico, 9 bundles del ensamble) están
+presentes en esta máquina y fueron verificados por hash en esta tarea
+(sección 7.1).
 
-1. Obtener (fuera de este repositorio, por canal ya autorizado) el
-   `PRODUCER_DATA_DIR`/`PRODUCER_BUNDLE_ROOT` reales ya preparados, o
-   reproducir la corrida documentada en
-   `docs/design/ensemble-real-execution-report-2026-09-26.md` con permiso
-   explícito del responsable (requiere los dos CSV externos con sus hashes
-   verificados).
-2. Verificar los hashes con `Get-FileHash -Algorithm SHA256` contra los
-   valores fijados en `scripts/prepare_defense_data.ps1` antes de usarlos.
-3. Copiar a un directorio de demo aislado con
-   `./scripts/prepare_defense_data.ps1 -SourceDataDir <...> -DemoDataDir .demo-defense-data\session-N`
-   (rechaza destinos existentes y raíces fuera de `.demo-defense-data/`).
+Artefactos localizados y verificados en esta máquina (rutas externas al
+repositorio, `C:\Repo\AAI_Hydric_Stress_ensemble_demo_runtime\...` /
+`C:\Repo\AAI_Hydric_Stress_external_data\...` — nunca `data/` del
+repositorio):
 
-**Este es el hallazgo central de la Etapa 1 de esta tarea**: el arranque de
-Pergamino queda documentado y con validación de artefactos, pero su
-reproducción de punta a punta desde un checkout limpio permanece
-condicionada a un artefacto externo no versionado, por diseño (evita
-versionar datos de terceros/reanálisis de gran tamaño y procedencia
-externa). No es un defecto a corregir en esta entrega.
+- **CSV fuente** (`AAI_Hydric_Stress_external_data\raw\`): ambos
+  verificados contra `docs/research/controlled-daily-v4-external-pergamino-manifest.yaml`.
+- **Lecturas + emisión del recorrido** (`pergamino-walkthrough-2023-06-13_17\`):
+  `sensor__pergamino-ensemble-demo.parquet` y
+  `ui_metadata/operational_v2__pergamino-ensemble-demo.json`, verificados
+  contra los hashes fijos en `scripts/prepare_defense_data.ps1`
+  (`$expectedReadingSha256`/`$expectedEmissionSha256`). **Usar
+  exclusivamente este directorio como `-SourceDataDir`** — nunca
+  `session-2` (ver nota al final de esta sección).
+- **9 bundles del ensamble** (3 familias × 3 horizontes) +
+  `ensemble_manifest.json` por horizonte + `run_manifest.json`
+  (`pergamino-ensemble-demo-2026-09-26T034114Z\`), verificados byte a byte
+  contra los hashes que el propio `run_manifest.json` registró al
+  generarlos (27/27 componentes, 0 discrepancias).
+
+Por mandato de esta tarea, **no se reentrenó ni se regeneraron
+emisiones** — se reutilizan exclusivamente los artefactos ya generados y
+verificados arriba. Pasos para recorrer Pergamino:
+
+1. Verificar los hashes de los artefactos localizados con
+   `Get-FileHash -Algorithm SHA256` contra los valores de esta sección
+   (y contra `scripts/prepare_defense_data.ps1` para lecturas/emisión).
+2. Copiar a un directorio de demo aislado **nuevo** (nunca reusar uno
+   existente) con:
+   ```powershell
+   ./scripts/prepare_defense_data.ps1 `
+       -SourceDataDir "C:\Repo\AAI_Hydric_Stress_ensemble_demo_runtime\pergamino-walkthrough-2023-06-13_17" `
+       -DemoDataDir ".demo-defense-data\<nombre-nuevo>"
+   ```
+   (el script rechaza destinos existentes y raíces fuera de
+   `.demo-defense-data/`, y no modifica el origen).
+3. Usar como `-BundleRoot` la **raíz** que contiene la carpeta
+   `pergamino-ensemble-demo\` — **no** agregar `pergamino-ensemble-demo`
+   al final del path:
+   ```
+   -BundleRoot "C:\Repo\AAI_Hydric_Stress_ensemble_demo_runtime\pergamino-ensemble-demo-2026-09-26T034114Z"
+   ```
+   `_horizon_dir()` en `src/predictive_modeling/ensemble_bundle.py` ya
+   construye `bundle_root / sensor_id / horizon_N` internamente —
+   agregar el `sensor_id` a mano en `-BundleRoot` apunta a una ruta que
+   no existe y el backend no puede resolver ningún horizonte.
+
+**Nota sobre `session-2`** (directorio preexistente, no tocado por esta
+tarea, fuera de este worktree): su `operational_v2__pergamino-ensemble-demo.json`
+tiene un hash distinto al de `pergamino-walkthrough-2023-06-13_17`. Se
+especuló en un informe previo que esto podría deberse a una revisión
+histórica (`HistoricalReviewStore`) registrada durante esa sesión — **esa
+atribución no está verificada** y no debe repetirse como si lo estuviera:
+`HistoricalReviewStore` escribe en `historical_feedback/<sensor_id>.json`,
+un archivo separado de `ui_metadata/operational_v2__*.json`, por lo que
+una revisión histórica por sí sola no explica un hash distinto en ese
+JSON. La causa real de la diferencia queda sin verificar. Esto no bloquea
+nada: esta guía usa exclusivamente `pergamino-walkthrough-2023-06-13_17`
+(cuyos hashes sí coinciden con los fijados en el script), nunca
+`session-2`, que se deja intacta sin modificar ni borrar.
 
 ### Laboratorio de sensores — sin preparación previa
 
@@ -229,8 +280,8 @@ Verificado real (backend real, sin mocks, sin datos fabricados):
 - **Aislamiento cruzado**: cada modo usó su propio `sensor_id`
   (`melchor-romero-demo` vs. `lab-<hex>`) y su propio backend/puerto en
   este ensayo; no se observó mezcla de datos entre sensores.
-- **Pergamino**: no ensayado — bloqueado por el artefacto externo descrito
-  en la sección 2, tal como se documentó en el hallazgo de Etapa 1.
+- **Pergamino**: ensayado real en la ronda siguiente (2026-09-29, segunda
+  sesión) — ver sección 7.1.
 
 Limitaciones del ensayo:
 
@@ -249,12 +300,112 @@ Limitaciones del ensayo:
   resultado) ni la ingesta de observaciones tardías durante este ensayo
   puntual; quedan como pendiente de una pasada adicional.
 
+## 7.1. Pergamino desbloqueado y ensayado (2026-09-29, segunda sesión)
+
+Autorizado explícitamente a reutilizar exclusivamente artefactos ya
+localizados en esta máquina (sin entrenar ni regenerar nada). Verificación
+y ensayo realizados en esta sesión:
+
+**Verificación de hashes — completa, no muestreo** (script ad hoc, no
+versionado, ejecutado en esta tarea): los 27/27 archivos de componente
+(`model.joblib`/`calibrator.joblib`/`contract.json` × 3 familias × 3
+horizontes) verificados byte a byte contra los hashes que
+`run_manifest.json` registró al generarlos — **0 discrepancias**. Los 3
+`ensemble_manifest.json` (uno por horizonte) verificados: `policy_version`,
+`families` (las 3 esperadas), `weights` (suman 1.0), `sensor_id` y
+`horizon_days` coherentes con `run_manifest.json` — **0 discrepancias**.
+Lecturas+emisión (`pergamino-walkthrough-2023-06-13_17`) y ambos CSV
+fuente también verificados contra sus hashes fijos — **0 discrepancias**.
+Total: 34/34 archivos verificados, 0 discrepancias.
+
+**Corrección de `-BundleRoot`**: un inventario previo de esta tarea había
+indicado agregar `\pergamino-ensemble-demo` al final del `-BundleRoot` —
+incorrecto. Verificado leyendo `_horizon_dir()` en
+`src/predictive_modeling/ensemble_bundle.py:79-80`
+(`Path(bundle_root) / sensor_id / f"horizon_{horizon}"`): el backend ya
+agrega el `sensor_id`. El valor correcto es la raíz sin ese sufijo (ver
+sección 2). Con el valor corregido, los tres horizontes resolvieron
+correctamente (confirmado por API, ver abajo).
+
+**Copia aislada nueva**: `./scripts/prepare_defense_data.ps1
+-SourceDataDir "...\pergamino-walkthrough-2023-06-13_17" -DemoDataDir
+".demo-defense-data\pr229-rehearsal"` — destino nuevo (no existía),
+`session-1`/`session-2` no tocados. Hashes del origen verificados
+idénticos antes y después de la copia.
+
+**Arranque real**: `start_defense_demo.ps1 -Mode pergamino -DataDir
+.demo-defense-data\pr229-rehearsal -BundleRoot
+"...\pergamino-ensemble-demo-2026-09-26T034114Z" -PythonExe
+"<ruta completa>" -ProducerPort 8199 -FrontendPort 5273` — backend+frontend
+reales arrancados sin bugs nuevos específicos de este modo (los 5 bugs de
+la sección 7 ya cubrían el camino producer_v2 compartido).
+
+**Verificado real** (API + navegador, `claude-in-chrome`, clicks reales):
+
+- Las **5 emisiones archivadas** (13 al 17 de junio de 2023) resuelven,
+  cada una con sus **3 horizontes** (+1/+2/+3), sin ninguna alerta
+  positiva en ninguna combinación — resultado real, no forzado.
+- **Avance del reloj**: seleccionada la emisión del 13/06, "Recorrido
+  hasta" llevado a 16/06 → la tabla "Observaciones reveladas" muestra
+  exactamente hasta el 16/06 (10 filas, 7 al 16 de junio).
+- **Retroceso del reloj**: mismo recorrido llevado de vuelta a 14/06 → la
+  tabla se contrae a 11 filas, última fila 14/06 — sin fuga de fechas
+  posteriores.
+- **Feedback histórico en la copia aislada**: confirmado el resultado del
+  slot +1 (13/06 → objetivo 14/06) vía la UI real (checkbox + "Guardar
+  opinión") → `POST .../reviews` real, `201`. Verificado por
+  `GET .../historical/2023-06-13/forecasts?revealed_through=2023-06-14`:
+  `review.status="confirmed"`, `revision=1`. El archivo
+  `historical_feedback/pergamino-ensemble-demo.json` se creó en la copia
+  aislada, **separado** de `ui_metadata/operational_v2__pergamino-ensemble-demo.json`.
+- **Hashes antes/después**: los 34 archivos (27 de bundle + 3 manifiestos
+  de ensamble + lecturas/emisión + 2 CSV fuente) se re-verificaron
+  **después** de arrancar el backend, recorrer las 5 emisiones, avanzar y
+  retroceder el reloj, y registrar una revisión — **0 discrepancias**,
+  igual que antes de empezar. Los originales
+  (`pergamino-walkthrough-2023-06-13_17`) también se re-verificaron
+  intactos.
+- **Sin alertas forzadas**: las 15 combinaciones emisión×horizonte
+  (5 emisiones × 3 horizontes) devolvieron `alert=false`; se registran tal
+  cual, sin modificar umbral, modelo ni pronóstico para producir una
+  alerta positiva.
+
+**Ensayo combinado (Pergamino + Melchor Romero, un solo backend
+compartido)**: se copiaron los árboles ya preparados de ambos sitios (la
+copia aislada de Pergamino de este ensayo + el directorio de Melchor
+Romero preparado en la sesión anterior, **sin volver a entrenar sus
+modelos**) a un `-DataDir`/`-BundleRoot` nuevos y compartidos, organizados
+por `sensor_id` como ya lo hace la fachada `producer_v2`. Hashes
+verificados antes y después de la copia (4 archivos de lecturas/emisión,
+0 discrepancias; originales de ambos sitios re-verificados intactos).
+`start_defense_demo.ps1 -Mode all` arrancó un único backend `producer_v2`
+sirviendo ambos `sensor_id` simultáneamente: `GET /api/v2/sensors` listó
+`pergamino-ensemble-demo` y `melchor-romero-demo`; cada uno resolvió sus
+propias emisiones históricas reales por API y por navegador
+(`#/defensa-pergamino` y `#/defensa-melchor-romero` en la misma sesión de
+frontend); pedir Pergamino en una fecha exclusiva de Melchor Romero
+devolvió `404 batch_not_prepared` (aislamiento estructural por
+`sensor_id`, no por coincidencia) — sin mezcla de datos entre sensores.
+
+**No verificado en esta ronda** (pendiente):
+
+- 390 px de ancho: sigue bloqueado por la misma limitación de la
+  herramienta `resize_window` en este entorno (sección 7).
+- Checkout genuinamente separado (sigue ensayado en este worktree).
+- Ingesta de observaciones tardías (llegada fuera de orden) en Pergamino
+  específicamente — se verificó el mecanismo de reloj/revelado, pero no
+  un caso de respuesta de feedback deliberadamente demorada.
+
 ## 8. Limitaciones conocidas de esta entrega
 
-- Pergamino no puede recorrerse de punta a punta desde un checkout
-  completamente limpio sin el artefacto externo descrito en la sección 2 —
-  esto es una restricción de procedencia de datos, no un defecto del
-  mecanismo de arranque.
+- Pergamino no puede recorrerse de punta a punta desde un **clon git
+  limpio** sin acceso a los artefactos externos descritos en la sección 2
+  — deliberado, por procedencia y tamaño de los datos, no un defecto del
+  mecanismo de arranque. Distinto de "disponibilidad local": en esta
+  máquina esos artefactos SÍ están presentes y fueron verificados por
+  hash de punta a punta (sección 7.1); quien tenga acceso a ellos por el
+  canal ya autorizado puede recorrer Pergamino igual que Melchor Romero y
+  el Laboratorio.
 - Esta guía no reemplaza `docs/research/protocolo-experimental-v3.md` (v3,
   congelado) ni el protocolo `controlled_daily_v4_external_pergamino`
   (ADR-0011); tampoco reinterpreta la retrospectiva exploratoria 2023
