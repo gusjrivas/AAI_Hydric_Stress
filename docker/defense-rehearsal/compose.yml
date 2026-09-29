@@ -63,6 +63,8 @@ services:
     environment:
       VITE_API_BASE_URL: http://127.0.0.1:${REHEARSAL_LAB_PORT:-18299}
       VITE_PRODUCER_API_BASE_URL: http://127.0.0.1:${REHEARSAL_PRODUCER_PORT:-18199}
+      # URL del controlador de la demo acelerada, accesible desde el navegador.
+      VITE_DEMO_CONTROL_BASE_URL: http://127.0.0.1:${REHEARSAL_DEMO_PORT:-18010}
     command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173", "--strictPort"]
     ports:
       - "127.0.0.1:${REHEARSAL_UI_PORT:-15199}:5173"
@@ -72,5 +74,37 @@ services:
       producer-backend:
         condition: service_healthy
 
+  # Perfil opcional `demo`: controlador de la demo acelerada (scripts/demo_simulation,
+  # docker/demo-control/Dockerfile, sin cambios). Apunta al backend de laboratorio por la
+  # red interna. `prepare` escribe el historial `demo-*` en el MISMO volumen aislado que usa
+  # lab-backend (lab_data); el manifiesto de sesión vive en un volumen propio (demo_sessions).
+  # Nunca toca el backend ni los datos del productor.
+  #   docker compose ... --profile demo run --rm --no-deps demo-control prepare   #       --start 2026-09-10 --days 5 --history-days 120 --seed 42 --backend-url http://lab-backend:8000
+  #   DEMO_SESSION_ID=demo-<id> docker compose ... --profile demo up -d demo-control
+  demo-control:
+    profiles: ["demo"]
+    build:
+      context: ../..
+      dockerfile: docker/demo-control/Dockerfile
+    restart: "no"
+    depends_on:
+      lab-backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${REHEARSAL_DEMO_PORT:-18010}:8010"
+    volumes:
+      - lab_data:/workspace/data
+      - demo_sessions:/workspace/demo_sessions
+    command:
+      [
+        "serve",
+        "--host", "0.0.0.0",
+        "--port", "8010",
+        "--id", "${DEMO_SESSION_ID:-}",
+        "--allowed-origin", "http://127.0.0.1:${REHEARSAL_UI_PORT:-15199}",
+        "--allowed-origin", "http://localhost:${REHEARSAL_UI_PORT:-15199}",
+      ]
+
 volumes:
   lab_data:
+  demo_sessions:
