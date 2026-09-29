@@ -31,12 +31,32 @@ export interface ReadingRow {
   et0: number | null;
   origin: "real" | "synthetic" | "external_reanalysis" | "unknown";
   quality_flags: string[];
+  /** Variables whose value on this date was completed by causal
+   * forward-fill instead of present in the source for that day. Distinct
+   * from `origin` (dataset-level provenance): a real dataset can still
+   * contain imputed values. Always `[]` for datasets that never impute. */
+  imputed_variables: ReadingVariable[];
+  /** Variables whose value on this date has imputation tracking in the
+   * dataset (i.e. this dataset context does track imputation) but whose
+   * per-row flag for this date is present-but-null: neither confirmed real
+   * nor confirmed imputed. Never render as an independent observation --
+   * "Procedencia del valor no verificada". Always `[]` for datasets that
+   * never track imputation, and disjoint from `imputed_variables`. */
+  unverified_variables: ReadingVariable[];
 }
 
 export interface VariableCoverage {
   variable: string;
   observed_days: number;
   missing_days: number;
+  /** Days counted as having a value only because it was imputed, never
+   * included in `observed_days`. `0` for datasets that never impute. */
+  imputed_days: number;
+  /** Days where this variable had a value but its imputation-tracking flag
+   * was present-but-null: provenance not verified, never included in
+   * `observed_days` or `imputed_days`. `0` for datasets that never track
+   * imputation for this variable. */
+  unverified_days: number;
 }
 
 export interface ReadingsResult {

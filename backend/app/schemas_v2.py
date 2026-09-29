@@ -113,12 +113,36 @@ class ReadingRow(StrictModel):
     et0: float | None
     origin: Literal["real", "synthetic", "external_reanalysis", "unknown"]
     quality_flags: list[str]
+    # Variables whose value on this date was completed by causal
+    # forward-fill (`data_quality.imputation.interpolate_missing_causal`)
+    # rather than present in the source for that day. Distinct from
+    # `origin`, which describes the dataset's provenance (real/synthetic/
+    # external reanalysis), not the treatment of an individual value: a
+    # real dataset can still contain imputed values. Always `[]` for
+    # datasets that never impute (the common case).
+    imputed_variables: list[str]
+    # Variables whose value on this date has an imputation-tracking column
+    # in the dataset schema (i.e. this dataset context DOES track
+    # imputation) but whose per-row flag for this date is present-but-null:
+    # neither confirmed real nor confirmed imputed. Never presented as an
+    # independent observation. Always `[]` for datasets that never track
+    # imputation at all, and disjoint from `imputed_variables`.
+    unverified_variables: list[str]
 
 
 class VariableCoverage(StrictModel):
     variable: str
     observed_days: int
     missing_days: int
+    # Days in the window where this variable had a value only because it
+    # was imputed, never counted towards `observed_days`. `0` for datasets
+    # that never impute.
+    imputed_days: int
+    # Days where this variable had a value but its imputation-tracking flag
+    # was present-but-null: provenance not verified, never counted towards
+    # `observed_days` or `imputed_days`. `0` for datasets that never track
+    # imputation for this variable.
+    unverified_days: int
 
 
 class InputRole(StrictModel):

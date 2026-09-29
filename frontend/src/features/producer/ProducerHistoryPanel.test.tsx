@@ -13,9 +13,9 @@ const readings: api.ReadingsResult = {
   window: { start_date: "2026-01-01", end_date: "2026-01-03", expected_days: 3 },
   status: "ready",
   rows: [
-    { date: "2026-01-01", soil_moisture: 0.3, relative_humidity: 60, solar_radiation: 15, temperature: 20, precipitation: 0, wind_speed: 2, et0: 4, origin: "synthetic", quality_flags: [] },
-    { date: "2026-01-02", soil_moisture: null, relative_humidity: 61, solar_radiation: 16, temperature: 21, precipitation: 0, wind_speed: 2, et0: 4, origin: "synthetic", quality_flags: [] },
-    { date: "2026-01-03", soil_moisture: 0.2, relative_humidity: 58, solar_radiation: 14, temperature: 22, precipitation: 2, wind_speed: 3, et0: 5, origin: "synthetic", quality_flags: [] },
+    { date: "2026-01-01", soil_moisture: 0.3, relative_humidity: 60, solar_radiation: 15, temperature: 20, precipitation: 0, wind_speed: 2, et0: 4, origin: "synthetic", quality_flags: [], imputed_variables: [], unverified_variables: [] },
+    { date: "2026-01-02", soil_moisture: null, relative_humidity: 61, solar_radiation: 16, temperature: 21, precipitation: 0, wind_speed: 2, et0: 4, origin: "synthetic", quality_flags: [], imputed_variables: [], unverified_variables: [] },
+    { date: "2026-01-03", soil_moisture: 0.2, relative_humidity: 58, solar_radiation: 14, temperature: 22, precipitation: 2, wind_speed: 3, et0: 5, origin: "synthetic", quality_flags: [], imputed_variables: [], unverified_variables: [] },
   ],
   missing_dates: ["2026-01-02"],
   variable_coverage: [],
