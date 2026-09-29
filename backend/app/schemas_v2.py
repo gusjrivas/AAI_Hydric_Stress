@@ -113,12 +113,24 @@ class ReadingRow(StrictModel):
     et0: float | None
     origin: Literal["real", "synthetic", "external_reanalysis", "unknown"]
     quality_flags: list[str]
+    # Variables whose value on this date was completed by causal
+    # forward-fill (`data_quality.imputation.interpolate_missing_causal`)
+    # rather than present in the source for that day. Distinct from
+    # `origin`, which describes the dataset's provenance (real/synthetic/
+    # external reanalysis), not the treatment of an individual value: a
+    # real dataset can still contain imputed values. Always `[]` for
+    # datasets that never impute (the common case).
+    imputed_variables: list[str]
 
 
 class VariableCoverage(StrictModel):
     variable: str
     observed_days: int
     missing_days: int
+    # Days in the window where this variable had a value only because it
+    # was imputed, never counted towards `observed_days`. `0` for datasets
+    # that never impute.
+    imputed_days: int
 
 
 class InputRole(StrictModel):

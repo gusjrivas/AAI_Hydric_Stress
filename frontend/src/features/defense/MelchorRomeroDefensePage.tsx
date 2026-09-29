@@ -61,11 +61,24 @@ export function MelchorRomeroDefensePage() {
     <section aria-label="Evidencia agregada retrospectiva">
       <p className="producer-eyebrow">B · Evidencia agregada</p>
       <p className="historical-evidence-unavailable">
-        No hay un panel de evidencia agregada retrospectiva para Melchor Romero: a diferencia de
-        Pergamino (protocolo <code>controlled_daily_v4_external_pergamino</code>, evaluación
-        agregada 2023 ya ejecutada), no existe una corrida de evaluación retrospectiva agregada
-        para este sitio en este repositorio. Mostrarla equivaldría a fabricar paridad donde no hay
-        evidencia real. Esta demostración solo cubre las cinco emisiones individuales de arriba.
+        Estos cinco bundles demostrativos de Melchor Romero (los ajustados para esta demostración,
+        sección A de arriba) no tienen una evaluación agregada propia acreditada en esta entrega:
+        no se ejecutó ninguna corrida de evaluación retrospectiva agregada sobre ellos. Esto es
+        distinto de la evidencia histórica congelada de <code>controlled_daily_v3</code> (
+        <code>scientific-baseline-v3</code>), que sí existe sobre este mismo sitio y dataset, con su
+        propio alcance, y que estos cinco bundles nunca reejecutan, reinterpretan ni sustituyen.
+      </p>
+      <p className="historical-evidence-unavailable">
+        Pergamino sí muestra un panel de evidencia agregada 2023 más abajo, pero corresponde a un
+        protocolo propio y separado -- la evaluación retrospectiva exploratoria del ensamble
+        Pergamino 2023 (<code>docs/research/ensemble-retrospective-evaluation-protocol.md</code> /{" "}
+        <code>-results.md</code>) -- no a la campaña científica{" "}
+        <code>controlled_daily_v4_external_pergamino</code> (ADR-0011, etapas A, B y C, con holdout
+        en la etapa C). Esa evaluación 2023 es exploratoria, no independiente (2023 ya se usó en
+        análisis anteriores del proyecto), y su auditoría científica concluyó FAIL por ejecución
+        duplicada; no se le atribuye aquí ningún resultado confirmatorio ni superioridad. Mostrar un
+        panel equivalente para Melchor Romero equivaldría a fabricar paridad donde no hay evidencia
+        real.
       </p>
     </section>
   </div>;

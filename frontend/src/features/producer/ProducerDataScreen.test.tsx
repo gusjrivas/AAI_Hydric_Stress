@@ -14,11 +14,11 @@ const baseReadings: ReadingsResult = {
   window: { start_date: "2023-06-11", end_date: "2023-06-20", expected_days: 10 },
   status: "ready",
   rows: [
-    { date: "2023-06-19", soil_moisture: 0.2, relative_humidity: 60, solar_radiation: 18, temperature: 22, precipitation: 0, wind_speed: 3, et0: 4, origin: "external_reanalysis", quality_flags: [] },
-    { date: "2023-06-20", soil_moisture: null, relative_humidity: 61, solar_radiation: null, temperature: null, precipitation: 0, wind_speed: 3, et0: 4, origin: "external_reanalysis", quality_flags: ["non_finite:solar_radiation"] },
+    { date: "2023-06-19", soil_moisture: 0.2, relative_humidity: 60, solar_radiation: 18, temperature: 22, precipitation: 0, wind_speed: 3, et0: 4, origin: "external_reanalysis", quality_flags: [], imputed_variables: [] },
+    { date: "2023-06-20", soil_moisture: null, relative_humidity: 61, solar_radiation: null, temperature: null, precipitation: 0, wind_speed: 3, et0: 4, origin: "external_reanalysis", quality_flags: ["non_finite:solar_radiation"], imputed_variables: [] },
   ],
   missing_dates: ["2023-06-15"],
-  variable_coverage: [{ variable: "soil_moisture", observed_days: 9, missing_days: 1 }],
+  variable_coverage: [{ variable: "soil_moisture", observed_days: 9, missing_days: 1, imputed_days: 0 }],
   units: { soil_moisture: "%", temperature: "degC", precipitation: "mm/day", relative_humidity: "%", solar_radiation: "MJ/m2/day", wind_speed: "m/s", et0: "mm/day" },
   last_reading_date: "2023-06-19",
   data_age_days: 1,
@@ -40,7 +40,7 @@ describe("ProducerDataScreen", () => {
   it("never claims anomalies when none are backed by quality_flags", async () => {
     vi.spyOn(readingsApi, "getSensorReadings").mockResolvedValue({
       ...baseReadings,
-      rows: baseReadings.rows.map((row) => ({ ...row, quality_flags: [] })),
+      rows: baseReadings.rows.map((row) => ({ ...row, quality_flags: [], imputed_variables: [] })),
     });
     render(<ProducerDataScreen sensorId="sensor-a" />);
     expect(await screen.findByText(/no se registraron anomalías/i)).toBeInTheDocument();

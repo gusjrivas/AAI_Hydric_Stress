@@ -50,6 +50,21 @@ train/calibration are never completed using evaluation rows: no partition
 ever borrows a value from a later partition, and no partition is imputed
 using its own future.
 
+**Labels are built from this prepared (imputed) frame, not retrospectively
+recomputed (F01).** `interpolate_missing_causal` records, per variable, a
+`<variable>_imputado` boolean column identifying exactly which rows were
+completed by forward-fill (never inferred later by comparing values across
+days -- it is derived directly from which cells were `NaN` before
+imputation). This module trains/labels on the already-imputed frame, same
+as before F01: the fix is that `build_daily_frame_from_repo_dataset` no
+longer discards those `<variable>_imputado` columns before returning, so
+`scripts/prepare_melchor_romero_historical_demo.py` can persist them into
+the readings file `data_ingestion.history.query_readings` serves, and the
+UI can identify an imputed value explicitly instead of presenting it as an
+unqualified real observation. This never changes any label, any trained
+model, or any already-served prediction -- it only makes an
+already-computed fact (which values were imputed) visible downstream.
+
 **Feature contract (this module's own, declared here, never claiming
 equivalence to any frozen protocol contract).** Lag (1, 2, 3) and rolling
 mean (3, 7) windows applied uniformly to the three raw variables
@@ -228,10 +243,16 @@ def build_daily_frame_from_repo_dataset(
     """Load the real, already-committed `melchor_romero_2024_consolidado`
     dataset and restrict/impute it exactly as this demo's partitions
     require. Returns `(frame, dataset_sha256)` with columns `timestamp,
-    soil_moisture, relative_humidity, solar_radiation` -- `dataset_sha256`
-    identifies the raw snapshot read (before imputation), matching the
-    convention `pergamino_ensemble_demo_runner.py` uses for its own input
-    hash."""
+    soil_moisture, relative_humidity, solar_radiation` plus, for each of
+    those three variables, a `<variable>_imputado` boolean column (F01:
+    which cells were completed by causal forward-fill, computed directly
+    from `interpolate_missing_causal`, never inferred afterwards) --
+    deliberately NOT stripped before returning, so callers that persist
+    this frame as readings (`scripts/prepare_melchor_romero_historical_demo.py`)
+    can preserve per-value imputation provenance alongside the dataset-level
+    `origen` they set separately. `dataset_sha256` identifies the raw
+    snapshot read (before imputation), matching the convention
+    `pergamino_ensemble_demo_runner.py` uses for its own input hash."""
     snapshot = load_dataset_snapshot(DATASET_NAME, data_dir=data_dir)
     df, dataset_sha256 = snapshot.dataframe, snapshot.dataset_sha256
     frame = df[["timestamp", *FEATURE_COLUMNS]].copy()

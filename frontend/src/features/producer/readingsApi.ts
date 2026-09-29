@@ -31,12 +31,20 @@ export interface ReadingRow {
   et0: number | null;
   origin: "real" | "synthetic" | "external_reanalysis" | "unknown";
   quality_flags: string[];
+  /** Variables whose value on this date was completed by causal
+   * forward-fill instead of present in the source for that day. Distinct
+   * from `origin` (dataset-level provenance): a real dataset can still
+   * contain imputed values. Always `[]` for datasets that never impute. */
+  imputed_variables: ReadingVariable[];
 }
 
 export interface VariableCoverage {
   variable: string;
   observed_days: number;
   missing_days: number;
+  /** Days counted as having a value only because it was imputed, never
+   * included in `observed_days`. `0` for datasets that never impute. */
+  imputed_days: number;
 }
 
 export interface ReadingsResult {

@@ -3,7 +3,7 @@ import { ForecastCard } from "./ForecastCard";
 import { getHistoricalForecastBatch, getHistoricalReadings, submitHistoricalReview } from "./historicalApi";
 import { displayForecastDate, type Forecast, type ForecastBatch, type ReviewRequest } from "./forecastsApi";
 import { displayDate, formatReadingValue, originLabel } from "./readingsApi";
-import type { ReadingsResult } from "./readingsApi";
+import type { ReadingRow, ReadingsResult } from "./readingsApi";
 import "./HistoricalWalkthrough.css";
 
 type BatchState =
@@ -52,6 +52,25 @@ const QUALITY_VARIABLE_LABELS: Record<string, string> = {
   relative_humidity: "Humedad del aire", solar_radiation: "Radiación solar",
   wind_speed: "Velocidad del viento", et0: "Demanda de agua del ambiente (ET₀)",
 };
+
+const NO_SOURCE_OBSERVATION_LABEL = "Sin observación en la fuente";
+const IMPUTED_VALUE_SUFFIX = "Valor imputado (completado a partir del último dato disponible, sin dato propio en la fuente para esta fecha). No es una observación independiente para contrastar con el pronóstico.";
+
+/**
+ * Humedad del suelo de una fila de lecturas, distinguiendo tres casos: sin
+ * observación en la fuente (nunca se muestra un valor), observación real, e
+ * imputación (un valor SÍ se muestra, pero identificado explícitamente y
+ * nunca presentado como una observación independiente contra la que
+ * contrastar un pronóstico -- ver F01, `data_quality.imputation`).
+ */
+function describeSoilMoistureObservation(row: ReadingRow | undefined, unit: string | undefined): string {
+  if (!row || row.soil_moisture === null) return `${NO_SOURCE_OBSERVATION_LABEL}.`;
+  const formatted = formatReadingValue("soil_moisture", row.soil_moisture, unit);
+  if (row.imputed_variables.includes("soil_moisture")) {
+    return `${formatted} · ${IMPUTED_VALUE_SUFFIX}`;
+  }
+  return `${formatted} · ${originLabel(row.origin)}`;
+}
 
 /**
  * `availableDates`/`revealMax`/`provenanceNotice` generalize this component
@@ -245,7 +264,7 @@ export function HistoricalWalkthrough({
           ? <>
             <p>Fuente: <strong>{readingsState.data.provenance === "external_reanalysis" ? "ERA5-Land/NASA POWER (datos externos)" : readingsState.data.provenance}</strong>. Ventana: {displayDate(readingsState.data.window.start_date)} a {displayDate(readingsState.data.window.end_date)}.</p>
             <p><strong>{readingsState.data.window.expected_days} días esperados</strong> · <strong>{readingsState.data.missing_dates.length} {readingsState.data.missing_dates.length === 1 ? "fecha" : "fechas"} sin datos</strong> · <strong>{variablesWithoutData} {variablesWithoutData === 1 ? "variable" : "variables"} sin ningún dato en la ventana</strong>. Una fecha o variable faltante no se interpreta como ausencia de alerta.</p>
-            <details><summary>Ver disponibilidad por variable</summary><ul>{readingsState.data.variable_coverage.map((item) => <li key={item.variable}>{QUALITY_VARIABLE_LABELS[item.variable] ?? item.variable}: {item.observed_days} días con dato, {item.missing_days} sin dato</li>)}</ul></details>
+            <details><summary>Ver disponibilidad por variable</summary><ul>{readingsState.data.variable_coverage.map((item) => <li key={item.variable}>{QUALITY_VARIABLE_LABELS[item.variable] ?? item.variable}: {item.observed_days} días con dato, {item.missing_days} sin dato{item.imputed_days > 0 ? `, ${item.imputed_days} imputado${item.imputed_days === 1 ? "" : "s"} (no cuenta como observación)` : ""}</li>)}</ul></details>
           </>
           : readingsState.status === "error" && readingsState.context === context
             ? <p role="alert">No se pudo consultar la disponibilidad: {readingsState.message} <button type="button" onClick={() => setReadingsRetry((n) => n + 1)}>Reintentar lecturas</button></p>
@@ -259,7 +278,7 @@ export function HistoricalWalkthrough({
         <strong>{availableCount === 0 ? "No hay pronósticos disponibles" : alertCount === 0 ? `Sin alerta prevista en ${availableCount} horizonte${availableCount === 1 ? "" : "s"} disponible${availableCount === 1 ? "" : "s"}` : `${alertCount} de ${availableCount} horizonte${availableCount === 1 ? "" : "s"} disponible${availableCount === 1 ? "" : "s"} con alerta prevista`}</strong>
         {firstForecast?.status === "available" && firstForecast.event_threshold.variable === "soil_moisture" && <p className="historical-humidity-context">
           Objetivo del protocolo: humedad del suelo inferior a <strong>{formatReadingValue("soil_moisture", firstForecast.event_threshold.value, firstForecast.event_threshold.unit)}</strong>.
-          {currentReadings && <> Dato externo al emitir ({displayDate(emissionDate)}): <strong>{emissionReading?.soil_moisture == null ? "no disponible" : formatReadingValue("soil_moisture", emissionReading.soil_moisture, currentReadings.units.soil_moisture)}</strong>.</>}
+          {currentReadings && <> Dato externo al emitir ({displayDate(emissionDate)}): <strong>{emissionReading?.soil_moisture == null ? "no disponible" : formatReadingValue("soil_moisture", emissionReading.soil_moisture, currentReadings.units.soil_moisture)}</strong>{emissionReading?.imputed_variables.includes("soil_moisture") ? " (imputado, sin dato propio en la fuente para esta fecha)" : ""}.</>}
           {" "}El dato de humedad y los scores de los modelos son valores distintos.
         </p>}
         <p>Son decisiones entregadas por el backend para el objetivo de humedad del protocolo. “Sin alerta” no garantiza ausencia de estrés en el cultivo.</p>
@@ -287,7 +306,7 @@ export function HistoricalWalkthrough({
               {slot.target_date && <p className="historical-target-observation"><strong>Observación posterior:</strong> {slot.target_date > effectiveReveal
                 ? "Todavía no disponible según el reloj del recorrido."
                 : readingsState.status === "ready" && readingsState.context === context
-                  ? (() => { const row = readingsState.data.rows.find((item) => item.date === slot.target_date); return row && row.soil_moisture !== null ? `${formatReadingValue("soil_moisture", row.soil_moisture, readingsState.data.units.soil_moisture)} · ${originLabel(row.origin)}` : "Dato faltante en la fuente para esta fecha."; })()
+                  ? describeSoilMoistureObservation(readingsState.data.rows.find((item) => item.date === slot.target_date), readingsState.data.units.soil_moisture)
                   : readingsState.status === "error" && readingsState.context === context
                     ? "No se pudo consultar la observación; reintentá las lecturas."
                     : "Cargando dato posterior…"}</p>}
@@ -311,8 +330,8 @@ export function HistoricalWalkthrough({
                   {readingsState.data.rows.map((row) => (
                     <tr key={row.date}>
                       <th scope="row">{displayDate(row.date)}</th>
-                      <td>{formatReadingValue("soil_moisture", row.soil_moisture, readingsState.data.units.soil_moisture)}</td>
-                      <td>{originLabel(row.origin)}</td>
+                      <td>{row.soil_moisture === null ? NO_SOURCE_OBSERVATION_LABEL : formatReadingValue("soil_moisture", row.soil_moisture, readingsState.data.units.soil_moisture)}</td>
+                      <td>{row.soil_moisture === null ? "—" : row.imputed_variables.includes("soil_moisture") ? `${originLabel(row.origin)} · Imputado (sin dato propio este día)` : originLabel(row.origin)}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -48,7 +48,9 @@ DEMO_DATES = ["2024-10-20", "2024-10-21", "2024-10-22", "2024-10-23", "2024-10-2
 DEFAULT_SENSOR_ID = "melchor-romero-demo"
 
 
-def _prepare_emissions(*, sensor_id: str, data_dir: Path, bundle_root: Path, frame: pd.DataFrame) -> None:
+def _prepare_emissions(
+    *, sensor_id: str, data_dir: Path, bundle_root: Path, frame: pd.DataFrame
+) -> None:
     from app.config import get_dataset_data_dir, is_producer_v2_enabled
     from app.dependencies import get_producer_bundle_root
     from app.main import app
@@ -64,6 +66,18 @@ def _prepare_emissions(*, sensor_id: str, data_dir: Path, bundle_root: Path, fra
             for raw_date in DEMO_DATES:
                 as_of = pd.Timestamp(raw_date).date()
                 truncated = frame.loc[frame["timestamp"].dt.date <= as_of].copy()
+                # `origen="real"` is DATASET-level provenance (this really
+                # is the real, versioned Melchor Romero dataset, never
+                # synthetic) -- distinct from per-VALUE treatment (F01):
+                # `frame` already carries a `<variable>_imputado` boolean
+                # column per feature (from `build_daily_frame_from_repo_
+                # dataset`, forward-filled via `interpolate_missing_causal`)
+                # identifying exactly which cells were completed because the
+                # source lacked an observation for that day. Those columns
+                # are preserved here (never overwritten or dropped), so
+                # `data_ingestion.history.query_readings` can tell an
+                # imputed value apart from a genuine source observation --
+                # a real dataset can still contain imputed values.
                 truncated["origen"] = "real"
                 save_dataset(f"sensor__{sensor_id}", truncated, data_dir=data_dir)
                 response = client.post(
@@ -82,7 +96,10 @@ def _prepare_emissions(*, sensor_id: str, data_dir: Path, bundle_root: Path, fra
 
     # After all 5 emissions are prepared, restore the FULL real dataset so
     # revealed_through can show genuine later observations (never a value
-    # from a date that was never in the raw dataset).
+    # from a date that was never in the raw dataset). Same F01 note as
+    # above: `origen="real"` is dataset-level; `frame`'s own
+    # `<variable>_imputado` columns (preserved, not overwritten) carry the
+    # per-value distinction.
     full_frame = frame.copy()
     full_frame["origen"] = "real"
     save_dataset(f"sensor__{sensor_id}", full_frame, data_dir=data_dir)

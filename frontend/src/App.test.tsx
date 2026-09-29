@@ -120,6 +120,15 @@ describe("App — navegación por hash (Entrega 2)", () => {
     expect(await screen.findByText(/Melchor Romero · emisiones persistidas/i)).toBeInTheDocument();
     expect(screen.queryByText(/Pergamino · emisiones persistidas/i)).not.toBeInTheDocument();
 
+    // F04: la evaluación retrospectiva 2023 del ensamble Pergamino es un
+    // protocolo propio y separado, nunca la campaña v4 A/B/C/holdout;
+    // Melchor Romero tiene su propia evidencia v3, distinta de estos
+    // bundles demostrativos sin evaluación agregada propia acreditada.
+    expect(screen.getByText(/protocolo propio y separado/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/controlled_daily_v4_external_pergamino/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/controlled_daily_v3/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/evaluación agregada 2023 ya ejecutada/i)).not.toBeInTheDocument();
+
     window.location.hash = "#defensa-pergamino";
     await act(async () => window.dispatchEvent(new HashChangeEvent("hashchange")));
     expect(await screen.findByText(/Pergamino · emisiones persistidas/i)).toBeInTheDocument();

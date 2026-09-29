@@ -42,6 +42,28 @@ class HistoryError(Exception):
 EXTERNAL_REANALYSIS_RAW_VALUE = "external_reanalysis_era5_nasa_power"
 EXTERNAL_REANALYSIS_ORIGIN = "external_reanalysis"
 
+# Per-variable, per-row imputation flag column produced by
+# `data_quality.imputation.interpolate_missing_causal` ("<columna>_imputado",
+# boolean). Distinct from `origen` (PROVENANCE_COLUMN, dataset-level: real
+# vs synthetic vs external reanalysis): a real, non-synthetic dataset can
+# still contain individual values completed by causal forward-fill because
+# the source lacked an observation for that day. When this column is
+# present for a variable, a row is only counted as "observed" if the flag
+# is false; when it is absent (the common case: most sensors/sites never
+# impute), every non-null value is treated as observed, exactly as before
+# this distinction existed.
+IMPUTATION_FLAG_SUFFIX = "_imputado"
+
+
+def _is_imputed(source: Any, variable: str) -> bool:
+    flag_column = f"{variable}{IMPUTATION_FLAG_SUFFIX}"
+    if flag_column not in source.index:
+        return False
+    flag_value = source.get(flag_column)
+    if pd.isna(flag_value):
+        return False
+    return bool(flag_value)
+
 
 def _origin(value: Any) -> str:
     if pd.isna(value):
@@ -154,6 +176,7 @@ def query_readings(
     observed_dates = set()
     origins = []
     observed_by_variable = {variable: 0 for variable in VARIABLE_UNITS}
+    imputed_by_variable = {variable: 0 for variable in VARIABLE_UNITS}
     for _, source in window.iterrows():
         reading_date = source["__date"]
         observed_dates.add(reading_date)
@@ -161,11 +184,18 @@ def query_readings(
         if reading_date > today:
             flags.append("future_date")
         row = {"date": reading_date, "quality_flags": flags}
+        imputed_variables: list[str] = []
         for variable in VARIABLE_UNITS:
             value = _number(source.get(variable), flags, variable)
             row[variable] = value
             if value is not None:
-                observed_by_variable[variable] += 1
+                if _is_imputed(source, variable):
+                    imputed_by_variable[variable] += 1
+                    imputed_variables.append(variable)
+                    flags.append(f"imputed:{variable}")
+                else:
+                    observed_by_variable[variable] += 1
+        row["imputed_variables"] = imputed_variables
         row_origin = _origin(source.get(PROVENANCE_COLUMN))
         if row_origin == "unknown":
             flags.append("unknown_origin")
@@ -183,7 +213,8 @@ def query_readings(
         {
             "variable": variable,
             "observed_days": observed_by_variable[variable],
-            "missing_days": days - observed_by_variable[variable],
+            "missing_days": days - observed_by_variable[variable] - imputed_by_variable[variable],
+            "imputed_days": imputed_by_variable[variable],
         }
         for variable in VARIABLE_UNITS
     ]
@@ -229,7 +260,7 @@ def _empty_response(sensor_id: str, days: int, end: date, today: date) -> dict[s
         "rows": [],
         "missing_dates": [start + timedelta(days=offset) for offset in range(days)],
         "variable_coverage": [
-            {"variable": variable, "observed_days": 0, "missing_days": days}
+            {"variable": variable, "observed_days": 0, "missing_days": days, "imputed_days": 0}
             for variable in VARIABLE_UNITS
         ],
         "units": VARIABLE_UNITS,
