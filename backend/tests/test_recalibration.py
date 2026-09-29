@@ -175,6 +175,67 @@ def test_concurrent_recalibration_requests_do_not_fork_lineage(tmp_path):
     app.dependency_overrides.clear()
 
 
+def test_recalibration_lock_timeout_returns_503_without_registering_anything(tmp_path, monkeypatch):
+    """Regresión: si el lock de recalibración (`interprocess_lock`) vence
+    -- por ejemplo porque otra recalibración del mismo sensor sigue en
+    curso -- el endpoint debe devolver 503 con un mensaje genérico, nunca
+    un 500 ni el mensaje interno de `StorageLockTimeout` (que incluye la
+    ruta del archivo de lock). El vencimiento se simula de forma
+    determinista haciendo que el propio `interprocess_lock` importado en
+    el router lance `StorageLockTimeout` al entrar -- sin esperar los 10
+    segundos reales del timeout. Ni el entrenamiento/recalibración ni el
+    registro de modelo/linaje deben ejecutarse: se lo verifica haciendo
+    que esas funciones fallen si llegan a invocarse."""
+    import app.routers.recalibration as recalibration_module
+
+    from data_ingestion.storage import StorageLockTimeout
+
+    _use_sqlite_tracking(tmp_path, "test-recalibrate-lock-timeout")
+    _seed_sensor_dataset("sensor-a", tmp_path)
+    app.dependency_overrides[get_dataset_data_dir] = lambda: tmp_path
+    app.dependency_overrides[get_feedback_data_dir] = lambda: tmp_path
+    client = TestClient(app)
+
+    forecast = client.post("/forecast/sensor-a/run").json()
+    fecha = forecast["verdicts"][0]["fecha"]
+    client.post(
+        f"/feedback/sensor-a/{fecha}/reject",
+        json={"etiqueta_corregida": 0, "observacion": "test"},
+    )
+
+    from contextlib import contextmanager
+
+    @contextmanager
+    def _always_times_out(*_args, **_kwargs):
+        raise StorageLockTimeout(
+            "Timeout al adquirir lock C:\\ruta\\interna\\recalibration__sensor-a.lock"
+        )
+        yield  # pragma: no cover - unreachable, keeps this a generator function
+
+    def _fail_if_called(*_args, **_kwargs):
+        raise AssertionError("no debía invocarse con el lock vencido")
+
+    monkeypatch.setattr(recalibration_module, "interprocess_lock", _always_times_out)
+    monkeypatch.setattr(recalibration_module, "execute_configured_pipeline", _fail_if_called)
+    monkeypatch.setattr(recalibration_module, "recalibrate_predictor", _fail_if_called)
+    monkeypatch.setattr(recalibration_module, "register_recalibrated_model", _fail_if_called)
+
+    response = client.post("/recalibrate/sensor-a")
+
+    assert response.status_code == 503
+    body = response.json()
+    assert body["detail"] == (
+        "Hay otra recalibración en curso para este sensor. Intentá nuevamente en unos instantes."
+    )
+    assert "ruta" not in body["detail"].lower()
+    assert "lock" not in body["detail"].lower()
+    assert "C:\\" not in body["detail"]
+
+    assert list_recalibration_lineage("sensor-a") == []
+
+    app.dependency_overrides.clear()
+
+
 def test_recalibration_lineage_reconstructs_full_a_to_b_to_c_chain(tmp_path):
     """Regresión de trazabilidad (complementa H-01/PR #182): dos ciclos
     HITL sucesivos, con un forecast real y nuevo emitido por B (no una

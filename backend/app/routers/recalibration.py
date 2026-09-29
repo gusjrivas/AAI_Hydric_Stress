@@ -7,7 +7,7 @@ import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
 from data_ingestion.sensor_naming import feedback_log_name_for
-from data_ingestion.storage import interprocess_lock
+from data_ingestion.storage import StorageLockTimeout, interprocess_lock
 from human_feedback.lineage import (
     CURRENT_LINEAGE_VERSION,
     RecalibrationLineage,
@@ -121,6 +121,18 @@ def recalibrate(
                 metrics={"n_filas_entrenamiento": count},
                 lineage=lineage,
             )
+    except StorageLockTimeout as error:
+        # Nunca str(error): el mensaje de StorageLockTimeout incluye la ruta
+        # interna del archivo de lock. El timeout del lock (y la exclusión
+        # por sensor) siguen intactos; esto solo evita que su vencimiento
+        # se propague como un 500 sin diagnosticar.
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Hay otra recalibración en curso para este sensor. "
+                "Intentá nuevamente en unos instantes."
+            ),
+        ) from error
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
     return RecalibrationResponse(
