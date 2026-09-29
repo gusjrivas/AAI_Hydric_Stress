@@ -44,7 +44,7 @@ function msUntilNextUtcMidnight(now: number): number {
 
 /** Día UTC real, actualizado al volver a la pestaña y al cambiar el día
  * mientras la pantalla permanece abierta. Nunca usa un reloj simulado. */
-export function useUtcToday(): string {
+export function useUtcToday(): { today: string; sync: () => string } {
   const [today, setToday] = useState(() => utcToday());
 
   useEffect(() => {
@@ -73,5 +73,11 @@ export function useUtcToday(): string {
     };
   }, []);
 
-  return today;
+  /** Relee el día UTC real (p. ej. justo antes de actuar) y lo devuelve. */
+  const sync = () => {
+    const now = utcToday();
+    setToday(now);
+    return now;
+  };
+  return { today, sync };
 }

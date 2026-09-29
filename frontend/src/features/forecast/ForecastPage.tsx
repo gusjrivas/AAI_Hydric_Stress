@@ -1,6 +1,7 @@
-import { useRef, useState } from "react";
+import { useReducer, useRef, useState } from "react";
 import "./ForecastPage.css";
 import { CorrectionForm } from "./CorrectionForm";
+import type { FeedbackRow } from "./api";
 import type { ForecastWorkspace } from "./useForecastWorkspace";
 import type { DemoWriteGate } from "../demo/lock";
 import {
@@ -8,7 +9,6 @@ import {
   targetImmatureMessage,
   targetMaturity,
   useUtcToday,
-  utcToday,
 } from "./targetMaturity";
 import type { TargetMaturity } from "./targetMaturity";
 
@@ -40,9 +40,9 @@ export function ForecastPage({ workspace, demoGate }: ForecastPageProps) {
   const [fechaDesde, setFechaDesde] = useState(DEFAULT_FILTERS.desde);
   const [fechaHasta, setFechaHasta] = useState(DEFAULT_FILTERS.hasta);
   const [openCorrectionFecha, setOpenCorrectionFecha] = useState<string | null>(null);
-  const [guardErrors, setGuardErrors] = useState<Record<string, string>>({});
   const correctionButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const today = useUtcToday();
+  const [, refreshView] = useReducer((n: number) => n + 1, 0);
+  const { today, sync: syncToday } = useUtcToday();
 
   const feedbackPendienteRevision = workspace.rows.filter(
     (row) => row.estado_validacion === "pendiente",
@@ -77,29 +77,35 @@ export function ForecastPage({ workspace, demoGate }: ForecastPageProps) {
     correctionButtonRefs.current[fecha]?.focus();
   }
 
-  /** Comprobación con el día UTC real en el momento de actuar, para no
-   * depender de un valor de render ya vencido (formulario abierto). */
-  function blockedNow(row: { fecha: string; fecha_objetivo?: string | null }): boolean {
-    const message = maturityMessage(targetMaturity(row.fecha_objetivo, utcToday()));
-    setGuardErrors((prev) => {
-      if (message === null) {
-        if (!(row.fecha in prev)) return prev;
-        const next = { ...prev };
-        delete next[row.fecha];
-        return next;
-      }
-      return { ...prev, [row.fecha]: message };
-    });
-    return message !== null;
+  /** Único criterio de "esta fila puede revisarse": fecha objetivo vencida
+   * (día UTC real) y, si existe, el bloqueo de la demo acelerada. Devuelve
+   * los motivos que bloquean (vacío si es revisable). El backend sigue
+   * siendo la autoridad. */
+  function blockReasons(row: FeedbackRow, todayUtc: string): string[] {
+    const reasons: string[] = [];
+    if (demoGate && !demoGate.isRowReviewable(row)) reasons.push(demoGate.rowUnavailableReason(row));
+    const timeMessage = maturityMessage(targetMaturity(row.fecha_objetivo, todayUtc));
+    if (timeMessage !== null) reasons.push(timeMessage);
+    return reasons;
   }
 
-  function handleConfirm(row: { fecha: string; fecha_objetivo?: string | null }) {
+  /** Comprobación con el día UTC real y el gate vigentes en el momento de
+   * actuar, para no depender de un valor de render ya vencido (formulario
+   * abierto). No confía solo en el atributo `disabled`. */
+  function blockedNow(row: FeedbackRow): boolean {
+    // Sincroniza el día mostrado con el real: si bloquea, el motivo se ve en pantalla.
+    const blocked = blockReasons(row, syncToday()).length > 0;
+    if (blocked) refreshView(); // el gate pudo cambiar sin re-render: mostrar el motivo vigente.
+    return blocked;
+  }
+
+  function handleConfirm(row: FeedbackRow) {
     if (blockedNow(row)) return;
     void workspace.confirm(row.fecha);
   }
 
   async function handleSaveCorrection(
-    row: { fecha: string; fecha_objetivo?: string | null },
+    row: FeedbackRow,
     etiquetaCorregida: 0 | 1,
     observacion: string,
   ) {
@@ -215,11 +221,8 @@ export function ForecastPage({ workspace, demoGate }: ForecastPageProps) {
                   workspace.activeMutation === `confirm:${row.fecha}` ||
                   workspace.activeMutation === `reject:${row.fecha}`;
                 const correctionOpen = openCorrectionFecha === row.fecha;
-                const rowBlockedByDemo = demoGate ? !demoGate.isRowReviewable(row) : false;
-                const timeMessage = maturityMessage(targetMaturity(row.fecha_objetivo, today));
-                const rowBlockedByTime = timeMessage !== null;
-                const rowBlocked = rowBlockedByDemo || rowBlockedByTime;
-                const guardError = guardErrors[row.fecha] ?? null;
+                const reasons = blockReasons(row, today);
+                const rowBlocked = reasons.length > 0;
                 return (
                   <li key={row.fecha} className={`fp-row fp-row--${severity}`}>
                     <span className="fp-signal" aria-hidden="true" />
@@ -266,24 +269,27 @@ export function ForecastPage({ workspace, demoGate }: ForecastPageProps) {
                         Corregir resultado
                       </button>
                     </div>
-                    {rowBlockedByDemo && (
-                      <p className="fp-disclaimer">{demoGate!.rowUnavailableReason(row)}</p>
-                    )}
-                    {rowBlockedByTime && <p className="fp-disclaimer">{timeMessage}</p>}
+                    {!correctionOpen &&
+                      reasons.map((reason) => (
+                        <p key={reason} className="fp-disclaimer">
+                          {reason}
+                        </p>
+                      ))}
                     {correctionOpen && (
                       <CorrectionForm
                         row={row}
                         saving={workspace.activeMutation === `reject:${row.fecha}`}
-                        serverError={workspace.rowErrors[row.fecha] ?? guardError}
+                        blockedReasons={reasons}
+                        serverError={workspace.rowErrors[row.fecha] ?? null}
                         onCancel={() => closeCorrection(row.fecha)}
                         onSave={(etiquetaCorregida, observacion) =>
                           void handleSaveCorrection(row, etiquetaCorregida, observacion)
                         }
                       />
                     )}
-                    {!correctionOpen && (workspace.rowErrors[row.fecha] ?? guardError) && (
+                    {!correctionOpen && workspace.rowErrors[row.fecha] && (
                       <p role="alert" className="fp-error">
-                        {workspace.rowErrors[row.fecha] ?? guardError}
+                        {workspace.rowErrors[row.fecha]}
                       </p>
                     )}
                   </li>
