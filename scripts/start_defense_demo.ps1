@@ -64,6 +64,12 @@
 .PARAMETER SkipFrontend
     No arranca el frontend (solo backend/s), útil para verificación por API.
 
+.PARAMETER PythonExe
+    Ejecutable de Python a usar (default "python", resuelto por PATH). En
+    máquinas donde el intérprete correcto no está en PATH (verificado en
+    esta tarea: no lo está en esta sesión), pasar la ruta completa, p. ej.
+    -PythonExe "C:\ruta\a\tu\venv\Scripts\python.exe".
+
 .PARAMETER Stop
     Detiene los procesos previamente arrancados por este script (lee
     .defense-demo-run/*.pid) y no arranca nada nuevo.
@@ -105,6 +111,9 @@ param(
     [Parameter(ParameterSetName = 'Start')]
     [switch]$SkipFrontend,
 
+    [Parameter(ParameterSetName = 'Start')]
+    [string]$PythonExe = 'python',
+
     [Parameter(ParameterSetName = 'Stop', Mandatory = $true)]
     [switch]$Stop
 )
@@ -116,8 +125,24 @@ $runDir = Join-Path $repoRoot '.defense-demo-run'
 function Write-Info($msg) { Write-Host "[start_defense_demo] $msg" }
 
 function Test-PortFree([int]$port) {
-    $inUse = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
-    return -not $inUse
+    # Solo cuenta como "ocupado" un socket realmente escuchando (Listen).
+    # TIME_WAIT/CLOSE_WAIT de una conexión ya cerrada no impiden bindear el
+    # puerto y no deben bloquear un reinicio inmediato (hallazgo del ensayo
+    # de esta tarea: el chequeo original rechazaba puertos libres).
+    $listening = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+    return -not $listening
+}
+
+function Stop-ProcessTree([int]$processId) {
+    # El frontend se lanza vía cmd.exe /c npm ..., que a su vez genera un
+    # proceso node hijo: matar solo el PID rastreado (cmd.exe) deja el
+    # servidor Vite huérfano corriendo. Se detienen recursivamente los
+    # descendientes primero (hallazgo del ensayo de esta tarea).
+    $children = Get-CimInstance Win32_Process -Filter "ParentProcessId=$processId" -ErrorAction SilentlyContinue
+    foreach ($child in $children) {
+        Stop-ProcessTree -processId $child.ProcessId
+    }
+    Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
 }
 
 function Stop-TrackedProcesses {
@@ -130,8 +155,8 @@ function Stop-TrackedProcesses {
         if ($pidValue -match '^\d+$') {
             $proc = Get-Process -Id ([int]$pidValue) -ErrorAction SilentlyContinue
             if ($proc) {
-                Write-Info "Deteniendo $($_.BaseName) (PID $pidValue)."
-                Stop-Process -Id ([int]$pidValue) -Force -ErrorAction SilentlyContinue
+                Write-Info "Deteniendo $($_.BaseName) (PID $pidValue) y su árbol de procesos."
+                Stop-ProcessTree -processId ([int]$pidValue)
             } else {
                 Write-Info "$($_.BaseName) (PID $pidValue) ya no está en ejecución."
             }
@@ -151,6 +176,16 @@ New-Item -ItemType Directory -Path $runDir -Force | Out-Null
 $needsProducer = $Mode -in @('pergamino', 'melchor-romero', 'all')
 $needsLab = $Mode -in @('sensor-lab', 'all')
 
+# CORS_EXTRA_ORIGINS debe quedar seteada ANTES de arrancar CUALQUIER backend
+# (el proceso hijo hereda el entorno al momento de Start-Process): fijarla
+# solo dentro de la rama producer_v2 dejaba al backend plano del
+# laboratorio sin ese origen y el frontend fallaba con "Failed to fetch"
+# (hallazgo del ensayo de esta tarea, modo sensor-lab con -FrontendPort
+# distinto de 5173).
+if (-not $SkipFrontend) {
+    $env:CORS_EXTRA_ORIGINS = "http://127.0.0.1:$FrontendPort,http://localhost:$FrontendPort"
+}
+
 if ($needsProducer) {
     if (-not $DataDir -or -not $BundleRoot) {
         throw "El modo '$Mode' requiere -DataDir y -BundleRoot (directorios EXTERNOS, nunca data/ del repositorio). " +
@@ -163,10 +198,7 @@ if ($needsProducer) {
     $env:PRODUCER_DATA_DIR = $DataDir
     $env:PRODUCER_BUNDLE_ROOT = $BundleRoot
     $env:PRODUCER_PREVIEW_PORT = "$ProducerPort"
-    if (-not $SkipFrontend) {
-        $env:CORS_EXTRA_ORIGINS = "http://127.0.0.1:$FrontendPort,http://localhost:$FrontendPort"
-    }
-    $proc = Start-Process -FilePath python -ArgumentList 'scripts/run_producer_preview_backend.py' `
+    $proc = Start-Process -FilePath $PythonExe -ArgumentList 'scripts/run_producer_preview_backend.py' `
         -WorkingDirectory $repoRoot -PassThru -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $runDir 'producer_backend.out.log') `
         -RedirectStandardError (Join-Path $runDir 'producer_backend.err.log')
@@ -181,7 +213,7 @@ if ($needsLab) {
     Write-Info "Arrancando backend plano del laboratorio de sensores en el puerto $LabPort..."
     Push-Location $repoRoot
     try {
-        $labProc = Start-Process -FilePath python `
+        $labProc = Start-Process -FilePath $PythonExe `
             -ArgumentList "-m", "uvicorn", "backend.app.main:app", "--host", "127.0.0.1", "--port", "$LabPort" `
             -WorkingDirectory $repoRoot -PassThru -WindowStyle Hidden `
             -RedirectStandardOutput (Join-Path $runDir 'lab_backend.out.log') `
@@ -204,7 +236,14 @@ if (-not $SkipFrontend) {
     # proceso hijo hereda las variables de entorno del proceso actual, que ya
     # fueron seteadas arriba (VITE_API_BASE_URL, y PRODUCER_*/CORS_EXTRA_ORIGINS
     # si corresponde).
-    $feProc = Start-Process -FilePath npm -ArgumentList 'run', 'dev', '--', '--port', "$FrontendPort" `
+    # `npm` es un script .cmd en Windows: Start-Process -FilePath npm falla
+    # con "no es una aplicación Win32 válida" (hallazgo del ensayo de esta
+    # tarea). Se invoca vía cmd.exe /c, igual que cualquier otro .cmd/.bat.
+    # --host 127.0.0.1 fuerza IPv4: en esta máquina Vite se bindeó por
+    # defecto solo a [::1] (IPv6), dejando http://127.0.0.1:<puerto>/
+    # inalcanzable aunque "localhost" sí respondiera (hallazgo del ensayo de
+    # esta tarea) — forzarlo evita esa ambigüedad para quien siga esta guía.
+    $feProc = Start-Process -FilePath cmd.exe -ArgumentList '/c', 'npm', 'run', 'dev', '--', '--port', "$FrontendPort", '--host', '127.0.0.1' `
         -WorkingDirectory (Join-Path $repoRoot 'frontend') -PassThru -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $runDir 'frontend.out.log') `
         -RedirectStandardError (Join-Path $runDir 'frontend.err.log')

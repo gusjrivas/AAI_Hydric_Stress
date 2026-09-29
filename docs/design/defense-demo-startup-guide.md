@@ -149,17 +149,107 @@ registrados en `.defense-demo-run/`, gitignored), nunca procesos ajenos.
 - **Puerto ocupado**: el script falla explícitamente antes de arrancar nada;
   usar `-ProducerPort`/`-LabPort`/`-FrontendPort` para elegir otros puertos.
   Puede haber otra sesión de verificación corriendo en la misma máquina.
+  (El chequeo solo cuenta como "ocupado" un socket en estado `Listen`: un
+  `TIME_WAIT` de una conexión ya cerrada no bloquea el reinicio.)
+- **`'python' no se reconoce...` / Start-Process falla al arrancar el
+  backend**: `python` no está en `PATH` en esta sesión de PowerShell. Pasar
+  `-PythonExe "<ruta completa a tu intérprete>"`.
 - **`falta la variable de entorno PRODUCER_DATA_DIR`/`PRODUCER_BUNDLE_ROOT`**:
   faltan `-DataDir`/`-BundleRoot` en modos `pergamino`/`melchor-romero`/`all`.
 - **`batch_not_prepared` al pedir una fecha**: esa fecha no fue preparada en
   el `PRODUCER_DATA_DIR` usado; no es un error del arranque.
+- **Frontend: "no se reconoce como un comando" / falla `npm`**: falta
+  `frontend/node_modules` (correr `npm install` en `frontend/` una vez, en
+  cualquier checkout nuevo) o falta `npm` en `PATH`.
+- **Frontend inalcanzable en `http://127.0.0.1:<puerto>/` pero sí en
+  `http://localhost:<puerto>/`**: en algunas máquinas Vite se bindea por
+  defecto solo a IPv6 (`[::1]`). El script ya fuerza `--host 127.0.0.1`; si
+  se arranca `npm run dev` manualmente, agregar ese flag.
+- **`Failed to fetch` en el navegador con el backend corriendo**: casi
+  siempre CORS. El script setea `CORS_EXTRA_ORIGINS` **antes** de arrancar
+  cualquier backend (incluido el del Laboratorio, que no pasaba por ese
+  origen en una versión anterior de este script) a partir de
+  `-FrontendPort`; si se arrancan procesos por separado, setearlo a mano
+  antes de levantar el backend. Si el navegador venía de una pestaña
+  abierta contra un backend anterior en el mismo puerto de frontend, el
+  módulo JS con la URL base puede quedar cacheado: cerrar la pestaña y
+  abrir una nueva (no solo recargar) resuelve esto.
 - **CORS**: si el frontend corre en un puerto distinto al configurado, el
   backend producer_v2 lo agrega automáticamente vía `CORS_EXTRA_ORIGINS`
   (seteado por el script a partir de `-FrontendPort`); si se arrancan por
   separado, setearlo manualmente (ver
   `docs/design/producer-ui-local-preview-2026-09-26.md`, sección 3).
 
-## 7. Limitaciones conocidas de esta entrega
+## 7. Resultado del ensayo end-to-end (2026-09-29)
+
+Ensayado en este worktree (no un checkout separado — ver limitación abajo),
+con `frontend/node_modules` instalado ad hoc (no estaba presente) y
+`python`/`npm` pasados por ruta completa (no estaban en `PATH` de la sesión
+de arranque). Hallazgos y correcciones aplicadas al propio script durante
+el ensayo (quedaron en el código, no son pendientes):
+
+- El chequeo de puerto libre contaba `TIME_WAIT` como "ocupado" — corregido
+  para exigir solo `Listen`.
+- `Start-Process -FilePath npm` falla en Windows (`npm` es `.cmd`) —
+  corregido invocando vía `cmd.exe /c`.
+- `-Stop` solo mataba el PID rastreado (`cmd.exe`), dejando el proceso
+  `node` de Vite huérfano — corregido con `Stop-ProcessTree` (recursivo).
+- `CORS_EXTRA_ORIGINS` solo se seteaba en la rama del backend producer_v2:
+  el modo `sensor-lab` con un `-FrontendPort` distinto de 5173 fallaba con
+  `Failed to fetch` — corregido seteándola antes de arrancar cualquier
+  backend.
+- Se agregó `-PythonExe` (no existía) porque `python` no resuelve por
+  `PATH` en esta máquina.
+- Vite se bindeaba solo a IPv6 (`[::1]`) — se agregó `--host 127.0.0.1`.
+
+Verificado real (backend real, sin mocks, sin datos fabricados):
+
+- **Melchor Romero**: datos preparados desde cero en un directorio temporal
+  con `prepare_melchor_romero_historical_demo.py` (dataset versionado,
+  ningún insumo externo). `start_defense_demo.ps1 -Mode melchor-romero`
+  arrancó backend+frontend reales; verificado por API y por navegador
+  (`claude-in-chrome`, clicks reales, no solo JS): emisión 23/10, +3 →
+  objetivo 26/10 muestra "Observación posterior: 36.3 % · Valor imputado
+  (...). No es una observación independiente para contrastar con el
+  pronóstico."; la tabla "Observaciones reveladas" confirma 25/10 = 36.3 %
+  (Fuente real), 26/10 = 36.3 % (Fuente real · Imputado, sin dato propio
+  este día), 27/10 = 33.0 % (Fuente real, valor propio, no sobrescrito por
+  el forward-fill del 26/10) — coincide exactamente con los valores del
+  mandato. Retrocediendo el reloj a 24/10 se confirmó que la tabla no
+  revela 25/10, 26/10 ni 27/10 (sin fuga de observaciones futuras).
+- **Laboratorio de sensores**: `start_defense_demo.ps1 -Mode sensor-lab`
+  arrancado real; recorridos por click los cuatro escenarios en la UI real
+  (no solo `curl`): A (120 lecturas sintéticas cargadas, confirmado por
+  `GET /quality`), B (lectura de 85.0 °C marcada `out_of_range.temperature`
+  por el backend real), C (4 días sin lecturas nuevas: no se re-pide
+  pronóstico), D (recuperación a 125 filas, pronóstico real re-emitido). El
+  rótulo "Datos sintéticos / sensor de prueba" es permanente en la pantalla
+  y el texto de score confirma "Señal de 0 a 1; no es un porcentaje de
+  certeza." (nunca presentado como probabilidad calibrada).
+- **Aislamiento cruzado**: cada modo usó su propio `sensor_id`
+  (`melchor-romero-demo` vs. `lab-<hex>`) y su propio backend/puerto en
+  este ensayo; no se observó mezcla de datos entre sensores.
+- **Pergamino**: no ensayado — bloqueado por el artefacto externo descrito
+  en la sección 2, tal como se documentó en el hallazgo de Etapa 1.
+
+Limitaciones del ensayo:
+
+- Se hizo en este mismo worktree de desarrollo, no en un checkout
+  completamente separado ("entorno limpio" en sentido estricto sigue
+  pendiente); sí se partió de un estado sin `node_modules` y sin
+  `.defense-demo-run/` previo, y `python`/`npm` se pasaron explícitamente
+  por ruta para no depender de configuración de `PATH` de esta máquina.
+- Verificación a 390 px de ancho: no realizada. La herramienta de
+  redimensionar ventana (`resize_window`) del entorno de automatización de
+  navegador rechazó los tamaños pedidos ("Bounds must be at least 50%
+  within visible screen space") incluso en una pestaña nueva — limitación
+  de la herramienta en este entorno, no un defecto de la aplicación; queda
+  pendiente con un navegador redimensionado manualmente o DevTools.
+- No se probaron los flujos de feedback/revisión (confirmar/rechazar
+  resultado) ni la ingesta de observaciones tardías durante este ensayo
+  puntual; quedan como pendiente de una pasada adicional.
+
+## 8. Limitaciones conocidas de esta entrega
 
 - Pergamino no puede recorrerse de punta a punta desde un checkout
   completamente limpio sin el artefacto externo descrito en la sección 2 —
