@@ -297,7 +297,15 @@ class ForecastReview(StrictModel):
     revision: int
     review_open_at: datetime
     reviewable: bool
-    blocked_reason: Literal["review_not_open"] | None
+    blocked_reason: (
+        Literal[
+            "review_not_open",
+            "target_observation_imputed",
+            "target_observation_missing",
+            "target_observation_unverified",
+        ]
+        | None
+    )
     latest_review: LatestReview | None
     training_eligibility: TrainingEligibility
     applied_review_references: list[str]

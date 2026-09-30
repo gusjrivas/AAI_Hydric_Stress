@@ -5,6 +5,8 @@ import {
   ForecastNotFoundError,
   ReviewIdempotencyConflictError,
   ReviewNotOpenError,
+  TargetObservationBlockedError,
+  isTargetObservationReason,
   RevisionConflictError,
 } from "./forecastsApi";
 import type { ForecastBatch, ForecastReview, ReviewRequest } from "./forecastsApi";
@@ -129,6 +131,7 @@ export async function submitHistoricalReview(
       const reviewOpenAt = typeof error.details?.review_open_at === "string" ? error.details.review_open_at : null;
       throw new ReviewNotOpenError(reviewOpenAt);
     }
+    if (isTargetObservationReason(error?.code)) throw new TargetObservationBlockedError(error.code);
     if (error?.code === "revision_conflict") {
       const actualRevision = typeof error.details?.actual_revision === "number" ? error.details.actual_revision : null;
       throw new RevisionConflictError(actualRevision);

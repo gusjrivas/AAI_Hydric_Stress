@@ -102,3 +102,22 @@ describe("submitHistoricalReview", () => {
     ).rejects.toBeInstanceOf(ForecastNotVisibleAtThisHistoricalDateError);
   });
 });
+
+describe("submitHistoricalReview: motivos de observación objetivo", () => {
+  it.each(["target_observation_imputed", "target_observation_missing", "target_observation_unverified"])(
+    "maps the 409 %s to TargetObservationBlockedError",
+    async (code) => {
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(JSON.stringify({ error: { code, message: "x", details: {}, request_id: "r" } }), { status: 409 }),
+      );
+      await expect(
+        submitHistoricalReview("melchor-romero-demo", "2024-10-27", "fc-1", {
+          requestId: "r1",
+          expectedRevision: 0,
+          action: "confirm",
+          comment: null,
+        }),
+      ).rejects.toMatchObject({ name: "TargetObservationBlockedError", reason: code });
+    },
+  );
+});

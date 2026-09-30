@@ -97,6 +97,15 @@ def _prepare_day(client, tmp_path, frame, day):
     return response.json()
 
 
+def _reveal_observations(tmp_path, frame):
+    """Simulates the observations revealed after the emission: the readings
+    file now also holds the target days (a historical review needs a
+    verified observation of the target variable on its own date)."""
+    full = frame.copy()
+    full["origen"] = EXTERNAL_REANALYSIS_ORIGEN
+    save_dataset(f"sensor__{SENSOR_ID}", full, data_dir=tmp_path)
+
+
 def test_reproduction_never_invokes_inference(client, bundle_root, monkeypatch):
     """Hashes unchanged do not prove inference wasn't called -- block it
     directly: any call during reproduction fails the test immediately."""
@@ -158,6 +167,7 @@ def test_historical_review_is_gated_by_the_simulated_clock_not_real_now(client, 
     http, tmp_path = client
     _, frame = bundle_root
     body = _prepare_day(http, tmp_path, frame, DAY_A)
+    _reveal_observations(tmp_path, frame)
     slot1 = next(s for s in body["slots"] if s["horizon_days"] == 1)
     assert slot1["target_date"] == (DAY_A + timedelta(days=1)).isoformat()
     forecast_id = slot1["forecast_id"]
@@ -227,6 +237,7 @@ def test_historical_review_never_touches_the_bundle_files(client, bundle_root):
     http, tmp_path = client
     root, frame = bundle_root
     body = _prepare_day(http, tmp_path, frame, DAY_A)
+    _reveal_observations(tmp_path, frame)
     forecast_id = next(s for s in body["slots"] if s["horizon_days"] == 1)["forecast_id"]
 
     def _hashes():
@@ -311,6 +322,7 @@ def test_revealed_through_walks_the_reviewable_clock_past_the_emission_date(clie
     http, tmp_path = client
     _, frame = bundle_root
     body = _prepare_day(http, tmp_path, frame, DAY_A)
+    _reveal_observations(tmp_path, frame)
     slot1 = next(s for s in body["slots"] if s["horizon_days"] == 1)
     target_date = date.fromisoformat(slot1["target_date"])
     assert target_date == DAY_A + timedelta(days=1) == DAY_B
@@ -416,6 +428,7 @@ def test_operational_review_never_changes_a_historical_cards_review_state(client
     http, tmp_path = client
     _, frame = bundle_root
     body = _prepare_day(http, tmp_path, frame, DAY_A)
+    _reveal_observations(tmp_path, frame)
     forecast_id = next(s for s in body["slots"] if s["horizon_days"] == 1)["forecast_id"]
 
     # A real wall-clock review through the live route (real "today" is
