@@ -433,6 +433,24 @@ Implementado en `frontend/src/features/lab/{SensorLabPage.tsx,useSensorLabScenar
 
 Verificado con una verificación HTTP real de punta a punta contra el backend (`backend/app/main.py` servido localmente, sin mocks), dos sesiones de sensor aisladas (`lab-httpcheck01`, `lab-httpcheck02`): backfill de 120 lecturas normales confirmado por `GET /quality` (`total_rows=120`, sin `out_of_range`); Escenario B marcó realmente `out_of_range.temperature` en la fecha inyectada; Escenario C mostró el reloj simulado avanzando sin que cambiara `period_end`/`total_rows` reales; Escenario D recuperó `period_end`/`total_rows` tras reingerir el período interrumpido y volvió a emitir pronóstico; la revisión humana se demostró en ambos sentidos reales — `POST /feedback/{sensor_id}/{fecha}/confirm` devolvió `200 confirmada` sobre un objetivo ya vencido y `409` sobre uno todavía no vencido, con el mensaje real del backend en ambos casos; aislamiento cruzado confirmado (`GET /quality/lab-httpcheck01` no cambió mientras se operaba `lab-httpcheck02`, y `pergamino-ensemble-demo`/`melchor-romero-demo` devolvieron `404`, nunca tocados). Verificación automatizada: `frontend/src/features/lab/{readingGenerator.test.ts,SensorLabPage.test.tsx}` (10 tests), suite completa de frontend 209/209, `npm run build` y `npm run lint` limpios. Verificación visual en navegador (escritorio y 390px): pendiente en esta entrega (ver limitación más abajo).
 
+### Requirement: Elegibilidad de la revisión en el recorrido histórico exige observación objetivo verificada
+
+En el recorrido histórico (`/api/v2/sensors/{sensor_id}/historical/...`), confirmar o rechazar un pronóstico DEBE requerir, además del reloj simulado, una observación de la variable objetivo (humedad del suelo) en su propia fecha, con procedencia verificada y ya revelada por el reloj. Un valor imputado, ausente o de procedencia no verificada NO habilita la revisión, aunque su fecha ya haya pasado. La regla es exclusiva del recorrido histórico: no modifica el feedback operativo ni el del laboratorio sintético. "Observación en la fuente" conserva la distinción de procedencia de cada sitio (no implica un sensor físico).
+
+#### Scenario: Una misma condición para consultar y escribir
+
+- **GIVEN** un pronóstico histórico cuyo objetivo ya fue revelado por el reloj
+- **WHEN** se consulta `GET .../historical/{fecha}/forecasts` o se envía `POST .../reviews`
+- **THEN** ambos aplican el mismo evaluador (`_historical_review_block`): objetivo no revelado → `review_not_open`; sin valor de la variable objetivo en esa fecha exacta → `target_observation_missing`; valor imputado → `target_observation_imputed`; procedencia no verificada → `target_observation_unverified` (reutilizando `data_ingestion.history.query_readings`, incluida la exigencia de marcadores para Melchor Romero)
+- **AND** el GET devuelve `reviewable=false` con ese `blocked_reason`, y el POST devuelve HTTP 409 con el mismo código sin persistir ninguna revisión, incluso si se omite la interfaz
+- **AND** una variable auxiliar imputada no bloquea; no se busca una fecha vecina ni se imputa; una falla de almacenamiento sigue siendo un error técnico (503), nunca "observación ausente"; una revisión ya registrada se conserva sin modificarse.
+
+#### Scenario: Interfaz
+
+- **WHEN** `reviewable=false` por observación objetivo
+- **THEN** la tarjeta muestra el motivo explícito (imputado / ausente / no verificado), no ofrece confirmar ni rechazar, y un formulario ya abierto deshabilita guardar y reintentar conservando el texto y permitiendo cancelar
+- **AND** el envío vuelve a comprobar la elegibilidad y un 409 real del backend se muestra tal cual.
+
 ## Limitaciones conocidas
 
 - **Verificación pendiente (laboratorio de sensores de prueba, 2026-09-28):** la verificación visual en navegador (escritorio y 390px) del tercer modo no se realizó en esta entrega; quedó completada la verificación HTTP real de punta a punta (los cuatro escenarios, aislamiento cruzado, revisión humana permitida/no permitida) y la automatizada (`vitest`, build, lint). Los 120 `POST /sensors/{sensor_id}/readings` secuenciales del backfill del Escenario A (mismo tamaño ya validado por `demo-simulation`, `history_days=120`) hacen que ese primer paso tome varios segundos reales por sesión — aceptable para una demostración de laboratorio puntual, pero no pensado para prepararse repetidamente de forma automática.
