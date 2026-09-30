@@ -283,8 +283,7 @@ No se generó ni modificó ningún flag; no se ejecutó ningún preparador ni en
 
 ## 8. Pendientes reales (segunda ronda)
 
-- Discrepancia (f) de Melchor Romero: el contrato actual no bloquea la revisión de
-  un objetivo cuya observación es imputada. Decisión pendiente (fuera de este alcance).
+- Discrepancia (f) de Melchor Romero: **resuelta en la sección 9** (la revisión histórica exige observación objetivo verificada).
 - Identificación del paquete de Melchor Romero sin hashes fijados en el repositorio.
 - El bloqueo de feedback por `demoGate` con el formulario abierto solo está
   cubierto por pruebas de componente, no por navegador.
@@ -292,3 +291,80 @@ No se generó ni modificó ningún flag; no se ejecutó ningún preparador ni en
   automatizadas; el estado atrasado transitorio de la interfaz con la pestaña
   oculta no se distinguió de una limitación del navegador de automatización.
 - Sin capturas ni verificación a 390 px (fuera de este encargo).
+
+## 9. Tercera ronda: la revisión histórica exige una observación objetivo verificada
+
+**Decisión funcional:** en el recorrido histórico, confirmar/rechazar exige, además
+del reloj, una observación de la variable objetivo (humedad del suelo) en su fecha,
+con procedencia verificada. Imputado, ausente o no verificado NO habilita la
+revisión. Solo el recorrido histórico; el feedback operativo y el del laboratorio no
+cambian. Especificación: requisito «Elegibilidad de la revisión en el recorrido
+histórico…» en `openspec/specs/alerting-ui/spec.md`.
+
+**Implementación.**
+- Backend (`backend/app/routers/producer_v2.py`): un único evaluador
+  `_historical_review_block` usado por el GET de pronósticos históricos
+  (`reviewable`/`blocked_reason`) y por el POST de revisión. Orden: reloj
+  (`review_not_open`, sin leer lecturas para no filtrar el futuro) → valor válido
+  en la fecha exacta (`target_observation_missing`) → procedencia según
+  `data_ingestion.history.query_readings` (`target_observation_imputed`,
+  `target_observation_unverified`; incluye la exigencia de marcadores de Melchor
+  Romero). Solo cuenta la variable objetivo; no se busca una fecha vecina; una falla
+  de almacenamiento (503) sigue siendo error técnico. El POST devuelve **409** con el
+  código y no persiste nada. `blocked_reason` se amplió de forma aditiva en el
+  esquema.
+- Frontend (`ForecastCard.tsx`, `forecastsApi.ts`, `historicalApi.ts`): mensajes
+  explícitos por motivo; sin botones cuando `reviewable=false`; con el formulario ya
+  abierto, «Guardar opinión»/«Reintentar» quedan deshabilitados, se conserva el texto
+  y se puede cancelar; el envío vuelve a comprobar la elegibilidad y un 409 real del
+  backend se muestra tal cual.
+- Consecuencia esperada: las pruebas existentes cuyos datos solo llegaban hasta la
+  fecha de emisión ahora revelan las observaciones objetivo antes de revisar
+  (`_reveal_observations`); no se relajó ninguna regla.
+
+**Pruebas (dentro de Docker).**
+- Backend: `docker run … aai-sensor-closure-tests python -m pytest backend/tests -q`
+  (imagen `python:3.11-slim` + `pip install -e ".[backend,dev]"`, repositorio montado):
+  **182 pruebas verdes** antes de la limpieza de lint; tras ella, los archivos
+  afectados (`test_historical_review_target_observation.py` — 12 pruebas nuevas —,
+  Pergamino, Melchor Romero y su HTTP): 32 verdes. Las nuevas cubren GET y POST para
+  observado, imputado, ausente (fila y valor), no verificado (marcador nulo y columna
+  ausente), variable auxiliar imputada, objetivo futuro (sin consultar lecturas),
+  retroceso del reloj, idempotencia y concurrencia, conservación de una revisión ya
+  registrada y falla de almacenamiento (503). `ruff` y `black` limpios.
+- Frontend: `docker run --rm aai-defense-rehearsal-frontend sh -c "npx tsc -b && npx vitest run && npm run build && npm run lint"`
+  → 34 archivos, **257 pruebas verdes**, build correcto, 0 errores de lint
+  (`ForecastCard.targetObservation.test.tsx` y `historicalApi.test.ts`).
+
+**Ensayo Docker acotado.**
+- SHA ejecutado: `00ce1c7716c332da88f62bedd3c9bee34883bf4e`.
+- Comandos (Compose de ensayo existente, sin perfil `demo`, copia nueva del paquete
+  identificado en la sección 7):
+  `docker compose -f docker/defense-rehearsal/compose.yml build`, `… up -d`, …,
+  `… down -v` (solo este proyecto). Copia de trabajo: `rehearsal3` (copia == paquete
+  identificado, verificado por hash).
+- Hashes antes → después: `sensor__melchor-romero-demo.parquet` `391cdb31…`,
+  `sensor__pergamino-ensemble-demo.parquet` `f6f9e19a…`, emisiones
+  `operational_v2__melchor-romero-demo.json` `111fb155…` y
+  `operational_v2__pergamino-ensemble-demo.json` `fcd7ac52…`, y los 78 archivos de
+  bundles: **idénticos**. Único cambio: archivos nuevos `historical_feedback/melchor-romero-demo.json`
+  y su `.lock`, escritos por el `POST` permitido (los `.lock` no formaban parte del
+  paquete copiado).
+
+| Caso | Esperado | Observado |
+| --- | --- | --- |
+| Bloqueado: emisión 23/10, +3, objetivo 26/10, reloj 27/10 (36,3 % imputado) | Sin confirmar/rechazar, motivo visible | Tarjeta sin botones con «No se puede revisar este pronóstico con el dato disponible: el valor del día objetivo fue imputado y no es una observación independiente.»; `GET` → `reviewable=false`, `blocked_reason=target_observation_imputed` |
+| Bloqueado: POST directo | 409 y nada persistido | `POST …/historical/2024-10-27/forecasts/fc_…/reviews` → **409**, `error.code=target_observation_imputed`, «El valor del día objetivo fue imputado y no es una observación independiente.»; el directorio `historical_feedback` no existía tras el intento |
+| Permitido: emisión 23/10, +1, objetivo 24/10 (35,0 % observado) | 201 y persiste | Confirmar por la UI → `POST … 201`; tras recargar: «Revisión: Confirmado por vos», «Registraste «Confirmar» el 27 de oct de 2024» |
+| +2 (objetivo 25/10, 36,3 % observado) | Revisable | Botones habilitados |
+| Pergamino | Carga y aplica su propia elegibilidad | Carga (5 emisiones, 3 tarjetas). Emisión 13/06 con reloj 17/06: +1/+2/+3 revisables (`ok`); con reloj en la emisión: `review_not_open`. Emisión 17/06 con reloj 20/06: `target_observation_missing` en +1/+2/+3, porque las lecturas de este paquete terminan el 17/06 (no hay observación de esos objetivos) — consecuencia directa de la regla, sin supuestos de Melchor Romero |
+
+Tipo de evidencia: DOM y API del navegador real contra los contenedores, registros
+del backend y `sha256sum`. No se repitió A–D ni la demo acelerada (no las afecta).
+
+**Pendientes reales.**
+- En Pergamino, los objetivos posteriores a la última lectura del paquete (emisión
+  del 17/06) quedan bloqueados como «sin observación»; es el comportamiento de la
+  regla, pero conviene que quien defienda lo sepa.
+- El paquete de Melchor Romero sigue sin hashes fijados en el repositorio.
+- Sin capturas ni 390 px (fuera de este encargo).
