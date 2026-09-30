@@ -6,6 +6,8 @@ import {
   ReviewIdempotencyConflictError,
   ReviewNotOpenError,
   RevisionConflictError,
+  TARGET_OBSERVATION_MESSAGES,
+  TargetObservationBlockedError,
   agreementLabel,
   agreementVotesLabel,
   displayForecastDate,
@@ -17,7 +19,7 @@ import {
   reviewStatusLabel,
   submitReview,
 } from "./forecastsApi";
-import type { Forecast, ReviewAction, ReviewRequest, ForecastReview } from "./forecastsApi";
+import type { Forecast, ReviewAction, ReviewBlockedReason, ReviewRequest, ForecastReview } from "./forecastsApi";
 
 const HORIZON_LABELS: Record<1 | 2 | 3, string> = {
   1: "1 día después de la medición",
@@ -74,8 +76,16 @@ export function ForecastCard({
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // Rechazo 409 real del backend (el estado cambió entre la consulta y el POST):
+  // bloquea esta revisión hasta que llegue un estado nuevo del pronóstico.
+  const [serverBlock, setServerBlock] = useState<{ reason: ReviewBlockedReason; review: ForecastReview } | null>(null);
 
   const review = forecast.review;
+  const activeServerBlock = serverBlock !== null && serverBlock.review === review ? serverBlock.reason : null;
+  const blockedReason: ReviewBlockedReason | null =
+    activeServerBlock ?? (review.reviewable ? null : (review.blocked_reason ?? "review_not_open"));
+  const reviewable = blockedReason === null;
+  const observationMessage = blockedReason ? (TARGET_OBSERVATION_MESSAGES[blockedReason] ?? null) : null;
   const isCorrecting = review.status !== "pending";
   const frozen = submitting || formError !== null;
 
@@ -93,7 +103,8 @@ export function ForecastCard({
   }
 
   async function submit() {
-    if (!draft || !requestId || submitting) return;
+    // Se vuelve a comprobar aquí: no se confía solo en el atributo disabled.
+    if (!draft || !requestId || submitting || !reviewable) return;
     setSubmitting(true);
     setFormError(null);
     try {
@@ -135,6 +146,12 @@ export function ForecastCard({
         setDraft(null);
         setRequestId(null);
         setNotice("Ese envío ya se había usado con otro contenido. Iniciá la revisión de nuevo si hace falta.");
+        return;
+      }
+      if (error instanceof TargetObservationBlockedError) {
+        setRequestId(null);
+        setFormError(null);
+        setServerBlock({ reason: error.reason, review });
         return;
       }
       if (error instanceof DemoWriteLockedError) {
@@ -213,7 +230,12 @@ export function ForecastCard({
 
       {notice && <p role="status">{notice}</p>}
 
-      {!review.reviewable && !draft && (
+      {!reviewable && observationMessage && (
+        <p className="forecast-card-blocked" role="status">
+          {observationMessage}
+        </p>
+      )}
+      {!reviewable && !observationMessage && (
         <p className="forecast-card-blocked">
           {review.blocked_reason === "review_not_open"
             ? `Vas a poder revisar este resultado a partir del ${displayIssuedAt(review.review_open_at)}.`
@@ -221,7 +243,7 @@ export function ForecastCard({
         </p>
       )}
 
-      {review.reviewable && !draft && (
+      {reviewable && !draft && (
         <div className="forecast-card-actions">
           <p>¿Coincidió con lo que observaste?</p>
           <div className="forecast-card-buttons">
@@ -263,11 +285,11 @@ export function ForecastCard({
           )}
           <div className="forecast-card-buttons">
             {formError ? (
-              <button type="button" onClick={() => void submit()} disabled={submitting}>
+              <button type="button" onClick={() => void submit()} disabled={submitting || !reviewable}>
                 Reintentar
               </button>
             ) : (
-              <button type="submit" disabled={submitting}>
+              <button type="submit" disabled={submitting || !reviewable}>
                 {submitting ? "Guardando…" : "Guardar opinión"}
               </button>
             )}

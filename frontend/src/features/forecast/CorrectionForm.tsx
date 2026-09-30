@@ -4,6 +4,10 @@ import type { FeedbackRow } from "./api";
 interface CorrectionFormProps {
   row: FeedbackRow;
   saving: boolean;
+  /** Motivos por los que la fila dejó de ser revisable con el formulario
+   * ya abierto (fecha objetivo o bloqueo de la demo). Distinto de
+   * `saving`: "bloqueado" no es "guardando". Vacío si es revisable. */
+  blockedReasons?: string[];
   serverError: string | null;
   onCancel: () => void;
   onSave: (etiquetaCorregida: 0 | 1, observacion: string) => void;
@@ -15,13 +19,14 @@ interface CorrectionFormProps {
  * guarda una etiqueta explícita y opuesta a la original; la misma etiqueta
  * orienta a Confirmar en vez de habilitar el guardado.
  */
-export function CorrectionForm({ row, saving, serverError, onCancel, onSave }: CorrectionFormProps) {
+export function CorrectionForm({ row, saving, blockedReasons = [], serverError, onCancel, onSave }: CorrectionFormProps) {
   const [etiqueta, setEtiqueta] = useState<0 | 1 | null>(null);
   const [observacion, setObservacion] = useState("");
 
   const original = row.alerta_generada ? 1 : 0;
   const sameAsOriginal = etiqueta !== null && etiqueta === original;
-  const canSave = etiqueta !== null && !sameAsOriginal && !saving;
+  const blocked = blockedReasons.length > 0;
+  const canSave = etiqueta !== null && !sameAsOriginal && !saving && !blocked;
 
   return (
     <div className="fp-correction-form" role="group" aria-label={`Corregir resultado del ${row.fecha}`}>
@@ -67,6 +72,13 @@ export function CorrectionForm({ row, saving, serverError, onCancel, onSave }: C
           disabled={saving}
         />
       </label>
+      {blocked && (
+        <div role="status" className="fp-correction-hint">
+          {blockedReasons.map((reason) => (
+            <p key={reason}>{reason}</p>
+          ))}
+        </div>
+      )}
       {serverError && (
         <p role="alert" className="fp-error">
           {serverError}

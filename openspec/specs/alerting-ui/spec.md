@@ -388,7 +388,7 @@ La UI DEBE ofrecer un modo "Laboratorio / Sensores de prueba" que reproduzca, so
 - **GIVEN** el laboratorio recién abierto
 - **WHEN** la persona inicia el Escenario A y avanza B → C → D
 - **THEN** cada paso llama a `POST /sensors/{sensor_id}/readings`, confirma por `GET /quality/{sensor_id}` y, cuando corresponde, vuelve a pedir `POST /forecast/{sensor_id}/run`
-- **AND** el rótulo permanente "Datos sintéticos / sensor de prueba. Demostración técnica" está siempre visible, y el reloj simulado se distingue explícitamente de la hora real.
+- **AND** el rótulo permanente "SIMULACIÓN · Datos sintéticos · Sin sensor físico conectado" está siempre visible, y el reloj simulado se distingue explícitamente de la hora real.
 
 #### Scenario: Anomalía marcada por el mecanismo real
 
@@ -410,11 +410,46 @@ La UI DEBE ofrecer un modo "Laboratorio / Sensores de prueba" que reproduzca, so
 - **THEN** las lecturas del período interrumpido se ingieren y se confirman por `GET /quality/{sensor_id}`, y se vuelve a pedir un pronóstico
 - **AND** la revisión humana sobre cada resultado usa `confirmAlert`/`rejectAlert` sin cambios: si la fecha objetivo del pronóstico más reciente todavía no venció, el backend real la rechaza (`409`) y la UI muestra ese motivo real, nunca la fabrica ni la oculta.
 
+#### Scenario: Ejecución invalidada, error sin reintento y recuperación con salida
+
+- **GIVEN** un paso del laboratorio con una solicitud pendiente
+- **WHEN** la pantalla se desmonta o se inicia una sesión nueva
+- **THEN** la ejecución anterior no inicia solicitudes de ingesta, consulta ni pronóstico nuevas ni modifica el estado vigente (una solicitud ya enviada puede terminar y sus datos se conservan)
+- **AND** un error de paso deja la sesión en `error` con A–D deshabilitados; la única salida es una sesión nueva (otro `sensor_id`, semilla y calendario reiniciados), sin sobrescribir ni reintentar lecturas ya aceptadas
+- **AND** el escenario D sin `period_end` termina en ese mismo estado de error con el mensaje controlado.
+
+#### Scenario: Revisión bloqueada mientras el día objetivo no terminó (UTC)
+
+- **GIVEN** una fila cuyo `fecha_objetivo` es igual o posterior al día UTC actual, o ausente/inválida
+- **THEN** Confirmar y Corregir están deshabilitados con el motivo correspondiente, se compone con el bloqueo de la demo acelerada sin relajarlo, se reevalúa al volver a la pestaña y al cambiar el día UTC, y se comprueba de nuevo antes de guardar; el backend sigue siendo la autoridad (409).
+
+#### Scenario: Respuestas fuera de orden de la demo acelerada
+
+- **THEN** para una misma `session_id` nunca se aplica una revisión inferior a la vigente (GET y comandos por igual) y se descartan respuestas de sesiones/generaciones anteriores o posteriores al desmontaje.
+
 Implementado en `frontend/src/features/lab/{SensorLabPage.tsx,useSensorLabScenarios.ts,readingGenerator.ts,labSensor.ts,sensorLabApi.ts}`, ruta `#laboratorio-sensores` (`useHashRoute.ts`, `App.tsx`). Reutiliza sin cambios `useForecastWorkspace` (invalidación de respuestas tardías, un único `activeMutation` en curso), `ForecastPage` (revisión humana) y `QualityPanel` (calidad/anomalías) — este *change* no agrega HITL ni detección de calidad propios, solo los orquesta desde un `sensor_id` de laboratorio. `sensor_id` usa el prefijo exclusivo `lab-` (`labSensor.ts`, `.gitignore`: `data/sensor__lab-*.parquet`, `data/feedback__lab-*.parquet`), nunca reutilizado por Pergamino (`pergamino-ensemble-demo`), Melchor Romero (`melchor-romero-demo`), la demo acelerada (`demo-*`) ni `melchor_romero_2024_consolidado`; "Reiniciar" genera un `sensor_id` nuevo en vez de borrar el anterior. El generador de lecturas sintéticas (`readingGenerator.ts`, PRNG `mulberry32` con semilla fija) es una implementación propia en TypeScript (el generador Python `data_ingestion.mock_sensor` no es importable desde el frontend) que espeja los mismos límites físicos de `data_quality.rules.AGRONOMIC_RANGES` documentados ahí.
 
 **No existe pronóstico ni HITL propios de este modo**: el pronóstico usa el mismo pipeline operativo del resto de `alerting-ui` (`execute_configured_pipeline`, contrato Random Forest explícito, ver "Modelo operativo vs. selección automática experimental" más abajo) sobre el dataset aislado del sensor de laboratorio; una revisión humana registrada acá nunca dispara entrenamiento ni recalibración, y no acredita desempeño predictivo sobre sensores físicos reales.
 
 Verificado con una verificación HTTP real de punta a punta contra el backend (`backend/app/main.py` servido localmente, sin mocks), dos sesiones de sensor aisladas (`lab-httpcheck01`, `lab-httpcheck02`): backfill de 120 lecturas normales confirmado por `GET /quality` (`total_rows=120`, sin `out_of_range`); Escenario B marcó realmente `out_of_range.temperature` en la fecha inyectada; Escenario C mostró el reloj simulado avanzando sin que cambiara `period_end`/`total_rows` reales; Escenario D recuperó `period_end`/`total_rows` tras reingerir el período interrumpido y volvió a emitir pronóstico; la revisión humana se demostró en ambos sentidos reales — `POST /feedback/{sensor_id}/{fecha}/confirm` devolvió `200 confirmada` sobre un objetivo ya vencido y `409` sobre uno todavía no vencido, con el mensaje real del backend en ambos casos; aislamiento cruzado confirmado (`GET /quality/lab-httpcheck01` no cambió mientras se operaba `lab-httpcheck02`, y `pergamino-ensemble-demo`/`melchor-romero-demo` devolvieron `404`, nunca tocados). Verificación automatizada: `frontend/src/features/lab/{readingGenerator.test.ts,SensorLabPage.test.tsx}` (10 tests), suite completa de frontend 209/209, `npm run build` y `npm run lint` limpios. Verificación visual en navegador (escritorio y 390px): pendiente en esta entrega (ver limitación más abajo).
+
+### Requirement: Elegibilidad de la revisión en el recorrido histórico exige observación objetivo verificada
+
+En el recorrido histórico (`/api/v2/sensors/{sensor_id}/historical/...`), confirmar o rechazar un pronóstico DEBE requerir, además del reloj simulado, una observación de la variable objetivo (humedad del suelo) en su propia fecha, con procedencia verificada y ya revelada por el reloj. Un valor imputado, ausente o de procedencia no verificada NO habilita la revisión, aunque su fecha ya haya pasado. La regla es exclusiva del recorrido histórico: no modifica el feedback operativo ni el del laboratorio sintético. "Observación en la fuente" conserva la distinción de procedencia de cada sitio (no implica un sensor físico).
+
+#### Scenario: Una misma condición para consultar y escribir
+
+- **GIVEN** un pronóstico histórico cuyo objetivo ya fue revelado por el reloj
+- **WHEN** se consulta `GET .../historical/{fecha}/forecasts` o se envía `POST .../reviews`
+- **THEN** ambos aplican el mismo evaluador (`_historical_review_block`): objetivo no revelado → `review_not_open`; sin valor de la variable objetivo en esa fecha exacta → `target_observation_missing`; valor imputado → `target_observation_imputed`; procedencia no verificada → `target_observation_unverified` (reutilizando `data_ingestion.history.query_readings`, incluida la exigencia de marcadores para Melchor Romero)
+- **AND** el GET devuelve `reviewable=false` con ese `blocked_reason`, y el POST devuelve HTTP 409 con el mismo código sin persistir ninguna revisión, incluso si se omite la interfaz
+- **AND** una variable auxiliar imputada no bloquea; no se busca una fecha vecina ni se imputa; una falla de almacenamiento sigue siendo un error técnico (503), nunca "observación ausente"; una revisión ya registrada se conserva sin modificarse.
+
+#### Scenario: Interfaz
+
+- **WHEN** `reviewable=false` por observación objetivo
+- **THEN** la tarjeta muestra el motivo explícito (imputado / ausente / no verificado), no ofrece confirmar ni rechazar, y un formulario ya abierto deshabilita guardar y reintentar conservando el texto y permitiendo cancelar
+- **AND** el envío vuelve a comprobar la elegibilidad y un 409 real del backend se muestra tal cual.
 
 ## Limitaciones conocidas
 

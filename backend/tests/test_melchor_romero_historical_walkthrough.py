@@ -70,6 +70,15 @@ def _prepare_day(client, tmp_path, frame, day):
     return response.json()
 
 
+def _reveal_observations(tmp_path, frame):
+    """Simulates the observations revealed after the emission: the readings
+    file now also holds the target days (a historical review needs a
+    verified observation of the target variable on its own date)."""
+    full = frame.copy()
+    full["origen"] = REAL_ORIGEN
+    save_dataset(f"sensor__{SENSOR_ID}", full, data_dir=tmp_path)
+
+
 def test_reproduction_never_invokes_inference(client, bundle_root, monkeypatch):
     http, tmp_path = client
     _, frame = bundle_root
@@ -128,6 +137,7 @@ def test_historical_review_is_gated_by_the_simulated_clock_not_real_now(client, 
     http, tmp_path = client
     _, frame = bundle_root
     body = _prepare_day(http, tmp_path, frame, DAY_A)
+    _reveal_observations(tmp_path, frame)
     slot1 = next(s for s in body["slots"] if s["horizon_days"] == 1)
     assert slot1["target_date"] == (DAY_A + timedelta(days=1)).isoformat()
     forecast_id = slot1["forecast_id"]

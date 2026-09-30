@@ -42,12 +42,34 @@ export type TrainingEligibility =
   | "insufficient_data"
   | "applied";
 
+/** Motivos por los que una revisión no está habilitada. Los tres `target_*`
+ * solo los informa el recorrido histórico (observación de la variable
+ * objetivo imputada, ausente o de procedencia no verificada). */
+export type ReviewBlockedReason =
+  | "review_not_open"
+  | "target_observation_imputed"
+  | "target_observation_missing"
+  | "target_observation_unverified";
+
+export const TARGET_OBSERVATION_MESSAGES: Partial<Record<ReviewBlockedReason, string>> = {
+  target_observation_imputed:
+    "No se puede revisar este pronóstico con el dato disponible: el valor del día objetivo fue imputado y no es una observación independiente.",
+  target_observation_missing:
+    "No se puede revisar este pronóstico: no hay una observación disponible para el día objetivo.",
+  target_observation_unverified:
+    "No se puede revisar este pronóstico: la procedencia del valor del día objetivo no está verificada.",
+};
+
+export function isTargetObservationReason(value: unknown): value is ReviewBlockedReason {
+  return typeof value === "string" && value in TARGET_OBSERVATION_MESSAGES;
+}
+
 export interface ForecastReview {
   status: ReviewStatus;
   revision: number;
   review_open_at: string;
   reviewable: boolean;
-  blocked_reason: "review_not_open" | null;
+  blocked_reason: ReviewBlockedReason | null;
   latest_review: LatestReview | null;
   training_eligibility: TrainingEligibility;
   applied_review_references: string[];
@@ -164,6 +186,17 @@ export class ReviewNotOpenError extends Error {
     super("Todavía no se puede revisar este resultado.");
     this.name = "ReviewNotOpenError";
     this.reviewOpenAt = reviewOpenAt;
+  }
+}
+
+/** El backend rechazó (409) la revisión histórica porque la observación del
+ * día objetivo es imputada, ausente o de procedencia no verificada. */
+export class TargetObservationBlockedError extends Error {
+  reason: ReviewBlockedReason;
+  constructor(reason: ReviewBlockedReason) {
+    super(TARGET_OBSERVATION_MESSAGES[reason] ?? "No se puede revisar este pronóstico.");
+    this.name = "TargetObservationBlockedError";
+    this.reason = reason;
   }
 }
 

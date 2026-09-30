@@ -45,7 +45,7 @@ describe("SensorLabPage", () => {
 
   it("always shows the permanent synthetic-data banner and a lab-prefixed sensor id", () => {
     render(<SensorLabPage />);
-    expect(screen.getByText(/datos sintéticos.*sensor de prueba.*demostración técnica/i)).toBeInTheDocument();
+    expect(screen.getByText("SIMULACIÓN · Datos sintéticos · Sin sensor físico conectado")).toBeInTheDocument();
     expect(screen.getByText(/^lab-/)).toBeInTheDocument();
   });
 
@@ -54,14 +54,14 @@ describe("SensorLabPage", () => {
     const user = userEvent.setup();
     render(<SensorLabPage />);
 
-    await user.click(screen.getByRole("button", { name: /iniciar laboratorio/i }));
+    await user.click(screen.getByRole("button", { name: /generar historial de prueba/i }));
 
     await waitFor(() => {
       expect(sensorLabApi.ingestLabReading).toHaveBeenCalledTimes(LAB_HISTORY_DAYS);
     });
     expect(forecastApi.runForecast).toHaveBeenCalled();
-    await waitFor(() => screen.getByRole("button", { name: /inyectar anomalía/i }));
-    expect(screen.getByRole("button", { name: /inyectar anomalía/i })).toBeEnabled();
+    await waitFor(() => screen.getByRole("button", { name: /introducir una lectura anómala/i }));
+    expect(screen.getByRole("button", { name: /introducir una lectura anómala/i })).toBeEnabled();
     expect(screen.getByText(/historial sintético cargado/i)).toBeInTheDocument();
   });
 
@@ -70,29 +70,29 @@ describe("SensorLabPage", () => {
     spy.mockResolvedValue(baseQuality());
     const user = userEvent.setup();
     render(<SensorLabPage />);
-    await user.click(screen.getByRole("button", { name: /iniciar laboratorio/i }));
-    await waitFor(() => screen.getByRole("button", { name: /inyectar anomalía/i }));
+    await user.click(screen.getByRole("button", { name: /generar historial de prueba/i }));
+    await waitFor(() => screen.getByRole("button", { name: /introducir una lectura anómala/i }));
 
     const anomalyDate = addDaysUtc(labBackfillEndDateUtc(), 1);
     spy.mockResolvedValueOnce(
       baseQuality({ out_of_range: { temperature: [anomalyDate] }, total_rows: LAB_HISTORY_DAYS + 1 }),
     );
-    await user.click(screen.getByRole("button", { name: /inyectar anomalía/i }));
+    await user.click(screen.getByRole("button", { name: /introducir una lectura anómala/i }));
 
-    await waitFor(() => screen.getByText(/marcada por el backend/i));
+    await waitFor(() => screen.getByText(/marcada por el control de calidad/i));
   });
 
   it("scenario C: never shows a stale forecast as current and points to checking the sensor", async () => {
     vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(baseQuality());
     const user = userEvent.setup();
     render(<SensorLabPage />);
-    await user.click(screen.getByRole("button", { name: /iniciar laboratorio/i }));
-    await waitFor(() => screen.getByRole("button", { name: /inyectar anomalía/i }));
-    await user.click(screen.getByRole("button", { name: /inyectar anomalía/i }));
-    await waitFor(() => screen.getByRole("button", { name: /interrumpir lecturas/i, hidden: false }));
+    await user.click(screen.getByRole("button", { name: /generar historial de prueba/i }));
+    await waitFor(() => screen.getByRole("button", { name: /introducir una lectura anómala/i }));
+    await user.click(screen.getByRole("button", { name: /introducir una lectura anómala/i }));
+    await waitFor(() => screen.getByRole("button", { name: /simular una interrupción/i, hidden: false }));
 
     const ingestCallsBefore = (sensorLabApi.ingestLabReading as ReturnType<typeof vi.fn>).mock.calls.length;
-    await user.click(screen.getByRole("button", { name: /interrumpir lecturas/i }));
+    await user.click(screen.getByRole("button", { name: /simular una interrupción/i }));
 
     await waitFor(() => screen.getByRole("alert"));
     expect(screen.getByRole("alert")).toHaveTextContent(/verificar sensor y cultivo/i);
@@ -107,14 +107,56 @@ describe("SensorLabPage", () => {
     render(<SensorLabPage />);
     const firstSensorId = screen.getByText(/^lab-/).textContent;
 
-    await user.click(screen.getByRole("button", { name: /iniciar laboratorio/i }));
-    await waitFor(() => screen.getByRole("button", { name: /inyectar anomalía/i }));
-    expect(screen.getByRole("button", { name: /inyectar anomalía/i })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: /generar historial de prueba/i }));
+    await waitFor(() => screen.getByRole("button", { name: /introducir una lectura anómala/i }));
+    expect(screen.getByRole("button", { name: /introducir una lectura anómala/i })).toBeEnabled();
 
-    await user.click(screen.getByRole("button", { name: /reiniciar en una sesión nueva/i }));
+    await user.click(screen.getByRole("button", { name: /iniciar una sesión nueva/i }));
 
     const secondSensorId = screen.getByText(/^lab-/).textContent;
     expect(secondSensorId).not.toBe(firstSensorId);
-    expect(screen.getByRole("button", { name: /inyectar anomalía/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /introducir una lectura anómala/i })).toBeDisabled();
+  });
+
+  it("explains precisely what is simulated, what really runs, and never says the predictor is not trained", () => {
+    render(<SensorLabPage />);
+    expect(screen.getByRole("heading", { name: "Laboratorio de sensor simulado" })).toBeInTheDocument();
+    expect(screen.getByText("Qué simulamos")).toBeInTheDocument();
+    expect(screen.getByText("Qué funciona realmente")).toBeInTheDocument();
+    expect(screen.getByText(/puede entrenarse o actualizarse con las lecturas sintéticas/i)).toBeInTheDocument();
+    expect(screen.queryByText(/no entrena otro modelo/i)).toBeNull();
+    expect(screen.getByText(/no cambia la fecha real del servidor/i)).toBeInTheDocument();
+    expect(screen.getByText(/no representa una observación independiente de un cultivo real/i)).toBeInTheDocument();
+    expect(screen.getByText(/se suspende el envío del generador/i)).toBeInTheDocument();
+  });
+
+  it("presents the physical connection as collapsible future work with the four steps", () => {
+    render(<SensorLabPage />);
+    const summary = screen.getByText("¿Cómo se conectaría un sensor real?");
+    expect(summary.closest("details")).not.toHaveAttribute("open");
+    expect(screen.getByText(/quedan como trabajo futuro/i)).toBeInTheDocument();
+    expect(summary.closest("details")!.querySelectorAll("ol > li")).toHaveLength(4);
+  });
+
+  it("after an ingest error keeps A-D disabled, shows the guidance and lets a new session start A", async () => {
+    vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(baseQuality());
+    vi.spyOn(sensorLabApi, "ingestLabReading").mockRejectedValueOnce(new Error("Error del backend"));
+    const user = userEvent.setup();
+    render(<SensorLabPage />);
+    const firstSensorId = screen.getByText(/^lab-/).textContent;
+
+    await user.click(screen.getByRole("button", { name: /generar historial de prueba/i }));
+    await waitFor(() => screen.getByText(/este paso no pudo completarse/i));
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Este paso no pudo completarse. Para evitar modificar lecturas ya guardadas, iniciá una sesión nueva. Los datos de la sesión anterior se conservan.",
+    );
+    for (const name of [/generar historial de prueba/i, /introducir una lectura anómala/i, /simular una interrupción/i, /simular la recuperación/i]) {
+      expect(screen.getByRole("button", { name })).toBeDisabled();
+    }
+
+    await user.click(screen.getByRole("button", { name: /iniciar una sesión nueva/i }));
+    expect(screen.getByText(/^lab-/).textContent).not.toBe(firstSensorId);
+    expect(screen.getByRole("button", { name: /generar historial de prueba/i })).toBeEnabled();
+    expect(screen.queryByText(/este paso no pudo completarse/i)).toBeNull();
   });
 });

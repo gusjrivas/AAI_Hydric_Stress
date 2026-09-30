@@ -434,8 +434,66 @@ def _historical_now(as_of_date: date) -> datetime:
     return datetime.combine(as_of_date, time.max, tzinfo=timezone.utc)
 
 
+# Variable objetivo de los recorridos históricos actuales (humedad del suelo).
+HISTORICAL_TARGET_VARIABLE = "soil_moisture"
+
+_OBSERVATION_BLOCK_MESSAGES = {
+    "target_observation_imputed": (
+        "El valor del día objetivo fue imputado y no es una observación independiente."
+    ),
+    "target_observation_missing": "No hay una observación disponible para el día objetivo.",
+    "target_observation_unverified": (
+        "La procedencia del valor del día objetivo no está verificada."
+    ),
+}
+
+
+def _historical_review_block(
+    forecast_like: dict[str, Any],
+    now: datetime,
+    *,
+    sensor_id: str,
+    catalog: CatalogRepository,
+) -> str | None:
+    """Evaluador único de elegibilidad de revisión del recorrido histórico
+    (lo usan el GET de pronósticos y el POST de revisión). Devuelve el
+    código que bloquea o `None` si es revisable.
+
+    Orden: (1) reloj histórico (`review_open_at`, sin consultar lecturas
+    para no filtrar información futura); (2) existe un valor válido de la
+    variable objetivo exactamente en su fecha -- nunca una fecha vecina;
+    (3) su procedencia es observada, según la lógica ya implementada en
+    `data_ingestion.history.query_readings` (incluida la exigencia de
+    marcadores para Melchor Romero). Solo la variable objetivo cuenta: una
+    variable auxiliar imputada no bloquea. Una falla de almacenamiento
+    (`HistoryError` 503) se propaga como error técnico; nunca se traduce
+    a "observación ausente"."""
+    if now < _operational_review_open_at(forecast_like):
+        return "review_not_open"
+    target = date.fromisoformat(forecast_like["target_date"])
+    result = query_readings(
+        sensor_id,
+        catalog.data_dir,
+        registered=True,  # sin archivo de lecturas: respuesta vacía => observación ausente
+        days=1,
+        end=target,
+        server_today=now.date(),
+    )
+    row = next((r for r in result["rows"] if r["date"] == target), None)
+    if row is None or row.get(HISTORICAL_TARGET_VARIABLE) is None:
+        return "target_observation_missing"
+    if HISTORICAL_TARGET_VARIABLE in row["imputed_variables"]:
+        return "target_observation_imputed"
+    if HISTORICAL_TARGET_VARIABLE in row["unverified_variables"]:
+        return "target_observation_unverified"
+    return None
+
+
 def _historical_review_view(
-    forecast_like: dict[str, Any], state: dict[str, Any], now: datetime
+    forecast_like: dict[str, Any],
+    state: dict[str, Any],
+    now: datetime,
+    block: str | None = None,
 ) -> dict[str, Any]:
     """Renders `review` for the historical context strictly from
     `HistoricalReviewStore` state (`state`) -- never from the batch's own
@@ -446,8 +504,8 @@ def _historical_review_view(
     the same `forecast_id` can never change what this returns: they read
     from entirely different storage."""
     review_open_at = _operational_review_open_at(forecast_like)
-    reviewable = now >= review_open_at
-    if not reviewable:
+    reviewable = block is None
+    if block == "review_not_open":
         # Una revisión escrita al avanzar el reloj no debe filtrarse al
         # regresar a una fecha anterior a su apertura.
         return {
@@ -468,7 +526,7 @@ def _historical_review_view(
         "revision": state["revision"],
         "review_open_at": review_open_at,
         "reviewable": reviewable,
-        "blocked_reason": None if reviewable else "review_not_open",
+        "blocked_reason": block,
         "latest_review": state["latest_review"],
         "training_eligibility": training_eligibility,
         "applied_review_references": applied_refs,
@@ -510,6 +568,7 @@ def get_historical_forecasts(
     sensor_id: str,
     as_of_date: date,
     revealed_through: date | None = Query(default=None),
+    catalog: CatalogRepository = Depends(get_catalog_repository),
     operational_repository: OperationalRepository = Depends(get_operational_repository),
     historical_review_store: HistoricalReviewStore = Depends(get_historical_review_store),
 ) -> ForecastBatchResponse:
@@ -563,7 +622,8 @@ def get_historical_forecasts(
     for slot in batch["slots"]:
         if slot["status"] == "available":
             state = historical_review_store.get_review_state(slot["forecast_id"])
-            slot["review"] = _historical_review_view(slot, state, now)
+            block = _historical_review_block(slot, now, sensor_id=sensor_id, catalog=catalog)
+            slot["review"] = _historical_review_view(slot, state, now, block)
     return ForecastBatchResponse(**batch)
 
 
@@ -578,6 +638,7 @@ def create_historical_review(
     as_of_date: date,
     forecast_id: str,
     payload: ReviewCreate,
+    catalog: CatalogRepository = Depends(get_catalog_repository),
     operational_repository: OperationalRepository = Depends(get_operational_repository),
     historical_review_store: HistoricalReviewStore = Depends(get_historical_review_store),
 ) -> ForecastReview:
@@ -610,6 +671,12 @@ def create_historical_review(
             "Esta emisión corresponde a una fecha posterior a la que se está navegando.",
             404,
         )
+    # Misma condición que el GET (reloj + observación objetivo verificada):
+    # un POST directo no puede saltear lo que la interfaz bloquea. El
+    # reloj (`review_open_at`) conserva su rechazo existente en el store.
+    block = _historical_review_block(existing, now, sensor_id=sensor_id, catalog=catalog)
+    if block is not None and block != "review_not_open":
+        raise OperationalRepositoryError(block, _OBSERVATION_BLOCK_MESSAGES[block], 409)
     review_open_at = _operational_review_open_at(existing)
     _status_code, state = historical_review_store.submit_review(
         forecast_id=forecast_id,
@@ -621,4 +688,4 @@ def create_historical_review(
         review_open_at=review_open_at,
         now=now,
     )
-    return ForecastReview(**_historical_review_view(existing, state, now))
+    return ForecastReview(**_historical_review_view(existing, state, now, block))
