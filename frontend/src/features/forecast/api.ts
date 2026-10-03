@@ -10,8 +10,16 @@ export class HttpError extends Error {
   }
 }
 
+/** Mensaje para un punto sin dataset: nunca se muestra la ruta interna que devuelve el backend. */
+export const NO_READINGS_MESSAGE =
+  "Este punto de medición todavía no tiene mediciones, por eso no hay nada que consultar o calcular. Cargalas primero desde el Laboratorio o con la demostración.";
+const MISSING_DATASET = /no existe el dataset/i;
+
 async function readDetail(response: Response, fallback: string): Promise<never> {
   const body = await response.json().catch(() => null);
+  if (response.status === 404 && typeof body?.detail === "string" && MISSING_DATASET.test(body.detail)) {
+    throw new HttpError(404, NO_READINGS_MESSAGE);
+  }
   throw new HttpError(response.status, body?.detail ?? fallback);
 }
 

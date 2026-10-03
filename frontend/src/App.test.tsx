@@ -5,6 +5,7 @@ import App from "./App";
 import * as forecastApi from "./features/forecast/api";
 import * as catalogApi from "./features/producer/catalogApi";
 import * as qualityApi from "./features/quality/api";
+import { readyQuality } from "./features/quality/testFixtures";
 import * as lineageApi from "./features/lineage/api";
 
 const EMPTY_PREDICTOR: forecastApi.ActivePredictor = {
@@ -73,6 +74,7 @@ describe("App — cabecera de sensor", () => {
   });
 
   it("blocks applying another sensor while a mutation is pending, and re-enables it afterward", async () => {
+    vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(readyQuality("sensor-a"));
     let resolveRun!: (value: forecastApi.ForecastRunResponse) => void;
     vi.spyOn(forecastApi, "runForecast").mockReturnValueOnce(
       new Promise((resolve) => (resolveRun = resolve)),
@@ -285,6 +287,7 @@ describe("App — navegación por hash (Entrega 2)", () => {
   });
 
   it("disables the recalibrate button in Ajustar próximos pronósticos while a forecast run started from Resumen is pending", async () => {
+    vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(readyQuality("sensor-a"));
     vi.spyOn(forecastApi, "listFeedback").mockResolvedValue({
       rows: [
         {

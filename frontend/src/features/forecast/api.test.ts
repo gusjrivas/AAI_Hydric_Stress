@@ -6,6 +6,7 @@ import {
   recalibrate,
   rejectAlert,
   runForecast,
+  NO_READINGS_MESSAGE,
 } from "./api";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -32,4 +33,18 @@ it("uses API_BASE_URL (VITE_API_BASE_URL, or localhost:8000 by default) as the h
   await runForecast("sensor-b");
   const url = new URL(fetchMock.mock.calls[0][0]);
   expect(`${url.protocol}//${url.host}`).toBe(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000");
+});
+
+it("replaces the backend's missing-dataset error with a clear message that never exposes an internal path", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+    ok: false, status: 404, json: async () => ({ detail: "No existe el dataset 'sensor__sensor-a' en /workspace/data" }),
+  }));
+  const error = await runForecast("sensor-a").catch((e: Error) => e);
+  expect((error as Error).message).toBe(NO_READINGS_MESSAGE);
+  expect((error as Error).message).not.toMatch(/workspace|sensor__/);
+  // Otros 404 (p. ej. "todavía no se corrió ningún pronóstico") conservan el detalle del backend.
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+    ok: false, status: 404, json: async () => ({ detail: "Todavía no se corrió ningún pronóstico." }),
+  }));
+  await expect(listFeedback("sensor-a")).rejects.toThrow("Todavía no se corrió ningún pronóstico.");
 });

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import "./ResumenView.css";
 import { getQualityReport } from "../quality/api";
+import { NoReadingsHint } from "../shared/NoReadingsHint";
 import type { ForecastWorkspace } from "../forecast/useForecastWorkspace";
 import type { DemoWriteGate } from "../demo/lock";
 
@@ -118,11 +119,16 @@ export function ResumenView({
             type="button"
             className="rv-run-btn"
             onClick={() => void workspace.runForecast()}
-            disabled={busy || demoGate?.locked}
+            disabled={busy || demoGate?.locked || qualityStatus === "empty"}
           >
             {workspace.activeMutation === "forecast" ? "Preparando pronóstico..." : "Generar pronóstico"}
           </button>
           {demoGate?.locked && <p className="rv-guidance">{demoGate.lockedReason}</p>}
+          {qualityStatus === "empty" && (
+            <p className="rv-guidance">
+              Para generar un pronóstico primero hacen falta mediciones de este punto.
+            </p>
+          )}
           <p className="rv-guidance">Se usa la última fecha con datos. Si esa fecha no cambia, no se agregan días nuevos al historial.</p>
           {workspace.runError && (
             <p role="alert" className="rv-error">
@@ -142,7 +148,12 @@ export function ResumenView({
         <section className="rv-side" aria-label="Contexto de calidad">
           <h3 className="rv-side-heading">Datos disponibles</h3>
           {qualityStatus === "loading" && <p role="status">Consultando calidad…</p>}
-          {qualityStatus === "empty" && <p role="status">Todavía no hay mediciones cargadas para este punto.</p>}
+          {qualityStatus === "empty" && (
+            <>
+              <p role="status">Todavía no hay mediciones cargadas para este punto.</p>
+              <NoReadingsHint />
+            </>
+          )}
           {qualityStatus === "error" && (
             <p role="alert" className="rv-error">
               {qualityError}

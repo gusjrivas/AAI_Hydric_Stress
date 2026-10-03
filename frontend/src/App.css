@@ -110,3 +110,5 @@
 
 .app-tools-intro { max-width: 72rem; margin: 0 auto var(--space-4); }
 .app-tools-intro .eyebrow { margin: 0 0 var(--space-1); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-cyan-text); }
+
+.no-readings-hint { margin: var(--space-2) 0 0; font-size: .9375rem; color: var(--color-muted); }

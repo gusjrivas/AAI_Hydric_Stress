@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import * as forecastApi from "./features/forecast/api";
 import * as qualityApi from "./features/quality/api";
+import { readyQuality } from "./features/quality/testFixtures";
 import * as lineageApi from "./features/lineage/api";
 import * as demoApi from "./features/demo/api";
 import type { DemoSessionView } from "./features/demo/api";
@@ -99,6 +100,7 @@ describe("App — demostración acelerada (entrega 3)", () => {
   });
 
   it("does not lock manual mutations for a sensor other than the one the demo controls", async () => {
+    vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(readyQuality("sensor-a"));
     vi.spyOn(demoApi, "isDemoControlConfigured").mockReturnValue(true);
     vi.spyOn(demoApi, "getDemoSession").mockResolvedValue(demoSession({ status: "running" }));
 
