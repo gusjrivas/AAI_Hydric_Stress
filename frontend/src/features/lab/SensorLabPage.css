@@ -1,15 +1,6 @@
 .app-lab {
-  --color-bg: #f6f8f7;
-  --color-surface: #fff;
-  --color-ink: #1a2622;
-  --color-muted: #5b6b65;
-  --color-action: #1f6fb2;
-  --color-action-hover: #16548a;
-  --color-border: #e6eae8;
-  --color-border-strong: #d3d9d6;
   background: var(--color-bg);
   color: var(--color-ink);
-  font-family: "Geist", "Segoe UI", system-ui, sans-serif;
 }
 .app-lab .app-sensor-header { display: none; }
 .app-lab .app-sections { max-width: 72rem; }
@@ -22,8 +13,8 @@
 
 .sl-badge {
   align-self: start;
-  background: #eaf2fa;
-  color: #16548a;
+  background: #e5f2fc;
+  color: #0d3590;
   border: 1px solid #bcd8ef;
   border-radius: 999px;
   padding: 6px 14px;
@@ -60,8 +51,8 @@
 .sl-error { background: #fff3f2; border: 1px solid #f3c9c4; color: #7a1f19; border-radius: 10px; padding: 12px 16px; }
 
 .sl-stale-banner {
-  background: #fff8f3;
-  border: 1px solid #f3c9ae;
+  background: #fbebe6;
+  border: 1px solid #eab3a6;
   border-radius: 12px;
   padding: 14px 18px;
   line-height: 1.6;

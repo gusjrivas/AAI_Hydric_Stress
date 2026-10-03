@@ -1,28 +1,28 @@
 .forecasts-section p { margin: 8px 0 16px; max-width: 75ch; }
 .forecasts-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
 .forecasts-heading h3 { margin: 0; font-size: 1.35rem; letter-spacing: -.02em; }
-.forecasts-counts { color: #1a2622; font-weight: 650; background: #f6f8f7; padding: 8px 12px; border-radius: 10px; font-size: .85rem; }
+.forecasts-counts { color: #0a1430; font-weight: 650; background: #f6f9fe; padding: 8px 12px; border-radius: 10px; font-size: .85rem; }
 .forecast-list { list-style: none; margin: 18px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 16px; }
 .forecast-list > li { min-width: 0; display: flex; flex-direction: column; }
 .forecast-outlook-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.forecast-card { flex: 1 0 auto; box-sizing: border-box; border: 1px solid #e6eae8; border-radius: 14px; padding: 20px; background: #fff; overflow-wrap: anywhere; }
-.forecast-card-clear { border-color: #e6eae8; }
-.forecast-card-alert { border-color: #f3c9ae; background: #fff8f3; }
+.forecast-card { flex: 1 0 auto; box-sizing: border-box; border: 1px solid #c9d5e5; border-radius: 14px; padding: 20px; background: #fff; overflow-wrap: anywhere; }
+.forecast-card-clear { border-color: #c9d5e5; }
+.forecast-card-alert { border-color: #eab3a6; background: #fbebe6; }
 .forecast-card-header { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
 .forecast-card-target { font-weight: 700; font-size: 1.1rem; letter-spacing: -.02em; margin: 0 0 8px; }
-.forecast-card-details { font-size: .77rem; color: #5b6b65; }
+.forecast-card-details { font-size: .77rem; color: #2f3d52; }
 .forecast-card-details summary { min-height: 32px; cursor: pointer; }
 .forecast-card-meta { line-height: 1.5; }
-.forecast-card-badge { font-size: .8rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #f6f8f7; color: #5b6b65; }
-.forecast-card-badge.is-alert { background: #fff1e8; color: #b23a0a; }
+.forecast-card-badge { font-size: .8rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #f6f9fe; color: #2f3d52; }
+.forecast-card-badge.is-alert { background: #fbebe6; color: #961f0e; }
 .forecast-card-guidance { font-weight: 600; line-height: 1.55; }
-.forecast-probability { font-size: .78rem; color: #5b6b65; line-height: 1.5; }
-.forecast-card-review-status { font-size: .83rem; font-weight: 650; padding-top: 14px; border-top: 1px solid #e6eae8; }
-.forecast-card-latest-review, .forecast-card-blocked, .forecast-card-hint { font-size: .8rem; color: #5b6b65; line-height: 1.5; }
+.forecast-probability { font-size: .78rem; color: #2f3d52; line-height: 1.5; }
+.forecast-card-review-status { font-size: .83rem; font-weight: 650; padding-top: 14px; border-top: 1px solid #c9d5e5; }
+.forecast-card-latest-review, .forecast-card-blocked, .forecast-card-hint { font-size: .8rem; color: #2f3d52; line-height: 1.5; }
 .forecast-card-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .forecast-card-buttons button { flex: 1 1 130px; font-size: .82rem; }
 .forecast-card-form textarea { width: 100%; box-sizing: border-box; min-height: 90px; margin-top: 8px; }
-.forecasts-subsection + .forecasts-subsection { border-top: 1px solid #e6eae8; margin-top: 28px; padding-top: 10px; }
+.forecasts-subsection + .forecasts-subsection { border-top: 1px solid #c9d5e5; margin-top: 28px; padding-top: 10px; }
 @media (max-width: 850px) { .forecast-outlook-grid { grid-template-columns: 1fr; } }
-.producer-history-disclosure { border-top: 1px solid #e6eae8; padding-top: 20px; margin-top: 24px; }
-.producer-history-disclosure > summary { cursor: pointer; min-height: 44px; font-weight: 700; color: #1f6fb2; }
+.producer-history-disclosure { border-top: 1px solid #c9d5e5; padding-top: 20px; margin-top: 24px; }
+.producer-history-disclosure > summary { cursor: pointer; min-height: 44px; font-weight: 700; color: #1443b6; }

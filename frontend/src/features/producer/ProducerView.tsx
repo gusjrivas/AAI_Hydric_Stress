@@ -33,7 +33,7 @@ export function ProducerView() {
       <header className="producer-header">
         <div className="producer-header-left">
           <span className="producer-brand" aria-hidden="true">
-            <svg viewBox="0 0 32 32" width="22" height="22"><path d="M16 3c5.5 7 9 11.5 9 16a9 9 0 0 1-18 0c0-4.5 3.5-9 9-16z" fill="#1F6FB2" /></svg>
+            <svg viewBox="0 0 32 32" width="22" height="22"><path d="M16 3c5.5 7 9 11.5 9 16a9 9 0 0 1-18 0c0-4.5 3.5-9 9-16z" fill="#1443b6" /></svg>
             Cultiv<em>IA</em>
           </span>
           {sensor && <ProducerTabs active={tab} onSelect={setTab} />}

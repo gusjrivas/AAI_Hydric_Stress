@@ -1,7 +1,7 @@
 .retrospective-panel { background: #fff; border: 1px solid var(--color-border); border-radius: 18px; padding: clamp(18px, 3vw, 30px); display: grid; gap: 16px; min-width: 0; }
 .retrospective-heading { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
 .retrospective-heading h3 { margin: 0; font-size: clamp(1.35rem, 3vw, 1.8rem); }
-.retrospective-tag { background: #e5eef0; color: #174856; border-radius: 99px; padding: 8px 12px; font-weight: 700; font-size: .8rem; }
+.retrospective-tag { background: #e5f2fc; color: #0d3590; border-radius: 99px; padding: 8px 12px; font-weight: 700; font-size: .8rem; }
 .retrospective-horizons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .retrospective-horizon { border: 1px solid var(--color-border); border-radius: 14px; padding: 18px; min-width: 0; display: grid; gap: 12px; }
 .retrospective-horizon h4 { margin: 0; font-size: 1.2rem; }

@@ -140,15 +140,15 @@ export function ProducerHistoryPanel({ sensorId }: { sensorId: string }) {
               <svg viewBox="0 0 720 230" role="img" aria-label="Evolución de humedad del suelo. Valores por fecha disponibles en la tabla de mediciones.">
                 {[0, 0.5, 1].map((fraction) => (
                   <g key={fraction}>
-                    <line x1="52" x2="672" y1={y(ceiling * fraction)} y2={y(ceiling * fraction)} stroke="#E6EAE8" />
+                    <line x1="52" x2="672" y1={y(ceiling * fraction)} y2={y(ceiling * fraction)} stroke="#c9d5e5" />
                     <text x="45" y={y(ceiling * fraction) + 4} textAnchor="end">{Math.round(ceiling * fraction * 100)}%</text>
                   </g>
                 ))}
                 {segments.map(({ from, to }) => (
-                  <line key={to.date} x1={x(from.date)} y1={y(from.soil_moisture!)} x2={x(to.date)} y2={y(to.soil_moisture!)} stroke="#1F6FB2" strokeWidth="3" />
+                  <line key={to.date} x1={x(from.date)} y1={y(from.soil_moisture!)} x2={x(to.date)} y2={y(to.soil_moisture!)} stroke="#1443b6" strokeWidth="3" />
                 ))}
                 {points.map((row) => (
-                  <circle key={row.date} cx={x(row.date)} cy={y(row.soil_moisture!)} r="4" fill="#1F6FB2" />
+                  <circle key={row.date} cx={x(row.date)} cy={y(row.soil_moisture!)} r="4" fill="#1443b6" />
                 ))}
                 <text x="52" y="213">{displayDate(data.window.start_date)}</text>
                 <text x="672" y="213" textAnchor="end">{displayDate(latest!.date)}</text>
