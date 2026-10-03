@@ -91,28 +91,28 @@
     function Y(v) { return m.t + ph * (1 - (v - y0) / (y1 - y0)); }
     var o = [];
     o.push('<svg viewBox="0 0 ' + w + " " + h + '" role="img" aria-label="' + esc(cfg.aria) + '" focusable="false"><title>' + esc(cfg.aria) + "</title>");
-    o.push('<defs><pattern id="hatch-' + cfg.id + '" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#9aa1ab" stroke-width="2"/></pattern>' +
-      '<pattern id="fut-' + cfg.id + '" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#f1f3ef"/><path d="M0 8L8 0" stroke="#dfe3dc" stroke-width="1.5"/></pattern></defs>');
+    o.push('<defs><pattern id="hatch-' + cfg.id + '" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#94a3b8" stroke-width="2"/></pattern>' +
+      '<pattern id="fut-' + cfg.id + '" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#f4f7fb"/><path d="M0 8L8 0" stroke="#dbe3ee" stroke-width="1.5"/></pattern></defs>');
     // grilla y etiquetas
     for (var v = y0; v <= y1 + 1e-9; v += cfg.yStep) {
-      o.push('<line x1="' + m.l + '" x2="' + (w - m.r) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="#e3e8df"/>');
-      o.push('<text x="' + (m.l - 8) + '" y="' + (Y(v) + 4) + '" text-anchor="end" font-size="12" fill="#4f5f53">' + num(v, 2) + "</text>");
+      o.push('<line x1="' + m.l + '" x2="' + (w - m.r) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="#e2e8f0"/>');
+      o.push('<text x="' + (m.l - 8) + '" y="' + (Y(v) + 4) + '" text-anchor="end" font-size="12" fill="#2f3d52">' + num(v, 2) + "</text>");
     }
-    o.push('<text x="14" y="' + (m.t + ph / 2) + '" transform="rotate(-90 14 ' + (m.t + ph / 2) + ')" text-anchor="middle" font-size="12" fill="#4f5f53">' + esc(cfg.unit) + "</text>");
+    o.push('<text x="14" y="' + (m.t + ph / 2) + '" transform="rotate(-90 14 ' + (m.t + ph / 2) + ')" text-anchor="middle" font-size="12" fill="#2f3d52">' + esc(cfg.unit) + "</text>");
     // no revelado
     var ci = cfg.clockIndex;
     if (ci != null && ci < N - 1) {
       var fx = X(ci) + bw / 2;
       o.push('<rect x="' + fx + '" y="' + m.t + '" width="' + (w - m.r - fx) + '" height="' + ph + '" fill="url(#fut-' + cfg.id + ')"/>');
-      if (w - m.r - fx > 96) o.push('<text x="' + (fx + 8) + '" y="' + (m.t + ph - 8) + '" font-size="12" fill="#4f5f53" font-style="italic">Aún no revelado</text>');
+      if (w - m.r - fx > 96) o.push('<text x="' + (fx + 8) + '" y="' + (m.t + ph - 8) + '" font-size="12" fill="#2f3d52" font-style="italic">Aún no revelado</text>');
     } else if (ci == null) {
       o.push('<rect x="' + m.l + '" y="' + m.t + '" width="' + pw + '" height="' + ph + '" fill="url(#fut-' + cfg.id + ')"/>');
     }
     // banda
     if (cfg.band) {
       var bx = X(cfg.band.from) - bw / 2, bwid = (cfg.band.to - cfg.band.from + 1) * bw;
-      o.push('<rect x="' + bx + '" y="' + m.t + '" width="' + bwid + '" height="' + ph + '" fill="#e6ecf5" opacity=".75"/>');
-      o.push('<text x="' + (bx + bwid / 2) + '" y="' + (m.t + 14) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#1d3557">' + esc(cfg.band.label) + "</text>");
+      o.push('<rect x="' + bx + '" y="' + m.t + '" width="' + bwid + '" height="' + ph + '" fill="#d9f2f8" opacity=".85"/>');
+      o.push('<text x="' + (bx + bwid / 2) + '" y="' + (m.t + 14) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#005669">' + esc(cfg.band.label) + "</text>");
     }
     // faltantes (columna con trama)
     cfg.points.forEach(function (p, i) {
@@ -123,20 +123,20 @@
     // umbral
     if (cfg.threshold != null) {
       var ty = Y(cfg.threshold);
-      o.push('<line x1="' + m.l + '" x2="' + (w - m.r) + '" y1="' + ty + '" y2="' + ty + '" stroke="#1b2a1e" stroke-width="1.6" stroke-dasharray="7 5"/>');
-      o.push('<text x="' + (m.l + 6) + '" y="' + (ty - 6) + '" font-size="12" font-weight="700" fill="#1b2a1e">Umbral ' + num(cfg.threshold, 3) + " m³/m³</text>");
+      o.push('<line x1="' + m.l + '" x2="' + (w - m.r) + '" y1="' + ty + '" y2="' + ty + '" stroke="#0a1430" stroke-width="1.6" stroke-dasharray="7 5"/>');
+      o.push('<text x="' + (m.l + 6) + '" y="' + (ty - 6) + '" font-size="12" font-weight="700" fill="#0a1430">Umbral ' + num(cfg.threshold, 3) + " m³/m³</text>");
     }
     // emisión
     if (cfg.emissionIndex != null) {
       var ex = X(cfg.emissionIndex);
-      o.push('<line x1="' + ex + '" x2="' + ex + '" y1="' + (m.t - 4) + '" y2="' + (m.t + ph) + '" stroke="#1d3557" stroke-width="2"/>');
-      o.push('<text x="' + ex + '" y="' + (m.t - 10) + '" text-anchor="' + (ex < m.l + 60 ? "start" : "middle") + '" font-size="12" font-weight="700" fill="#1d3557">Emisión ' + esc(fd(cfg.points[cfg.emissionIndex].date)) + "</text>");
+      o.push('<line x1="' + ex + '" x2="' + ex + '" y1="' + (m.t - 4) + '" y2="' + (m.t + ph) + '" stroke="#081a3d" stroke-width="2"/>');
+      o.push('<text x="' + ex + '" y="' + (m.t - 10) + '" text-anchor="' + (ex < m.l + 60 ? "start" : "middle") + '" font-size="12" font-weight="700" fill="#081a3d">Emisión ' + esc(fd(cfg.points[cfg.emissionIndex].date)) + "</text>");
     }
     // reloj
     if (ci != null) {
       var cx = X(ci);
-      o.push('<line x1="' + cx + '" x2="' + cx + '" y1="' + m.t + '" y2="' + (m.t + ph + 6) + '" stroke="#1b2a1e" stroke-width="1.5" stroke-dasharray="2 3"/>');
-      o.push('<path d="M' + (cx - 6) + " " + (m.t + ph + 14) + "L" + (cx + 6) + " " + (m.t + ph + 14) + "L" + cx + " " + (m.t + ph + 6) + 'z" fill="#1b2a1e"/>');
+      o.push('<line x1="' + cx + '" x2="' + cx + '" y1="' + m.t + '" y2="' + (m.t + ph + 6) + '" stroke="#0a1430" stroke-width="1.5" stroke-dasharray="2 3"/>');
+      o.push('<path d="M' + (cx - 6) + " " + (m.t + ph + 14) + "L" + (cx + 6) + " " + (m.t + ph + 14) + "L" + cx + " " + (m.t + ph + 6) + 'z" fill="#0a1430"/>');
     }
     // líneas entre puntos con valor
     for (var i = 0; i < N - 1; i++) {
@@ -144,7 +144,7 @@
       if (ci != null && i + 1 > ci) break;
       if (a.v == null || b.v == null || a.status === "future" || b.status === "future") continue;
       var dashed = a.status === "imp" || b.status === "imp";
-      o.push('<line x1="' + X(i) + '" y1="' + Y(a.v) + '" x2="' + X(i + 1) + '" y2="' + Y(b.v) + '" stroke="#1d3557" stroke-width="2"' + (dashed ? ' stroke-dasharray="4 4" opacity=".7"' : "") + "/>");
+      o.push('<line x1="' + X(i) + '" y1="' + Y(a.v) + '" x2="' + X(i + 1) + '" y2="' + Y(b.v) + '" stroke="#081a3d" stroke-width="2"' + (dashed ? ' stroke-dasharray="4 4" opacity=".7"' : "") + "/>");
     }
     // puntos
     cfg.points.forEach(function (p, i) {
@@ -152,31 +152,31 @@
       if (ci == null) return;
       var x = X(i);
       if (p.status === "obs") {
-        o.push('<circle cx="' + x + '" cy="' + Y(p.v) + '" r="5" fill="#1d3557" stroke="#fff" stroke-width="1.5"/>');
+        o.push('<circle cx="' + x + '" cy="' + Y(p.v) + '" r="5" fill="#081a3d" stroke="#fff" stroke-width="1.5"/>');
       } else if (p.status === "imp") {
         var yy = Y(p.v);
-        o.push('<path d="M' + x + " " + (yy - 7) + "L" + (x + 7) + " " + yy + "L" + x + " " + (yy + 7) + "L" + (x - 7) + " " + yy + 'z" fill="#fff3d1" stroke="#8a5a00" stroke-width="2.4"/>');
+        o.push('<path d="M' + x + " " + (yy - 7) + "L" + (x + 7) + " " + yy + "L" + x + " " + (yy + 7) + "L" + (x - 7) + " " + yy + 'z" fill="#fff3d1" stroke="#6a4400" stroke-width="2.4"/>');
       } else if (p.status === "miss") {
         var my = m.t + ph - 12;
-        o.push('<path d="M' + (x - 5) + " " + (my - 5) + "l10 10M" + (x + 5) + " " + (my - 5) + 'l-10 10" stroke="#5b6470" stroke-width="2.4" stroke-linecap="round"/>');
+        o.push('<path d="M' + (x - 5) + " " + (my - 5) + "l10 10M" + (x + 5) + " " + (my - 5) + 'l-10 10" stroke="#3f4753" stroke-width="2.4" stroke-linecap="round"/>');
       }
       if (p.note) {
-        o.push('<path d="M' + x + " " + (Y(p.v) - 26) + "l8 14h-16z\" fill=\"#b3321b\"/><text x=\"" + x + '" y="' + (Y(p.v) - 31) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#b3321b">' + esc(p.note) + "</text>");
+        o.push('<path d="M' + x + " " + (Y(p.v) - 26) + "l8 14h-16z\" fill=\"#961f0e\"/><text x=\"" + x + '" y="' + (Y(p.v) - 31) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#961f0e">' + esc(p.note) + "</text>");
       }
     });
     // valor del último punto revelado
     if (ci != null && cfg.points[ci] && cfg.points[ci].v != null && cfg.showLast !== false) {
       var prevP = cfg.points[ci - 1], below = prevP && prevP.v != null && prevP.v > cfg.points[ci].v;
-      o.push('<text x="' + X(ci) + '" y="' + (Y(cfg.points[ci].v) + (below ? 24 : -12)) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#1b2a1e" paint-order="stroke" stroke="#fff" stroke-width="3">' + num(cfg.points[ci].v, 3) + "</text>");
+      o.push('<text x="' + X(ci) + '" y="' + (Y(cfg.points[ci].v) + (below ? 24 : -12)) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#0a1430" paint-order="stroke" stroke="#fff" stroke-width="3">' + num(cfg.points[ci].v, 3) + "</text>");
     }
     // eje x
     var step = Math.max(1, Math.ceil(56 / bw));
     cfg.points.forEach(function (p, i) {
       if (i % step === 0) {
-        o.push('<text x="' + X(i) + '" y="' + (m.t + ph + 32) + '" text-anchor="middle" font-size="12" fill="#4f5f53">' + esc(p.label) + "</text>");
+        o.push('<text x="' + X(i) + '" y="' + (m.t + ph + 32) + '" text-anchor="middle" font-size="12" fill="#2f3d52">' + esc(p.label) + "</text>");
       }
     });
-    if (ci != null) o.push('<text x="' + X(ci) + '" y="' + (m.t + ph + 50) + '" text-anchor="' + (X(ci) > w - 60 ? "end" : "middle") + '" font-size="12" font-weight="700" fill="#1b2a1e">Reloj: ' + esc(cfg.points[ci].label) + "</text>");
+    if (ci != null) o.push('<text x="' + X(ci) + '" y="' + (m.t + ph + 50) + '" text-anchor="' + (X(ci) > w - 60 ? "end" : "middle") + '" font-size="12" font-weight="700" fill="#0a1430">Reloj: ' + esc(cfg.points[ci].label) + "</text>");
     o.push("</svg>");
     return o.join("");
   }
@@ -188,12 +188,12 @@
   }
   function legend(items) {
     var all = {
-      obs: '<li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill="#1d3557"/></svg>Observado</li>',
-      imp: '<li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.500l6.500 6.500L8 14.500 1.500 8z" fill="#fff3d1" stroke="#8a5a00" stroke-width="2"/></svg>Imputado (no es una medición)</li>',
-      miss: '<li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="#5b6470" stroke-width="2.400" stroke-linecap="round"/></svg>Sin dato (el trazo no se une)</li>',
-      thr: '<li><svg width="26" height="16" viewBox="0 0 26 16" aria-hidden="true"><line x1="1" x2="25" y1="8" y2="8" stroke="#1b2a1e" stroke-width="2" stroke-dasharray="6 4"/></svg>Umbral del protocolo</li>',
-      emi: '<li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><line x1="8" x2="8" y1="1" y2="15" stroke="#1d3557" stroke-width="2.400"/></svg>Fecha de emisión</li>',
-      clk: '<li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><line x1="8" x2="8" y1="1" y2="15" stroke="#1b2a1e" stroke-width="1.600" stroke-dasharray="2 3"/></svg>Reloj histórico</li>'
+      obs: '<li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill="#081a3d"/></svg>Observado</li>',
+      imp: '<li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.500l6.500 6.500L8 14.500 1.500 8z" fill="#fff3d1" stroke="#6a4400" stroke-width="2"/></svg>Imputado (no es una medición)</li>',
+      miss: '<li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="#3f4753" stroke-width="2.400" stroke-linecap="round"/></svg>Sin dato (el trazo no se une)</li>',
+      thr: '<li><svg width="26" height="16" viewBox="0 0 26 16" aria-hidden="true"><line x1="1" x2="25" y1="8" y2="8" stroke="#0a1430" stroke-width="2" stroke-dasharray="6 4"/></svg>Umbral del protocolo</li>',
+      emi: '<li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><line x1="8" x2="8" y1="1" y2="15" stroke="#081a3d" stroke-width="2.400"/></svg>Fecha de emisión</li>',
+      clk: '<li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><line x1="8" x2="8" y1="1" y2="15" stroke="#0a1430" stroke-width="1.600" stroke-dasharray="2 3"/></svg>Reloj histórico</li>'
     };
     return '<ul class="legend" aria-label="Leyenda del gráfico">' + items.map(function (k) { return all[k]; }).join("") + "</ul>";
   }
@@ -478,7 +478,7 @@
       '<label class="radio" style="margin-top:8px;max-width:30rem"><input type="checkbox" data-change="lab-simerr"' + (L.simErr ? " checked" : "") + ' data-fid="lab-simerr"> Simular un error en la próxima acción (diseño)</label></section>' +
       '<section class="section" aria-labelledby="h-lh"><div class="section__head"><h2 id="h-lh">Historial de la sesión</h2><span class="section__step">Normal · anomalía · interrupción · recuperación</span></div>' + states +
       '<div class="cols-aside"><div class="card chart-card"><div class="chart" data-chart="lab"></div>' +
-      '<ul class="legend" aria-label="Leyenda del gráfico"><li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill="#1d3557"/></svg>Lectura sintética</li><li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l7 12H1z" fill="#b3321b"/></svg>Lectura anómala</li><li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="#5b6470" stroke-width="2.400" stroke-linecap="round"/></svg>Sin lecturas</li></ul>' +
+      '<ul class="legend" aria-label="Leyenda del gráfico"><li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" fill="#081a3d"/></svg>Lectura sintética</li><li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2l7 12H1z" fill="#961f0e"/></svg>Lectura anómala</li><li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" stroke="#3f4753" stroke-width="2.400" stroke-linecap="round"/></svg>Sin lecturas</li></ul>' +
       '<p class="chart-note">Todos los puntos son sintéticos. La anomalía afecta a la temperatura (85 °C), no a la humedad.</p>' +
       '<details class="disclosure"><summary>Ver como tabla</summary><div class="disclosure__body"><div class="tbl-wrap"><table><caption>Lecturas sintéticas reveladas</caption><thead><tr><th scope="col">Día</th><th scope="col" class="r">Humedad (m³/m³)</th><th scope="col">Estado</th></tr></thead><tbody>' +
       cfg.shown.map(function (p) { return "<tr><td>" + p.label + '</td><td class="r">' + (p.v == null ? "—" : num(p.v)) + "</td><td>" + (p.status === "miss" ? "Sin lectura" : p.note ? "Lectura anómala de temperatura (" + p.note + ")" : "Sintético") + "</td></tr>"; }).join("") + '</tbody></table></div></div></details></div>' +
@@ -589,7 +589,7 @@
       ["Datos faltantes", '<div class="card stack"><div class="chip-row">' + chip("miss", "miss", "Sin dato") + chip("na", "na", "Sin pronóstico") + "</div><p>Faltan datos recientes. <strong>Faltar datos no equivale a ausencia de alerta</strong>: verificá el cultivo.</p></div>"],
       ["Observación imputada", '<div class="card stack"><h3>Humedad del 26 oct</h3>' + outcomeHtml(site, { clock: "2024-10-27" }, s(2, "calm", 0)) + '<p class="muted">Un valor imputado no se presenta como observación real.</p></div>'],
       ["Carga", skeletonCards().replace('grid-3', 'stack')],
-      ["Error con reintento", S.cat.retry === "error" ? errorBox("cat-retry", "Reintentar") : S.cat.retry === "loading" ? '<div class="card stack" role="status"><div class="chip-row"><span class="spinner" style="border-color:#cfd8d2;border-top-color:#1f5b6b"></span> Reintentando…</div></div>' : '<div class="card stack"><div class="chip-row">' + chip("rv-saved", "check", "Carga correcta") + '</div><p>Se recuperó la conexión.</p><button class="btn btn--ghost" data-act="cat-reset" data-fid="cat-reset">Restablecer ejemplo</button></div>'],
+      ["Error con reintento", S.cat.retry === "error" ? errorBox("cat-retry", "Reintentar") : S.cat.retry === "loading" ? '<div class="card stack" role="status"><div class="chip-row"><span class="spinner" style="border-color:#cbd5e1;border-top-color:#1d63ed"></span> Reintentando…</div></div>' : '<div class="card stack"><div class="chip-row">' + chip("rv-saved", "check", "Carga correcta") + '</div><p>Se recuperó la conexión.</p><button class="btn btn--ghost" data-act="cat-reset" data-fid="cat-reset">Restablecer ejemplo</button></div>'],
       ["Revisión pendiente", '<div class="card stack">' + reviewHtml("cat-p", okGate, s(1, "calm", 0)) + "</div>"],
       ["Revisión guardada", '<div class="card stack">' + (function () { S.reviews["cat-g"] = { action: "confirm", comment: "" }; var h = reviewHtml("cat-g", okGate, s(1, "calm", 0)); delete S.reviews["cat-g"]; return h; })() + "</div>"],
       ["Revisión no habilitada", '<div class="card stack">' + reviewHtml("cat-l", { state: "locked", reason: "Todavía no disponible según el reloj histórico. Se habilita cuando el reloj llegue al 26 de octubre de 2024." }, s(1, "calm", 0)) + '<hr style="border:0;border-top:1px solid var(--line);width:100%">' + reviewHtml("cat-b", { state: "blocked", reason: "No se puede revisar con el dato disponible: el valor del día objetivo fue imputado y no es una observación independiente." }, s(1, "calm", 0)) + "</div>"]

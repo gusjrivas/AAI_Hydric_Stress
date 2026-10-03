@@ -34,8 +34,9 @@ recursos remotos). No toca `frontend/`, el backend ni los artefactos de evidenci
   inferior. No se elimina ninguna capacidad: las existentes quedan en Herramientas.
 - **Lectura principal**: franja de contexto (datos, emisión, fechas de aplicación, reloj),
   luego controles, modelos, observaciones, calidad y límites.
+- **Paleta**: fondo blanco, azul de marca `#1443b6` (tipo Docker, profundo) para estructura y acción, navy `#081a3d` para texto y datos observados, y cian agua `#00b4d8` como único acento secundario en detalles decorativos. Sin verdes. Contraste de texto AAA (≥ 7:1).
 - **Tres lenguajes de estado, sin compartir color**: señal del pronóstico (bermellón / pizarra,
-  sin verde porque «sin alerta» no es «sin estrés»), calidad del dato (azul marino, ámbar y gris
+  sin verde porque «sin alerta» no es «sin estrés»), calidad del dato (navy, ámbar y gris
   con trama) y estado de revisión (índigo, contorno o candado). Cada estado lleva ícono y texto.
 - **Tokens**: se reutilizan los de `frontend/src/index.css` (fondo, tinta, borde, acción) y la
   tipografía del sistema.
@@ -77,8 +78,10 @@ Realizadas en Chrome real, con capturas en `design/prototypes/ui-professional/ca
   formulario de revisión (validación, guardado simulado, corrección), estados de ejemplo,
   carga y error con reintento, pasos y escenarios del laboratorio.
 - Sin desbordamiento horizontal en las cinco vistas a 390 px y a 1225 px.
-- Controles interactivos de al menos 44 px (salvo el checkbox, contenido en una fila de 44 px),
-  sin controles sin nombre accesible y contraste de texto HTML ≥ 4,5:1 (medido por script).
+- Controles interactivos de al menos 44 px (salvo el checkbox, contenido en una fila de 44 px) y
+  sin controles sin nombre accesible.
+- Contraste de texto HTML ≥ 7,25:1 en las cinco vistas, a ambos anchos y con estado de alerta;
+  bordes de controles ≥ 4,7:1 (medido por script con la paleta final).
 - Orden de tabulación coherente y foco visible de 3 px.
 - El frontend operativo y el backend no se modificaron (`git diff` limitado a `design/` y `docs/`).
 
@@ -88,9 +91,9 @@ Limitaciones reales:
   proceso, y el backend no arrancó porque Windows App Control bloqueó una DLL de scikit-learn en un
   entorno virtual nuevo (`_loss`). No se eludió la restricción. El frontend actual sí cargó
   (con «Failed to fetch» al no haber backend). Los contratos se contrastaron solo por lectura de código.
-- La ventana del navegador no se pudo redimensionar: el ancho de escritorio fue de 1225 px (no 1440 px) y
-  la vista móvil de 390 px se renderizó en un iframe del mismo navegador.
-- El contraste de las etiquetas SVG del gráfico no se midió; usan los mismos tokens oscuros.
+- El ancho de escritorio capturado fue de 1225 px (no 1440 px) porque la ventana del navegador no se
+  redimensionaba de forma fiable; la vista móvil de 390 px se renderizó en iframes del mismo navegador.
+- El contraste de las etiquetas SVG del gráfico no se midió; usan tonos oscuros de la misma paleta.
 - Prueba de teclado parcial (orden y foco); sin lector de pantalla.
 - Capturas intermedias del navegador salieron con artefactos de pintado; se repitieron hasta obtener las incluidas.
 
