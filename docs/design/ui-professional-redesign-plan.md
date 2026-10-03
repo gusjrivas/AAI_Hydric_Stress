@@ -160,6 +160,9 @@ en vivo de `/api/v2` solo había cambiado de colores. Cambios:
 
 Verificado: 272/272 pruebas del frontend (más una nueva), `tsc` y lint sin advertencias nuevas; a 390 px, sin
 desbordamiento, contraste de texto ≥ 7,35:1 y controles ≥ 44 px en Mi cultivo y en las herramientas. Mi cultivo se revisó
-en el navegador contra el backend productor de Docker (sensores `pergamino-ensemble-demo` y `melchor-romero-demo`); no se
-emitió ningún pronóstico en vivo, por lo que la franja de contexto de Mi cultivo está cubierta por prueba automatizada y
-no por captura.
+en el navegador contra el backend productor de Docker (sensores `pergamino-ensemble-demo` y `melchor-romero-demo`).
+Además se probó el flujo en vivo: con respaldo previo del directorio de datos del ensayo (huellas SHA-256), se emitió un
+pronóstico para `pergamino-ensemble-demo` desde Mi cultivo y la franja de contexto mostró la procedencia, la emisión del
+17 de junio de 2023 y la antigüedad real de los datos (captura `escritorio-7`). La emisión modificó el JSON de metadatos del
+sensor y creó un archivo de bloqueo; se restauró el directorio completo desde el respaldo y se verificó que quedó
+idéntico al estado previo (huellas iguales) antes de reiniciar el backend productor.
