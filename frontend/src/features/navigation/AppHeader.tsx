@@ -86,7 +86,7 @@ export function AppHeader({ activeGroup }: { activeGroup: NavGroup }) {
   return (
     <header className="app-header" ref={headerRef}>
       <div className="app-header-inner">
-        <a className="app-brand" href="#defensa-pergamino" aria-label="Seguimiento del agua en el cultivo, ir al seguimiento histórico">
+        <a className="app-brand" href="#productor" aria-label="Seguimiento del agua en el cultivo, ir a Mi cultivo">
           <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true" focusable="false">
             <path d="M16 3C11 11 7 15 7 20a9 9 0 0 0 18 0c0-5-4-9-9-17z" fill="currentColor" />
           </svg>

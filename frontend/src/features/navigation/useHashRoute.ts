@@ -14,7 +14,8 @@ export const ROUTES = [
 ] as const;
 export type RouteId = (typeof ROUTES)[number];
 
-export const DEFAULT_ROUTE: RouteId = "resumen";
+/** Quien abre la app sin ruta es, en primer lugar, un productor: ve «Mi cultivo». */
+export const DEFAULT_ROUTE: RouteId = "productor";
 
 export const DESTINATION_LABELS: Record<RouteId, string> = {
   resumen: "Resumen",
@@ -62,6 +63,8 @@ export const SUMMARY_PAIR: readonly RouteId[] = ["resumen", "prediccion"];
 
 function parseRoute(hash: string): RouteId {
   const id = hash.replace(/^#/, "");
+  // `#demo` y `#reproduccion-historica` son vistas de Herramientas técnicas fuera del ruteo principal.
+  if (id === "demo" || id === "reproduccion-historica") return "resumen";
   return (ROUTES as readonly string[]).includes(id) ? (id as RouteId) : DEFAULT_ROUTE;
 }
 

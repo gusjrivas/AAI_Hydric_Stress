@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EmissionPanel } from "./EmissionPanel";
 import * as api from "./forecastsApi";
+import * as readingsApi from "./readingsApi";
+import type { Forecast } from "./forecastsApi";
 import type { ForecastBatch } from "./forecastsApi";
 
 const unavailable: ForecastBatch = {
@@ -89,5 +91,29 @@ it("POSTs an empty body with the request identity to the selected sensor", async
   expect(await api.emitForecasts("sensor-a", "request-1")).toEqual(unavailable);
   expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/v2/sensors/sensor-a/forecasts"), {
     method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": "request-1" }, body: "{}",
+  });
+});
+
+describe("EmissionPanel — último pronóstico guardado", () => {
+  it("shows the latest SAVED forecast on entering without emitting anything, and labels it as saved", async () => {
+    const emit = vi.spyOn(api, "emitForecasts").mockResolvedValue(unavailable);
+    const saved = { ...({} as Forecast), status: "available", forecast_id: "fc1", sensor_id: "sensor-a", batch_id: "b-saved", as_of_date: "2026-06-03", horizon_days: 1, target_date: "2026-06-04", issued_at: "2026-06-03T00:00:00Z", alert: false, score: 0.1, score_kind: "raw_model_score", display_probability: null, probability_status: "not_qualified", probability_reason_code: null, decision_threshold: 0.5, event_threshold: { variable: "soil_moisture", value: 0.3, unit: "m3/m3", comparison: "lt" }, model_reference: { model_version: "v1", horizon_days: 1, contract_version: "c", trained_through: null, calibration_version: null, assessment_reference: null }, contract_version: "c", snapshot_id: "s", review: { status: "pending", revision: 0, review_open_at: "2026-06-04T00:00:00Z", reviewable: false, blocked_reason: "review_not_open", latest_review: null, training_eligibility: "no_review", applied_review_references: [] }, ensemble: null } as unknown as Forecast;
+    vi.spyOn(api, "listForecasts").mockResolvedValue({ items: [saved], next_cursor: null, pending_total: 1, reviewable_pending_total: 0 });
+    vi.spyOn(readingsApi, "getSensorReadings").mockResolvedValue({ sensor_id: "sensor-a", calendar_timezone: "UTC", server_today: "2026-06-03", snapshot_id: null, window: { start_date: "2026-06-03", end_date: "2026-06-03", expected_days: 1 }, status: "ready", rows: [], missing_dates: [], variable_coverage: [], units: {}, last_reading_date: "2026-06-03", data_age_days: 0, provenance: "real" });
+    render(<EmissionPanel sensorId="sensor-a" onChanged={() => {}} />);
+    expect(await screen.findByText(/este es el último pronóstico guardado/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /no se espera falta de agua mañana/i })).toBeInTheDocument();
+    expect(screen.getAllByText("Sin pronóstico")).toHaveLength(2); // horizontes no guardados, sin inventar un motivo
+    expect(screen.getByRole("button", { name: "Actualizar pronóstico" })).toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the explicit consultation when the saved forecast cannot be read", async () => {
+    vi.spyOn(api, "listForecasts").mockRejectedValue(new Error("sin conexión"));
+    render(<EmissionPanel sensorId="sensor-a" onChanged={() => {}} />);
+    expect(await screen.findByText(/todavía no hay un pronóstico guardado para este punto/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Consultar próximos tres días" })).toBeEnabled();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

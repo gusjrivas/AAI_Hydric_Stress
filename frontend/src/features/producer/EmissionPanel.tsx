@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { ForecastCard } from "./ForecastCard";
-import { displayForecastDate, emitForecasts, newRequestId } from "./forecastsApi";
+import { displayForecastDate, emitForecasts, listForecasts, newRequestId } from "./forecastsApi";
 import type { Forecast, ForecastBatch } from "./forecastsApi";
-import { provenanceLabel } from "./readingsApi";
+import { buildSavedBatch } from "./producerOutlook";
+import { ProducerAnswer } from "./ProducerAnswer";
+import { getSensorReadings } from "./readingsApi";
 
 const REASONS: Record<string, string> = {
   no_readings: "Todavía no hay mediciones para este punto.",
@@ -10,7 +12,24 @@ const REASONS: Record<string, string> = {
   insufficient_data: "Faltan mediciones recientes para estimar este día.",
   incompatible_units: "Las unidades de las mediciones necesitan una revisión.",
   model_not_available_at_date: "Las mediciones son anteriores al período que puede usar este pronóstico.",
+  not_saved: "Este día no tiene un pronóstico guardado.",
 };
+
+/**
+ * Último pronóstico ya guardado del punto (solo lectura: `GET`, nunca emite). Devuelve null si todavía no hay
+ * ninguno o si no se pudo consultar: en ese caso la pantalla sigue ofreciendo la consulta explícita.
+ */
+async function loadSavedBatch(sensorId: string): Promise<ForecastBatch | null> {
+  const [list, readings] = await Promise.all([
+    listForecasts(sensorId, { limit: 20 }),
+    getSensorReadings(sensorId, 1).catch(() => null),
+  ]);
+  return buildSavedBatch(list.items, {
+    server_today: readings?.server_today ?? new Date().toISOString().slice(0, 10),
+    data_age_days: readings?.data_age_days ?? null,
+    provenance: readings?.provenance ?? "unknown",
+  });
+}
 
 export function EmissionPanel({
   sensorId,
@@ -19,31 +38,47 @@ export function EmissionPanel({
 }: {
   sensorId: string;
   onChanged: () => void;
-  /** Notifica el lote vigente al contenedor (p. ej. para el banner de
-   * alerta resumen en la parte superior de la pantalla) sin duplicar el
-   * estado: sigue siendo este componente el único que lo posee. */
+  /** Notifica el lote vigente al contenedor sin duplicar el estado: sigue siendo este componente el único que lo posee. */
   onBatch?: (batch: ForecastBatch | null) => void;
 }) {
   const [batch, setBatch] = useState<ForecastBatch | null>(null);
+  const [fromSaved, setFromSaved] = useState(false);
+  const [loadingSaved, setLoadingSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestId = useRef<string | null>(null);
+  const emittedHere = useRef(false);
   const alive = useRef(false);
   useEffect(() => {
     alive.current = true;
     return () => { alive.current = false; };
   }, []);
   useEffect(() => {
-    // Cambiar de sensor descarta el lote anterior: nunca se emite nada
-    // automáticamente al entrar ni al cambiar de sensor. `POST
-    // /forecasts` prepara una emisión (aunque sea idempotente) y es una
-    // acción operativa explícita, separada de cualquier navegación —
-    // incluida la de un sensor que forma parte de un recorrido histórico,
-    // donde jamás corresponde generar una emisión nueva.
+    // Cambiar de sensor descarta el lote anterior. Nunca se emite nada automáticamente al entrar ni al cambiar
+    // de sensor: `POST /forecasts` prepara una emisión (aunque sea idempotente) y es una acción operativa
+    // explícita. Lo único que se hace solo es LEER el último pronóstico ya guardado (`GET`).
     setBatch(null);
+    setFromSaved(false);
     setError(null);
     requestId.current = null;
+    emittedHere.current = false;
     onBatch?.(null);
+    let cancelled = false;
+    setLoadingSaved(true);
+    loadSavedBatch(sensorId).then(
+      (saved) => {
+        if (cancelled || emittedHere.current) return;
+        setLoadingSaved(false);
+        if (!saved) return;
+        setBatch(saved);
+        setFromSaved(true);
+        onBatch?.(saved);
+      },
+      () => {
+        if (!cancelled) setLoadingSaved(false);
+      },
+    );
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sensorId]);
   async function generate() {
@@ -54,7 +89,9 @@ export function EmissionPanel({
     try {
       const result = await emitForecasts(sensorId, requestId.current);
       if (!alive.current) return;
+      emittedHere.current = true;
       setBatch(result);
+      setFromSaved(false);
       onBatch?.(result);
       requestId.current = null;
       onChanged();
@@ -75,27 +112,30 @@ export function EmissionPanel({
     });
     onChanged();
   }
-  return <section className="producer-outlook" aria-labelledby="next-days-heading">
-    <p className="producer-eyebrow">PRÓXIMOS 3 DÍAS</p>
-    <h3 id="next-days-heading">Los próximos tres días del cultivo</h3>
-    <p>Consultá qué se espera para cada día a partir de la última medición disponible.</p>
-    <button type="button" disabled={busy} onClick={() => void generate()}>
-      {busy ? "Preparando pronósticos…" : error ? "Reintentar consulta" : batch ? "Actualizar" : "Consultar próximos tres días"}
-    </button>
+
+  const actions = (
+    <div className="producer-outlook-actions">
+      <button type="button" disabled={busy} onClick={() => void generate()}>
+        {busy ? "Preparando pronósticos…" : error ? "Reintentar consulta" : batch ? "Actualizar pronóstico" : "Consultar próximos tres días"}
+      </button>
+      {fromSaved && <p className="producer-outlook-note">Este es el último pronóstico guardado. Tocá «Actualizar pronóstico» para calcular uno nuevo con las mediciones más recientes.</p>}
+    </div>
+  );
+
+  return <section className="producer-outlook" aria-label="Próximos tres días">
+    {!batch && <>
+      <h3 id="next-days-heading">Los próximos tres días del cultivo</h3>
+      <p>Consultá qué se espera para cada día a partir de la última medición disponible.</p>
+      {loadingSaved && !busy && <p role="status">Buscando el último pronóstico guardado…</p>}
+      {!loadingSaved && !error && !busy && <div className="producer-outlook-placeholder"><p>Todavía no hay un pronóstico guardado para este punto. Tocá el botón para calcularlo; si faltan datos, te lo vamos a indicar.</p></div>}
+      {actions}
+    </>}
     {error && <p role="alert">{error}</p>}
-    {!batch && !error && !busy && <div className="producer-outlook-placeholder"><span aria-hidden="true">1 → 2 → 3</span><p>Consultá para ver cada fecha por separado. Si faltan datos, te lo vamos a indicar.</p></div>}
     {busy && <p role="status">Consultando los próximos tres días…</p>}
     {batch && <>
-      <p className="producer-provenance">{provenanceLabel(batch.provenance)}</p>
-      {batch.as_of_date && <p>Mediciones hasta el <strong>{displayForecastDate(batch.as_of_date)}</strong>. Fechas en UTC.</p>}
-      {batch.data_age_days !== null && batch.data_age_days > 0 && <p role="status">
-        La última medición tiene {batch.data_age_days} días de antigüedad. Los resultados corresponden a esas fechas; no describen necesariamente la situación de hoy.
-      </p>}
-      {batch.slots.every((slot) => slot.status === "unavailable") && (
-        <p role="alert" className="producer-insufficient-data">
-          No hay información suficiente para emitir un pronóstico. Se recomienda verificar el estado del cultivo.
-        </p>
-      )}
+      <ProducerAnswer batch={batch}>{actions}</ProducerAnswer>
+      <h3 id="next-days-heading" className="producer-day-detail-heading">Detalle de cada día y tu opinión</h3>
+      <p className="producer-day-detail-lead">Acá podés ver el resultado de cada día y contarnos si coincidió con lo que observaste en el cultivo.</p>
       <ul className="forecast-list forecast-outlook-grid">
         {batch.slots.map((slot) => <li key={slot.horizon_days}>
           {slot.status === "available" ? <ForecastCard key={slot.forecast_id} sensorId={sensorId} forecast={slot} onChanged={reviewed} /> : <article className="forecast-card">

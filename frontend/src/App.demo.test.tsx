@@ -46,7 +46,7 @@ function demoSession(overrides: Partial<DemoSessionView> = {}): DemoSessionView 
 
 describe("App — demostración acelerada (entrega 3)", () => {
   beforeEach(() => {
-    window.location.hash = "";
+    window.location.hash = "#resumen";
     vi.restoreAllMocks();
     vi.spyOn(forecastApi, "getActivePredictor").mockResolvedValue(EMPTY_PREDICTOR);
     vi.spyOn(forecastApi, "listFeedback").mockResolvedValue({ rows: [] });

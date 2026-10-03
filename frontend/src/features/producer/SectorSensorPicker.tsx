@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { listSectors, listSensors, ProducerV2UnavailableError } from "./catalogApi";
 import type { Sector, SensorSummary } from "./catalogApi";
+import { sensorLabel } from "./sensorLabels";
 
 type SectorsState =
   | { status: "loading" }
@@ -103,7 +104,7 @@ export function SectorSensorPicker({
 
   return (
     <div className="producer-picker">
-      <div className="producer-picker-field">
+      {!(sectorsState.status === "ready" && sectorsState.sectors.length === 0) && <div className="producer-picker-field">
         <label htmlFor="producer-sector-select">Tu sector</label>
         {sectorsState.status === "loading" && <p role="status">Cargando sectores…</p>}
         {sectorsState.status === "error" && (
@@ -129,10 +130,7 @@ export function SectorSensorPicker({
             ))}
           </select>
         )}
-        {sectorsState.status === "ready" && sectorsState.sectors.length === 0 && (
-          <p>Todavía no hay sectores registrados. Podés elegir un punto de medición igualmente.</p>
-        )}
-      </div>
+      </div>}
 
       <div className="producer-picker-field">
         <label htmlFor="producer-sensor-select">Punto de medición</label>
@@ -159,7 +157,7 @@ export function SectorSensorPicker({
             </option>
             {sensorsState.sensors.map((sensor) => (
               <option key={sensor.sensor_id} value={sensor.sensor_id}>
-                {sensor.display_name}
+                {sensorLabel(sensor)}
                 {sensor.source_kind === "synthetic" ? " · Simulado" : ""}
               </option>
             ))}

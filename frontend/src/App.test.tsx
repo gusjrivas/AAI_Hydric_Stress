@@ -28,6 +28,7 @@ const EMPTY_PREDICTOR: forecastApi.ActivePredictor = {
 
 describe("App — cabecera de sensor", () => {
   beforeEach(() => {
+    window.location.hash = "#resumen";
     vi.restoreAllMocks();
     vi.spyOn(forecastApi, "getActivePredictor").mockResolvedValue(EMPTY_PREDICTOR);
     vi.spyOn(forecastApi, "listFeedback").mockResolvedValue({ rows: [] });
@@ -96,7 +97,7 @@ describe("App — cabecera de sensor", () => {
 
 describe("App — navegación por hash (Entrega 2)", () => {
   beforeEach(() => {
-    window.location.hash = "";
+    window.location.hash = "#resumen";
     vi.restoreAllMocks();
     vi.spyOn(forecastApi, "getActivePredictor").mockResolvedValue(EMPTY_PREDICTOR);
     vi.spyOn(forecastApi, "listFeedback").mockResolvedValue({ rows: [] });
@@ -136,6 +137,19 @@ describe("App — navegación por hash (Entrega 2)", () => {
     await act(async () => window.dispatchEvent(new HashChangeEvent("hashchange")));
     expect(await screen.findByText(/Pergamino · emisiones persistidas/i)).toBeInTheDocument();
     expect(screen.queryByText(/Melchor Romero · emisiones persistidas/i)).not.toBeInTheDocument();
+  });
+
+  it("opens on Mi cultivo when there is no route, so a producer lands on their own question", async () => {
+    window.location.hash = "";
+    vi.spyOn(catalogApi, "listSectors").mockResolvedValue({ items: [], next_cursor: null });
+    vi.spyOn(catalogApi, "listSensors").mockResolvedValue({ items: [], next_cursor: null });
+    render(<App />);
+    expect(screen.getByRole("heading", { name: "Mi cultivo", level: 1 })).toBeInTheDocument();
+    const primary = screen.getByRole("navigation", { name: /secciones principales/i });
+    expect(within(primary).getByRole("link", { name: "Mi cultivo" })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByLabelText(/punto de medición \(sensor\)/i)).not.toBeInTheDocument();
+    // `#demo` y `#reproduccion-historica` siguen siendo vistas de Herramientas técnicas.
+    expect(screen.getByRole("link", { name: /seguimiento del agua en el cultivo, ir a mi cultivo/i })).toHaveAttribute("href", "#productor");
   });
 
   it("groups the app in five stable sections and marks the active one without hiding any capability", async () => {
@@ -225,7 +239,7 @@ describe("App — navegación por hash (Entrega 2)", () => {
     vi.unstubAllGlobals();
   });
 
-  it("opens on Resumen by default and shows the five destinations in the nav", async () => {
+  it("shows the tool destinations in the nav of Herramientas técnicas", async () => {
     render(<App />);
 
     expect(screen.getByRole("heading", { name: "Resumen" })).toBeInTheDocument();
@@ -381,7 +395,7 @@ describe("App — contexto del productor (HU6)", () => {
 });
 describe("App — diseño coherente y accesibilidad (Entrega 4)", () => {
   beforeEach(() => {
-    window.location.hash = "";
+    window.location.hash = "#resumen";
     vi.restoreAllMocks();
     vi.spyOn(forecastApi, "getActivePredictor").mockResolvedValue(EMPTY_PREDICTOR);
     vi.spyOn(forecastApi, "listFeedback").mockResolvedValue({ rows: [] });

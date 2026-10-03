@@ -86,11 +86,12 @@ describe("ProducerView", () => {
     expect(screen.queryByText(/Sin alerta próxima/)).not.toBeInTheDocument();
   });
 
-  it("shows the reading strip only after an explicit forecast query, with provenance and data age", async () => {
+  it("answers in plain words after an explicit consultation, with the three days at a glance and the data age", async () => {
     vi.spyOn(catalogApi, "listSectors").mockResolvedValue({ items: [sector], next_cursor: null });
     vi.spyOn(catalogApi, "listSensors").mockResolvedValue({ items: [sensor], next_cursor: null });
+    vi.spyOn(forecastsApi, "listForecasts").mockResolvedValue({ items: [], next_cursor: null, pending_total: 0, reviewable_pending_total: 0 });
     vi.spyOn(readingsApi, "getSensorReadings").mockResolvedValue({
-      sensor_id: "sensor-a", calendar_timezone: "UTC", server_today: "2026-01-05", snapshot_id: null,
+      sensor_id: "sensor-a", calendar_timezone: "UTC", server_today: "2026-01-07", snapshot_id: null,
       window: { start_date: "2026-01-01", end_date: "2026-01-01", expected_days: 1 }, status: "no_readings",
       rows: [], missing_dates: [], variable_coverage: [], units: {}, last_reading_date: null,
       data_age_days: null, provenance: "unknown",
@@ -102,11 +103,11 @@ describe("ProducerView", () => {
     });
     render(<ProducerView />);
     expect(await screen.findByRole("heading", { name: "Mi cultivo", level: 1 })).toBeInTheDocument();
-    expect(screen.queryByText("Antigüedad de los datos")).not.toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: /los próximos tres días/i })).not.toBeInTheDocument();
     await userEvent.click(await screen.findByRole("button", { name: "Consultar próximos tres días" }));
-    const strip = (await screen.findByText("Antigüedad de los datos")).closest("dl") as HTMLElement;
-    expect(strip).toHaveTextContent("2 días");
-    expect(strip).toHaveTextContent(/horizontes \+1, \+2 y \+3 días/);
+    expect(await screen.findByRole("heading", { name: /no hay información suficiente/i })).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: /los próximos tres días/i })).toBeInTheDocument();
+    expect(screen.getByText(/la última medición tiene 2 días de antigüedad/i)).toBeInTheDocument();
   });
 
   it("never emits a forecast automatically on entering Mi cultivo, switching tabs, or switching sensors", async () => {

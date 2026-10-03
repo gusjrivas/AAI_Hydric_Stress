@@ -108,3 +108,11 @@
 .producer-picker, .producer-picker-field { min-width: 0; max-width: 100%; }
 .producer-view .producer-tab { border: 0; border-radius: 0; background: transparent; padding: 10px 16px; }
 .producer-view .producer-tab:hover:not(:disabled) { background: transparent; border-color: transparent; }
+
+.producer-outlook-actions { display: grid; gap: var(--space-2); justify-items: start; }
+.producer-outlook-note { margin: 0; font-size: .9375rem; color: var(--color-muted); max-width: 60ch; }
+.producer-day-detail-heading { margin: var(--space-4) 0 0; font-size: 1.15rem; color: var(--color-navy); }
+.producer-day-detail-lead { margin: 0; color: var(--color-muted); }
+.producer-outlook > .pa { margin-bottom: var(--space-2); }
+.producer-outlook .pa .producer-outlook-actions button { background: var(--color-action); color: #fff; border-color: var(--color-action); }
+.producer-outlook .pa .producer-outlook-actions button:hover:not(:disabled) { background: var(--color-action-hover); }
