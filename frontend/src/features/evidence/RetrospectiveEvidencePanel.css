@@ -14,3 +14,15 @@
 .retrospective-table th:first-child { position: sticky; left: 0; background: white; }
 .retrospective-method p { margin: 8px 0; overflow-wrap: anywhere; }
 @media (max-width: 800px) { .retrospective-horizons { grid-template-columns: 1fr; } }
+
+/* Niveles de lectura (rediseño UI, etapa 2) */
+.retrospective-tier { display: grid; gap: var(--space-3); }
+.retrospective-tier h4 { margin: 0; font-size: 1.15rem; color: var(--color-navy); }
+.retrospective-tier-label { display: inline-flex; align-items: center; gap: var(--space-2); margin: 0; font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--color-cyan-text); }
+.retrospective-tier-label span { width: 22px; height: 22px; border-radius: 50%; background: var(--color-navy); color: #7fe3f5; display: inline-flex; align-items: center; justify-content: center; }
+.retrospective-takeaways { margin: 0; padding-left: 1.2rem; display: grid; gap: var(--space-2); }
+.retrospective-controls { display: grid; gap: var(--space-3); }
+.retrospective-controls [role="group"] { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.retrospective-controls button { min-height: 44px; min-width: 44px; padding: 0 var(--space-3); border: 1px solid var(--color-border-strong); background: #fff; color: var(--color-ink); border-radius: 6px; font: inherit; font-weight: 600; cursor: pointer; }
+.retrospective-controls button[aria-pressed="true"] { background: var(--color-navy); border-color: var(--color-navy); color: #fff; }
+.retrospective-help { font-size: .875rem; color: var(--color-muted); }

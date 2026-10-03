@@ -1,62 +1,91 @@
-.app-defense {
-  background: var(--color-bg);
-  color: var(--color-ink);
-}
-.app-defense .app-sensor-header { display: none; }
+/* Seguimiento histórico (Pergamino y Melchor Romero): estructura compartida del rediseño UI. */
 .app-defense .app-sections { max-width: 72rem; }
-.app-defense .producer-tools { max-width: 72rem; margin: 0 auto 8px; }
-.app-defense .producer-tools > summary { cursor: pointer; min-height: 44px; padding: 10px 0; color: var(--color-muted); font-size: .82rem; font-weight: 650; }
-.app-defense .producer-tools > summary:focus-visible { outline: 3px solid var(--color-action); outline-offset: 3px; }
-.app-defense .dn-nav { margin-bottom: 12px; }
-.app-defense .app-demo-link { margin-bottom: 8px; font-size: .82rem; }
-.pergamino-defense { display: grid; gap: 28px; min-width: 0; }
-.defense-header { display: grid; gap: 32px; }
-.defense-topbar { display: flex; align-items: center; gap: 28px; min-height: 64px; border-bottom: 1px solid var(--color-border); }
-.defense-brand { white-space: nowrap; font-size: 1rem; font-weight: 750; letter-spacing: -.025em; }
-.defense-brand em { color: var(--color-action); font-style: normal; }
-.defense-mode { color: var(--color-muted); font-size: .8rem; font-weight: 650; white-space: nowrap; }
-.defense-topbar nav { display: flex; align-self: stretch; gap: 8px; margin-left: auto; }
-.defense-topbar button { border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--color-muted); cursor: pointer; font: inherit; font-size: .9rem; font-weight: 650; padding: 0 12px; }
-.defense-topbar button:hover { color: var(--color-action); border-bottom-color: var(--color-action); }
-.defense-topbar button:focus-visible, .app-defense :is(button, input, select, summary):focus-visible { outline: 3px solid var(--color-action); outline-offset: 3px; }
-.defense-hero { display: grid; gap: 8px; }
-.defense-hero h1 { margin: 0; font-size: clamp(2rem, 4vw, 2.25rem); line-height: 1.18; font-weight: 650; letter-spacing: -.03em; }
-.defense-hero p { margin: 0; color: var(--color-muted); font-size: 1.05rem; }
-.defense-hero .producer-eyebrow { font-size: .72rem; }
-.defense-hero .defense-journey { margin-top: 12px; padding: 18px 22px; background: #fff; border: 1px solid var(--color-border); border-radius: 16px; color: var(--color-ink); font-size: .9rem; font-weight: 600; line-height: 1.6; }
-.app-defense .historical-walkthrough { background: white; border: 1px solid var(--color-border); border-radius: 16px; padding: clamp(18px, 3vw, 28px); margin-top: 10px; }
-.app-defense .historical-walkthrough h3 { font-size: clamp(1.35rem, 3vw, 1.75rem); }
-.app-defense .historical-provenance { flex: 1 1 100%; background: #e5f2fc; border-left: 4px solid var(--color-action); padding: 14px 18px; border-radius: 10px; line-height: 1.5; }
+.pergamino-defense, .melchor-romero-defense { display: grid; gap: var(--space-6); min-width: 0; }
+
+/* Encabezado de sitio */
+.site-header { display: grid; gap: var(--space-3); }
+.site-header-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-3) var(--space-4); }
+.site-header-title { display: grid; gap: var(--space-2); }
+.site-header h1 { margin: 0; font-size: clamp(1.75rem, 1.2rem + 2vw, 2.25rem); line-height: 1.15; letter-spacing: -.02em; color: var(--color-navy); }
+.site-header .producer-eyebrow { margin: 0; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--color-cyan-text); }
+.site-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.site-chip { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: .8125rem; font-weight: 650; border: 1px solid transparent; }
+.site-chip--external { background: var(--color-external-bg); color: var(--color-external); border-color: #d3bfe6; }
+.site-chip--historical { background: var(--color-obs-bg); color: var(--color-obs); border-color: #bccdf3; }
+.site-switch { display: inline-flex; padding: 4px; gap: 4px; background: #fff; border: 1px solid var(--color-border); border-radius: 999px; max-width: 100%; }
+.site-switch a { min-height: 44px; display: inline-flex; align-items: center; padding: 0 var(--space-4); border-radius: 999px; color: var(--color-ink); font-weight: 600; text-decoration: none; }
+.site-switch a:hover { background: var(--color-surface-2); }
+.site-switch a[aria-current="page"] { background: var(--color-navy); color: #fff; }
+.site-period { margin: 0; color: var(--color-muted); font-size: 1.05rem; }
+.site-journey { margin: 0; padding: var(--space-3) var(--space-4); background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: 12px; font-size: .9375rem; line-height: 1.6; }
+
+/* Evidencia: acceso desde el seguimiento */
+.site-evidence-link { padding: var(--space-3) var(--space-4); background: var(--color-cyan-bg); border: 1px solid #a8e0ee; border-radius: 12px; }
+.site-evidence-link--na { background: var(--color-surface-2); border: 1px dashed var(--color-border-strong); }
+.site-evidence-link p { margin: 0; line-height: 1.55; }
+.site-evidence-link .historical-evidence-unavailable { margin-top: var(--space-2); }
+
+/* Recorrido */
+.app-defense .historical-walkthrough { background: #fff; border: 1px solid var(--color-border); border-radius: 14px; padding: clamp(16px, 3vw, 28px); margin-top: 0; box-shadow: 0 1px 2px rgba(8, 26, 61, .05), 0 3px 12px rgba(8, 26, 61, .04); }
+.app-defense .historical-walkthrough h3 { font-size: clamp(1.25rem, 3vw, 1.5rem); color: var(--color-navy); }
+.app-defense .historical-walkthrough h4 { color: var(--color-navy); }
+.app-defense .historical-provenance { flex: 1 1 100%; margin: 0; background: var(--color-cyan-bg); border: 1px solid #a8e0ee; border-left: 4px solid var(--color-cyan); padding: 12px 16px; border-radius: 10px; line-height: 1.5; }
+
+/* Franja de contexto de lectura */
+.historical-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: var(--space-3) 0; border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; background: #fff; }
+.historical-facts > div { padding: var(--space-3) var(--space-4); border-top: 3px solid transparent; border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); min-width: 0; }
+.historical-facts > div:nth-child(2n) { border-right: 0; }
+.historical-facts > div:nth-child(1) { border-top-color: var(--color-action); }
+.historical-facts > div:nth-child(2) { border-top-color: var(--color-cyan); }
+.historical-facts > div:nth-child(3) { border-top-color: var(--color-navy); }
+.historical-facts > div:nth-child(4) { border-top-color: var(--color-cyan-soft); }
+.historical-facts dt { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--color-cyan-text); }
+.historical-facts dd { margin: 2px 0 0; font-weight: 650; font-size: 1.0625rem; overflow-wrap: anywhere; }
+.historical-facts dd.historical-facts-sub { font-weight: 400; font-size: .8125rem; color: var(--color-muted); }
+@media (min-width: 900px) {
+  .historical-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .historical-facts > div { border-bottom: 0; }
+  .historical-facts > div:nth-child(2n) { border-right: 1px solid var(--color-border); }
+  .historical-facts > div:last-child { border-right: 0; }
+}
+
+/* Controles */
 .app-defense .historical-walkthrough-controls label { min-width: min(100%, 260px); }
-.app-defense :is(input, select) { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 10px; padding: 8px 12px; font: inherit; color: var(--color-ink); background: #fff; }
-.app-defense .historical-walkthrough-clock { border: 1px solid var(--color-border); }
-.app-defense .historical-target-observation { border-top: 1px solid var(--color-border); padding: 12px; background: #f6f9fe; line-height: 1.5; }
-.app-defense .historical-quality { margin: 14px 0; background: #f6f9fe; border: 1px solid var(--color-border); padding: 16px 20px; border-radius: 14px; line-height: 1.6; }
+.app-defense :is(input, select) { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 6px; padding: 8px 12px; font: inherit; color: var(--color-ink); background: #fff; }
+.app-defense .historical-walkthrough button { min-height: 44px; min-width: 44px; padding: 0 var(--space-4); border: 1px solid var(--color-action); background: #fff; color: var(--color-action); border-radius: 6px; font: inherit; font-weight: 650; cursor: pointer; }
+.app-defense .historical-walkthrough button:hover:not(:disabled) { background: var(--color-action-bg); }
+.app-defense .historical-walkthrough button:disabled { border-color: var(--color-border); color: var(--color-muted); cursor: not-allowed; }
+.historical-clock-steps { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-2); }
+.app-defense .historical-walkthrough-clock { border: 1px solid var(--color-border); background: var(--color-surface-2); }
+
+/* Calidad de datos */
+.app-defense .historical-quality { margin: var(--space-4) 0; background: var(--color-surface-2); border: 1px solid var(--color-border); padding: var(--space-4); border-radius: 12px; line-height: 1.6; }
 .app-defense .historical-quality h4 { margin: 0 0 8px; }
 .app-defense .historical-quality p { margin: 8px 0; }
 .app-defense .historical-quality details { margin-top: 10px; }
 .app-defense .historical-quality summary { cursor: pointer; min-height: 44px; padding: 10px 0; font-weight: 650; color: var(--color-action); }
 .app-defense .historical-quality ul { margin: 4px 0 0; padding-left: 20px; line-height: 1.7; }
-.app-defense .historical-decision-summary { padding: 20px 24px; border: 1px solid var(--color-border); border-radius: 16px; background: #f6f9fe; }
-.app-defense .historical-decision-summary.is-alert { background: #fbebe6; border-color: #eab3a6; }
+.historical-coverage-bar { display: flex; height: 16px; border-radius: 4px; overflow: hidden; border: 1px solid var(--color-border-strong); background: #fff; }
+.historical-coverage-bar .is-observed { background: var(--color-obs); }
+.historical-coverage-bar .is-imputed { background: repeating-linear-gradient(45deg, var(--color-imputed-bg), var(--color-imputed-bg) 3px, #d9a62e 3px, #d9a62e 5px); }
+.historical-coverage-bar .is-unverified { background: #fff; border-left: 2px solid var(--color-missing); }
+.historical-coverage-bar .is-missing { background: repeating-linear-gradient(-45deg, #fff, #fff 3px, #94a3b8 3px, #94a3b8 4px); }
+
+/* Decisión y observaciones */
+.app-defense .historical-decision-summary { padding: var(--space-4); border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface-2); }
+.app-defense .historical-decision-summary.is-alert { background: var(--color-alert-bg); border-color: var(--color-alert-border); }
 .app-defense .historical-decision-summary > strong { display: block; font-size: clamp(1.1rem, 2vw, 1.35rem); line-height: 1.35; }
 .app-defense .historical-humidity-context { margin: 12px 0; line-height: 1.55; }
 .app-defense .historical-decision-summary p:last-child { margin: 8px 0 0; color: var(--color-muted); font-size: .88rem; line-height: 1.5; }
 .app-defense .historical-walkthrough-observations { overflow-x: auto; }
 .app-defense .historical-walkthrough-observations table { min-width: 390px; }
-.app-defense .forecast-card { border: 1px solid var(--color-border); border-radius: 14px; box-shadow: none; }
-.app-defense .forecast-card-alert { border-color: #eab3a6; background: #fbebe6; }
-.app-defense .forecast-card-target { font-size: 1.15rem; }
-.app-defense .forecast-card-badge { font-size: .9rem; padding: 8px 12px; }
+.app-defense .historical-target-observation { border-top: 1px solid var(--color-border); padding: 12px 0 0; line-height: 1.5; }
 .app-defense .forecast-card-details summary, .app-defense .forecast-card-agreement summary { min-height: 44px; padding-top: 10px; }
 .app-defense .forecast-card-buttons button { min-height: 44px; }
-.app-defense .retrospective-tag { background: #e5f2fc; color: #0d3590; }
+
 @media (max-width: 640px) {
-  .pergamino-defense { gap: 20px; }
-  .defense-header { gap: 24px; }
-  .defense-topbar { flex-wrap: wrap; gap: 4px 12px; padding-top: 8px; }
-  .defense-topbar nav { order: 3; width: 100%; margin: 0; justify-content: space-around; }
-  .defense-topbar button { min-height: 44px; padding: 0 8px; }
-  .defense-mode { margin-left: auto; }
-  .defense-hero .defense-journey { padding: 16px; }
+  .pergamino-defense, .melchor-romero-defense { gap: var(--space-4); }
+  .site-switch { width: 100%; }
+  .site-switch a { flex: 1; justify-content: center; padding: 0 var(--space-2); }
+  .historical-clock-steps button { flex: 1; }
 }

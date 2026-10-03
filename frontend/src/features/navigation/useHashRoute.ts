@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react";
 
-export const ROUTES = ["resumen", "defensa-pergamino", "defensa-melchor-romero", "laboratorio-sensores", "productor", "prediccion", "calidad", "linaje", "evidencia"] as const;
+export const ROUTES = [
+  "resumen",
+  "defensa-pergamino",
+  "defensa-melchor-romero",
+  "laboratorio-sensores",
+  "evidencia-resultados",
+  "productor",
+  "prediccion",
+  "calidad",
+  "linaje",
+  "evidencia",
+] as const;
 export type RouteId = (typeof ROUTES)[number];
 
 export const DEFAULT_ROUTE: RouteId = "resumen";
@@ -10,6 +21,7 @@ export const DESTINATION_LABELS: Record<RouteId, string> = {
   "defensa-pergamino": "Recorrido histórico · Pergamino",
   "defensa-melchor-romero": "Recorrido histórico · Melchor Romero",
   "laboratorio-sensores": "Laboratorio · Sensores de prueba",
+  "evidencia-resultados": "Evidencia · Resultados y metodología",
   productor: "Mi cultivo",
   prediccion: "Historial y observaciones",
   calidad: "Datos disponibles",
@@ -17,15 +29,37 @@ export const DESTINATION_LABELS: Record<RouteId, string> = {
   evidencia: "Acerca de esta herramienta",
 };
 
+/**
+ * Las cuatro secciones estables de la navegación principal. Cada ruta
+ * pertenece a exactamente una: el rediseño reorganiza la entrada, no elimina
+ * ni renombra ninguna capacidad ni ningún ancla (`#resumen`, `#calidad`, etc.).
+ */
+export type NavGroup = "seguimiento" | "laboratorio" | "evidencia" | "herramientas";
+
+export const ROUTE_GROUP: Record<RouteId, NavGroup> = {
+  resumen: "herramientas",
+  "defensa-pergamino": "seguimiento",
+  "defensa-melchor-romero": "seguimiento",
+  "laboratorio-sensores": "laboratorio",
+  "evidencia-resultados": "evidencia",
+  productor: "herramientas",
+  prediccion: "herramientas",
+  calidad: "herramientas",
+  linaje: "herramientas",
+  evidencia: "herramientas",
+};
+
+export const TOOL_ROUTES: readonly RouteId[] = ROUTES.filter((id) => ROUTE_GROUP[id] === "herramientas");
+
 function parseRoute(hash: string): RouteId {
   const id = hash.replace(/^#/, "");
   return (ROUTES as readonly string[]).includes(id) ? (id as RouteId) : DEFAULT_ROUTE;
 }
 
 /**
- * Ruteo por hash entre los cinco destinos (task 2.1 de
+ * Ruteo por hash entre los destinos (task 2.1 de
  * improve-alerting-ui-decision-workflow). Deliberadamente no se suma un
- * router de terceros: son cinco vistas locales y el navegador ya resuelve
+ * router de terceros: son vistas locales y el navegador ya resuelve
  * Atrás/Adelante sobre cambios de `location.hash`.
  */
 export function useHashRoute(): RouteId {

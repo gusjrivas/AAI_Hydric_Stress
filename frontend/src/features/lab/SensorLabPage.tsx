@@ -20,6 +20,20 @@ const PHASE_LABELS: Record<LabPhase, string> = {
   error: "El paso solicitado no pudo completarse",
 };
 
+/** Qué hacer a continuación, según la fase; nunca sugiere acciones fuera de la secuencia A–D. */
+const NEXT_ACTION: Record<LabPhase, string> = {
+  idle: "Generar el historial de prueba (paso A).",
+  seeding: "Esperá: se está generando el historial de prueba.",
+  normal: "Introducir una lectura anómala (paso B).",
+  "injecting-anomaly": "Esperá: se está enviando la lectura anómala.",
+  anomaly: "Simular una interrupción (paso C).",
+  interrupting: "Esperá: se está simulando la interrupción.",
+  interrupted: "Simular la recuperación (paso D).",
+  recovering: "Esperá: se está simulando la recuperación.",
+  recovered: "El recorrido terminó. Podés iniciar una sesión nueva.",
+  error: "Iniciar una sesión nueva: los datos de la sesión anterior se conservan.",
+};
+
 export const LAB_ERROR_GUIDANCE =
   "Este paso no pudo completarse. Para evitar modificar lecturas ya guardadas, iniciá una sesión nueva. Los datos de la sesión anterior se conservan.";
 
@@ -107,6 +121,10 @@ export function SensorLabPage() {
       <p className="sl-clock-note">
         El reloj de esta pantalla organiza los escenarios. No cambia la fecha real del servidor ni
         habilita por sí mismo la revisión de resultados futuros.
+      </p>
+
+      <p className="sl-next" aria-live="polite">
+        <strong>Siguiente acción:</strong> {NEXT_ACTION[lab.phase]}
       </p>
 
       <div className="sl-controls" role="group" aria-label="Escenarios del laboratorio">

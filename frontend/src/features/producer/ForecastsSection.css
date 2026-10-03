@@ -26,3 +26,23 @@
 @media (max-width: 850px) { .forecast-outlook-grid { grid-template-columns: 1fr; } }
 .producer-history-disclosure { border-top: 1px solid #c9d5e5; padding-top: 20px; margin-top: 24px; }
 .producer-history-disclosure > summary { cursor: pointer; min-height: 44px; font-weight: 700; color: #1443b6; }
+
+/* Tarjeta de pronóstico (rediseño UI): la señal lleva color, forma y texto. */
+.forecast-card { border-top: 5px solid var(--color-safe); box-shadow: 0 1px 2px rgba(8, 26, 61, .05), 0 3px 12px rgba(8, 26, 61, .04); }
+.forecast-card-alert { border-top-color: var(--color-alert); }
+.forecast-card-badge { display: inline-flex; align-items: center; gap: 6px; font-size: .9375rem; padding: 4px 12px; background: var(--color-safe-bg); color: var(--color-safe); border: 1px solid #c3d0da; }
+.forecast-card-badge.is-alert { background: var(--color-alert-bg); color: var(--color-alert); border-color: var(--color-alert-border); }
+.forecast-card-badge svg { flex: none; }
+.forecast-card-agreement { display: grid; gap: var(--space-2); }
+.forecast-card-agreement p { margin: 0; }
+.forecast-pips { display: inline-flex; gap: 4px; }
+.forecast-pip { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--color-safe); background: #fff; display: inline-block; }
+.forecast-pip.is-on { background: var(--color-alert); border-color: var(--color-alert); }
+.forecast-pip.is-missing { border-style: dashed; border-color: var(--color-border-strong); }
+.forecast-card-review-status { display: inline-flex; align-items: center; gap: 6px; border-top: 0; padding: 2px 12px; border-radius: 999px; border: 1.5px solid var(--color-review-confirmed); color: var(--color-review-confirmed); background: #fff; }
+.forecast-card-review-status.is-confirmed, .forecast-card-review-status.is-rejected { background: var(--color-review-confirmed-bg); border-color: #cbc4ee; }
+.forecast-card-blocked { display: flex; gap: var(--space-2); align-items: flex-start; color: var(--color-ink); }
+.forecast-card-blocked svg { flex: none; margin-top: 2px; color: var(--color-missing); }
+.forecast-card-buttons button { border-color: var(--color-review-confirmed); color: var(--color-review-confirmed); }
+.forecast-card-form button[type="submit"] { background: var(--color-review-confirmed); border-color: var(--color-review-confirmed); color: #fff; }
+.forecast-card-historical-notice { font-size: .8125rem; color: var(--color-muted); line-height: 1.5; }

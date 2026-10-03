@@ -1,4 +1,6 @@
 import { HistoricalWalkthrough } from "../producer/HistoricalWalkthrough";
+import { MelchorEvidenceNote } from "./MelchorEvidenceNote";
+import { SiteHeader } from "./SiteHeader";
 import "./MelchorRomeroDefensePage.css";
 
 /**
@@ -33,54 +35,27 @@ const MELCHOR_ROMERO_PROVENANCE_NOTICE = (
 
 export function MelchorRomeroDefensePage() {
   return <div className="melchor-romero-defense">
-    <header className="defense-header">
-      <div className="defense-topbar">
-        <span className="defense-brand" aria-label="Cultiv IA">Cultiv <em>IA</em></span>
-        <span className="defense-mode">Recorrido histórico</span>
-        <nav aria-label="Secciones de la defensa">
-          <button type="button" onClick={() => document.getElementById("defense-forecast-melchor")?.scrollIntoView()}>Pronóstico y revisión</button>
-        </nav>
-      </div>
-      <div className="defense-hero">
-        <p className="producer-eyebrow">AAI Hydric Stress · demostración de defensa</p>
-        <h1>Recorrido histórico</h1>
-        <p>Melchor Romero · emisiones persistidas del 20 al 24 de octubre de 2024.</p>
-        <p className="defense-journey">Primero revisá de dónde vienen los datos. Elegí una emisión, mirá la decisión para +1, +2 y +3 días, y avanzá el reloj para contrastarla con lo observado y registrar tu revisión.</p>
-      </div>
-    </header>
+    <SiteHeader site="melchor" />
     <section id="defense-forecast-melchor" aria-label="Pronóstico de una emisión">
-      <p className="producer-eyebrow">A · Una emisión seleccionada</p>
       <HistoricalWalkthrough
         sensorId="melchor-romero-demo"
         defense
         availableDates={MELCHOR_ROMERO_DATES}
         revealMax={MELCHOR_ROMERO_REVEAL_MAX}
         provenanceNotice={MELCHOR_ROMERO_PROVENANCE_NOTICE}
+        sourceSummary={{ label: "Histórico", detail: "ESA CCI (humedad de suelo) / NASA POWER (clima)" }}
       />
     </section>
-    <section aria-label="Evidencia agregada retrospectiva">
-      <p className="producer-eyebrow">B · Evidencia agregada</p>
-      <p className="historical-evidence-unavailable">
-        Estas cinco emisiones demostrativas de Melchor Romero (las ajustadas para esta
-        demostración, sección A de arriba) no tienen una evaluación agregada propia acreditada en
-        esta entrega: no se ejecutó ninguna corrida de evaluación retrospectiva agregada sobre
-        ellas. Esto es distinto de la evidencia histórica congelada de <code>controlled_daily_v3</code> (
-        <code>scientific-baseline-v3</code>), que sí existe sobre este mismo sitio y dataset, con su
-        propio alcance, y que estas cinco emisiones nunca reejecutan, reinterpretan ni sustituyen.
+    <section className="site-evidence-link site-evidence-link--na" aria-label="Evidencia agregada retrospectiva">
+      <p>
+        <strong>Sin evaluación agregada equivalente.</strong> Melchor Romero no tiene una evaluación
+        retrospectiva propia acreditada, y no se le atribuyen los resultados de Pergamino.{" "}
+        <a href="#evidencia-resultados">Ver evidencia y sus límites</a>.
       </p>
-      <p className="historical-evidence-unavailable">
-        Pergamino sí muestra un panel de evidencia agregada 2023 en su propia pantalla de defensa
-        (<code>/defensa-pergamino</code>, no en esta), pero corresponde a un
-        protocolo propio y separado -- la evaluación retrospectiva exploratoria del ensamble
-        Pergamino 2023 (<code>docs/research/ensemble-retrospective-evaluation-protocol.md</code> /{" "}
-        <code>-results.md</code>) -- no a la campaña científica{" "}
-        <code>controlled_daily_v4_external_pergamino</code> (ADR-0011, etapas A, B y C, con holdout
-        en la etapa C). Esa evaluación 2023 es exploratoria, no independiente (2023 ya se usó en
-        análisis anteriores del proyecto), y su auditoría científica concluyó FAIL por ejecución
-        duplicada; no se le atribuye aquí ningún resultado confirmatorio ni superioridad. Mostrar un
-        panel equivalente para Melchor Romero equivaldría a fabricar paridad donde no hay evidencia
-        real.
-      </p>
+      <details className="app-technical">
+        <summary>Ver el alcance completo de la evidencia de Melchor Romero</summary>
+        <MelchorEvidenceNote />
+      </details>
     </section>
   </div>;
 }

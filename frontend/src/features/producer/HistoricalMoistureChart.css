@@ -1,0 +1,26 @@
+.hmc { margin: 0; display: grid; gap: var(--space-3); }
+.hmc-chart { width: 100%; min-height: 240px; }
+.hmc-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.hmc-grid { stroke: #e2e8f0; }
+.hmc-axis { font-size: 12px; fill: var(--color-muted); }
+.hmc-italic { font-style: italic; }
+.hmc-band { fill: #d9f2f8; opacity: 0.85; }
+.hmc-band-label { font-size: 12px; font-weight: 700; fill: var(--color-cyan-text); }
+.hmc-threshold { stroke: var(--color-ink); stroke-width: 1.6; stroke-dasharray: 7 5; }
+.hmc-threshold-label { font-size: 12px; font-weight: 700; fill: var(--color-ink); }
+.hmc-emission { stroke: var(--color-obs); stroke-width: 2.4; }
+.hmc-emission-label { font-size: 12px; font-weight: 700; fill: var(--color-obs); }
+.hmc-clock { stroke: var(--color-ink); stroke-width: 1.5; stroke-dasharray: 2 3; }
+.hmc-clock-mark { fill: var(--color-ink); }
+.hmc-clock-label { font-size: 12px; font-weight: 700; fill: var(--color-ink); }
+.hmc-line { stroke: var(--color-obs); stroke-width: 2; }
+.hmc-line--dashed { stroke-dasharray: 4 4; opacity: 0.7; }
+.hmc-obs { fill: var(--color-obs); stroke: #fff; stroke-width: 1.5; }
+.hmc-imp { fill: var(--color-imputed-bg); stroke: var(--color-imputed); stroke-width: 2.4; }
+.hmc-unv { fill: #fff; stroke: var(--color-missing); stroke-width: 2.4; }
+.hmc-miss { stroke: var(--color-missing); stroke-width: 2.4; stroke-linecap: round; fill: none; }
+.hmc-last { font-size: 12px; font-weight: 700; fill: var(--color-ink); paint-order: stroke; stroke: #fff; stroke-width: 3px; }
+.hmc-legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); list-style: none; margin: 0; padding: 0; font-size: 0.875rem; }
+.hmc-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.hmc-legend svg { flex: none; }
+.hmc-note { font-size: 0.875rem; color: var(--color-muted); }

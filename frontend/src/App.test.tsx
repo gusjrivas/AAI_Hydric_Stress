@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
@@ -106,7 +106,7 @@ describe("App — navegación por hash (Entrega 2)", () => {
     render(<App />);
     await userEvent.click(screen.getByRole("link", { name: /saltar al contenido/i }));
     expect(window.location.hash).toBe("#defensa-pergamino");
-    expect(screen.getByRole("heading", { name: "Recorrido histórico", level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Pergamino", level: 1 })).toBeInTheDocument();
   });
 
   it("renders Melchor Romero as its own real second site, distinct from Pergamino, and isolates state across Pergamino -> Melchor Romero -> Pergamino", async () => {
@@ -133,6 +133,44 @@ describe("App — navegación por hash (Entrega 2)", () => {
     await act(async () => window.dispatchEvent(new HashChangeEvent("hashchange")));
     expect(await screen.findByText(/Pergamino · emisiones persistidas/i)).toBeInTheDocument();
     expect(screen.queryByText(/Melchor Romero · emisiones persistidas/i)).not.toBeInTheDocument();
+  });
+
+  it("groups the app in four stable sections and marks the active one without hiding any capability", async () => {
+    window.location.hash = "#defensa-melchor-romero";
+    render(<App />);
+    const primary = screen.getByRole("navigation", { name: /secciones principales/i });
+    for (const label of ["Seguimiento histórico", "Laboratorio", "Evidencia", "Herramientas técnicas"]) {
+      expect(within(primary).getByRole("link", { name: label })).toBeInTheDocument();
+    }
+    expect(within(primary).getByRole("link", { name: "Seguimiento histórico" })).toHaveAttribute("aria-current", "page");
+    expect(within(primary).getByRole("link", { name: "Herramientas técnicas" })).not.toHaveAttribute("aria-current");
+    // La localidad se cambia dentro del seguimiento, sin perder el sitio vigente.
+    const locality = screen.getByRole("navigation", { name: /localidad/i });
+    expect(within(locality).getByRole("link", { name: "Melchor Romero" })).toHaveAttribute("aria-current", "page");
+    expect(within(locality).getByRole("link", { name: "Pergamino" })).not.toHaveAttribute("aria-current");
+    // Las herramientas técnicas no se muestran fuera de su sección.
+    expect(screen.queryByRole("link", { name: "Mi cultivo" })).not.toBeInTheDocument();
+  });
+
+  it("keeps every existing tool reachable from Herramientas técnicas", async () => {
+    render(<App />);
+    const primary = screen.getByRole("navigation", { name: /secciones principales/i });
+    expect(within(primary).getByRole("link", { name: "Herramientas técnicas" })).toHaveAttribute("aria-current", "page");
+    for (const label of ["Resumen", "Mi cultivo", "Historial y observaciones", "Datos disponibles", "Ajustar próximos pronósticos", "Acerca de esta herramienta"]) {
+      expect(screen.getByRole("link", { name: label })).toBeInTheDocument();
+    }
+    expect(screen.getByRole("link", { name: "Reproducción histórica" })).toBeInTheDocument();
+  });
+
+  it("opens the Evidencia section with the governance status visible", async () => {
+    window.location.hash = "#evidencia-resultados";
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
+    render(<App />);
+    expect(screen.getByRole("heading", { name: /qué se midió y qué se puede afirmar/i, level: 1 })).toBeInTheDocument();
+    expect(screen.getByText(/auditoría científica FAIL/i)).toBeInTheDocument();
+    const primary = screen.getByRole("navigation", { name: /secciones principales/i });
+    expect(within(primary).getByRole("link", { name: "Evidencia" })).toHaveAttribute("aria-current", "page");
+    vi.unstubAllGlobals();
   });
 
   it("opens on Resumen by default and shows the five destinations in the nav", async () => {

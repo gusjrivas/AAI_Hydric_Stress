@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ForecastCard } from "./ForecastCard";
+import { HistoricalMoistureChart } from "./HistoricalMoistureChart";
 import { getHistoricalForecastBatch, getHistoricalReadings, submitHistoricalReview } from "./historicalApi";
 import { displayForecastDate, type Forecast, type ForecastBatch, type ReviewRequest } from "./forecastsApi";
 import { displayDate, formatReadingValue, originLabel } from "./readingsApi";
@@ -38,6 +39,24 @@ const PERGAMINO_PROVENANCE_NOTICE = (
     17 de junio de 2023.
   </p>
 );
+function addDays(iso: string, days: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+/** «14 – 16 jun 2023» cuando el rango cae en el mismo mes; fechas completas en caso contrario. */
+function displayDateRange(start: string, end: string): string {
+  if (start.slice(0, 7) === end.slice(0, 7)) {
+    const fullEnd = displayForecastDate(end);
+    return `${Number(start.slice(8, 10))} – ${fullEnd.replace(/ de /g, " ")}`;
+  }
+  return `${displayForecastDate(start)} – ${displayForecastDate(end)}`;
+}
+
+/** Rótulo corto de la fuente para la franja de contexto: «Datos externos» no se confunde con «Histórico». */
+export interface SourceSummary { label: string; detail: string }
+const PERGAMINO_SOURCE: SourceSummary = { label: "Datos externos", detail: "ERA5-Land / NASA POWER (reanálisis)" };
+
 const SLOT_UNAVAILABLE_REASONS: Record<string, string> = {
   already_available: "Este horizonte ya tenía un pronóstico emitido.",
   incompatible_environment: "El entorno de este servidor no puede ejecutar este pronóstico.",
@@ -94,12 +113,14 @@ export function HistoricalWalkthrough({
   availableDates = PERGAMINO_DATES,
   revealMax = PERGAMINO_REVEAL_MAX,
   provenanceNotice = PERGAMINO_PROVENANCE_NOTICE,
+  sourceSummary = PERGAMINO_SOURCE,
 }: {
   sensorId: string;
   defense?: boolean;
   availableDates?: string[];
   revealMax?: string;
   provenanceNotice?: ReactNode;
+  sourceSummary?: SourceSummary;
 }) {
   const [emissionDate, setEmissionDate] = useState(defense ? availableDates[0] : "");
   const [revealedThrough, setRevealedThrough] = useState("");
@@ -229,6 +250,14 @@ export function HistoricalWalkthrough({
       <h3 id="historical-walkthrough-title">Recorrido histórico</h3>
       <p>Elegí una emisión guardada y avanzá el reloj para ver las observaciones posteriores y registrar tu revisión. Solo hay cinco emisiones preparadas; este recorrido no genera pronósticos nuevos.</p>
 
+      {defense && emissionDate && (
+        <dl className="historical-facts" aria-label="Contexto de lectura">
+          <div><dt>Datos que se ven</dt><dd>{sourceSummary.label}</dd><dd className="historical-facts-sub">{sourceSummary.detail}</dd></div>
+          <div><dt>Pronóstico emitido</dt><dd>{displayForecastDate(emissionDate)}</dd><dd className="historical-facts-sub">con datos hasta el {displayForecastDate(emissionDate)}</dd></div>
+          <div><dt>Aplica para</dt><dd>{displayDateRange(addDays(emissionDate, 1), addDays(emissionDate, 3))}</dd><dd className="historical-facts-sub">horizontes +1, +2 y +3 días</dd></div>
+          <div><dt>Reloj del recorrido</dt><dd>{displayForecastDate(effectiveReveal)}</dd><dd className="historical-facts-sub">se revelan datos hasta esta fecha</dd></div>
+        </dl>
+      )}
       <div className="historical-walkthrough-controls">
         {defense && provenanceNotice}
         <label>
@@ -260,6 +289,12 @@ export function HistoricalWalkthrough({
           />
         </label>
       </div>
+      {defense && emissionDate && (
+        <div className="historical-clock-steps" role="group" aria-label="Avanzar el reloj del recorrido">
+          <button type="button" disabled={effectiveReveal <= emissionDate} onClick={() => { const next = addDays(effectiveReveal, -1); setRevealedThrough(next <= emissionDate ? "" : next); }}>‹ Día anterior</button>
+          <button type="button" disabled={effectiveReveal >= revealMax} onClick={() => setRevealedThrough(addDays(effectiveReveal, 1))}>Día siguiente ›</button>
+        </div>
+      )}
       {emissionDate && (
         <p className="historical-walkthrough-clock">
           Viendo la emisión del <strong>{displayForecastDate(emissionDate)}</strong>
@@ -272,6 +307,20 @@ export function HistoricalWalkthrough({
           ? <>
             <p>Fuente: <strong>{readingsState.data.provenance === "external_reanalysis" ? "ERA5-Land/NASA POWER (datos externos)" : readingsState.data.provenance}</strong>. Ventana: {displayDate(readingsState.data.window.start_date)} a {displayDate(readingsState.data.window.end_date)}.</p>
             <p><strong>{readingsState.data.window.expected_days} días esperados</strong> · <strong>{readingsState.data.missing_dates.length} {readingsState.data.missing_dates.length === 1 ? "fecha" : "fechas"} sin datos</strong> · <strong>{variablesWithoutData} {variablesWithoutData === 1 ? "variable" : "variables"} sin ningún dato en la ventana</strong>. Una fecha o variable faltante no se interpreta como ausencia de alerta.</p>
+            {(() => {
+              const soil = readingsState.data.variable_coverage.find((item) => item.variable === "soil_moisture");
+              if (!soil) return null;
+              const total = Math.max(1, soil.observed_days + soil.imputed_days + soil.unverified_days + soil.missing_days);
+              return <div className="historical-coverage" role="group" aria-label="Cobertura de la humedad del suelo">
+                <div className="historical-coverage-bar" aria-hidden="true">
+                  <span className="is-observed" style={{ width: `${(soil.observed_days / total) * 100}%` }} />
+                  <span className="is-imputed" style={{ width: `${(soil.imputed_days / total) * 100}%` }} />
+                  <span className="is-unverified" style={{ width: `${(soil.unverified_days / total) * 100}%` }} />
+                  <span className="is-missing" style={{ width: `${(soil.missing_days / total) * 100}%` }} />
+                </div>
+                <p className="historical-coverage-nums">Humedad del suelo en la ventana: <strong>{soil.observed_days} con dato</strong> · <strong>{soil.imputed_days} imputado{soil.imputed_days === 1 ? "" : "s"}</strong> · <strong>{soil.unverified_days} sin verificar</strong> · <strong>{soil.missing_days} sin dato</strong>.</p>
+              </div>;
+            })()}
             <details><summary>Ver disponibilidad por variable</summary><ul>{readingsState.data.variable_coverage.map((item) => <li key={item.variable}>{QUALITY_VARIABLE_LABELS[item.variable] ?? item.variable}: {item.observed_days} días con dato, {item.missing_days} sin dato{item.imputed_days > 0 ? `, ${item.imputed_days} imputado${item.imputed_days === 1 ? "" : "s"} (no cuenta como observación)` : ""}{item.unverified_days > 0 ? `, ${item.unverified_days} de procedencia no verificada (no cuenta como observación)` : ""}</li>)}</ul></details>
           </>
           : readingsState.status === "error" && readingsState.context === context
@@ -325,6 +374,14 @@ export function HistoricalWalkthrough({
 
       {effectiveReveal && (
         <div className="historical-walkthrough-observations">
+          {defense && currentReadings && currentReadings.status === "ready" && (
+            <HistoricalMoistureChart
+              readings={currentReadings}
+              emissionDate={emissionDate}
+              revealedThrough={effectiveReveal}
+              threshold={firstForecast?.status === "available" && firstForecast.event_threshold.variable === "soil_moisture" && firstForecast.event_threshold.unit === currentReadings.units.soil_moisture ? firstForecast.event_threshold.value : null}
+            />
+          )}
           <h4>Observaciones reveladas hasta el {displayForecastDate(effectiveReveal)}</h4>
           {(readingsState.status === "loading" || readingsState.context !== context) && <p role="status">Cargando observaciones…</p>}
           {readingsState.status === "error" && readingsState.context === context && <p role="alert">No se pudieron consultar las observaciones: {readingsState.message} <button type="button" onClick={() => setReadingsRetry((n) => n + 1)}>Reintentar lecturas</button></p>}

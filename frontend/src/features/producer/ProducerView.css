@@ -83,3 +83,7 @@
 .forecast-card-agreement summary { cursor: pointer; font-size: .85rem; color: var(--color-muted); }
 .forecast-card-historical-notice { font-size: .8rem; color: var(--color-muted); margin-top: 8px; }
 @media (max-width: 640px) { .producer-tabs-list { flex-direction: column; gap: 0; } .producer-tab { width: 100%; text-align: left; box-shadow: inset 2px 0 0 transparent; } .producer-tab[aria-current="page"] { box-shadow: inset 2px 0 0 var(--color-ink); } }
+
+/* Identidad constante: la marca vive en el encabezado global, no se repite por pantalla. */
+.producer-brand { display: none; }
+.producer-eyebrow { color: var(--color-cyan-text); }

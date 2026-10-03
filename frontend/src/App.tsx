@@ -10,8 +10,10 @@ import { LineageChain } from "./features/lineage/LineageChain";
 import { EvidencePanel } from "./features/evidence/EvidencePanel";
 import { ResumenView } from "./features/summary/ResumenView";
 import { ProducerView } from "./features/producer/ProducerView";
+import { AppHeader } from "./features/navigation/AppHeader";
 import { DestinationNav } from "./features/navigation/DestinationNav";
-import { DESTINATION_LABELS, useHashRoute } from "./features/navigation/useHashRoute";
+import { DESTINATION_LABELS, ROUTE_GROUP, useHashRoute } from "./features/navigation/useHashRoute";
+import type { NavGroup } from "./features/navigation/useHashRoute";
 import { DemoPage } from "./features/demo/DemoPage";
 import { useDemoSession } from "./features/demo/useDemoSession";
 import { demoGateForSensor } from "./features/demo/lock";
@@ -19,6 +21,7 @@ import { HistoricalReplayPage } from "./features/historical-replay/HistoricalRep
 import { PergaminoDefensePage } from "./features/defense/PergaminoDefensePage";
 import { MelchorRomeroDefensePage } from "./features/defense/MelchorRomeroDefensePage";
 import { SensorLabPage } from "./features/lab/SensorLabPage";
+import { EvidenceResultsPage } from "./features/evidence/EvidenceResultsPage";
 
 const DEFENSE_ROUTES = ["defensa-pergamino", "defensa-melchor-romero"] as const;
 function isDefenseRoute(route: string): route is (typeof DEFENSE_ROUTES)[number] {
@@ -26,9 +29,6 @@ function isDefenseRoute(route: string): route is (typeof DEFENSE_ROUTES)[number]
 }
 
 const LAB_ROUTE = "laboratorio-sensores";
-function isFullBleedRoute(route: string): boolean {
-  return isDefenseRoute(route) || route === LAB_ROUTE;
-}
 
 const DEMO_HASH = "#demo";
 const HISTORICAL_REPLAY_HASH = "#reproduccion-historica";
@@ -96,6 +96,9 @@ function App() {
   const isHistoricalReplayRoute = useIsHistoricalReplayRoute();
   const isFirstRouteRender = useRef(true);
 
+  const activeGroup: NavGroup = isDemoRoute || isHistoricalReplayRoute ? "herramientas" : ROUTE_GROUP[route];
+  const inTools = activeGroup === "herramientas";
+
   useEffect(() => {
     document.title = `${APP_TITLE} — ${DESTINATION_LABELS[route]}`;
     if (isFirstRouteRender.current) {
@@ -123,64 +126,71 @@ function App() {
       }}>
         Saltar al contenido
       </a>
-      <header className="app-sensor-header">
-        <h1>Seguimiento del agua en el cultivo</h1>
-        <p className="app-intro">Consultá el pronóstico y registrá lo que observaste en el cultivo.</p>
-        <p className="app-intro">Herramienta en evaluación. Ayuda a revisar la situación; no indica cuánto ni cuándo regar.</p>
-        {route !== "productor" && !isFullBleedRoute(route) && !isHistoricalReplayRoute && (
-          <>
-            <form
-              className="app-sensor-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                applySensor();
-              }}
-            >
-              <label htmlFor="sensor-draft-input">Punto de medición (sensor)</label>
-              <input
-                id="sensor-draft-input"
-                value={draftSensorId}
-                onChange={(event) => setDraftSensorId(event.target.value)}
-                aria-invalid={sensorError ? true : undefined}
-                aria-describedby={sensorError ? "sensor-error" : undefined}
-              />
-              <button type="submit" disabled={forecastBusy}>
-                Aplicar
-              </button>
-            </form>
-            <p className="app-sensor-active" aria-live="polite">
-              Sensor activo: <strong>{activeSensorId}</strong>
-            </p>
-            {sensorError && (
-              <p id="sensor-error" role="alert" className="app-sensor-error">
-                {sensorError}
-              </p>
+      <AppHeader activeGroup={activeGroup} />
+      <div className="app-body">
+      {inTools && (
+        <>
+          <header className="app-sensor-header app-tools-intro">
+            <p className="eyebrow">Herramientas técnicas</p>
+            <h1>Seguimiento del agua en el cultivo</h1>
+            <p className="app-intro">Consultá el pronóstico y registrá lo que observaste en el cultivo.</p>
+            <p className="app-intro">Herramienta en evaluación. Ayuda a revisar la situación; no indica cuánto ni cuándo regar.</p>
+            {route !== "productor" && !isHistoricalReplayRoute && !isDemoRoute && (
+              <>
+                <form
+                  className="app-sensor-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    applySensor();
+                  }}
+                >
+                  <label htmlFor="sensor-draft-input">Punto de medición (sensor)</label>
+                  <input
+                    id="sensor-draft-input"
+                    value={draftSensorId}
+                    onChange={(event) => setDraftSensorId(event.target.value)}
+                    aria-invalid={sensorError ? true : undefined}
+                    aria-describedby={sensorError ? "sensor-error" : undefined}
+                  />
+                  <button type="submit" disabled={forecastBusy}>
+                    Aplicar
+                  </button>
+                </form>
+                <p className="app-sensor-active" aria-live="polite">
+                  Sensor activo: <strong>{activeSensorId}</strong>
+                </p>
+                {sensorError && (
+                  <p id="sensor-error" role="alert" className="app-sensor-error">
+                    {sensorError}
+                  </p>
+                )}
+              </>
             )}
-          </>
-        )}
-      </header>
-
-      {route === "productor" || isFullBleedRoute(route) ? <details className="producer-tools"><summary>Más herramientas y antecedentes</summary><DestinationNav active={route} /></details> : <DestinationNav active={route} />}
-      {demo.configured && (
-        <p className="app-demo-link">
-          <a href={DEMO_HASH} aria-current={isDemoRoute ? "page" : undefined}>
-            Demostración
-          </a>
-        </p>
+          </header>
+          <DestinationNav active={route} />
+          {demo.configured && (
+            <p className="app-demo-link">
+              <a href={DEMO_HASH} aria-current={isDemoRoute ? "page" : undefined}>
+                Demostración
+              </a>
+            </p>
+          )}
+          <p className="app-demo-link">
+            <a
+              href={HISTORICAL_REPLAY_HASH}
+              aria-current={isHistoricalReplayRoute ? "page" : undefined}
+            >
+              Reproducción histórica
+            </a>
+          </p>
+        </>
       )}
-      <p className="app-demo-link">
-        <a
-          href={HISTORICAL_REPLAY_HASH}
-          aria-current={isHistoricalReplayRoute ? "page" : undefined}
-        >
-          Reproducción histórica
-        </a>
-      </p>
 
       <main id="main-content" className="app-sections" tabIndex={-1}>
         {!isDemoRoute && route === "defensa-pergamino" && <PergaminoDefensePage />}
         {!isDemoRoute && route === "defensa-melchor-romero" && <MelchorRomeroDefensePage />}
         {!isDemoRoute && route === LAB_ROUTE && <SensorLabPage />}
+        {!isDemoRoute && route === "evidencia-resultados" && <EvidenceResultsPage />}
         {isHistoricalReplayRoute && (
           <section aria-labelledby="reproduccion-historica-heading">
             <h2 id="reproduccion-historica-heading" className="app-section-heading" tabIndex={-1}>
@@ -275,6 +285,7 @@ function App() {
           </section>
         )}
       </main>
+      </div>
     </div>
   );
 }

@@ -1,8 +1,11 @@
 .app-page {
-  padding: var(--space-6) clamp(var(--space-4), 4vw, 48px);
   background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-sans);
+}
+
+.app-body {
+  padding: var(--space-6) clamp(var(--space-4), 4vw, 48px);
 }
 
 .app-sensor-header {
@@ -96,7 +99,7 @@
 }
 
 @media (max-width: 640px) {
-  .app-page {
+  .app-body {
     padding: var(--space-4);
   }
 
@@ -104,3 +107,6 @@
     gap: var(--space-4);
   }
 }
+
+.app-tools-intro { max-width: 72rem; margin: 0 auto var(--space-4); }
+.app-tools-intro .eyebrow { margin: 0 0 var(--space-1); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-cyan-text); }
