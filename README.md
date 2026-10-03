@@ -6,7 +6,7 @@ Ver [`docs/adr/`](docs/adr/) para las decisiones de arquitectura y stack técnic
 
 ## Probar Mi cultivo con Docker
 
-La rama de integración incluye un entorno local aislado con datos y modelos
+El repositorio incluye un entorno local aislado con datos y modelos
 sintéticos, históricos y pronósticos revisables:
 
 ```powershell
@@ -44,13 +44,20 @@ Además de las HU del backlog de tesis, el repo incluye una interfaz de usuario 
 - `src/experiment_runner/`: ejecución del plan experimental (escenarios de escasez/ruido, aumentación sintética, registro de corridas en MLflow).
 - `scripts/`: puntos de entrada de línea de comandos para correr cada pipeline sobre un dataset real (`run_data_quality_pipeline.py`, `run_end_to_end_pipeline.py`, conectores de ingesta).
 - `backend/`: API FastAPI de la interfaz de usuario (alerting-ui) — fachada delgada que orquesta el pipeline y expone `POST /sensors/{sensor_id}/readings`, `POST /forecast/{sensor_id}/run`, `GET /feedback/{sensor_id}` + confirmar/rechazar por fecha, `POST /recalibrate/{sensor_id}`, y tres endpoints de observabilidad de solo lectura para la demo académica (`GET /quality/{sensor_id}`, `GET /models/{sensor_id}/active`, `GET /lineage/{sensor_id}`).
-- `frontend/`: aplicación React + TypeScript (Vite) que consume esa API — recorrido de demo de una sola pantalla: datos IoT → calidad → features → predicción → alerta → feedback humano → recalibración → linaje, más un panel estático de evidencia científica formal (`controlled_daily_v3`).
+- `frontend/`: aplicación React + TypeScript (Vite) que consume la API del productor (`/api/v2`), el pipeline plano y `/replay`. Navegación en cinco secciones: **Seguimiento histórico**, **Mi cultivo** (pantalla de entrada, pensada para un productor), **Laboratorio** (datos sintéticos, sin validez de campo), **Evidencia** (por niveles, con el estado de gobernanza siempre visible) y **Herramientas técnicas** (recorrido datos → calidad → predicción → feedback → recalibración → linaje).
 - `openspec/specs/`: especificación viva de cada capacidad (requisitos, escenarios, verificación con datos reales, limitaciones conocidas). `openspec/changes/`: historial de decisiones de diseño por *change*.
 - `docs/adr/`: decisiones de arquitectura, desde el stack técnico del PoC (ADR-0001/0002) hasta el stack web, MLflow/MinIO y la dockerización de backend/frontend (ADR-0003 a ADR-0006).
 
 ## Interfaz de usuario (alerting-ui)
 
 Backend y frontend dockerizados que exponen el pipeline completo (HU6) y la retroalimentación humana (HU5), incluyendo recalibración manual del modelo desde un botón en la UI (ver `docs/seguimiento-tareas.md`, sección "Interfaz de usuario").
+
+La interfaz es apoyo a la decisión, no automatiza el riego. «Sin alerta prevista» no equivale a ausencia de estrés hídrico, y un pronóstico con datos viejos se señala como «Este pronóstico no es actual». Mi cultivo solo lee el último pronóstico guardado; nunca emite uno por su cuenta.
+
+- Diseño y criterios: [`docs/design/ui-professional-redesign-plan.md`](docs/design/ui-professional-redesign-plan.md) y [`docs/design/alerting-ui-visual-design.md`](docs/design/alerting-ui-visual-design.md). El prototipo de la etapa de diseño se conserva en `design/prototypes/ui-professional/`.
+- Prueba con un productor: [`docs/design/prueba-con-productor.md`](docs/design/prueba-con-productor.md).
+- Demo de defensa (Pergamino, Melchor Romero, Laboratorio): [`docs/design/defense-demo-startup-guide.md`](docs/design/defense-demo-startup-guide.md). Para reiniciarla de cero con la línea base verificada: `./scripts/demo_reset.ps1 -Action Reset -StartFrontend`.
+- Versiones congeladas: tag `memoria-base-2026-09-29` (backend y protocolo) y `memoria-ui-2026-10-03` (interfaz profesional, PR #231).
 
 Para levantar el stack completo (Postgres + MinIO + MLflow + backend + frontend):
 
