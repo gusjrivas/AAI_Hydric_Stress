@@ -87,3 +87,12 @@
 /* Identidad constante: la marca vive en el encabezado global, no se repite por pantalla. */
 .producer-brand { display: none; }
 .producer-eyebrow { color: var(--color-cyan-text); }
+
+/* Móvil: sin desbordamiento horizontal y controles de al menos 44 px. */
+.producer-view { grid-template-columns: minmax(0, 1fr); }
+.producer-view select { min-height: 44px; max-width: 100%; }
+.producer-header, .producer-header-right, .producer-picker, .producer-picker-field { min-width: 0; max-width: 100%; }
+@media (max-width: 640px) {
+  .producer-picker { flex-wrap: wrap; }
+  .producer-picker-field, .producer-picker-field select { width: 100%; }
+}

@@ -104,3 +104,36 @@ Limitaciones reales:
 | 1. Propuesta visual (esta) | Prototipo aislado de las cuatro vistas y herramientas. | Se abre con un comando, se recorre completo, se ve en móvil y se aprueba visualmente. Sin cambios en la app operativa. |
 | 2. Integración | Portar tokens y componentes compartidos al `frontend/`; reemplazar las pantallas Pergamino, Melchor, Laboratorio y Evidencia usando los contratos reales; mover las capacidades existentes a Herramientas técnicas. | Sin cambio de contratos ni de rutas funcionales no acordadas; tests del frontend y verificación visual con backend real; estados y reglas científicas intactos. |
 | 3. Cierre | Revisión con datos reales, accesibilidad completa, retiro del prototipo o archivo, y actualización de guías y spec `alerting-ui`. | Verificación en 1440 px y 390 px con backend, auditoría de accesibilidad y revisión del contenido sin afirmaciones de validación agronómica ni de preparación productiva. |
+
+## 8. Estado de la etapa 2 (integración)
+
+Rama `design/ui-professional-prototype`; el prototipo de `design/prototypes/ui-professional/` se conserva hasta el cierre (etapa 3).
+
+**Qué se integró en `frontend/`** (sin cambiar contratos, rutas funcionales ni política del backend):
+
+- Tokens únicos de la paleta azul sobre blanco en `index.css`; se eliminaron las paletas locales por pantalla y los verdes.
+- Navegación en cuatro secciones estables (`AppHeader`, barra inferior en móvil). Todas las rutas y anclas existentes
+  siguen vigentes; se agregó `#evidencia-resultados`. Las capacidades anteriores quedan en «Herramientas técnicas».
+- Seguimiento histórico: `SiteHeader` compartido, franja de contexto, reloj con pasos, gráfico de humedad
+  (`HistoricalMoistureChart`) con datos del contrato (imputado, sin dato y no verificado diferenciados; sin valores
+  posteriores al reloj; umbral del backend), tarjetas con señal por forma y color, y revisión sin cambios de lógica.
+- Evidencia por niveles (`EvidenceResultsPage`): Pergamino 2023, experimento v3 y Melchor Romero (sin evaluación),
+  con el estado de gobernanza siempre visible. El texto completo de Melchor queda en un detalle accesible.
+- Laboratorio: banda permanente de simulación, «Siguiente acción» y recorrido A–D como tarjetas.
+
+**Verificado contra el backend real en Docker** (proyecto aislado `aai-defense-rehearsal`: `lab-backend` y
+`producer-backend`, imagen de hace 3 días): Pergamino y Melchor Romero con sus emisiones persistidas, el umbral del
+backend (Pergamino 31,3 %; Melchor Romero 32,2 %) y la imputación real del 26 de octubre. Capturas en
+`docs/design/ui-professional-integration-captures/`. Pruebas del frontend, `tsc` y build en verde; el lint solo muestra
+advertencias que ya existían (`ProducerTabs`, `HistoricalReplayPage`).
+
+**Diferencias respecto del prototipo (por los datos reales):**
+
+- Melchor Romero muestra su umbral y sus pronósticos reales del backend; el prototipo usaba ejemplos rotulados.
+- La serie de Pergamino es la del backend; ya no hay serie ilustrativa.
+- El laboratorio no muestra gráfico de humedad: su pantalla no consume lecturas del sensor de prueba; se agregaría con
+  un contrato de lectura nuevo, fuera del alcance de esta etapa.
+
+**Pendientes reales:** no se ejecutaron pasos del laboratorio contra el backend (escribirían datos sintéticos en el
+volumen del ensayo); los estados de carga/error y el laboratorio en curso se cubren con pruebas automatizadas, no con
+captura. La navegación por teclado y los lectores de pantalla no se revisaron de forma completa. Etapa 3 sin iniciar.
