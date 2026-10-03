@@ -58,3 +58,34 @@ it("does not show an aggregate panel for Melchor Romero and explains why", async
   expect(screen.getByText(/equivaldría a fabricar paridad/i)).toBeInTheDocument();
   expect(screen.queryByRole("group", { name: /MCC por método/i })).not.toBeInTheDocument();
 });
+
+it("follows the ARIA tabs pattern: roving tabindex and arrow, Home and End keys", async () => {
+  stubProjection();
+  render(<EvidenceResultsPage />);
+  const first = screen.getByRole("tab", { name: /pergamino 2023/i });
+  const second = screen.getByRole("tab", { name: /experimento controlado v3/i });
+  const third = screen.getByRole("tab", { name: /melchor romero/i });
+  expect(first).toHaveAttribute("tabindex", "0");
+  expect(second).toHaveAttribute("tabindex", "-1");
+  first.focus();
+  await userEvent.keyboard("{ArrowRight}");
+  expect(second).toHaveAttribute("aria-selected", "true");
+  expect(second).toHaveFocus();
+  await userEvent.keyboard("{End}");
+  expect(third).toHaveAttribute("aria-selected", "true");
+  await userEvent.keyboard("{ArrowRight}");
+  expect(first).toHaveAttribute("aria-selected", "true");
+  await userEvent.keyboard("{ArrowLeft}");
+  expect(third).toHaveFocus();
+  await userEvent.keyboard("{Home}");
+  expect(first).toHaveFocus();
+});
+
+it("does not skip heading levels under the page title", async () => {
+  stubProjection();
+  render(<EvidenceResultsPage />);
+  await screen.findByText(/soporte común 364\/364/i);
+  expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /evidencia del pronóstico · 2023/i, level: 2 })).toBeInTheDocument();
+  expect(screen.queryAllByRole("heading", { level: 3 }).length).toBeGreaterThan(0);
+});

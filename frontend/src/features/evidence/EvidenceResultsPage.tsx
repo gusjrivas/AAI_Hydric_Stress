@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { MelchorEvidenceNote } from "../defense/MelchorEvidenceNote";
 import { EvidenceBars } from "./EvidenceBars";
 import { RetrospectiveEvidencePanel } from "./RetrospectiveEvidencePanel";
@@ -29,7 +29,7 @@ function FormalSummary() {
     <div className="er-stack">
       <section className="er-card" aria-labelledby="er-v3-summary">
         <p className="er-tier"><span>1</span> Resumen</p>
-        <h3 id="er-v3-summary">Experimento controlado v3</h3>
+        <h2 id="er-v3-summary">Experimento controlado v3</h2>
         <ul className="er-list">
           <li>8 configuraciones × 5 semillas, con tag científico congelado. Es un diseño distinto de la evaluación de Pergamino 2023 y de la demo operativa.</li>
           <li>El único efecto consistente es la escasez por recencia; el resto es mixto o casi nulo.</li>
@@ -38,7 +38,7 @@ function FormalSummary() {
       </section>
       <section className="er-card" aria-labelledby="er-v3-compare">
         <p className="er-tier"><span>2</span> Comparación por configuración</p>
-        <h3 id="er-v3-compare">F1 medio por configuración</h3>
+        <h2 id="er-v3-compare">F1 medio por configuración</h2>
         <EvidenceBars label="F1 medio por configuración" data={bars} max={1} decimals={3} />
         <p className="er-note">
           Color fuerte: configuración «base». La tabla completa (F1, MCC y AP, con identificadores de
@@ -47,7 +47,7 @@ function FormalSummary() {
       </section>
       <section className="er-card" aria-labelledby="er-v3-limits">
         <p className="er-tier"><span>3</span> Metodología, procedencia y limitaciones</p>
-        <h3 id="er-v3-limits">Qué no permite concluir</h3>
+        <h2 id="er-v3-limits">Qué no permite concluir</h2>
         <ul className="er-list">
           {FORMAL_EVIDENCE_LIMITATIONS.map((item) => <li key={item}>{item}</li>)}
         </ul>
@@ -69,6 +69,20 @@ function FormalSummary() {
  */
 export function EvidenceResultsPage() {
   const [tab, setTab] = useState<EvidenceTab>("pergamino");
+  // Patrón ARIA de pestañas: flechas, Inicio y Fin mueven la selección y el foco.
+  function onTabKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const index = TABS.findIndex((item) => item.id === tab);
+    const next =
+      event.key === "ArrowRight" ? (index + 1) % TABS.length
+      : event.key === "ArrowLeft" ? (index - 1 + TABS.length) % TABS.length
+      : event.key === "Home" ? 0
+      : event.key === "End" ? TABS.length - 1
+      : -1;
+    if (next < 0) return;
+    event.preventDefault();
+    setTab(TABS[next].id);
+    document.getElementById(`er-tab-${TABS[next].id}`)?.focus();
+  }
   return (
     <div className="evidence-results">
       <header className="er-head">
@@ -85,7 +99,7 @@ export function EvidenceResultsPage() {
         estado se distingue del funcionamiento de esta interfaz. No hay un ganador general ni
         probabilidades operativas acreditadas.
       </div>
-      <div className="er-tabs" role="tablist" aria-label="Fuente de evidencia">
+      <div className="er-tabs" role="tablist" aria-label="Fuente de evidencia" onKeyDown={onTabKeyDown}>
         {TABS.map((item) => (
           <button
             key={item.id}
@@ -94,6 +108,7 @@ export function EvidenceResultsPage() {
             role="tab"
             aria-selected={tab === item.id}
             aria-controls="er-tabpanel"
+            tabIndex={tab === item.id ? 0 : -1}
             onClick={() => setTab(item.id)}
           >
             {item.label}
@@ -105,7 +120,7 @@ export function EvidenceResultsPage() {
         {tab === "v3" && <FormalSummary />}
         {tab === "melchor" && (
           <section className="er-card" aria-labelledby="er-melchor">
-            <h3 id="er-melchor">Melchor Romero no tiene evaluación agregada propia</h3>
+            <h2 id="er-melchor">Melchor Romero no tiene evaluación agregada propia</h2>
             <MelchorEvidenceNote />
             <p className="er-note">
               Lo que sí ofrece es un recorrido histórico reproducible desde datos versionados, con la

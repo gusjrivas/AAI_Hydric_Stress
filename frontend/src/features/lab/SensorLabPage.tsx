@@ -73,7 +73,7 @@ export function SensorLabPage() {
 
       <header className="sl-header">
         <p className="producer-eyebrow">AAI Hydric Stress · demostración técnica</p>
-        <h1>Laboratorio de sensor simulado</h1>
+        <h1 id="laboratorio-sensores-heading" tabIndex={-1}>Laboratorio de sensor simulado</h1>
         <p className="sl-journey">
           Este recorrido genera lecturas de prueba para mostrar cómo responde la aplicación ante datos
           normales, un valor anómalo y una interrupción. Los días avanzan de forma simulada; no estamos

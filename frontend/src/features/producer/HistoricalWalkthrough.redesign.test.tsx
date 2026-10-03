@@ -75,4 +75,15 @@ describe("HistoricalWalkthrough — rediseño", () => {
     expect(screen.getByRole("table")).toBeInTheDocument();
     expect(screen.getByText(/sin observación en la fuente/i)).toBeInTheDocument();
   });
+
+  it("keeps heading levels contiguous: h2 under the site title in defense mode, h3 elsewhere", async () => {
+    vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockResolvedValue(unavailableBatch("2023-06-13"));
+    vi.spyOn(historicalApi, "getHistoricalReadings").mockResolvedValue(readings("2023-06-13"));
+    const { unmount } = render(<HistoricalWalkthrough sensorId="pergamino-ensemble-demo" defense />);
+    expect(screen.getByRole("heading", { name: "Recorrido histórico", level: 2 })).toBeInTheDocument();
+    await screen.findByRole("heading", { name: /procedencia y calidad de datos/i, level: 3 });
+    unmount();
+    render(<HistoricalWalkthrough sensorId="sensor-a" />);
+    expect(screen.getByRole("heading", { name: "Recorrido histórico", level: 3 })).toBeInTheDocument();
+  });
 });

@@ -166,3 +166,17 @@ pronóstico para `pergamino-ensemble-demo` desde Mi cultivo y la franja de conte
 17 de junio de 2023 y la antigüedad real de los datos (captura `escritorio-7`). La emisión modificó el JSON de metadatos del
 sensor y creó un archivo de bloqueo; se restauró el directorio completo desde el respaldo y se verificó que quedó
 idéntico al estado previo (huellas iguales) antes de reiniciar el backend productor.
+
+## 10. Cierre (etapa 3)
+
+- **Accesibilidad.** Barrido por script del DOM real en las 10 rutas: un `<h1>` por pantalla, sin saltos de nivel, ids únicos,
+  referencias `aria-*` válidas, campos con etiqueta, foco al navegar hacia `#<ruta>-heading` en todas las pantallas. Se
+  corrigieron los saltos h1→h3 del seguimiento histórico, Mi cultivo y Evidencia; el foco que no tenía destino en
+  seguimiento y laboratorio; y las pestañas de Evidencia, que ahora siguen el patrón ARIA (tabindex móvil, flechas,
+  Inicio y Fin). 277/277 pruebas.
+- **Documentación.** `docs/design/alerting-ui-visual-design.md` (tokens, navegación y contrastes vigentes, con la versión
+  anterior como antecedente), `openspec/specs/alerting-ui/spec.md` (notas de implementación de navegación y
+  accesibilidad) y `docs/seguimiento-tareas.md` (trazabilidad HU6 / `alerting-ui` / CRISP-DM).
+- **Pendientes.** Lector de pantalla; contraste de las etiquetas SVG por script; pasos del laboratorio contra Docker.
+  Decisión abierta: qué hacer con `design/prototypes/ui-professional/` (conservar como referencia o retirar); no se
+  eliminó. Publicación (push y PR) sin hacer, a la espera de autorización.

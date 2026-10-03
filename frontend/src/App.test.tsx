@@ -173,6 +173,18 @@ describe("App — navegación por hash (Entrega 2)", () => {
     vi.unstubAllGlobals();
   });
 
+  it("moves focus to the page title when navigating between sections", async () => {
+    window.location.hash = "#resumen";
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
+    render(<App />);
+    for (const [hash, name] of [["#defensa-pergamino", "Pergamino"], ["#laboratorio-sensores", "Laboratorio de sensor simulado"], ["#evidencia-resultados", "Qué se midió y qué se puede afirmar"], ["#productor", "Mi cultivo"]] as const) {
+      window.location.hash = hash;
+      await act(async () => window.dispatchEvent(new HashChangeEvent("hashchange")));
+      await waitFor(() => expect(screen.getByRole("heading", { name, level: 1 })).toHaveFocus());
+    }
+    vi.unstubAllGlobals();
+  });
+
   it("opens on Resumen by default and shows the five destinations in the nav", async () => {
     render(<App />);
 

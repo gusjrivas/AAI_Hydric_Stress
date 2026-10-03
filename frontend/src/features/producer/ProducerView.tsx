@@ -98,7 +98,7 @@ export function ProducerView() {
         {tab === "historial" && <ProducerHistoryScreen sensorId={sensor.sensor_id} />}
         {tab === "datos" && <ProducerDataScreen sensorId={sensor.sensor_id} />}
       </> : <div className="producer-empty" role="status">
-        <h3>Empezá por tu sector</h3>
+        <h2>Empezá por tu sector</h2>
         <p>Elegí un punto de medición para ver su historial y sus pronósticos.</p>
       </div>}
       <footer className="producer-footnote">Una ayuda para observar y decidir. No indica cuánto ni cuándo regar.</footer>

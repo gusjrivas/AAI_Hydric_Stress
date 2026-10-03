@@ -76,7 +76,7 @@ export function RetrospectiveEvidencePanel() {
 
   return <section className="retrospective-panel" aria-labelledby="retrospective-title">
     <div className="retrospective-heading">
-      <div><p className="producer-eyebrow">Pergamino · desempeño agregado</p><h3 id="retrospective-title">Evidencia del pronóstico · 2023</h3></div>
+      <div><p className="producer-eyebrow">Pergamino · desempeño agregado</p><h2 id="retrospective-title">Evidencia del pronóstico · 2023</h2></div>
       <span className="retrospective-tag">Evaluación exploratoria no independiente</span>
     </div>
     <p>Resultados agregados de Pergamino 2023. No son predicciones fechadas ni la confianza de la emisión seleccionada. El objetivo es baja humedad según el umbral P20 del protocolo; no es un diagnóstico agronómico validado.</p>
@@ -101,7 +101,7 @@ export function RetrospectiveEvidencePanel() {
         return <>
           <section className="retrospective-tier" aria-labelledby="retro-tier1">
             <p className="retrospective-tier-label"><span>1</span> Resumen</p>
-            <h4 id="retro-tier1">Qué muestra la evaluación 2023</h4>
+            <h3 id="retro-tier1">Qué muestra la evaluación 2023</h3>
             <ul className="retrospective-takeaways">
               <li>Evaluación sobre {horizons["1"].support.common_cases} emisiones de 2023 en Pergamino: un sitio y un año ya usado en análisis previos.</li>
               <li>El promedio de los tres modelos detecta la mayoría de los días de baja humedad (recall {recalls} en +1, +2 y +3 días), con más falsas alertas a mayor horizonte ({falseAlerts} días).</li>
@@ -113,7 +113,7 @@ export function RetrospectiveEvidencePanel() {
           </section>
           <section className="retrospective-tier" aria-labelledby="retro-tier2">
             <p className="retrospective-tier-label"><span>2</span> Comparación por horizonte</p>
-            <h4 id="retro-tier2">Cómo se comparan los métodos</h4>
+            <h3 id="retro-tier2">Cómo se comparan los métodos</h3>
             <div className="retrospective-controls">
               <div role="group" aria-label="Horizonte">
                 {["1", "2", "3"].map((h) => <button key={h} type="button" aria-pressed={hz === h} onClick={() => setHz(h)}>+{h} día{h === "1" ? "" : "s"}</button>)}

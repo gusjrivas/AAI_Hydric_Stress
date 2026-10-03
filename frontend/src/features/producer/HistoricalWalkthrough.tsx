@@ -238,6 +238,9 @@ export function HistoricalWalkthrough({
     return match;
   };
 
+  // Bajo el h1 de la pantalla de seguimiento el recorrido es un h2 (sin saltar niveles); fuera de él conserva h3/h4.
+  const HeadingTop = defense ? "h2" : "h3";
+  const HeadingSub = defense ? "h3" : "h4";
   const currentBatch = batchState.status === "ready" && batchState.context === context ? batchState.batch : null;
   const availableCount = currentBatch?.slots.filter((slot) => slot.status === "available").length ?? 0;
   const alertCount = currentBatch?.slots.filter((slot) => slot.status === "available" && slot.alert).length ?? 0;
@@ -248,7 +251,7 @@ export function HistoricalWalkthrough({
 
   return (
     <section className="historical-walkthrough" aria-labelledby="historical-walkthrough-title">
-      <h3 id="historical-walkthrough-title">Recorrido histórico</h3>
+      <HeadingTop id="historical-walkthrough-title">Recorrido histórico</HeadingTop>
       <p>Elegí una emisión guardada y avanzá el reloj para ver las observaciones posteriores y registrar tu revisión. Solo hay cinco emisiones preparadas; este recorrido no genera pronósticos nuevos.</p>
 
       {defense && emissionDate && (
@@ -303,7 +306,7 @@ export function HistoricalWalkthrough({
         </p>
       )}
       {defense && <div className="historical-quality" aria-label="Procedencia y calidad de datos">
-        <h4>1 · Procedencia y calidad de datos</h4>
+        <HeadingSub>1 · Procedencia y calidad de datos</HeadingSub>
         {readingsState.status === "ready" && readingsState.context === context
           ? <>
             <p>Fuente: <strong>{readingsState.data.provenance === "external_reanalysis" ? "ERA5-Land/NASA POWER (datos externos)" : readingsState.data.provenance}</strong>. Ventana: {displayDate(readingsState.data.window.start_date)} a {displayDate(readingsState.data.window.end_date)}.</p>
@@ -356,7 +359,7 @@ export function HistoricalWalkthrough({
                 />
               ) : (
                 <article className="forecast-card">
-                  <h4>+{slot.horizon_days} · {slot.target_date ? displayForecastDate(slot.target_date) : "Fecha objetivo no disponible"}</h4>
+                  <HeadingSub>+{slot.horizon_days} · {slot.target_date ? displayForecastDate(slot.target_date) : "Fecha objetivo no disponible"}</HeadingSub>
                   <p><strong>Sin pronóstico disponible</strong></p>
                   <p>Motivo: {SLOT_UNAVAILABLE_REASONS[slot.reason_code.split(":")[0]] ?? "No se pudo usar el pronóstico de este día. Es necesario revisar su configuración."}</p>
                 </article>
@@ -383,7 +386,7 @@ export function HistoricalWalkthrough({
               threshold={firstForecast?.status === "available" && firstForecast.event_threshold.variable === "soil_moisture" && firstForecast.event_threshold.unit === currentReadings.units.soil_moisture ? firstForecast.event_threshold.value : null}
             />
           )}
-          <h4>Observaciones reveladas hasta el {displayForecastDate(effectiveReveal)}</h4>
+          <HeadingSub>Observaciones reveladas hasta el {displayForecastDate(effectiveReveal)}</HeadingSub>
           {(readingsState.status === "loading" || readingsState.context !== context) && <p role="status">Cargando observaciones…</p>}
           {readingsState.status === "error" && readingsState.context === context && <p role="alert">No se pudieron consultar las observaciones: {readingsState.message} <button type="button" onClick={() => setReadingsRetry((n) => n + 1)}>Reintentar lecturas</button></p>}
           {readingsState.status === "ready" && readingsState.context === context && (
