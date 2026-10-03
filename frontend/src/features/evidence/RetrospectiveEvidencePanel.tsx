@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { EvidenceBars } from "./EvidenceBars";
+import type { BarDatum } from "./EvidenceBars";
 import "./RetrospectiveEvidencePanel.css";
 
 type Metric = { status: string; value: number | null; reason: string | null };
@@ -25,12 +27,40 @@ const names: Record<string, string> = {
 };
 const order = ["logistic_regression", "random_forest", "hist_gradient_boosting_classifier", "average", "majority", "persistence"];
 const number = (value: number) => value.toFixed(3);
+const COMPARISON_ORDER = ["average", "majority", "persistence", "logistic_regression", "random_forest", "hist_gradient_boosting_classifier"];
+const METHOD_NOTES: Record<string, { note: string; kind: BarDatum["kind"] }> = {
+  average: { note: "Política vigente", kind: "active" },
+  majority: { note: "Comparación exploratoria", kind: "plain" },
+  persistence: { note: "Referencia sin modelo", kind: "reference" },
+  logistic_regression: { note: "Modelo individual", kind: "plain" },
+  random_forest: { note: "Modelo individual", kind: "plain" },
+  hist_gradient_boosting_classifier: { note: "Modelo individual", kind: "plain" },
+};
+type MetricKey = "mcc" | "f1" | "recall" | "precision" | "false_alerts" | "missed_positive_days";
+const METRIC_OPTIONS: { key: MetricKey; label: string; help: string; max: number | null; decimals: number }[] = [
+  { key: "mcc", label: "MCC", help: "Acierto equilibrado entre alertas y no alertas (−1 a 1; más es mejor).", max: 1, decimals: 3 },
+  { key: "f1", label: "F1", help: "Equilibrio entre precisión y recall (0 a 1; más es mejor).", max: 1, decimals: 3 },
+  { key: "recall", label: "Recall", help: "Días con baja humedad que se detectaron (0 a 1; más es mejor).", max: 1, decimals: 3 },
+  { key: "precision", label: "Precisión", help: "De los días con alerta, cuántos tenían baja humedad (0 a 1; más es mejor).", max: 1, decimals: 3 },
+  { key: "false_alerts", label: "Falsas alertas", help: "Días con alerta sin baja humedad real (menos es mejor).", max: null, decimals: 0 },
+  { key: "missed_positive_days", label: "Omisiones", help: "Días con baja humedad sin alerta (menos es mejor).", max: null, decimals: 0 },
+];
+function metricValue(method: Method | undefined, key: MetricKey): number | null {
+  if (!method) return null;
+  if (key === "false_alerts") return method.false_alerts;
+  if (key === "missed_positive_days") return method.missed_positive_days;
+  const item = method[key];
+  return item?.status === "defined" && item.value !== null ? item.value : null;
+}
+const touchesZero = (ci: [number, number] | null | undefined) => !!ci && ci[0] <= 0 && ci[1] >= 0;
 const metric = (value: Metric | undefined) => value?.status === "defined" && value.value !== null
   ? number(value.value) : `No disponible${value?.reason ? `: ${value.reason}` : ""}`;
 
 export function RetrospectiveEvidencePanel() {
   const [state, setState] = useState<State>({ status: "loading" });
   const [retry, setRetry] = useState(0);
+  const [hz, setHz] = useState("1");
+  const [metricKey, setMetricKey] = useState<MetricKey>("mcc");
   useEffect(() => {
     const controller = new AbortController();
     fetch(`${import.meta.env.BASE_URL}retrospective-2023.json`, { signal: controller.signal }).then(async (response) => {
@@ -46,13 +76,59 @@ export function RetrospectiveEvidencePanel() {
 
   return <section className="retrospective-panel" aria-labelledby="retrospective-title">
     <div className="retrospective-heading">
-      <div><p className="producer-eyebrow">B · Desempeño agregado</p><h3 id="retrospective-title">Evidencia del pronóstico · 2023</h3></div>
+      <div><p className="producer-eyebrow">Pergamino · desempeño agregado</p><h2 id="retrospective-title">Evidencia del pronóstico · 2023</h2></div>
       <span className="retrospective-tag">Evaluación exploratoria no independiente</span>
     </div>
     <p>Resultados agregados de Pergamino 2023. No son predicciones fechadas ni la confianza de la emisión seleccionada. El objetivo es baja humedad según el umbral P20 del protocolo; no es un diagnóstico agronómico validado.</p>
     {state.status === "loading" && <p role="status">Cargando evidencia retrospectiva…</p>}
     {state.status === "error" && <p role="alert">No se pudo abrir la evidencia: {state.message} <button type="button" onClick={() => { setState({ status: "loading" }); setRetry((n) => n + 1); }}>Reintentar</button></p>}
     {state.status === "ready" && <>
+      {(() => {
+        const horizons = state.data.horizons;
+        const average = (h: string) => horizons[h].metrics.average;
+        const recalls = ["1", "2", "3"].map((h) => metric(average(h)?.recall)).join(" → ");
+        const falseAlerts = ["1", "2", "3"].map((h) => average(h)?.false_alerts).join(", ");
+        const allCiTouchZero = ["1", "2", "3"].every((h) => touchesZero(horizons[h].uncertainty.average_minus_majority?.delta_mcc_ci95)
+          && touchesZero(horizons[h].uncertainty.average_minus_persistence?.delta_mcc_ci95));
+        const selected = METRIC_OPTIONS.find((option) => option.key === metricKey)!;
+        const current = horizons[hz];
+        const counts = COMPARISON_ORDER.map((name) => metricValue(current.metrics[name], metricKey) ?? 0);
+        const scale = selected.max ?? (Math.max(...counts, 1));
+        const bars: BarDatum[] = COMPARISON_ORDER.filter((name) => current.metrics[name]).map((name) => ({
+          key: name, name: names[name], note: METHOD_NOTES[name].note, kind: METHOD_NOTES[name].kind,
+          value: metricValue(current.metrics[name], metricKey),
+        }));
+        return <>
+          <section className="retrospective-tier" aria-labelledby="retro-tier1">
+            <p className="retrospective-tier-label"><span>1</span> Resumen</p>
+            <h3 id="retro-tier1">Qué muestra la evaluación 2023</h3>
+            <ul className="retrospective-takeaways">
+              <li>Evaluación sobre {horizons["1"].support.common_cases} emisiones de 2023 en Pergamino: un sitio y un año ya usado en análisis previos.</li>
+              <li>El promedio de los tres modelos detecta la mayoría de los días de baja humedad (recall {recalls} en +1, +2 y +3 días), con más falsas alertas a mayor horizonte ({falseAlerts} días).</li>
+              {allCiTouchZero
+                ? <li>Frente a la mayoría y a la persistencia, las diferencias son pequeñas y sus intervalos incluyen o rozan el cero: no hay un ganador general.</li>
+                : <li>Las comparaciones con la mayoría y la persistencia son exploratorias: no hay un ganador general.</li>}
+              <li>Los puntajes no son probabilidades calibradas; no se presentan como porcentaje de riesgo.</li>
+            </ul>
+          </section>
+          <section className="retrospective-tier" aria-labelledby="retro-tier2">
+            <p className="retrospective-tier-label"><span>2</span> Comparación por horizonte</p>
+            <h3 id="retro-tier2">Cómo se comparan los métodos</h3>
+            <div className="retrospective-controls">
+              <div role="group" aria-label="Horizonte">
+                {["1", "2", "3"].map((h) => <button key={h} type="button" aria-pressed={hz === h} onClick={() => setHz(h)}>+{h} día{h === "1" ? "" : "s"}</button>)}
+              </div>
+              <div role="group" aria-label="Métrica">
+                {METRIC_OPTIONS.map((option) => <button key={option.key} type="button" aria-pressed={metricKey === option.key} onClick={() => setMetricKey(option.key)}>{option.label}</button>)}
+              </div>
+            </div>
+            <p className="retrospective-help">{selected.help} Soporte común: {current.support.common_cases} casos. Valores no disponibles se muestran como «n/d», nunca como cero.</p>
+            <EvidenceBars label={`${selected.label} por método, horizonte +${hz}`} data={bars} max={scale} decimals={selected.decimals} />
+            <p className="retrospective-help">Rayado: referencia sin modelo (persistencia). Color fuerte: política vigente (promedio).</p>
+          </section>
+          <p className="retrospective-tier-label"><span>3</span> Métricas, soporte y detalle técnico</p>
+        </>;
+      })()}
       <p>Período: emisiones {state.data.period.emissions}; objetivos {state.data.period.targets}. Mayoría es una comparación exploratoria; la política activa conserva el promedio.</p>
       <div className="retrospective-horizons">{["1", "2", "3"].map((h) => {
         const data = state.data.horizons[h];
@@ -77,7 +153,8 @@ export function RetrospectiveEvidencePanel() {
           </details>
         </article>;
       })}</div>
-      <details className="retrospective-method"><summary>Fuentes y límites metodológicos</summary>
+      <p className="retrospective-tier-label"><span>4</span> Metodología, procedencia y limitaciones</p>
+      <details className="retrospective-method" open><summary>Fuentes y límites metodológicos</summary>
         <p>Proyección versionada de <code>ui_summary.json</code> y <code>metrics.json</code> canónicos. SHA-256: {state.data.source_sha256["ui_summary.json"]}; {state.data.source_sha256["metrics.json"]}.</p>
         <p>Véanse <code>docs/research/ensemble-retrospective-evaluation-results.md</code> y <code>docs/research/ensemble-retrospective-evaluation-protocol.md</code>. La ejecución duplicada incumplió el requisito de corrida única: auditoría científica FAIL. Ese estado de gobernanza se distingue del funcionamiento de esta interfaz. No hay un ganador general ni probabilidades operativas acreditadas.</p>
       </details>

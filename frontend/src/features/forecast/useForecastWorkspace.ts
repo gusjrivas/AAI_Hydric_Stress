@@ -34,6 +34,17 @@ function sortDesc(rows: FeedbackRow[]): FeedbackRow[] {
   return [...rows].sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0));
 }
 
+/** Resultado de generar un pronóstico, dicho con claridad: hay un pronóstico por día y no se reemplaza el ya emitido. */
+function describeRun(verdicts: Verdict[], added: Verdict[]): string {
+  const latest = [...verdicts].sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
+  if (!latest) return "";
+  if (added.length > 0) {
+    const day = [...added].sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
+    return `Se agregó el pronóstico con datos hasta el ${day.fecha}${day.fecha_objetivo ? ` (para el ${day.fecha_objetivo})` : ""}.`;
+  }
+  return `Se usó la última fecha con datos (${latest.fecha}) y su pronóstico ya estaba emitido: no se agregaron días nuevos. Para obtener otro hacen falta mediciones más recientes.`;
+}
+
 function upsertVerdicts(rows: FeedbackRow[], verdicts: Verdict[]): FeedbackRow[] {
   const byFecha = new Map(rows.map((row) => [row.fecha, row]));
   for (const verdict of verdicts) {
@@ -65,6 +76,10 @@ export function useForecastWorkspace(sensorId: string): ForecastWorkspace {
   const [historyStatus, setHistoryStatus] = useState<HistoryStatus>("loading");
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [rows, setRows] = useState<FeedbackRow[]>([]);
+  const rowsRef = useRef<FeedbackRow[]>([]);
+  useEffect(() => {
+    rowsRef.current = rows;
+  }, [rows]);
   const [refreshPending, setRefreshPending] = useState(false);
   const [activeMutation, setActiveMutation] = useState<MutationKind | null>(null);
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
@@ -161,9 +176,13 @@ export function useForecastWorkspace(sensorId: string): ForecastWorkspace {
     try {
       const result = await runForecastApi(sensorAtCall);
       if (sensorRef.current !== sensorAtCall) return;
+      const knownDates = new Set(rowsRef.current.map((row) => row.fecha));
+      const added = result.verdicts.filter((verdict) => !knownDates.has(verdict.fecha));
       setRows((prev) => upsertVerdicts(prev, result.verdicts));
       setHistoryStatus("ready");
-      if (result.selection_warning) setActionMessage(result.selection_warning);
+      setActionMessage(
+        [describeRun(result.verdicts, added), result.selection_warning].filter(Boolean).join(" ") || null,
+      );
       try {
         await performReload(sensorAtCall, { silent: true });
       } catch {

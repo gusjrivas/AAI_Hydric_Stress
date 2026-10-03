@@ -23,7 +23,10 @@ export function ProducerHistoryScreen({ sensorId }: { sensorId: string }) {
       <ForecastReviewsProvider key={sensorId}>
         <ForecastsSection sensorId={sensorId} />
       </ForecastReviewsProvider>
-      <HistoricalWalkthrough sensorId={sensorId} />
+      <details className="app-technical producer-advanced">
+        <summary>Recorrido de emisiones guardadas (avanzado)</summary>
+        <HistoricalWalkthrough sensorId={sensorId} />
+      </details>
     </>
   );
 }

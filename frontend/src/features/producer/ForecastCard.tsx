@@ -39,6 +39,18 @@ function reviewActionCopy(forecast: Forecast): Record<ReviewAction, string> {
       };
 }
 
+const ICON = { viewBox: "0 0 20 20", width: 18, height: 18, "aria-hidden": true, focusable: false } as const;
+/** Íconos de señal: la señal nunca depende solo del color (alerta = triángulo, sin alerta = anillo). */
+function AlertIcon() {
+  return <svg {...ICON}><path d="M10 2.5 18.5 17h-17z" fill="currentColor" /><path d="M10 8v4.200M10 14.200v.6" stroke="#fff" strokeWidth="1.800" strokeLinecap="round" /></svg>;
+}
+function CalmIcon() {
+  return <svg {...ICON}><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" strokeWidth="2.200" /></svg>;
+}
+function LockIcon() {
+  return <svg {...ICON}><rect x="4.500" y="9" width="11" height="8" rx="1.500" fill="currentColor" /><path d="M7 9V6.500a3 3 0 0 1 6 0V9" fill="none" stroke="currentColor" strokeWidth="2" /></svg>;
+}
+
 interface Draft {
   action: ReviewAction;
   comment: string;
@@ -188,7 +200,8 @@ export function ForecastCard({
             datos del {displayForecastDate(forecast.as_of_date)}
           </p></details>
         </div>
-        <span className={`forecast-card-badge ${forecast.alert ? "is-alert" : ""}`}>
+        <span className={`forecast-card-badge ${forecast.alert ? "is-alert" : "is-clear"}`}>
+          {forecast.alert ? <AlertIcon /> : <CalmIcon />}
           {historicalNotice ? (forecast.alert ? "Alerta prevista" : "Sin alerta prevista") : (forecast.alert ? "Alerta" : "Sin alerta")}
         </span>
       </header>
@@ -198,6 +211,12 @@ export function ForecastCard({
       <p className="forecast-probability">{forecast.probability_status === "not_qualified" || forecast.display_probability === null ? "Probabilidad no disponible: todavía no hay un porcentaje respaldado para mostrar." : `Posibilidad de alerta: ${displayProbability(forecast)}`}</p>
       {forecast.ensemble && (
         <div className="forecast-card-agreement">
+          <span className="forecast-pips" aria-hidden="true">
+            {[0, 1, 2].map((index) => {
+              const component = forecast.ensemble?.components[index];
+              return <span key={index} className={`forecast-pip ${component === undefined ? "is-missing" : component.alert ? "is-on" : ""}`} />;
+            })}
+          </span>
           <p><strong>Acuerdo entre modelos:</strong> {forecast.ensemble.components.length === 3
             ? `${agreementLabel(forecast.ensemble)} (${agreementVotesLabel(forecast.ensemble)}).`
             : `${forecast.ensemble.components.length} de 3 modelos disponibles; el faltante no cuenta como voto negativo.`}</p>
@@ -217,7 +236,7 @@ export function ForecastCard({
         </div>
       )}
       {historicalNotice && !forecast.ensemble && <p>Detalle de los tres modelos no disponible en esta emisión.</p>}
-      <p className="forecast-card-review-status">Revisión: {reviewStatusLabel(review.status)}</p>
+      <p className={`forecast-card-review-status is-${review.status}`}>Revisión: {reviewStatusLabel(review.status)}</p>
       {historicalNotice && <p className="forecast-card-historical-notice">{historicalNotice}</p>}
 
       {review.latest_review && (
@@ -232,11 +251,13 @@ export function ForecastCard({
 
       {!reviewable && observationMessage && (
         <p className="forecast-card-blocked" role="status">
+          <LockIcon />
           {observationMessage}
         </p>
       )}
       {!reviewable && !observationMessage && (
         <p className="forecast-card-blocked">
+          <LockIcon />
           {review.blocked_reason === "review_not_open"
             ? `Vas a poder revisar este resultado a partir del ${displayIssuedAt(review.review_open_at)}.`
             : "Todavía no se puede revisar este resultado."}

@@ -1,7 +1,7 @@
 .retrospective-panel { background: #fff; border: 1px solid var(--color-border); border-radius: 18px; padding: clamp(18px, 3vw, 30px); display: grid; gap: 16px; min-width: 0; }
 .retrospective-heading { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
 .retrospective-heading h3 { margin: 0; font-size: clamp(1.35rem, 3vw, 1.8rem); }
-.retrospective-tag { background: #e5eef0; color: #174856; border-radius: 99px; padding: 8px 12px; font-weight: 700; font-size: .8rem; }
+.retrospective-tag { background: #e5f2fc; color: #0d3590; border-radius: 99px; padding: 8px 12px; font-weight: 700; font-size: .8rem; }
 .retrospective-horizons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .retrospective-horizon { border: 1px solid var(--color-border); border-radius: 14px; padding: 18px; min-width: 0; display: grid; gap: 12px; }
 .retrospective-horizon h4 { margin: 0; font-size: 1.2rem; }
@@ -14,3 +14,15 @@
 .retrospective-table th:first-child { position: sticky; left: 0; background: white; }
 .retrospective-method p { margin: 8px 0; overflow-wrap: anywhere; }
 @media (max-width: 800px) { .retrospective-horizons { grid-template-columns: 1fr; } }
+
+/* Niveles de lectura (rediseño UI, etapa 2) */
+.retrospective-tier { display: grid; gap: var(--space-3); }
+.retrospective-tier h4 { margin: 0; font-size: 1.15rem; color: var(--color-navy); }
+.retrospective-tier-label { display: inline-flex; align-items: center; gap: var(--space-2); margin: 0; font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--color-cyan-text); }
+.retrospective-tier-label span { width: 22px; height: 22px; border-radius: 50%; background: var(--color-navy); color: #7fe3f5; display: inline-flex; align-items: center; justify-content: center; }
+.retrospective-takeaways { margin: 0; padding-left: 1.2rem; display: grid; gap: var(--space-2); }
+.retrospective-controls { display: grid; gap: var(--space-3); }
+.retrospective-controls [role="group"] { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.retrospective-controls button { min-height: 44px; min-width: 44px; padding: 0 var(--space-3); border: 1px solid var(--color-border-strong); background: #fff; color: var(--color-ink); border-radius: 6px; font: inherit; font-weight: 600; cursor: pointer; }
+.retrospective-controls button[aria-pressed="true"] { background: var(--color-navy); border-color: var(--color-navy); color: #fff; }
+.retrospective-help { font-size: .875rem; color: var(--color-muted); }

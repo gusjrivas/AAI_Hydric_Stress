@@ -7,29 +7,64 @@
 :root {
   color-scheme: light;
 
-  --color-bg: #f4f6f2;
+  /* Paleta azul sobre blanco (rediseño UI, etapa 2). Contraste de texto >= 7:1.
+     Tres lenguajes de estado que NO comparten color: señal del pronóstico
+     (alerta/calma), calidad del dato (observado/imputado/sin dato) y estado de
+     revisión (pendiente/guardada/no habilitada). Sin verdes: «sin alerta» no es
+     «sin estrés». */
+  --color-bg: #ffffff;
   --color-surface: #ffffff;
-  --color-ink: #1b2a1e;
-  --color-muted: #5c6b5f;
-  --color-border: #d9e0d5;
-  --color-border-strong: #5c6b5f;
+  --color-surface-2: #f6f9fe;
+  --color-ink: #0a1430;
+  --color-muted: #2f3d52;
+  --color-border: #c9d5e5;
+  --color-border-strong: #64748b;
 
-  --color-alert: #c1440e;
-  --color-alert-bg: #fbeae1;
-  --color-alert-text-on-bg: #a83a0c;
-  --color-safe: #2f6e4f;
-  --color-safe-bg: #e7f1ea;
+  --color-brand: #1443b6;
+  --color-navy: #081a3d;
+  --color-cyan: #00b4d8;
+  --color-cyan-soft: #8fdcec;
+  --color-cyan-text: #005669;
+  --color-cyan-bg: #e4f7fb;
 
-  --color-action: #1f5b6b;
-  --color-action-bg: #e5eef0;
+  /* Señal del pronóstico */
+  --color-alert: #961f0e;
+  --color-alert-bg: #fbebe6;
+  --color-alert-text-on-bg: #961f0e;
+  --color-alert-border: #eab3a6;
+  --color-alert-ink: #961f0e;
+  --color-alert-badge-bg: #fbebe6;
+  --color-alert-dot: #961f0e;
+  --color-neutral-dot: #8190a6;
+  --color-success: #2b3b4a; /* sin verde: el éxito no se comunica con ese color */
+  --color-safe: #2b3b4a; /* «sin alerta»: pizarra, nunca verde */
+  --color-safe-bg: #eaeff3;
+
+  /* Calidad del dato */
+  --color-obs: #081a3d;
+  --color-obs-bg: #e8eefc;
+  --color-imputed: #6a4400;
+  --color-imputed-bg: #fff3d1;
+  --color-missing: #3f4753;
+  --color-missing-bg: #eceef1;
+
+  /* Procedencia y simulación */
+  --color-external: #4a2f68;
+  --color-external-bg: #f1eaf7;
+  --color-sim: #62230a;
+  --color-sim-bg: #ffe9d6;
+
+  --color-action: #1443b6;
+  --color-action-hover: #0d3590;
+  --color-action-bg: #e5f2fc;
 
   /* Estado de revisión humana — deliberadamente distinto de alerta/safe:
-     confirmar una alerta no la vuelve verde/segura (design.md §5). */
+     confirmar una alerta no la vuelve segura (design.md §5). */
   --color-review-pending: var(--color-muted);
-  --color-review-pending-bg: var(--color-border);
-  --color-review-confirmed: var(--color-action);
-  --color-review-confirmed-bg: var(--color-action-bg);
-  --color-review-corrected: #6b4c8a;
+  --color-review-pending-bg: var(--color-surface-2);
+  --color-review-confirmed: #3d3290;
+  --color-review-confirmed-bg: #eeebfa;
+  --color-review-corrected: #5a3d7a;
   --color-review-corrected-bg: #eee6f2;
 
   --font-sans: system-ui, "Segoe UI", Roboto, sans-serif;
@@ -42,7 +77,7 @@
   --space-6: 24px;
   --space-8: 32px;
 
-  --focus-ring: 3px solid var(--color-action);
+  --focus-ring: 3px solid var(--color-navy);
 
   font-family: var(--font-sans);
   color: var(--color-ink);
@@ -81,6 +116,7 @@ textarea {
 :focus-visible {
   outline: var(--focus-ring);
   outline-offset: 2px;
+  box-shadow: 0 0 0 2px #fff;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -108,4 +144,10 @@ textarea {
 
 .skip-link:focus {
   top: 0;
+}
+
+/* Controles de formulario: objetivo táctil mínimo de 44 px en todas las pantallas. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
+select {
+  min-height: 44px;
 }

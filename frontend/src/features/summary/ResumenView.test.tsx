@@ -6,6 +6,7 @@ import { useForecastWorkspace } from "../forecast/useForecastWorkspace";
 import * as forecastApi from "../forecast/api";
 import { HttpError } from "../forecast/api";
 import * as qualityApi from "../quality/api";
+import { readyQuality } from "../quality/testFixtures";
 
 function Harness({ sensorId }: { sensorId: string }) {
   const workspace = useForecastWorkspace(sensorId);
@@ -143,6 +144,7 @@ describe("ResumenView", () => {
   });
 
   it("runs a forecast from Resumen without requiring the user to leave the view", async () => {
+    vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(readyQuality("sensor-a"));
     vi.spyOn(forecastApi, "listFeedback")
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValue({
@@ -173,6 +175,7 @@ describe("ResumenView", () => {
   });
 
   it("keeps a successful forecast result even if the follow-up history refresh fails, and offers a manual retry", async () => {
+    vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(readyQuality("sensor-a"));
     vi.spyOn(forecastApi, "listFeedback")
       .mockResolvedValueOnce({ rows: [] })
       .mockRejectedValueOnce(new HttpError(500, "fallo de refresco"));
@@ -193,5 +196,50 @@ describe("ResumenView", () => {
     expect(
       screen.getByText(/no se pudo confirmar la actualización del historial/i),
     ).toBeInTheDocument();
+  });
+
+  it("blocks the forecast action for a point without readings and points to the Laboratorio instead of failing", async () => {
+    vi.spyOn(forecastApi, "listFeedback").mockResolvedValue({ rows: [] });
+    render(<Harness sensorId="sensor-a" />);
+    expect(await screen.findByText(/todavía no hay mediciones cargadas para este punto/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /generar pronóstico/i })).toBeDisabled();
+    expect(screen.getByText(/primero hacen falta mediciones de este punto/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /ir al laboratorio/i })).toHaveAttribute("href", "#laboratorio-sensores");
+  });
+
+  it("enables the forecast action once the point has readings", async () => {
+    vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(readyQuality("sensor-a"));
+    vi.spyOn(forecastApi, "listFeedback").mockResolvedValue({ rows: [] });
+    render(<Harness sensorId="sensor-a" />);
+    await waitFor(() => expect(screen.getByRole("button", { name: /generar pronóstico/i })).toBeEnabled());
+    expect(screen.queryByText(/primero hacen falta mediciones/i)).not.toBeInTheDocument();
+  });
+
+  it("says so when generating again does not add a day because the last date already has its forecast", async () => {
+    vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(readyQuality("sensor-a"));
+    vi.spyOn(forecastApi, "listFeedback").mockResolvedValue({
+      rows: [{ fecha: "2026-09-27", alerta_generada: 0, estado_validacion: "pendiente", etiqueta_corregida: null, observacion: null, y_proba: 0, fecha_objetivo: "2026-09-30" }],
+    });
+    vi.spyOn(forecastApi, "runForecast").mockResolvedValue({
+      train_rows: 100, test_rows: 1, verdicts: [{ fecha: "2026-09-27", alerta: false, probabilidad: 0, fecha_objetivo: "2026-09-30" }],
+    });
+    render(<Harness sensorId="sensor-a" />);
+    await waitFor(() => expect(screen.getByRole("button", { name: /generar pronóstico/i })).toBeEnabled());
+    await screen.findByText("2026-09-30");
+    await userEvent.click(screen.getByRole("button", { name: /generar pronóstico/i }));
+    expect(await screen.findByText(/ya estaba emitido: no se agregaron días nuevos/i)).toBeInTheDocument();
+    expect(screen.getByText(/mediciones más recientes/i)).toBeInTheDocument();
+  });
+
+  it("confirms when a new day was added", async () => {
+    vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(readyQuality("sensor-a"));
+    vi.spyOn(forecastApi, "listFeedback").mockResolvedValue({ rows: [] });
+    vi.spyOn(forecastApi, "runForecast").mockResolvedValue({
+      train_rows: 100, test_rows: 1, verdicts: [{ fecha: "2026-09-27", alerta: false, probabilidad: 0, fecha_objetivo: "2026-09-30" }],
+    });
+    render(<Harness sensorId="sensor-a" />);
+    await waitFor(() => expect(screen.getByRole("button", { name: /generar pronóstico/i })).toBeEnabled());
+    await userEvent.click(screen.getByRole("button", { name: /generar pronóstico/i }));
+    expect(await screen.findByText(/se agregó el pronóstico con datos hasta el 2026-09-27 \(para el 2026-09-30\)/i)).toBeInTheDocument();
   });
 });

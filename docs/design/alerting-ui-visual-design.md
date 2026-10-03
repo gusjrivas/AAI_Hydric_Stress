@@ -1,5 +1,77 @@
 # Decisiones de diseño visual: alerting-ui
 
+## Actualización 2026-10-03: rediseño UI profesional (vigente)
+
+Esta actualización sustituye los tokens, la navegación y la tabla de contrastes descritos más abajo, que se conservan
+como antecedente. Plan, etapas y verificaciones: `docs/design/ui-professional-redesign-plan.md`. Capturas con backend real:
+`docs/design/ui-professional-integration-captures/`.
+
+**Identidad.** Tema claro, fondo blanco, azul de marca `#1443b6` (estructura y acción), navy `#081a3d` (texto de títulos y
+datos observados) y cian agua `#00b4d8` como único acento decorativo. Sin verdes: «sin alerta» no es «sin estrés».
+
+**Tres lenguajes de estado que no comparten color** (todos con ícono o forma y texto, nunca solo color):
+
+| Lenguaje | Estados | Tokens |
+|---|---|---|
+| Señal del pronóstico | alerta prevista, sin alerta prevista, no disponible | `--color-alert` `#961f0e` / `--color-alert-bg` `#fbebe6`; `--color-safe` `#2b3b4a` (pizarra) / `--color-safe-bg` `#eaeff3` |
+| Calidad del dato | observado, imputado, procedencia no verificada, sin dato | `--color-obs` `#081a3d`; `--color-imputed` `#6a4400` / `-bg` `#fff3d1`; `--color-missing` `#3f4753` / `-bg` `#eceef1` |
+| Estado de revisión | pendiente, guardada o confirmada, no habilitada | `--color-review-confirmed` `#3d3290` / `-bg` `#eeebfa`; `--color-review-pending` = muted |
+
+Procedencia y simulación tienen sus propios tokens: `--color-external` `#4a2f68` (datos externos) y `--color-sim`
+`#62230a` (simulación). Texto: `--color-ink` `#0a1430`, `--color-muted` `#2f3d52`; bordes de controles `--color-border-strong`
+`#64748b`; foco: anillo navy de 3 px con halo blanco (blanco sobre el encabezado azul).
+
+**Navegación: cinco secciones** (`frontend/src/features/navigation/`; en móvil, barra inferior):
+
+| Sección | Hash de entrada | Contenido |
+|---|---|---|
+| Seguimiento histórico | `#defensa-pergamino`, `#defensa-melchor-romero` | Recorrido histórico por localidad (`/api/v2/.../historical`) |
+| Mi cultivo | `#productor` | Flujo en vivo sobre `/api/v2`: sector y punto de medición, pronóstico, historial y datos |
+| Laboratorio | `#laboratorio-sensores` | Sensor simulado, recorrido A–D, banda permanente de simulación |
+| Evidencia | `#evidencia-resultados` | Pergamino 2023, experimento controlado v3 y Melchor Romero (sin evaluación), por niveles |
+| Herramientas técnicas | `#resumen` | Resumen e historial (`#resumen`/`#prediccion`), Datos disponibles (`#calidad`), Ajustar próximos pronósticos (`#linaje`), Acerca de esta herramienta (`#evidencia`), Reproducción histórica |
+
+Todos los anchors previos siguen resolviendo. Cada cambio de ruta actualiza `document.title` y enfoca el `<h1>` de la
+pantalla (`id="<ruta>-heading"`, `tabIndex=-1`). Las pantallas no saltan niveles de encabezado.
+
+**Componentes compartidos nuevos:** `FactsStrip` (contexto de lectura: datos que se ven, emisión, fechas de aplicación y
+reloj o antigüedad), `HistoricalMoistureChart` (humedad con umbral del backend; imputado, no verificado y sin dato
+diferenciados; sin valores posteriores al reloj; la tabla de observaciones es su alternativa accesible), `EvidenceBars`
+(comparación con escala absoluta; «n/d» y nunca una barra en cero para un valor no disponible).
+
+**Contrastes medidos por cálculo** (luminancia relativa de WCAG 2.2, sobre los pares efectivamente usados; texto
+objetivo AAA 7:1):
+
+| Par | Contraste |
+|---|---|
+| `--color-ink` / blanco | 18.17:1 |
+| `--color-muted` / blanco; sobre `--color-surface-2` | 10.99:1; 10.42:1 |
+| `--color-action` / blanco; blanco / `--color-action` | 8.37:1; 8.37:1 |
+| `--color-action` / `--color-action-bg` | 7.35:1 |
+| `--color-alert` / `--color-alert-bg`; sobre blanco | 7.25:1; 8.40:1 |
+| `--color-safe` / `--color-safe-bg` | 9.93:1 |
+| `--color-imputed` / su fondo; `--color-missing` / su fondo | 7.78:1; 8.07:1 |
+| `--color-obs` / su fondo | 14.74:1 |
+| `--color-review-confirmed` / su fondo | 8.70:1 |
+| `--color-external` / su fondo; `--color-sim` / su fondo | 9.41:1; 10.13:1 |
+| `--color-cyan-text` / blanco; sobre `--color-cyan-bg` | 8.28:1; 7.49:1 |
+| `--color-border-strong` / blanco (no texto, mínimo 3:1) | 4.76:1 |
+| Anillo de foco navy / blanco (no texto) | 17.14:1 |
+
+Además, un barrido por script del DOM renderizado (11 rutas, 390 y 1200 px) midió el contraste efectivo de todo el texto
+HTML: mínimo 7.15:1.
+
+**Accesibilidad verificada** (script sobre el DOM real, pruebas con Testing Library y teclado en el navegador): un solo
+`<h1>` por pantalla y sin saltos de nivel; ids únicos; referencias `aria-*` válidas; todos los campos con etiqueta;
+pestañas de Evidencia con el patrón ARIA (tabindex móvil, flechas, Inicio y Fin); controles de al menos 44 px; sin
+desbordamiento horizontal a 390 px.
+
+**Limitaciones declaradas:** no se probó con un lector de pantalla; el contraste de las etiquetas dentro de los gráficos
+SVG no se midió por script (usan los mismos tonos oscuros: `--color-muted`, `--color-ink`, `--color-cyan-text`); las
+teclas enviadas por la herramienta de automatización no llegaron a la ventana oculta, por lo que el manejo de flechas se
+verificó disparando eventos de teclado sobre el elemento enfocado y con `userEvent`; el ancho de escritorio capturado fue
+de 1225 px y el móvil de 390 px se renderizó en un iframe.
+
 ## Actualización 2026-09-17: productor y agrónomo sin perfil tecnológico
 
 La presentación principal prioriza lenguaje cotidiano y tareas. El resultado se
@@ -47,7 +119,7 @@ propósito los tres looks por defecto de diseño generado por IA (crema+serif,
 negro+neón, estilo periódico de columnas). Tema claro único y deliberado —
 sin una segunda declaración de modo oscuro en ningún archivo.
 
-## Tokens (centralizados en `frontend/src/index.css`, `:root`)
+## Tokens (centralizados en `frontend/src/index.css`, `:root`) — antecedente, sustituido el 2026-10-03
 
 | Token | Valor | Uso |
 |---|---|---|
@@ -76,7 +148,7 @@ local/Docker); `ui-monospace` para fechas y probabilidades (`font-variant-numeri
 tabular-nums` en los valores numéricos), dando lectura de instrumento de
 medición. Escala de espaciado `--space-1` a `--space-8` (4/8/12/16/24/32 px).
 
-## Estructura y navegación
+## Estructura y navegación — antecedente, sustituida el 2026-10-03
 
 Cinco destinos por hash (`frontend/src/features/navigation/`), sin router de
 terceros — el navegador resuelve Atrás/Adelante sobre `location.hash`:
@@ -163,7 +235,7 @@ corregidos en la Entrega 4.
   global en `index.css` es una salvaguarda para cualquier transición que se
   agregue a futuro.
 
-### Contrastes — verificados por cálculo, no solo inspección visual
+### Contrastes (paleta anterior) — verificados por cálculo, no solo inspección visual
 
 Fórmula de luminancia relativa y contraste de WCAG 2.2, aplicada a los pares
 de color efectivamente usados (script ad hoc, no versionado en el repo —

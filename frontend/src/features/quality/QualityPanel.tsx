@@ -1,3 +1,4 @@
+import { NoReadingsHint } from "../shared/NoReadingsHint";
 import { useEffect, useState } from "react";
 import "./QualityPanel.css";
 import { getQualityReport } from "./api";
@@ -70,10 +71,13 @@ export function QualityPanel({
 
   if (status === "empty") {
     return (
+      <>
       <p role="status" className="qp-status">
         Todavía no hay mediciones cargadas para «{sensorId}». Se necesitan datos antes
         de poder generar un pronóstico.
       </p>
+      <NoReadingsHint />
+      </>
     );
   }
 

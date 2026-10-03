@@ -5,8 +5,8 @@
   --ep-border: var(--color-border);
   --ep-ink: var(--color-ink);
   --ep-muted: var(--color-muted);
-  --ep-formal-bg: #f4f0e6;
-  --ep-formal-border: #8a7238;
+  --ep-formal-bg: #f6f9fe;
+  --ep-formal-border: #64748b;
   --ep-operational-bg: var(--color-action-bg);
   --ep-operational-border: var(--color-action);
   --ep-mono: var(--font-mono);

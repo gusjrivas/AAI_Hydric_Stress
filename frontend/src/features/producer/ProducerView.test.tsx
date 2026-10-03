@@ -86,6 +86,30 @@ describe("ProducerView", () => {
     expect(screen.queryByText(/Sin alerta próxima/)).not.toBeInTheDocument();
   });
 
+  it("answers in plain words after an explicit consultation, with the three days at a glance and the data age", async () => {
+    vi.spyOn(catalogApi, "listSectors").mockResolvedValue({ items: [sector], next_cursor: null });
+    vi.spyOn(catalogApi, "listSensors").mockResolvedValue({ items: [sensor], next_cursor: null });
+    vi.spyOn(forecastsApi, "listForecasts").mockResolvedValue({ items: [], next_cursor: null, pending_total: 0, reviewable_pending_total: 0 });
+    vi.spyOn(readingsApi, "getSensorReadings").mockResolvedValue({
+      sensor_id: "sensor-a", calendar_timezone: "UTC", server_today: "2026-01-07", snapshot_id: null,
+      window: { start_date: "2026-01-01", end_date: "2026-01-01", expected_days: 1 }, status: "no_readings",
+      rows: [], missing_dates: [], variable_coverage: [], units: {}, last_reading_date: null,
+      data_age_days: null, provenance: "unknown",
+    });
+    const slot = (h: 1 | 2 | 3) => ({ horizon_days: h, target_date: `2026-01-0${h + 5}`, status: "unavailable" as const, reason_code: "model_not_available" });
+    vi.spyOn(forecastsApi, "emitForecasts").mockResolvedValue({
+      batch_id: "b1", revision: 1, as_of_date: "2026-01-05", data_age_days: 2, server_today: "2026-01-07",
+      provenance: "synthetic", calendar_timezone: "UTC", slots: [slot(1), slot(2), slot(3)],
+    });
+    render(<ProducerView />);
+    expect(await screen.findByRole("heading", { name: "Mi cultivo", level: 1 })).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: /los próximos tres días/i })).not.toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "Consultar próximos tres días" }));
+    expect(await screen.findByRole("heading", { name: /no hay información suficiente/i })).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: /los próximos tres días/i })).toBeInTheDocument();
+    expect(screen.getByText(/la última medición tiene 2 días de antigüedad/i)).toBeInTheDocument();
+  });
+
   it("never emits a forecast automatically on entering Mi cultivo, switching tabs, or switching sensors", async () => {
     vi.spyOn(catalogApi, "listSectors").mockResolvedValue({ items: [sector], next_cursor: null });
     vi.spyOn(catalogApi, "listSensors").mockResolvedValue({ items: [sensor], next_cursor: null });
@@ -108,7 +132,7 @@ describe("ProducerView", () => {
     await screen.findByText("Datos simulados"); // sensor ya seleccionado, Mi cultivo montado
     await userEvent.click(await screen.findByRole("button", { name: "Historial" }));
     await userEvent.click(await screen.findByRole("button", { name: "Datos" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Mi cultivo" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Pronóstico" }));
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(emit).not.toHaveBeenCalled();
   });

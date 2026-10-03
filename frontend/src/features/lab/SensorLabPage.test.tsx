@@ -159,4 +159,22 @@ describe("SensorLabPage", () => {
     expect(screen.getByRole("button", { name: /generar historial de prueba/i })).toBeEnabled();
     expect(screen.queryByText(/este paso no pudo completarse/i)).toBeNull();
   });
+
+  it("tells the app which sensor has data once scenario A finishes, and opens it in the tools without copying the id", async () => {
+    vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(baseQuality());
+    const onSensorWithData = vi.fn();
+    const onOpenInTools = vi.fn();
+    const user = userEvent.setup();
+    render(<SensorLabPage onSensorWithData={onSensorWithData} onOpenInTools={onOpenInTools} />);
+    // Antes del paso A no hay datos: ni aviso ni enlace.
+    expect(onSensorWithData).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: /en resumen e historial/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /generar historial de prueba/i }));
+    const open = await screen.findByRole("button", { name: /^ver «lab-[a-z0-9]+» en resumen e historial$/i });
+    const sensorId = /«(lab-[a-z0-9]+)»/i.exec(open.textContent ?? "")![1];
+    expect(onSensorWithData).toHaveBeenCalledWith(sensorId);
+    await user.click(open);
+    expect(onOpenInTools).toHaveBeenCalledWith(sensorId);
+  });
 });

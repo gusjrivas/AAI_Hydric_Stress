@@ -8,8 +8,8 @@
 .dp-badge {
   align-self: flex-start;
   font-weight: 600;
-  background: var(--dp-badge-bg, #f0e6d2);
-  color: var(--dp-badge-fg, #6b4e16);
+  background: var(--dp-badge-bg, #ffe9d6);
+  color: var(--dp-badge-fg, #62230a);
   border-radius: 0.25rem;
   padding: 0.25rem 0.6rem;
 }

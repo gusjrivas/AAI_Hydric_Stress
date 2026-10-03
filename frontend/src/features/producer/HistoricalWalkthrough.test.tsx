@@ -326,7 +326,8 @@ describe("HistoricalWalkthrough", () => {
     expect(screen.getByText(/1 fecha sin datos/i)).toBeInTheDocument();
     expect(screen.getByText(/era5-land\/nasa power \(datos externos\)/i)).toBeInTheDocument();
     expect(screen.getAllByText(/sin pronóstico disponible/i)).toHaveLength(2);
-    expect(screen.getAllByText(/37\.5 %/i)).toHaveLength(2);
+    // El gráfico repite el último valor como etiqueta SVG; aquí se cuentan solo los textos HTML (resumen y tabla).
+    expect(screen.getAllByText(/37\.5 %/i, { ignore: "script, style, text" })).toHaveLength(2);
     expect(screen.getByText(/18\.0 %/i)).toBeInTheDocument();
   });
 

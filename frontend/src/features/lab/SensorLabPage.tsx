@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./SensorLabPage.css";
 import { QualityPanel } from "../quality/QualityPanel";
 import { ForecastPage } from "../forecast/ForecastPage";
@@ -20,6 +20,20 @@ const PHASE_LABELS: Record<LabPhase, string> = {
   error: "El paso solicitado no pudo completarse",
 };
 
+/** Qué hacer a continuación, según la fase; nunca sugiere acciones fuera de la secuencia A–D. */
+const NEXT_ACTION: Record<LabPhase, string> = {
+  idle: "Generar el historial de prueba (paso A).",
+  seeding: "Esperá: se está generando el historial de prueba.",
+  normal: "Introducir una lectura anómala (paso B).",
+  "injecting-anomaly": "Esperá: se está enviando la lectura anómala.",
+  anomaly: "Simular una interrupción (paso C).",
+  interrupting: "Esperá: se está simulando la interrupción.",
+  interrupted: "Simular la recuperación (paso D).",
+  recovering: "Esperá: se está simulando la recuperación.",
+  recovered: "El recorrido terminó. Podés iniciar una sesión nueva.",
+  error: "Iniciar una sesión nueva: los datos de la sesión anterior se conservan.",
+};
+
 export const LAB_ERROR_GUIDANCE =
   "Este paso no pudo completarse. Para evitar modificar lecturas ya guardadas, iniciá una sesión nueva. Los datos de la sesión anterior se conservan.";
 
@@ -31,7 +45,18 @@ function realNowLabel(): string {
   }).format(new Date());
 }
 
-export function SensorLabPage() {
+/** Fases en las que el sensor de prueba ya tiene lecturas guardadas (el paso A terminó). */
+const PHASES_WITH_DATA: readonly LabPhase[] = ["normal", "injecting-anomaly", "anomaly", "interrupting", "interrupted", "recovering", "recovered"];
+
+export function SensorLabPage({
+  onSensorWithData,
+  onOpenInTools,
+}: {
+  /** Se llama cuando la sesión ya tiene datos, para que el resto de la app conozca el sensor sin copiar su id. */
+  onSensorWithData?: (sensorId: string) => void;
+  /** Abre el sensor de la sesión en Herramientas técnicas (Resumen e historial). */
+  onOpenInTools?: (sensorId: string) => void;
+} = {}) {
   const [sensorId, setSensorId] = useState(() => makeLabSensorId());
   const [qualityRefreshToken, setQualityRefreshToken] = useState(0);
   const workspace = useForecastWorkspace(sensorId);
@@ -40,6 +65,11 @@ export function SensorLabPage() {
     onIngested: () => setQualityRefreshToken((token) => token + 1),
     runForecast: workspace.runForecast,
   });
+
+  const hasData = PHASES_WITH_DATA.includes(lab.phase);
+  useEffect(() => {
+    if (hasData) onSensorWithData?.(sensorId);
+  }, [hasData, sensorId, onSensorWithData]);
 
   function startNewSession() {
     setSensorId(makeLabSensorId());
@@ -59,13 +89,20 @@ export function SensorLabPage() {
 
       <header className="sl-header">
         <p className="producer-eyebrow">AAI Hydric Stress · demostración técnica</p>
-        <h1>Laboratorio de sensor simulado</h1>
+        <h1 id="laboratorio-sensores-heading" tabIndex={-1}>Laboratorio de sensor simulado</h1>
         <p className="sl-journey">
           Este recorrido genera lecturas de prueba para mostrar cómo responde la aplicación ante datos
           normales, un valor anómalo y una interrupción. Los días avanzan de forma simulada; no estamos
           recibiendo mediciones de un cultivo.
         </p>
       </header>
+
+      <p className="sl-disclaimer sl-disclaimer--top" role="note">
+        El predictor operativo puede entrenarse o actualizarse con las lecturas sintéticas de esta sesión. Sus
+        resultados sirven para demostrar el funcionamiento del sistema; no prueban precisión en campo ni
+        mejoran la evidencia científica del trabajo. Guardar una revisión humana no inicia por sí solo
+        entrenamiento ni recalibración.
+      </p>
 
       <div className="sl-explain">
         <section aria-labelledby="sl-simulated-heading">
@@ -108,6 +145,19 @@ export function SensorLabPage() {
         El reloj de esta pantalla organiza los escenarios. No cambia la fecha real del servidor ni
         habilita por sí mismo la revisión de resultados futuros.
       </p>
+
+      <p className="sl-next" aria-live="polite">
+        <strong>Siguiente acción:</strong> {NEXT_ACTION[lab.phase]}
+      </p>
+
+      {hasData && onOpenInTools && (
+        <p className="sl-open-tools">
+          Este sensor ya tiene datos.{" "}
+          <button type="button" onClick={() => onOpenInTools(sensorId)}>
+            Ver «{sensorId}» en Resumen e historial
+          </button>
+        </p>
+      )}
 
       <div className="sl-controls" role="group" aria-label="Escenarios del laboratorio">
         <ol className="sl-steps">
@@ -228,13 +278,6 @@ export function SensorLabPage() {
           campo quedan como trabajo futuro.
         </p>
       </details>
-
-      <p className="sl-disclaimer">
-        El predictor operativo puede entrenarse o actualizarse con las lecturas sintéticas de esta sesión. Sus
-        resultados sirven para demostrar el funcionamiento del sistema; no prueban precisión en campo ni
-        mejoran la evidencia científica del trabajo. Guardar una revisión humana no inicia por sí solo
-        entrenamiento ni recalibración.
-      </p>
     </div>
   );
 }

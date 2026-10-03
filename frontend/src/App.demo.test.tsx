@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import * as forecastApi from "./features/forecast/api";
 import * as qualityApi from "./features/quality/api";
+import { readyQuality } from "./features/quality/testFixtures";
 import * as lineageApi from "./features/lineage/api";
 import * as demoApi from "./features/demo/api";
 import type { DemoSessionView } from "./features/demo/api";
@@ -45,7 +46,7 @@ function demoSession(overrides: Partial<DemoSessionView> = {}): DemoSessionView 
 
 describe("App — demostración acelerada (entrega 3)", () => {
   beforeEach(() => {
-    window.location.hash = "";
+    window.location.hash = "#resumen";
     vi.restoreAllMocks();
     vi.spyOn(forecastApi, "getActivePredictor").mockResolvedValue(EMPTY_PREDICTOR);
     vi.spyOn(forecastApi, "listFeedback").mockResolvedValue({ rows: [] });
@@ -99,6 +100,7 @@ describe("App — demostración acelerada (entrega 3)", () => {
   });
 
   it("does not lock manual mutations for a sensor other than the one the demo controls", async () => {
+    vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(readyQuality("sensor-a"));
     vi.spyOn(demoApi, "isDemoControlConfigured").mockReturnValue(true);
     vi.spyOn(demoApi, "getDemoSession").mockResolvedValue(demoSession({ status: "running" }));
 
@@ -138,5 +140,61 @@ describe("App — demostración acelerada (entrega 3)", () => {
       );
     });
     expect(forecastApi.listFeedback).toHaveBeenLastCalledWith("demo-sensor-1");
+  });
+
+  describe("foco y título al pasar entre Resumen, Reproducción histórica y Demostración", () => {
+    beforeEach(() => {
+      vi.spyOn(demoApi, "isDemoControlConfigured").mockReturnValue(true);
+      vi.spyOn(demoApi, "getDemoSession").mockResolvedValue(demoSession({ status: "prepared" }));
+      vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    const go = async (hash: string) => {
+      window.location.hash = hash;
+      await act(async () => window.dispatchEvent(new HashChangeEvent("hashchange")));
+    };
+
+    it("moves focus to each view's own heading and titles the document accordingly", async () => {
+      render(<App />);
+      await waitFor(() => expect(forecastApi.listFeedback).toHaveBeenCalledWith("sensor-a"));
+
+      await go("#reproduccion-historica");
+      await waitFor(() => expect(screen.getByRole("heading", { name: "Reproducción histórica", level: 2 })).toHaveFocus());
+      expect(document.title).toMatch(/Reproducción histórica$/);
+
+      await go("#demo");
+      await waitFor(() => expect(screen.getByRole("heading", { name: "Demostración", level: 2 })).toHaveFocus());
+      expect(document.title).toMatch(/Demostración$/);
+
+      await go("#resumen");
+      await waitFor(() => expect(screen.getByRole("heading", { name: "Resumen", level: 2 })).toHaveFocus());
+      expect(document.title).toMatch(/Resumen$/);
+    });
+
+    it("keeps working with the browser's Back and Forward buttons", async () => {
+      render(<App />);
+      await waitFor(() => expect(forecastApi.listFeedback).toHaveBeenCalledWith("sensor-a"));
+      await go("#reproduccion-historica");
+      await go("#demo");
+      await waitFor(() => expect(screen.getByRole("heading", { name: "Demostración", level: 2 })).toHaveFocus());
+
+      act(() => window.history.back());
+      await waitFor(() => expect(screen.getByRole("heading", { name: "Reproducción histórica", level: 2 })).toHaveFocus());
+      act(() => window.history.back());
+      await waitFor(() => expect(screen.getByRole("heading", { name: "Resumen", level: 2 })).toHaveFocus());
+      act(() => window.history.forward());
+      await waitFor(() => expect(screen.getByRole("heading", { name: "Reproducción histórica", level: 2 })).toHaveFocus());
+    });
+
+    it("does not re-focus the heading when the view does not change", async () => {
+      render(<App />);
+      await go("#reproduccion-historica");
+      const heading = await screen.findByRole("heading", { name: "Reproducción histórica", level: 2 });
+      await waitFor(() => expect(heading).toHaveFocus());
+      (document.activeElement as HTMLElement).blur();
+      await go("#reproduccion-historica");
+      expect(heading).not.toHaveFocus();
+    });
   });
 });

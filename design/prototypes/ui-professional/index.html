@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seguimiento del agua en el cultivo — Prototipo de diseño</title>
+  <meta name="description" content="Prototipo visual navegable. Datos de ejemplo; el guardado es simulado.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3C11 11 7 15 7 20a9 9 0 0018 0c0-5-4-9-9-17z' fill='%231f5b6b'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <div class="proto-ribbon" role="note">
+    <strong>Prototipo de diseño</strong>
+    <span>Datos de ejemplo · el guardado es simulado · no se conecta al backend</span>
+  </div>
+  <header class="app-header">
+    <div class="app-header__inner">
+      <a class="brand" href="#/pergamino" aria-label="Seguimiento del agua en el cultivo, inicio">
+        <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><path d="M16 3C11 11 7 15 7 20a9 9 0 0018 0c0-5-4-9-9-17z" fill="currentColor"/></svg>
+        <span class="brand__text"><span class="brand__name">Seguimiento del agua</span><span class="brand__sub">en el cultivo · apoyo a la decisión</span></span>
+      </a>
+      <nav class="main-nav" id="main-nav" aria-label="Secciones principales"></nav>
+    </div>
+  </header>
+  <main id="contenido" tabindex="-1"></main>
+  <footer class="app-footer">
+    <p><strong>Esta herramienta ayuda a revisar la situación; no indica cuánto ni cuándo regar.</strong> Verificá siempre el estado del cultivo. Ningún resultado mostrado acredita validación agronómica ni uso productivo.</p>
+  </footer>
+  <nav class="tab-bar" id="tab-bar" aria-label="Secciones principales (móvil)"></nav>
+  <div class="sr-only" id="live" role="status" aria-live="polite"></div>
+  <script src="data.js"></script>
+  <script src="evidence-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
