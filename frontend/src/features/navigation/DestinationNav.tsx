@@ -1,9 +1,19 @@
+import type { ReactNode } from "react";
 import "./DestinationNav.css";
 import { DESTINATION_LABELS, SUMMARY_PAIR, TOOL_NAV_LABELS, TOOL_NAV_ROUTES } from "./useHashRoute";
 import type { RouteId } from "./useHashRoute";
 
 /** Destinos de «Herramientas técnicas»: las capacidades que ya existían, sin cambios funcionales. */
-export function DestinationNav({ active, routes = TOOL_NAV_ROUTES }: { active: RouteId; routes?: readonly RouteId[] }) {
+export function DestinationNav({
+  active,
+  routes = TOOL_NAV_ROUTES,
+  extra,
+}: {
+  active: RouteId;
+  routes?: readonly RouteId[];
+  /** Entradas adicionales (como `<li>`) en la misma barra, p. ej. Demostración y Reproducción histórica. */
+  extra?: ReactNode;
+}) {
   return (
     <nav className="dn-nav" aria-label="Destinos principales">
       <ul className="dn-list">
@@ -18,6 +28,7 @@ export function DestinationNav({ active, routes = TOOL_NAV_ROUTES }: { active: R
             </a>
           </li>
         ))}
+        {extra}
       </ul>
     </nav>
   );

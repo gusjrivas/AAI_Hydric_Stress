@@ -131,58 +131,71 @@ function App() {
       {inTools && (
         <>
           <header className="app-sensor-header app-tools-intro">
-            <p className="eyebrow">Herramientas técnicas</p>
-            <h1>Seguimiento del agua en el cultivo</h1>
-            <p className="app-intro">Consultá el pronóstico y registrá lo que observaste en el cultivo.</p>
-            <p className="app-intro">Herramienta en evaluación. Ayuda a revisar la situación; no indica cuánto ni cuándo regar.</p>
-            {route !== "productor" && !isHistoricalReplayRoute && !isDemoRoute && (
-              <>
-                <form
-                  className="app-sensor-form"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    applySensor();
-                  }}
-                >
-                  <label htmlFor="sensor-draft-input">Punto de medición (sensor)</label>
-                  <input
-                    id="sensor-draft-input"
-                    value={draftSensorId}
-                    onChange={(event) => setDraftSensorId(event.target.value)}
-                    aria-invalid={sensorError ? true : undefined}
-                    aria-describedby={sensorError ? "sensor-error" : undefined}
-                  />
-                  <button type="submit" disabled={forecastBusy}>
-                    Aplicar
-                  </button>
-                </form>
-                <p className="app-sensor-active" aria-live="polite">
-                  Sensor activo: <strong>{activeSensorId}</strong>
+            <div className="app-tools-top">
+              <div className="app-tools-title">
+                <p className="eyebrow">Herramientas técnicas</p>
+                <h1>Seguimiento del agua en el cultivo</h1>
+                <p className="app-intro">
+                  Consultá el pronóstico y registrá lo que observaste en el cultivo. Herramienta en evaluación: ayuda a
+                  revisar la situación; no indica cuánto ni cuándo regar.
                 </p>
-                {sensorError && (
-                  <p id="sensor-error" role="alert" className="app-sensor-error">
-                    {sensorError}
+              </div>
+              {route !== "productor" && !isHistoricalReplayRoute && !isDemoRoute && (
+                <div className="app-tools-sensor">
+                  <form
+                    className="app-sensor-form"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      applySensor();
+                    }}
+                  >
+                    <label htmlFor="sensor-draft-input">Punto de medición (sensor)</label>
+                    <input
+                      id="sensor-draft-input"
+                      value={draftSensorId}
+                      onChange={(event) => setDraftSensorId(event.target.value)}
+                      aria-invalid={sensorError ? true : undefined}
+                      aria-describedby={sensorError ? "sensor-error" : undefined}
+                    />
+                    <button type="submit" disabled={forecastBusy}>
+                      Aplicar
+                    </button>
+                  </form>
+                  <p className="app-sensor-active" aria-live="polite">
+                    Sensor activo: <strong>{activeSensorId}</strong>
                   </p>
-                )}
-              </>
-            )}
+                  {sensorError && (
+                    <p id="sensor-error" role="alert" className="app-sensor-error">
+                      {sensorError}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </header>
-          <DestinationNav active={route} />
-          {demo.configured && (
-            <p className="app-demo-link">
-              <a href={DEMO_HASH} aria-current={isDemoRoute ? "page" : undefined}>
-                Demostración
-              </a>
-            </p>
-          )}
-          <p className="app-demo-link">
-            <a
-              href={HISTORICAL_REPLAY_HASH}
-              aria-current={isHistoricalReplayRoute ? "page" : undefined}
-            >
-              Reproducción histórica
-            </a>
-          </p>
+          <DestinationNav
+            active={route}
+            extra={
+              <>
+                {demo.configured && (
+                  <li>
+                    <a href={DEMO_HASH} className="dn-link" aria-current={isDemoRoute ? "page" : undefined}>
+                      Demostración
+                    </a>
+                  </li>
+                )}
+                <li>
+                  <a
+                    href={HISTORICAL_REPLAY_HASH}
+                    className="dn-link"
+                    aria-current={isHistoricalReplayRoute ? "page" : undefined}
+                  >
+                    Reproducción histórica
+                  </a>
+                </li>
+              </>
+            }
+          />
         </>
       )}
 
