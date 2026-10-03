@@ -7,6 +7,7 @@ import * as catalogApi from "./features/producer/catalogApi";
 import * as qualityApi from "./features/quality/api";
 import { readyQuality } from "./features/quality/testFixtures";
 import * as lineageApi from "./features/lineage/api";
+import * as sensorLabApi from "./features/lab/sensorLabApi";
 
 const EMPTY_PREDICTOR: forecastApi.ActivePredictor = {
   sensor_id: "sensor-a",
@@ -173,6 +174,43 @@ describe("App — navegación por hash (Entrega 2)", () => {
     const primary = screen.getByRole("navigation", { name: /secciones principales/i });
     expect(within(primary).getByRole("link", { name: "Evidencia" })).toHaveAttribute("aria-current", "page");
     vi.unstubAllGlobals();
+  });
+
+  it("carries the Laboratorio sensor to Herramientas without copying its id or reloading the page", async () => {
+    window.location.hash = "#laboratorio-sensores";
+    vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(readyQuality("sensor-a"));
+    vi.spyOn(sensorLabApi, "ingestLabReading").mockResolvedValue({ timestamp: "2026-04-30T00:00:00Z", filas_totales: 120 });
+    vi.spyOn(forecastApi, "runForecast").mockResolvedValue({
+      verdicts: [{ fecha: "2026-04-01", alerta: false, probabilidad: 0.1, fecha_objetivo: "2026-04-04" }], train_rows: 90, test_rows: 20,
+    });
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: /generar historial de prueba/i }));
+    const open = await screen.findByRole("button", { name: /^ver «lab-[a-z0-9]+» en resumen e historial$/i });
+    const sensorId = /«(lab-[a-z0-9]+)»/i.exec(open.textContent ?? "")![1];
+    await userEvent.click(open);
+    // Aterriza en Resumen con el sensor del laboratorio ya activo y el botón habilitado.
+    expect(await screen.findByRole("heading", { name: "Resumen" })).toBeInTheDocument();
+    expect(screen.getByText(/sensor activo/i)).toHaveTextContent(sensorId);
+    await waitFor(() => expect(screen.getByRole("button", { name: /generar pronóstico/i })).toBeEnabled());
+  });
+
+  it("offers the Laboratorio sensor in Herramientas with one click when the user comes back by the menu", async () => {
+    window.location.hash = "#laboratorio-sensores";
+    vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(readyQuality("sensor-a"));
+    vi.spyOn(sensorLabApi, "ingestLabReading").mockResolvedValue({ timestamp: "2026-04-30T00:00:00Z", filas_totales: 120 });
+    vi.spyOn(forecastApi, "runForecast").mockResolvedValue({
+      verdicts: [{ fecha: "2026-04-01", alerta: false, probabilidad: 0.1, fecha_objetivo: "2026-04-04" }], train_rows: 90, test_rows: 20,
+    });
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: /generar historial de prueba/i }));
+    const open = await screen.findByRole("button", { name: /^ver «lab-[a-z0-9]+» en resumen e historial$/i });
+    const sensorId = /«(lab-[a-z0-9]+)»/i.exec(open.textContent ?? "")![1];
+    window.location.hash = "#resumen";
+    await act(async () => window.dispatchEvent(new HashChangeEvent("hashchange")));
+    expect(screen.getByText(/sensor activo/i)).toHaveTextContent("sensor-a");
+    await userEvent.click(await screen.findByRole("button", { name: /usar este sensor/i }));
+    expect(screen.getByText(/sensor activo/i)).toHaveTextContent(sensorId);
+    expect(screen.queryByRole("button", { name: /usar este sensor/i })).not.toBeInTheDocument();
   });
 
   it("moves focus to the page title when navigating between sections", async () => {

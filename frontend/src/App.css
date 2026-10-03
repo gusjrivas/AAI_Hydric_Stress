@@ -122,3 +122,7 @@
 .app-tools-intro { margin-bottom: var(--space-3); }
 .app-tools-sensor .app-sensor-form label { font-weight: 600; font-size: .9375rem; }
 .dn-nav { margin-bottom: var(--space-4); }
+
+.app-lab-sensor { margin: var(--space-2) 0 0; font-size: .9375rem; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.app-lab-sensor button { min-height: 44px; border: 1px solid var(--color-action); border-radius: 6px; background: #fff; color: var(--color-action); font: inherit; font-weight: 650; padding: 8px 16px; cursor: pointer; }
+.app-lab-sensor button:hover:not(:disabled) { background: var(--color-action-bg); }

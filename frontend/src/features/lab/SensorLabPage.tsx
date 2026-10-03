@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./SensorLabPage.css";
 import { QualityPanel } from "../quality/QualityPanel";
 import { ForecastPage } from "../forecast/ForecastPage";
@@ -45,7 +45,18 @@ function realNowLabel(): string {
   }).format(new Date());
 }
 
-export function SensorLabPage() {
+/** Fases en las que el sensor de prueba ya tiene lecturas guardadas (el paso A terminó). */
+const PHASES_WITH_DATA: readonly LabPhase[] = ["normal", "injecting-anomaly", "anomaly", "interrupting", "interrupted", "recovering", "recovered"];
+
+export function SensorLabPage({
+  onSensorWithData,
+  onOpenInTools,
+}: {
+  /** Se llama cuando la sesión ya tiene datos, para que el resto de la app conozca el sensor sin copiar su id. */
+  onSensorWithData?: (sensorId: string) => void;
+  /** Abre el sensor de la sesión en Herramientas técnicas (Resumen e historial). */
+  onOpenInTools?: (sensorId: string) => void;
+} = {}) {
   const [sensorId, setSensorId] = useState(() => makeLabSensorId());
   const [qualityRefreshToken, setQualityRefreshToken] = useState(0);
   const workspace = useForecastWorkspace(sensorId);
@@ -54,6 +65,11 @@ export function SensorLabPage() {
     onIngested: () => setQualityRefreshToken((token) => token + 1),
     runForecast: workspace.runForecast,
   });
+
+  const hasData = PHASES_WITH_DATA.includes(lab.phase);
+  useEffect(() => {
+    if (hasData) onSensorWithData?.(sensorId);
+  }, [hasData, sensorId, onSensorWithData]);
 
   function startNewSession() {
     setSensorId(makeLabSensorId());
@@ -126,6 +142,15 @@ export function SensorLabPage() {
       <p className="sl-next" aria-live="polite">
         <strong>Siguiente acción:</strong> {NEXT_ACTION[lab.phase]}
       </p>
+
+      {hasData && onOpenInTools && (
+        <p className="sl-open-tools">
+          Este sensor ya tiene datos.{" "}
+          <button type="button" onClick={() => onOpenInTools(sensorId)}>
+            Ver «{sensorId}» en Resumen e historial
+          </button>
+        </p>
+      )}
 
       <div className="sl-controls" role="group" aria-label="Escenarios del laboratorio">
         <ol className="sl-steps">

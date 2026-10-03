@@ -67,6 +67,8 @@ function App() {
   const [draftSensorId, setDraftSensorId] = useState(INITIAL_SENSOR_ID);
   const [activeSensorId, setActiveSensorId] = useState(INITIAL_SENSOR_ID);
   const [sensorError, setSensorError] = useState<string | null>(null);
+  // Último sensor de una sesión del Laboratorio que ya tiene datos: evita copiar su id a mano.
+  const [labSensorId, setLabSensorId] = useState<string | null>(null);
   const workspace = useForecastWorkspace(activeSensorId);
   const forecastBusy = workspace.activeMutation !== null;
   const [predictorRefreshToken, setPredictorRefreshToken] = useState(0);
@@ -107,6 +109,16 @@ function App() {
     }
     document.getElementById(`${route}-heading`)?.focus();
   }, [route]);
+
+  function selectSensor(sensorId: string) {
+    setDraftSensorId(sensorId);
+    setActiveSensorId(sensorId);
+    setSensorError(null);
+  }
+  function openLabSensorInTools(sensorId: string) {
+    selectSensor(sensorId);
+    window.location.hash = "#resumen";
+  }
 
   function applySensor() {
     const candidate = draftSensorId.trim();
@@ -169,6 +181,14 @@ function App() {
                       {sensorError}
                     </p>
                   )}
+                  {labSensorId && labSensorId !== activeSensorId && (
+                    <p className="app-lab-sensor">
+                      El Laboratorio tiene un sensor con datos: <strong>{labSensorId}</strong>{" "}
+                      <button type="button" onClick={() => selectSensor(labSensorId)} disabled={forecastBusy}>
+                        Usar este sensor
+                      </button>
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -202,7 +222,7 @@ function App() {
       <main id="main-content" className="app-sections" tabIndex={-1}>
         {!isDemoRoute && route === "defensa-pergamino" && <PergaminoDefensePage />}
         {!isDemoRoute && route === "defensa-melchor-romero" && <MelchorRomeroDefensePage />}
-        {!isDemoRoute && route === LAB_ROUTE && <SensorLabPage />}
+        {!isDemoRoute && route === LAB_ROUTE && <SensorLabPage onSensorWithData={setLabSensorId} onOpenInTools={openLabSensorInTools} />}
         {!isDemoRoute && route === "evidencia-resultados" && <EvidenceResultsPage />}
         {isHistoricalReplayRoute && (
           <section aria-labelledby="reproduccion-historica-heading">
