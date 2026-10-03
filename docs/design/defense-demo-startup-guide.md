@@ -681,3 +681,48 @@ corregida (nota al inicio) para no describir ese ensayo anterior como de
   acelerada; textos de entrenamiento y disponibilidad temporal del
   feedback; verificación a 390 px; ingesta de observaciones fuera de orden
   específicamente para Pergamino.
+
+## Reinicio de la demo de cero (Docker aislado)
+
+`scripts/demo_reset.ps1` deja la demo lista y la restablece cuantas veces haga falta, para repetir pruebas sin arrastrar
+estado. Opera solo sobre el proyecto Compose aislado `aai-defense-rehearsal` (`docker/defense-rehearsal/compose.yml`):
+`lab-backend` (`:18299`), `producer-backend` (`:18199`) y, con `-StartFrontend`, el frontend de Vite (`:15199`). No toca
+MLflow, MinIO, Postgres, `./data` del repositorio ni los demás contenedores.
+
+**Qué restablece**
+
+- **Productor (Pergamino, Melchor Romero y Mi cultivo):** la copia de trabajo de los datos vuelve a la línea base, verificada por
+  SHA-256 (una emisión en vivo, por ejemplo, modifica `ui_metadata/` y se revierte).
+- **Laboratorio:** el volumen `aai-defense-rehearsal_lab_data` se recrea con **solo los datos versionados** del repositorio.
+  La imagen del backend trae horneadas sesiones viejas (`lab-*`, `demo-*`, `feedback__*`, `mlruns`): se podan, de modo que el
+  laboratorio arranca sin sesiones ni feedback.
+
+**Uso**
+
+```powershell
+# 1) Una sola vez: línea base con los artefactos ya verificados de la demo (copias, nunca los originales)
+./scripts/demo_reset.ps1 -Action Init -ProducerDataSource <copia de producer-data> -ProducerBundlesSource <copia de producer-bundles>
+
+# 2) Cada vez que se quiera partir de cero (detiene, restaura, recrea el volumen, levanta y verifica)
+./scripts/demo_reset.ps1 -Action Reset -StartFrontend
+
+# Ver si el estado actual coincide con la línea base (no modifica nada)
+./scripts/demo_reset.ps1 -Action Status
+```
+
+Las copias estables viven fuera del repositorio, en `..\AAI_Hydric_Stress_demo_runtime\` (parámetro `-RuntimeDir`):
+`producer-data-baseline` (línea base), `producer-data` (copia de trabajo montada en el contenedor), `producer-bundles`,
+`producer-data-baseline.sha256` y, de `Init`, un respaldo comprimido del volumen del laboratorio anterior
+(`lab-volume-backup-<fecha>.tgz`). Un reinicio **borra** lo que se haya hecho en el laboratorio y en el productor desde el
+anterior: es el propósito, pero conviene saberlo antes de ejecutarlo.
+
+**Verificación al reiniciar:** el productor queda idéntico a la línea base; el volumen del laboratorio sin archivos de
+sesión, feedback ni `mlruns`; el laboratorio responde `openapi.json`; el productor lista sus sensores y sirve los históricos
+de Pergamino (`2023-06-13`) y Melchor Romero (`2024-10-20`). Probado con un ciclo real: se emitió un pronóstico en el productor y
+se cargó una lectura en el laboratorio, `Status` detectó ambas diferencias y `Reset` las revirtió (comprobado por huellas y
+porque la lectura dejó de existir).
+
+**Requisitos y límites:** Docker Desktop en ejecución, la imagen `aai-defense-rehearsal-backend:local` ya construida (el
+script no reconstruye), y `npm ci` hecho en `frontend/` para `-StartFrontend`. El puerto del frontend (`15199`) es el que
+permite el CORS de los backends del ensayo. No incluye el controlador de la demo acelerada (perfil `demo`).
+
