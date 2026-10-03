@@ -4,7 +4,10 @@ import type { ReadingsResult } from "./readingsApi";
 /**
  * Lenguaje cotidiano para la respuesta principal de «Mi cultivo». Solo reformula lo que el backend ya
  * decidió (alerta combinada por día, horizontes sin pronóstico, antigüedad de los datos): no calcula
- * probabilidades ni cambia ninguna decisión, y nunca presenta «sin alerta» como «sin estrés».
+ * probabilidades ni cambia ninguna decisión.
+ *
+ * Regla de semántica: `alert = false` significa «sin alerta prevista», nada más. Nunca se convierte en «sin
+ * estrés», «no habrá falta de agua» ni en una garantía agronómica.
  */
 
 export type DayState = "alert" | "clear" | "none";
@@ -89,7 +92,7 @@ export function describeOutlook(batch: ForecastBatch): Outlook {
   return {
     tone: "stale",
     headline: "Este pronóstico no es actual",
-    detail: `Las mediciones son de hace ${batch.data_age_days} días, así que no describe la situación de hoy. Para ${rangeText(dates)} indicaba: ${lowerFirst(base.headline)}. Revisá cómo está el cultivo.`,
+    detail: `La última medición es de hace ${batch.data_age_days} días y el pronóstico correspondía a ${rangeText(dates)}. En ese momento indicaba: ${lowerFirst(base.headline)}. Revisá cómo está el cultivo ahora.`,
     days: base.days,
   };
 }
@@ -111,7 +114,7 @@ function describeFresh(batch: ForecastBatch): Outlook {
   if (alerted.length > 0) {
     return {
       tone: "alert",
-      headline: `Posible falta de agua ${joinPhrases(alerted)}`,
+      headline: `Alerta prevista: posible falta de agua ${joinPhrases(alerted)}`,
       detail: `Revisá cómo está el cultivo.${noForecastNote}`,
       days,
     };
@@ -119,8 +122,8 @@ function describeFresh(batch: ForecastBatch): Outlook {
   if (clear.length > 0) {
     return {
       tone: "clear",
-      headline: clear.length === 3 ? "No se espera falta de agua en los próximos 3 días" : `No se espera falta de agua ${joinPhrases(clear)}`,
-      detail: `Que no haya alerta no garantiza que el cultivo esté bien: revisalo igual.${noForecastNote}`,
+      headline: clear.length === 3 ? "Sin alerta prevista para los próximos 3 días" : `Sin alerta prevista para ${joinPhrases(clear)}`,
+      detail: `Que no haya alerta no garantiza que el cultivo esté en buenas condiciones: revisá su estado.${noForecastNote}`,
       days,
     };
   }
@@ -132,7 +135,11 @@ function describeFresh(batch: ForecastBatch): Outlook {
   };
 }
 
-/** Aviso de datos viejos, tal como lo informa el backend (`data_age_days`); null si no hay nada que avisar. */
+/**
+ * Aviso de datos viejos, tal como lo informa el backend (`data_age_days`); null si no hay nada que avisar.
+ * Cuando el titular ya dice «Este pronóstico no es actual» (`describeOutlook` con tono «stale») no se muestra
+ * este aviso aparte: la advertencia principal es una sola.
+ */
 export function staleNotice(batch: ForecastBatch): string | null {
   if (batch.data_age_days === null || batch.data_age_days <= 0) return null;
   return `La última medición tiene ${batch.data_age_days} días de antigüedad. Los resultados corresponden a esas fechas; no describen necesariamente la situación de hoy.`;

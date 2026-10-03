@@ -56,11 +56,13 @@ export function ProducerView() {
             <aside className="producer-cultivo-aside">
               <div className="producer-tip-box">
                 <p className="producer-tip-title">Cómo leer esta pantalla</p>
-                <p>
-                  El acuerdo entre modelos es la cantidad de los 3 modelos que indican alerta para ese día — no es
-                  una probabilidad ni un porcentaje de riesgo. La alerta combinada es la decisión de nivel superior;
-                  el acuerdo es información adicional sobre cuánto coinciden los modelos.
-                </p>
+                <ul className="producer-tip-list">
+                  <li><strong>Alerta prevista:</strong> conviene revisar el cultivo por una posible falta de agua.</li>
+                  <li><strong>Sin alerta prevista:</strong> no garantiza que el cultivo esté en buenas condiciones. Revisalo igual.</li>
+                  <li><strong>Sin pronóstico:</strong> no hay información para ese día. Eso no significa que no haya riesgo.</li>
+                  <li><strong>Acuerdo entre modelos:</strong> de 3 revisiones automáticas, cuántas indican alerta. No es una probabilidad ni un porcentaje de riesgo.</li>
+                  <li>Esta herramienta no indica cuánto ni cuándo regar.</li>
+                </ul>
               </div>
             </aside>
           </div>

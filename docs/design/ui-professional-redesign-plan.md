@@ -3,8 +3,13 @@
 ## 1. Objetivo y base
 
 Presentar una propuesta visual única, navegable y coherente de la interfaz, basada
-en las capacidades reales del repositorio. Esta etapa es solo de diseño y
-prototipado: no integra nada en las pantallas operativas.
+en las capacidades reales del repositorio.
+
+> **Estado vigente de la rama (2026-10-03).** La etapa 1 (prototipo) fue solo de diseño y prototipado y no integraba nada en
+> las pantallas operativas; esa descripción es **histórica** y rige las secciones 2 a 7. Después se integró el diseño en
+> `frontend/` (etapa 2, sección 8), se reorganizó sobre el backend de `main` (sección 9), se cerró la accesibilidad y la
+> documentación (etapa 3, sección 10) y se hizo una ronda final de auditoría (sección 11). La estructura de navegación
+> vigente es la de la sección 9 (cinco secciones). El PR #231 está abierto, sin merge.
 
 - Rama: `design/ui-professional-prototype`
 - Worktree: `C:\Repo\AAI_Hydric_Stress_ui_design`
@@ -13,7 +18,7 @@ prototipado: no integra nada en las pantallas operativas.
   de despliegue/comunicación. Sin impacto sobre configuración experimental,
   hipótesis, alcance ni arquitectura. Sin impacto sobre HU7/HU8.
 
-## 2. Alcance del prototipo
+## 2. Alcance del prototipo (etapa 1, histórico)
 
 Ubicación: `design/prototypes/ui-professional/` (HTML, CSS y JS sin dependencias ni
 recursos remotos). No toca `frontend/`, el backend ni los artefactos de evidencia.
@@ -26,10 +31,10 @@ recursos remotos). No toca `frontend/`, el backend ni los artefactos de evidenci
 | D. Evidencia | Cinco niveles: resumen, comparación por horizonte y métrica, soporte y tabla, detalle técnico, metodología y limitaciones. Pestañas: Pergamino 2023, experimento controlado v3 y Melchor Romero (sin evaluación). |
 | Herramientas técnicas | Acceso secundario a las capacidades existentes y catálogo de los diez estados requeridos. |
 
-## 3. Decisiones principales
+## 3. Decisiones principales (etapa 1; la estructura vigente está en la sección 9)
 
-- **Estructura**: cuatro entradas estables (Seguimiento histórico, Laboratorio, Evidencia,
-  Herramientas técnicas). Pergamino y Melchor Romero son una conmutación dentro de
+- **Estructura (etapa 1)**: cuatro entradas estables (Seguimiento histórico, Laboratorio, Evidencia,
+  Herramientas técnicas; desde la sección 9 son cinco, con Mi cultivo). Pergamino y Melchor Romero son una conmutación dentro de
   Seguimiento, con el mismo orden de secciones. En móvil la navegación pasa a una barra
   inferior. No se elimina ninguna capacidad: las existentes quedan en Herramientas.
 - **Lectura principal**: franja de contexto (datos, emisión, fechas de aplicación, reloj),
@@ -69,7 +74,10 @@ URL: <http://127.0.0.1:5290/> (puerto opcional como argumento). También abre co
 directamente. Las vistas se enlazan por hash: `#/pergamino`, `#/melchor`, `#/laboratorio`,
 `#/evidencia`, `#/herramientas`.
 
-## 6. Verificaciones realizadas y limitaciones
+## 6. Verificaciones y limitaciones de la etapa 1 (histórico)
+
+Lo que sigue describe el estado de esa etapa. Varias limitaciones se resolvieron después (backend real en Docker, laboratorio y
+flujo móvil contra Docker): ver las secciones 8 a 11.
 
 Realizadas en Chrome real, con capturas en `design/prototypes/ui-professional/captures/`:
 
@@ -101,7 +109,7 @@ Limitaciones reales:
 
 | Etapa | Contenido | Criterio de aceptación |
 | --- | --- | --- |
-| 1. Propuesta visual (esta) | Prototipo aislado de las cuatro vistas y herramientas. | Se abre con un comando, se recorre completo, se ve en móvil y se aprueba visualmente. Sin cambios en la app operativa. |
+| 1. Propuesta visual (hecha) | Prototipo aislado de las cuatro vistas y herramientas. | Se abre con un comando, se recorre completo, se ve en móvil y se aprueba visualmente. Sin cambios en la app operativa. |
 | 2. Integración | Portar tokens y componentes compartidos al `frontend/`; reemplazar las pantallas Pergamino, Melchor, Laboratorio y Evidencia usando los contratos reales; mover las capacidades existentes a Herramientas técnicas. | Sin cambio de contratos ni de rutas funcionales no acordadas; tests del frontend y verificación visual con backend real; estados y reglas científicas intactos. |
 | 3. Cierre | Revisión con datos reales, accesibilidad completa, retiro del prototipo o archivo, y actualización de guías y spec `alerting-ui`. | Verificación en 1440 px y 390 px con backend, auditoría de accesibilidad y revisión del contenido sin afirmaciones de validación agronómica ni de preparación productiva. |
 
@@ -112,7 +120,7 @@ Rama `design/ui-professional-prototype`; el prototipo de `design/prototypes/ui-p
 **Qué se integró en `frontend/`** (sin cambiar contratos, rutas funcionales ni política del backend):
 
 - Tokens únicos de la paleta azul sobre blanco en `index.css`; se eliminaron las paletas locales por pantalla y los verdes.
-- Navegación en cuatro secciones estables (`AppHeader`, barra inferior en móvil). Todas las rutas y anclas existentes
+- Navegación en secciones estables (`AppHeader`, barra inferior en móvil; cuatro en este momento, cinco desde la sección 9). Todas las rutas y anclas existentes
   siguen vigentes; se agregó `#evidencia-resultados`. Las capacidades anteriores quedan en «Herramientas técnicas».
 - Seguimiento histórico: `SiteHeader` compartido, franja de contexto, reloj con pasos, gráfico de humedad
   (`HistoricalMoistureChart`) con datos del contrato (imputado, sin dato y no verificado diferenciados; sin valores
@@ -134,9 +142,9 @@ advertencias que ya existían (`ProducerTabs`, `HistoricalReplayPage`).
 - El laboratorio no muestra gráfico de humedad: su pantalla no consume lecturas del sensor de prueba; se agregaría con
   un contrato de lectura nuevo, fuera del alcance de esta etapa.
 
-**Pendientes reales:** no se ejecutaron pasos del laboratorio contra el backend (escribirían datos sintéticos en el
-volumen del ensayo); los estados de carga/error y el laboratorio en curso se cubren con pruebas automatizadas, no con
-captura. La navegación por teclado y los lectores de pantalla no se revisaron de forma completa. Etapa 3 sin iniciar.
+**Pendientes que tenía esta etapa** (resueltos o actualizados después): los pasos del laboratorio contra el backend, que
+se ejecutaron en la ronda final (sección 11); la navegación por teclado y los lectores de pantalla, que se revisaron en
+parte en la etapa 3 y siguen sin lector de pantalla (secciones 10 y 11).
 
 ## 9. Reorganización sobre el backend de `main` (tag `memoria-base-2026-09-29`)
 
@@ -177,6 +185,37 @@ idéntico al estado previo (huellas iguales) antes de reiniciar el backend produ
 - **Documentación.** `docs/design/alerting-ui-visual-design.md` (tokens, navegación y contrastes vigentes, con la versión
   anterior como antecedente), `openspec/specs/alerting-ui/spec.md` (notas de implementación de navegación y
   accesibilidad) y `docs/seguimiento-tareas.md` (trazabilidad HU6 / `alerting-ui` / CRISP-DM).
-- **Pendientes.** Lector de pantalla; contraste de las etiquetas SVG por script; pasos del laboratorio contra Docker.
-  Decisión abierta: qué hacer con `design/prototypes/ui-professional/` (conservar como referencia o retirar); no se
-  eliminó. Publicación (push y PR) sin hacer, a la espera de autorización.
+- **Pendientes al cierre de la etapa 3** (actualizados en la sección 11): lector de pantalla; contraste de las etiquetas SVG
+  por script; pasos del laboratorio contra Docker (hechos después). El prototipo `design/prototypes/ui-professional/` se
+  conserva como referencia. La publicación se hizo después: rama subida y PR #231 abierto, sin merge.
+
+## 11. Ronda final de auditoría (estado vigente)
+
+Alcance: solo frontend, textos, navegación, accesibilidad, responsive y documentación. Sin cambios de hipótesis, alcance,
+arquitectura, modelos, bundles, datasets, evidencia, política del ensamble, umbral, contratos ni backend.
+
+**Hallazgos corregidos**
+
+1. *Semántica de «sin alerta».* `alert=false` se informa como «Sin alerta prevista…», con la aclaración de que no garantiza
+   buenas condiciones del cultivo; «Alerta prevista: posible falta de agua…» para `alert=true`. Prueba exhaustiva sobre las
+   combinaciones de días y antigüedad de datos (`producerOutlook.test.ts`).
+2. *Pronóstico desactualizado.* Un único aviso jerarquizado (titular «Este pronóstico no es actual»); el aviso secundario
+   solo aparece si el tono no es ya «desactualizado».
+3. *Foco y título en `#demo` y `#reproduccion-historica`.* Ambas se resuelven como la ruta «resumen»; el foco y el título
+   dependen ahora de la vista abierta. Pruebas: Resumen→Replay, Replay→Demo, Demo→Resumen, Atrás/Adelante y sin re-foco.
+4. *Barra móvil.* Medida a 390 y 360 px: las etiquetas caben sin acortarse, por lo que no se cambiaron. Se corrigió el
+   relleno inferior con `safe-area`.
+5. *Documentación.* Se separaron la historia (etapa 1), la integración y el estado vigente; se corrigió el comentario de
+   «cuatro secciones».
+
+**Mejoras adicionales:** gráfico histórico con lo observado después de la emisión como anillo (no existía al emitir); nota
+del límite del laboratorio visible arriba; campos de formulario de 44 px; texto de «Cómo leer esta pantalla» en palabras
+simples; recorrido técnico del historial como detalle avanzado.
+
+**Verificaciones:** backend real en Docker (proyecto `aai-defense-rehearsal`): flujo móvil en iframes de 390 y 360 px y
+laboratorio A→B→C→D. Pruebas automatizadas: 309/309, `tsc`, build y lint (solo advertencias previas).
+
+**Pendientes reales (no resueltos):** revisión con lector de pantalla; contraste de etiquetas SVG por script; barrido a 360 px
+con dos rutas sin resultado; prueba con un productor real.
+
+**Backend:** sin cambios.

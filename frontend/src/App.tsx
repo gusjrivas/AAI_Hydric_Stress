@@ -13,6 +13,7 @@ import { ProducerView } from "./features/producer/ProducerView";
 import { AppHeader } from "./features/navigation/AppHeader";
 import { DestinationNav, SummarySwitch } from "./features/navigation/DestinationNav";
 import { DESTINATION_LABELS, ROUTE_GROUP, useHashRoute } from "./features/navigation/useHashRoute";
+import type { RouteId } from "./features/navigation/useHashRoute";
 import type { NavGroup } from "./features/navigation/useHashRoute";
 import { DemoPage } from "./features/demo/DemoPage";
 import { useDemoSession } from "./features/demo/useDemoSession";
@@ -101,14 +102,23 @@ function App() {
   const activeGroup: NavGroup = isDemoRoute || isHistoricalReplayRoute ? "herramientas" : ROUTE_GROUP[route];
   const inTools = activeGroup === "herramientas";
 
+  // `#demo` y `#reproduccion-historica` se resuelven como la ruta «resumen» (no tienen ruta propia), así que `route`
+  // no cambia entre Resumen, Demostración y Reproducción histórica: el título y el foco dependen de la VISTA abierta.
+  const viewKey: RouteId | "demo" | "reproduccion-historica" = isDemoRoute
+    ? "demo"
+    : isHistoricalReplayRoute
+      ? "reproduccion-historica"
+      : route;
+
   useEffect(() => {
-    document.title = `${APP_TITLE} — ${DESTINATION_LABELS[route]}`;
+    const label = viewKey === "demo" ? "Demostración" : viewKey === "reproduccion-historica" ? "Reproducción histórica" : DESTINATION_LABELS[viewKey];
+    document.title = `${APP_TITLE} — ${label}`;
     if (isFirstRouteRender.current) {
       isFirstRouteRender.current = false;
       return;
     }
-    document.getElementById(`${route}-heading`)?.focus();
-  }, [route]);
+    document.getElementById(`${viewKey}-heading`)?.focus();
+  }, [viewKey]);
 
   function selectSensor(sensorId: string) {
     setDraftSensorId(sensorId);

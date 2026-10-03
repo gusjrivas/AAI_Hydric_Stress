@@ -21,7 +21,7 @@ function StateIcon({ state }: { state: DayState }) {
  */
 export function ProducerAnswer({ batch, children }: { batch: ForecastBatch; children?: ReactNode }) {
   const outlook = describeOutlook(batch);
-  const stale = staleNotice(batch);
+  const stale = outlook.tone === "stale" ? null : staleNotice(batch);
   return (
     <section className={`pa pa--${outlook.tone}`} aria-labelledby="pa-headline">
       <p className="pa-eyebrow">Próximos 3 días</p>

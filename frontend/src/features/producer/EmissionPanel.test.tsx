@@ -102,7 +102,7 @@ describe("EmissionPanel — último pronóstico guardado", () => {
     vi.spyOn(readingsApi, "getSensorReadings").mockResolvedValue({ sensor_id: "sensor-a", calendar_timezone: "UTC", server_today: "2026-06-03", snapshot_id: null, window: { start_date: "2026-06-03", end_date: "2026-06-03", expected_days: 1 }, status: "ready", rows: [], missing_dates: [], variable_coverage: [], units: {}, last_reading_date: "2026-06-03", data_age_days: 0, provenance: "real" });
     render(<EmissionPanel sensorId="sensor-a" onChanged={() => {}} />);
     expect(await screen.findByText(/este es el último pronóstico guardado/i)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /no se espera falta de agua mañana/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /sin alerta prevista para mañana/i })).toBeInTheDocument();
     expect(screen.getAllByText("Sin pronóstico")).toHaveLength(2); // horizontes no guardados, sin inventar un motivo
     expect(screen.getByRole("button", { name: "Actualizar pronóstico" })).toBeInTheDocument();
     await new Promise((resolve) => setTimeout(resolve, 0));

@@ -725,4 +725,3 @@ porque la lectura dejó de existir).
 **Requisitos y límites:** Docker Desktop en ejecución, la imagen `aai-defense-rehearsal-backend:local` ya construida (el
 script no reconstruye), y `npm ci` hecho en `frontend/` para `-StartFrontend`. El puerto del frontend (`15199`) es el que
 permite el CORS de los backends del ensayo. No incluye el controlador de la demo acelerada (perfil `demo`).
-

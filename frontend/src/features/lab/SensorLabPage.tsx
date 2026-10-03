@@ -97,6 +97,13 @@ export function SensorLabPage({
         </p>
       </header>
 
+      <p className="sl-disclaimer sl-disclaimer--top" role="note">
+        El predictor operativo puede entrenarse o actualizarse con las lecturas sintéticas de esta sesión. Sus
+        resultados sirven para demostrar el funcionamiento del sistema; no prueban precisión en campo ni
+        mejoran la evidencia científica del trabajo. Guardar una revisión humana no inicia por sí solo
+        entrenamiento ni recalibración.
+      </p>
+
       <div className="sl-explain">
         <section aria-labelledby="sl-simulated-heading">
           <h2 id="sl-simulated-heading">Qué simulamos</h2>
@@ -271,13 +278,6 @@ export function SensorLabPage({
           campo quedan como trabajo futuro.
         </p>
       </details>
-
-      <p className="sl-disclaimer">
-        El predictor operativo puede entrenarse o actualizarse con las lecturas sintéticas de esta sesión. Sus
-        resultados sirven para demostrar el funcionamiento del sistema; no prueban precisión en campo ni
-        mejoran la evidencia científica del trabajo. Guardar una revisión humana no inicia por sí solo
-        entrenamiento ni recalibración.
-      </p>
     </div>
   );
 }

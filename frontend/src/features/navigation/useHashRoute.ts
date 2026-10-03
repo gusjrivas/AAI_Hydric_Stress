@@ -31,7 +31,8 @@ export const DESTINATION_LABELS: Record<RouteId, string> = {
 };
 
 /**
- * Las cuatro secciones estables de la navegación principal. Cada ruta
+ * Las cinco secciones estables de la navegación principal (Seguimiento histórico, Mi cultivo, Laboratorio, Evidencia y
+ * Herramientas técnicas). Cada ruta
  * pertenece a exactamente una: el rediseño reorganiza la entrada, no elimina
  * ni renombra ninguna capacidad ni ningún ancla (`#resumen`, `#calidad`, etc.).
  */

@@ -96,6 +96,7 @@ export function HistoricalMoistureChart({
   const labelStep = Math.max(1, Math.ceil(56 / slot));
   const counts = {
     observed: points.filter((p) => p.status === "observed").length,
+    later: points.filter((p) => p.status === "observed" && p.date > emissionDate).length,
     imputed: points.filter((p) => p.status === "imputed").length,
     unverified: points.filter((p) => p.status === "unverified").length,
     missing: points.filter((p) => p.status === "missing").length,
@@ -103,6 +104,7 @@ export function HistoricalMoistureChart({
   const ariaLabel =
     `Humedad del suelo del ${shortDate(start)} al ${shortDate(revealedThrough)}: ${counts.observed} observados, ${counts.imputed} imputados, ` +
     `${counts.unverified} de procedencia no verificada y ${counts.missing} sin dato.` +
+    (counts.later > 0 ? ` ${counts.later} observados son posteriores a la emisión del ${shortDate(emissionDate)}.` : "") +
     (threshold !== null ? ` Umbral del protocolo ${pct(threshold)}.` : "");
 
   const segments: ReactElement[] = [];
@@ -175,7 +177,11 @@ export function HistoricalMoistureChart({
           )}
           {segments}
           {points.map((p, i) => {
-            if (p.status === "observed" && p.value !== null) return <circle key={p.date} cx={x(i)} cy={y(p.value)} r={5} className="hmc-obs" />;
+            if (p.status === "observed" && p.value !== null) {
+              // Lo observado DESPUÉS de la emisión (revelado por el reloj) se dibuja como anillo: no existía al emitir.
+              const later = p.date > emissionDate;
+              return <circle key={p.date} cx={x(i)} cy={y(p.value)} r={later ? 5.5 : 5} className={later ? "hmc-obs hmc-obs--later" : "hmc-obs"} />;
+            }
             if (p.status === "imputed" && p.value !== null) {
               const cy = y(p.value);
               return <path key={p.date} d={`M${x(i)} ${cy - 7}L${x(i) + 7} ${cy}L${x(i)} ${cy + 7}L${x(i) - 7} ${cy}z`} className="hmc-imp" />;
@@ -201,7 +207,8 @@ export function HistoricalMoistureChart({
         </svg>
       </div>
       <ul className="hmc-legend" aria-label="Leyenda del gráfico">
-        <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" className="hmc-obs" /></svg>Observado</li>
+        <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5" className="hmc-obs" /></svg>Observado hasta la emisión</li>
+        <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5" className="hmc-obs hmc-obs--later" /></svg>Observado después de la emisión</li>
         <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5L14.5 8 8 14.5 1.5 8z" className="hmc-imp" /></svg>Imputado (no es una medición)</li>
         <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="3" width="10" height="10" className="hmc-unv" /></svg>Procedencia no verificada</li>
         <li><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13" className="hmc-miss" /></svg>Sin dato (el trazo no se une)</li>

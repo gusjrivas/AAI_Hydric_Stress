@@ -40,7 +40,7 @@
 .producer-picker-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .producer-picker-field label { font-size: .85rem; font-weight: 650; }
 .producer-sensor-tag { display: inline-flex; padding: 5px 10px; background: var(--color-alert-badge-bg); color: var(--color-alert-ink); border: 1px solid var(--color-alert-border); border-radius: 999px; font-size: .75rem; font-weight: 700; }
-.producer-eyebrow { font-size: .72rem; letter-spacing: .1em; font-weight: 700; color: var(--color-muted); margin: 0 0 6px; text-transform: uppercase; }
+.producer-eyebrow { font-size: .75rem; letter-spacing: .1em; font-weight: 700; color: var(--color-muted); margin: 0 0 6px; text-transform: uppercase; }
 .producer-outlook h3 { margin: 0 0 10px; font-size: clamp(1.3rem, 3vw, 1.75rem); letter-spacing: -.025em; }
 .producer-outlook > p { color: var(--color-muted); max-width: 70ch; }
 .producer-outlook > button { background: var(--color-action); color: #fff; border-color: var(--color-action); margin: 8px 0 16px; }
@@ -116,3 +116,5 @@
 .producer-outlook > .pa { margin-bottom: var(--space-2); }
 .producer-outlook .pa .producer-outlook-actions button { background: var(--color-action); color: #fff; border-color: var(--color-action); }
 .producer-outlook .pa .producer-outlook-actions button:hover:not(:disabled) { background: var(--color-action-hover); }
+
+.producer-tip-list { margin: 0; padding-left: 1.1rem; display: grid; gap: var(--space-2); line-height: 1.5; }

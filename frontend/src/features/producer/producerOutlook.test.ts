@@ -32,7 +32,7 @@ describe("describeOutlook", () => {
   it("says there is possible water shortage on the alerted days and always asks to check the crop", () => {
     const outlook = describeOutlook(batch([available(1, "2026-06-04", false), available(2, "2026-06-05", true), available(3, "2026-06-06", true)]));
     expect(outlook.tone).toBe("alert");
-    expect(outlook.headline).toBe("Posible falta de agua pasado mañana y el sábado 6 de junio");
+    expect(outlook.headline).toBe("Alerta prevista: posible falta de agua pasado mañana y el sábado 6 de junio");
     expect(outlook.detail).toMatch(/revisá cómo está el cultivo/i);
     expect(outlook.days.map((d) => d.state)).toEqual(["clear", "alert", "alert"]);
   });
@@ -40,14 +40,14 @@ describe("describeOutlook", () => {
   it("never turns the absence of an alert into a guarantee", () => {
     const outlook = describeOutlook(batch([available(1, "2026-06-04", false), available(2, "2026-06-05", false), available(3, "2026-06-06", false)]));
     expect(outlook.tone).toBe("clear");
-    expect(outlook.headline).toBe("No se espera falta de agua en los próximos 3 días");
-    expect(outlook.detail).toMatch(/no garantiza que el cultivo esté bien/i);
+    expect(outlook.headline).toBe("Sin alerta prevista para los próximos 3 días");
+    expect(outlook.detail).toMatch(/no garantiza que el cultivo esté en buenas condiciones/i);
   });
 
   it("keeps «sin alerta» and «sin pronóstico» apart: a missing day is not a quiet day", () => {
     const outlook = describeOutlook(batch([available(1, "2026-06-04", false), unavailable(2, "2026-06-05"), unavailable(3, "2026-06-06")]));
     expect(outlook.tone).toBe("clear");
-    expect(outlook.headline).toBe("No se espera falta de agua mañana");
+    expect(outlook.headline).toBe("Sin alerta prevista para mañana");
     expect(outlook.detail).toMatch(/para pasado mañana y el sábado 6 de junio no hay pronóstico: eso no significa que no haya riesgo/i);
     expect(outlook.days.map((d) => d.state)).toEqual(["clear", "none", "none"]);
   });
@@ -71,9 +71,10 @@ describe("describeOutlook with old measurements", () => {
     const outlook = describeOutlook(batch([available(1, "2023-06-18", false), available(2, "2023-06-19", false), available(3, "2023-06-20", false)], { data_age_days: 1204, server_today: "2026-10-03" }));
     expect(outlook.tone).toBe("stale");
     expect(outlook.headline).toBe("Este pronóstico no es actual");
-    expect(outlook.detail).toMatch(/hace 1204 días.*no describe la situación de hoy/i);
-    expect(outlook.detail).toMatch(/para los días 18 al 20 de junio de 2023 indicaba: no se espera falta de agua/i);
-    expect(outlook.detail).toMatch(/revisá cómo está el cultivo/i);
+    expect(outlook.detail).toMatch(/la última medición es de hace 1204 días/i);
+    expect(outlook.detail).toMatch(/correspondía a los días 18 al 20 de junio de 2023/i);
+    expect(outlook.detail).toMatch(/indicaba: sin alerta prevista para los próximos 3 días/i);
+    expect(outlook.detail).toMatch(/revisá cómo está el cultivo ahora/i);
   });
   it("treats yesterday's measurements as normal and keeps the usual answer", () => {
     const outlook = describeOutlook(batch([available(1, "2026-06-04", false), available(2, "2026-06-05", false), available(3, "2026-06-06", false)], { data_age_days: 1 }));
@@ -82,7 +83,26 @@ describe("describeOutlook with old measurements", () => {
   it("keeps the alert wording visible when the data is old", () => {
     const outlook = describeOutlook(batch([available(1, "2026-06-04", true), unavailable(2, "2026-06-05"), unavailable(3, "2026-06-06")], { data_age_days: 5 }));
     expect(outlook.tone).toBe("stale");
-    expect(outlook.detail).toMatch(/indicaba: posible falta de agua/i);
+    expect(outlook.detail).toMatch(/indicaba: alerta prevista: posible falta de agua/i);
+  });
+});
+
+describe("semántica de «sin alerta»", () => {
+  const states = ["clear", "alert", "none"] as const;
+  const forbidden = /no se espera falta de agua|no habrá|sin estrés|sin falta de agua|todo bien|está bien\b|libre de/i;
+  it("nunca convierte alert=false en una garantía, para todas las combinaciones de días y de antigüedad de datos", () => {
+    for (const a of states) for (const b of states) for (const c of states) for (const age of [0, 1, 3, 1204]) {
+      const slot = (h: 1 | 2 | 3, st: (typeof states)[number]) => st === "none" ? unavailable(h, `2026-06-0${h + 3}`) : available(h, `2026-06-0${h + 3}`, st === "alert");
+      const outlook = describeOutlook(batch([slot(1, a), slot(2, b), slot(3, c)], { data_age_days: age }));
+      const text = `${outlook.headline} ${outlook.detail}`;
+      expect(text, `${a}/${b}/${c} edad ${age}`).not.toMatch(forbidden);
+      // Sin alerta siempre va acompañado de la aclaración de que no es una garantía.
+      if (outlook.tone === "clear") expect(outlook.detail).toMatch(/no garantiza/i);
+    }
+  });
+  it("un titular sin alerta dice «sin alerta prevista» y no «no hay falta de agua»", () => {
+    const outlook = describeOutlook(batch([available(1, "2026-06-04", false), available(2, "2026-06-05", false), available(3, "2026-06-06", false)]));
+    expect(outlook.headline).toMatch(/^sin alerta prevista/i);
   });
 });
 

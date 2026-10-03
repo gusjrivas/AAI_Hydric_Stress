@@ -145,3 +145,9 @@ textarea {
 .skip-link:focus {
   top: 0;
 }
+
+/* Controles de formulario: objetivo táctil mínimo de 44 px en todas las pantallas. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]),
+select {
+  min-height: 44px;
+}

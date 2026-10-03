@@ -87,4 +87,16 @@ describe("HistoricalMoistureChart", () => {
     rerender(<HistoricalMoistureChart readings={readings(BASE_ROWS)} emissionDate="2023-06-07" revealedThrough="2023-06-09" threshold={null} />);
     expect(screen.queryByText(/umbral 31.3 %/i)).not.toBeInTheDocument();
   });
+
+  it("draws what was observed after the emission differently from what existed when it was issued", () => {
+    const { container } = render(
+      <HistoricalMoistureChart readings={readings(BASE_ROWS)} emissionDate="2023-06-05" revealedThrough="2023-06-09" threshold={null} />,
+    );
+    // Observados: 04 y 05 (hasta la emisión); 08 (posterior). 06 es hueco, 07 imputado y 09 no verificado.
+    expect(container.querySelectorAll(".hmc-chart .hmc-obs:not(.hmc-obs--later)").length).toBe(2);
+    expect(container.querySelectorAll(".hmc-chart .hmc-obs--later").length).toBe(1);
+    expect(screen.getByRole("img", { name: /1 observados son posteriores a la emisión del 5 jun/i })).toBeInTheDocument();
+    expect(screen.getByText("Observado hasta la emisión")).toBeInTheDocument();
+    expect(screen.getByText("Observado después de la emisión")).toBeInTheDocument();
+  });
 });

@@ -24,3 +24,4 @@
 .hmc-legend li { display: inline-flex; align-items: center; gap: 6px; }
 .hmc-legend svg { flex: none; }
 .hmc-note { font-size: 0.875rem; color: var(--color-muted); }
+.hmc-obs--later { fill: #fff; stroke: var(--color-obs); stroke-width: 2.6; }
