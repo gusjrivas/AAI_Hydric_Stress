@@ -130,6 +130,11 @@ export function ResumenView({
             </p>
           )}
           <p className="rv-guidance">Se usa la última fecha con datos. Si esa fecha no cambia, no se agregan días nuevos al historial.</p>
+          {workspace.actionMessage && !workspace.runError && (
+            <p role="status" className="rv-guidance">
+              {workspace.actionMessage}
+            </p>
+          )}
           {workspace.runError && (
             <p role="alert" className="rv-error">
               {workspace.runError}
