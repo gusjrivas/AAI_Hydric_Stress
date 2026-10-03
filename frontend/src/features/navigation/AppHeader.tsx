@@ -24,6 +24,16 @@ const PRIMARY_ITEMS: PrimaryItem[] = [
     ),
   },
   {
+    group: "cultivo",
+    href: "#productor",
+    label: "Mi cultivo",
+    icon: (
+      <svg {...ICON_PROPS}>
+        <path d="M12 21V11M12 11c0-3 2-5 5-5 0 3-2 5-5 5zM12 14c0-2.500-1.800-4.200-4.500-4.200 0 2.500 1.800 4.200 4.500 4.200z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
     group: "laboratorio",
     href: "#laboratorio-sensores",
     label: "Laboratorio",

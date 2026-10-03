@@ -59,7 +59,7 @@
     border-top: 3px solid var(--color-cyan);
     padding-bottom: env(safe-area-inset-bottom);
   }
-  .app-primary-nav ul { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
+  .app-primary-nav ul { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; }
   .app-primary-nav li { min-width: 0; }
   .app-primary-nav a {
     flex-direction: column;

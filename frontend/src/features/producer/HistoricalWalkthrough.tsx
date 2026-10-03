@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ForecastCard } from "./ForecastCard";
 import { HistoricalMoistureChart } from "./HistoricalMoistureChart";
+import { FactsStrip } from "../shared/FactsStrip";
 import { getHistoricalForecastBatch, getHistoricalReadings, submitHistoricalReview } from "./historicalApi";
 import { displayForecastDate, type Forecast, type ForecastBatch, type ReviewRequest } from "./forecastsApi";
 import { displayDate, formatReadingValue, originLabel } from "./readingsApi";
@@ -251,12 +252,12 @@ export function HistoricalWalkthrough({
       <p>Elegí una emisión guardada y avanzá el reloj para ver las observaciones posteriores y registrar tu revisión. Solo hay cinco emisiones preparadas; este recorrido no genera pronósticos nuevos.</p>
 
       {defense && emissionDate && (
-        <dl className="historical-facts" aria-label="Contexto de lectura">
-          <div><dt>Datos que se ven</dt><dd>{sourceSummary.label}</dd><dd className="historical-facts-sub">{sourceSummary.detail}</dd></div>
-          <div><dt>Pronóstico emitido</dt><dd>{displayForecastDate(emissionDate)}</dd><dd className="historical-facts-sub">con datos hasta el {displayForecastDate(emissionDate)}</dd></div>
-          <div><dt>Aplica para</dt><dd>{displayDateRange(addDays(emissionDate, 1), addDays(emissionDate, 3))}</dd><dd className="historical-facts-sub">horizontes +1, +2 y +3 días</dd></div>
-          <div><dt>Reloj del recorrido</dt><dd>{displayForecastDate(effectiveReveal)}</dd><dd className="historical-facts-sub">se revelan datos hasta esta fecha</dd></div>
-        </dl>
+        <FactsStrip facts={[
+          { label: "Datos que se ven", value: sourceSummary.label, sub: sourceSummary.detail },
+          { label: "Pronóstico emitido", value: displayForecastDate(emissionDate), sub: `con datos hasta el ${displayForecastDate(emissionDate)}` },
+          { label: "Aplica para", value: displayDateRange(addDays(emissionDate, 1), addDays(emissionDate, 3)), sub: "horizontes +1, +2 y +3 días" },
+          { label: "Reloj del recorrido", value: displayForecastDate(effectiveReveal), sub: "se revelan datos hasta esta fecha" },
+        ]} />
       )}
       <div className="historical-walkthrough-controls">
         {defense && provenanceNotice}

@@ -34,7 +34,7 @@ export const DESTINATION_LABELS: Record<RouteId, string> = {
  * pertenece a exactamente una: el rediseño reorganiza la entrada, no elimina
  * ni renombra ninguna capacidad ni ningún ancla (`#resumen`, `#calidad`, etc.).
  */
-export type NavGroup = "seguimiento" | "laboratorio" | "evidencia" | "herramientas";
+export type NavGroup = "seguimiento" | "cultivo" | "laboratorio" | "evidencia" | "herramientas";
 
 export const ROUTE_GROUP: Record<RouteId, NavGroup> = {
   resumen: "herramientas",
@@ -42,7 +42,7 @@ export const ROUTE_GROUP: Record<RouteId, NavGroup> = {
   "defensa-melchor-romero": "seguimiento",
   "laboratorio-sensores": "laboratorio",
   "evidencia-resultados": "evidencia",
-  productor: "herramientas",
+  productor: "cultivo",
   prediccion: "herramientas",
   calidad: "herramientas",
   linaje: "herramientas",
@@ -50,6 +50,15 @@ export const ROUTE_GROUP: Record<RouteId, NavGroup> = {
 };
 
 export const TOOL_ROUTES: readonly RouteId[] = ROUTES.filter((id) => ROUTE_GROUP[id] === "herramientas");
+
+/**
+ * Pestañas de «Herramientas técnicas». «Resumen» e «Historial y observaciones»
+ * se presentan como una sola entrada («Resumen e historial») con un
+ * selector interno; `#prediccion` sigue siendo un ancla válida.
+ */
+export const TOOL_NAV_ROUTES: readonly RouteId[] = ["resumen", "calidad", "linaje", "evidencia"];
+export const TOOL_NAV_LABELS: Partial<Record<RouteId, string>> = { resumen: "Resumen e historial" };
+export const SUMMARY_PAIR: readonly RouteId[] = ["resumen", "prediccion"];
 
 function parseRoute(hash: string): RouteId {
   const id = hash.replace(/^#/, "");

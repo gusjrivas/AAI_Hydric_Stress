@@ -1,9 +1,9 @@
 import "./DestinationNav.css";
-import { DESTINATION_LABELS, TOOL_ROUTES } from "./useHashRoute";
+import { DESTINATION_LABELS, SUMMARY_PAIR, TOOL_NAV_LABELS, TOOL_NAV_ROUTES } from "./useHashRoute";
 import type { RouteId } from "./useHashRoute";
 
 /** Destinos de «Herramientas técnicas»: las capacidades que ya existían, sin cambios funcionales. */
-export function DestinationNav({ active, routes = TOOL_ROUTES }: { active: RouteId; routes?: readonly RouteId[] }) {
+export function DestinationNav({ active, routes = TOOL_NAV_ROUTES }: { active: RouteId; routes?: readonly RouteId[] }) {
   return (
     <nav className="dn-nav" aria-label="Destinos principales">
       <ul className="dn-list">
@@ -12,13 +12,26 @@ export function DestinationNav({ active, routes = TOOL_ROUTES }: { active: Route
             <a
               href={`#${routeId}`}
               className="dn-link"
-              aria-current={active === routeId ? "page" : undefined}
+              aria-current={active === routeId || (routeId === "resumen" && active === "prediccion") ? "page" : undefined}
             >
-              {DESTINATION_LABELS[routeId]}
+              {TOOL_NAV_LABELS[routeId] ?? DESTINATION_LABELS[routeId]}
             </a>
           </li>
         ))}
       </ul>
+    </nav>
+  );
+}
+
+/** Selector interno de «Resumen e historial»: dos vistas del mismo flujo, con sus anclas de siempre. */
+export function SummarySwitch({ active }: { active: RouteId }) {
+  return (
+    <nav className="dn-switch" aria-label="Resumen e historial">
+      {SUMMARY_PAIR.map((routeId) => (
+        <a key={routeId} href={`#${routeId}`} aria-current={active === routeId ? "page" : undefined}>
+          {DESTINATION_LABELS[routeId]}
+        </a>
+      ))}
     </nav>
   );
 }

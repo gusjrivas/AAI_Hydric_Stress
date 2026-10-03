@@ -32,6 +32,11 @@
   --color-alert-bg: #fbebe6;
   --color-alert-text-on-bg: #961f0e;
   --color-alert-border: #eab3a6;
+  --color-alert-ink: #961f0e;
+  --color-alert-badge-bg: #fbebe6;
+  --color-alert-dot: #961f0e;
+  --color-neutral-dot: #8190a6;
+  --color-success: #2b3b4a; /* sin verde: el éxito no se comunica con ese color */
   --color-safe: #2b3b4a; /* «sin alerta»: pizarra, nunca verde */
   --color-safe-bg: #eaeff3;
 

@@ -86,6 +86,29 @@ describe("ProducerView", () => {
     expect(screen.queryByText(/Sin alerta próxima/)).not.toBeInTheDocument();
   });
 
+  it("shows the reading strip only after an explicit forecast query, with provenance and data age", async () => {
+    vi.spyOn(catalogApi, "listSectors").mockResolvedValue({ items: [sector], next_cursor: null });
+    vi.spyOn(catalogApi, "listSensors").mockResolvedValue({ items: [sensor], next_cursor: null });
+    vi.spyOn(readingsApi, "getSensorReadings").mockResolvedValue({
+      sensor_id: "sensor-a", calendar_timezone: "UTC", server_today: "2026-01-05", snapshot_id: null,
+      window: { start_date: "2026-01-01", end_date: "2026-01-01", expected_days: 1 }, status: "no_readings",
+      rows: [], missing_dates: [], variable_coverage: [], units: {}, last_reading_date: null,
+      data_age_days: null, provenance: "unknown",
+    });
+    const slot = (h: 1 | 2 | 3) => ({ horizon_days: h, target_date: `2026-01-0${h + 5}`, status: "unavailable" as const, reason_code: "model_not_available" });
+    vi.spyOn(forecastsApi, "emitForecasts").mockResolvedValue({
+      batch_id: "b1", revision: 1, as_of_date: "2026-01-05", data_age_days: 2, server_today: "2026-01-07",
+      provenance: "synthetic", calendar_timezone: "UTC", slots: [slot(1), slot(2), slot(3)],
+    });
+    render(<ProducerView />);
+    expect(await screen.findByRole("heading", { name: "Mi cultivo", level: 1 })).toBeInTheDocument();
+    expect(screen.queryByText("Antigüedad de los datos")).not.toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "Consultar próximos tres días" }));
+    const strip = (await screen.findByText("Antigüedad de los datos")).closest("dl") as HTMLElement;
+    expect(strip).toHaveTextContent("2 días");
+    expect(strip).toHaveTextContent(/horizontes \+1, \+2 y \+3 días/);
+  });
+
   it("never emits a forecast automatically on entering Mi cultivo, switching tabs, or switching sensors", async () => {
     vi.spyOn(catalogApi, "listSectors").mockResolvedValue({ items: [sector], next_cursor: null });
     vi.spyOn(catalogApi, "listSensors").mockResolvedValue({ items: [sensor], next_cursor: null });
@@ -108,7 +131,7 @@ describe("ProducerView", () => {
     await screen.findByText("Datos simulados"); // sensor ya seleccionado, Mi cultivo montado
     await userEvent.click(await screen.findByRole("button", { name: "Historial" }));
     await userEvent.click(await screen.findByRole("button", { name: "Datos" }));
-    await userEvent.click(await screen.findByRole("button", { name: "Mi cultivo" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Pronóstico" }));
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(emit).not.toHaveBeenCalled();
   });

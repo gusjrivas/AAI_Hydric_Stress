@@ -43,3 +43,10 @@
     font-size: 0.875rem;
   }
 }
+
+/* Selector interno de «Resumen e historial» */
+.dn-switch { display: inline-flex; padding: 4px; gap: 4px; background: #fff; border: 1px solid var(--color-border); border-radius: 999px; margin: 0 0 var(--space-4); max-width: 100%; }
+.dn-switch a { min-height: 44px; display: inline-flex; align-items: center; padding: 0 var(--space-4); border-radius: 999px; color: var(--color-ink); font-weight: 600; text-decoration: none; }
+.dn-switch a:hover { background: var(--color-surface-2); }
+.dn-switch a[aria-current="page"] { background: var(--color-navy); color: #fff; }
+@media (max-width: 640px) { .dn-switch { width: 100%; } .dn-switch a { flex: 1; justify-content: center; text-align: center; padding: 0 var(--space-2); } }

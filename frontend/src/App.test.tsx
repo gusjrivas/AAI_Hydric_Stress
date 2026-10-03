@@ -135,11 +135,11 @@ describe("App — navegación por hash (Entrega 2)", () => {
     expect(screen.queryByText(/Melchor Romero · emisiones persistidas/i)).not.toBeInTheDocument();
   });
 
-  it("groups the app in four stable sections and marks the active one without hiding any capability", async () => {
+  it("groups the app in five stable sections and marks the active one without hiding any capability", async () => {
     window.location.hash = "#defensa-melchor-romero";
     render(<App />);
     const primary = screen.getByRole("navigation", { name: /secciones principales/i });
-    for (const label of ["Seguimiento histórico", "Laboratorio", "Evidencia", "Herramientas técnicas"]) {
+    for (const label of ["Seguimiento histórico", "Mi cultivo", "Laboratorio", "Evidencia", "Herramientas técnicas"]) {
       expect(within(primary).getByRole("link", { name: label })).toBeInTheDocument();
     }
     expect(within(primary).getByRole("link", { name: "Seguimiento histórico" })).toHaveAttribute("aria-current", "page");
@@ -149,14 +149,14 @@ describe("App — navegación por hash (Entrega 2)", () => {
     expect(within(locality).getByRole("link", { name: "Melchor Romero" })).toHaveAttribute("aria-current", "page");
     expect(within(locality).getByRole("link", { name: "Pergamino" })).not.toHaveAttribute("aria-current");
     // Las herramientas técnicas no se muestran fuera de su sección.
-    expect(screen.queryByRole("link", { name: "Mi cultivo" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Datos disponibles" })).not.toBeInTheDocument();
   });
 
   it("keeps every existing tool reachable from Herramientas técnicas", async () => {
     render(<App />);
     const primary = screen.getByRole("navigation", { name: /secciones principales/i });
     expect(within(primary).getByRole("link", { name: "Herramientas técnicas" })).toHaveAttribute("aria-current", "page");
-    for (const label of ["Resumen", "Mi cultivo", "Historial y observaciones", "Datos disponibles", "Ajustar próximos pronósticos", "Acerca de esta herramienta"]) {
+    for (const label of ["Resumen e historial", "Resumen", "Historial y observaciones", "Datos disponibles", "Ajustar próximos pronósticos", "Acerca de esta herramienta"]) {
       expect(screen.getByRole("link", { name: label })).toBeInTheDocument();
     }
     expect(screen.getByRole("link", { name: "Reproducción histórica" })).toBeInTheDocument();
@@ -247,7 +247,7 @@ describe("App — navegación por hash (Entrega 2)", () => {
     await userEvent.click(screen.getByRole("link", { name: "Datos disponibles" }));
     await screen.findByRole("heading", { name: "Datos disponibles" });
 
-    await userEvent.click(screen.getByRole("link", { name: "Resumen" }));
+    await userEvent.click(screen.getByRole("link", { name: "Resumen e historial" }));
     await screen.findByText("2024-10-31");
     // conservar el contexto no implica volver a consultar el historial
     expect(forecastApi.listFeedback).toHaveBeenCalledTimes(1);
@@ -321,7 +321,7 @@ describe("App — contexto del productor (HU6)", () => {
     await screen.findByRole("heading", { name: "Mi cultivo" });
     expect(screen.queryByLabelText(/punto de medición \(sensor\)/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/sensor activo/i)).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole("link", { name: "Resumen" }));
+    await userEvent.click(screen.getByRole("link", { name: "Herramientas técnicas" }));
     expect(await screen.findByLabelText(/punto de medición \(sensor\)/i)).toHaveValue("sensor-b");
     expect(screen.getByText(/sensor activo/i)).toHaveTextContent("sensor-b");
   });

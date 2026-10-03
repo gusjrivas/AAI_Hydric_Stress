@@ -31,24 +31,6 @@
 .app-defense .historical-walkthrough h4 { color: var(--color-navy); }
 .app-defense .historical-provenance { flex: 1 1 100%; margin: 0; background: var(--color-cyan-bg); border: 1px solid #a8e0ee; border-left: 4px solid var(--color-cyan); padding: 12px 16px; border-radius: 10px; line-height: 1.5; }
 
-/* Franja de contexto de lectura */
-.historical-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: var(--space-3) 0; border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; background: #fff; }
-.historical-facts > div { padding: var(--space-3) var(--space-4); border-top: 3px solid transparent; border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); min-width: 0; }
-.historical-facts > div:nth-child(2n) { border-right: 0; }
-.historical-facts > div:nth-child(1) { border-top-color: var(--color-action); }
-.historical-facts > div:nth-child(2) { border-top-color: var(--color-cyan); }
-.historical-facts > div:nth-child(3) { border-top-color: var(--color-navy); }
-.historical-facts > div:nth-child(4) { border-top-color: var(--color-cyan-soft); }
-.historical-facts dt { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--color-cyan-text); }
-.historical-facts dd { margin: 2px 0 0; font-weight: 650; font-size: 1.0625rem; overflow-wrap: anywhere; }
-.historical-facts dd.historical-facts-sub { font-weight: 400; font-size: .8125rem; color: var(--color-muted); }
-@media (min-width: 900px) {
-  .historical-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .historical-facts > div { border-bottom: 0; }
-  .historical-facts > div:nth-child(2n) { border-right: 1px solid var(--color-border); }
-  .historical-facts > div:last-child { border-right: 0; }
-}
-
 /* Controles */
 .app-defense .historical-walkthrough-controls label { min-width: min(100%, 260px); }
 .app-defense :is(input, select) { min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: 6px; padding: 8px 12px; font: inherit; color: var(--color-ink); background: #fff; }

@@ -7,7 +7,10 @@ import { ProducerTabs, PRODUCER_TAB_LABELS } from "./ProducerTabs";
 import type { ProducerTab } from "./ProducerTabs";
 import { ProducerHistoryScreen } from "./ProducerHistoryScreen";
 import { ProducerDataScreen } from "./ProducerDataScreen";
-import { alertOutlookSummary } from "./forecastsApi";
+import { alertOutlookSummary, displayForecastDate } from "./forecastsApi";
+import { provenanceLabel } from "./readingsApi";
+import { FactsStrip } from "../shared/FactsStrip";
+import type { Fact } from "../shared/FactsStrip";
 import type { ForecastBatch } from "./forecastsApi";
 import type { SensorSummary } from "./catalogApi";
 import "./ProducerView.css";
@@ -28,29 +31,35 @@ export function ProducerView() {
   }, []);
   const outlook = batch ? alertOutlookSummary(batch) : null;
 
+  const targets = batch ? batch.slots.map((slot) => slot.target_date).filter((date): date is string => !!date).sort() : [];
+  const facts: Fact[] | null = batch ? [
+    { label: "Datos que se ven", value: provenanceLabel(batch.provenance), sub: sensor?.display_name },
+    { label: "Pronóstico emitido", value: batch.as_of_date ? displayForecastDate(batch.as_of_date) : "No disponible", sub: "con la última medición disponible" },
+    { label: "Aplica para", value: targets.length ? (targets.length > 1 ? `${displayForecastDate(targets[0])} – ${displayForecastDate(targets[targets.length - 1])}` : displayForecastDate(targets[0])) : "No disponible", sub: "horizontes +1, +2 y +3 días" },
+    { label: "Antigüedad de los datos", value: batch.data_age_days === null ? "No disponible" : `${batch.data_age_days} día${batch.data_age_days === 1 ? "" : "s"}`, sub: "desde la última medición" },
+  ] : null;
+
   return (
     <div className="producer-view">
-      <header className="producer-header">
-        <div className="producer-header-left">
-          <span className="producer-brand" aria-hidden="true">
-            <svg viewBox="0 0 32 32" width="22" height="22"><path d="M16 3c5.5 7 9 11.5 9 16a9 9 0 0 1-18 0c0-4.5 3.5-9 9-16z" fill="#1443b6" /></svg>
-            Cultiv<em>IA</em>
-          </span>
-          {sensor && <ProducerTabs active={tab} onSelect={setTab} />}
-        </div>
-        <div className="producer-header-right">
-          <SectorSensorPicker onSelect={handleSelect} />
-        </div>
+      <header className="producer-page-head">
+        <p className="producer-eyebrow">Mi cultivo · seguimiento en vivo</p>
+        <h1 id="productor-heading" tabIndex={-1}>Mi cultivo</h1>
+        <p className="producer-lead">Elegí tu sector y punto de medición para ver el pronóstico, el historial y los datos disponibles.</p>
       </header>
+      <section className="producer-picker-card" aria-label="Sector y punto de medición">
+        <SectorSensorPicker onSelect={handleSelect} />
+      </section>
       {sensor && <div className="producer-context-caption">
         <span>Estás viendo <strong>{sensor.display_name}</strong></span>
-        {sensor.source_kind === "synthetic" && <span className="producer-sensor-tag">Datos simulados</span>}
-        {sensor.source_kind === "unknown" && <span className="producer-sensor-tag">Procedencia sin declarar</span>}
+        {sensor.source_kind === "synthetic" && <span className="producer-sensor-tag is-sim">Datos simulados</span>}
+        {sensor.source_kind === "unknown" && <span className="producer-sensor-tag is-unknown">Procedencia sin declarar</span>}
       </div>}
+      {sensor && <ProducerTabs active={tab} onSelect={setTab} />}
 
       {sensor ? <>
+        {tab === "cultivo" && facts && <FactsStrip facts={facts} />}
         <section className="producer-hero-heading" aria-labelledby="producer-tab-heading">
-          <h1 id="producer-tab-heading">{PRODUCER_TAB_LABELS[tab]}</h1>
+          <h2 id="producer-tab-heading">{PRODUCER_TAB_LABELS[tab]}</h2>
           <p>{TAB_SUBTITLES[tab]}</p>
         </section>
 

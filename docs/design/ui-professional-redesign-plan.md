@@ -137,3 +137,29 @@ advertencias que ya existían (`ProducerTabs`, `HistoricalReplayPage`).
 **Pendientes reales:** no se ejecutaron pasos del laboratorio contra el backend (escribirían datos sintéticos en el
 volumen del ensayo); los estados de carga/error y el laboratorio en curso se cubren con pruebas automatizadas, no con
 captura. La navegación por teclado y los lectores de pantalla no se revisaron de forma completa. Etapa 3 sin iniciar.
+
+## 9. Reorganización sobre el backend de `main` (tag `memoria-base-2026-09-29`)
+
+El backend expone tres familias: `/api/v2` (productor: sectores, sensores, lecturas, pronósticos, revisiones e
+históricos), el pipeline plano (pronóstico, feedback, recalibración, calidad, linaje, modelo activo) y `/replay`. La
+primera versión del rediseño cubría el histórico de `/api/v2`, el laboratorio (pipeline plano) y la evidencia, pero el flujo
+en vivo de `/api/v2` solo había cambiado de colores. Cambios:
+
+- **Cinco secciones** en la navegación principal: Seguimiento histórico, **Mi cultivo**, Laboratorio, Evidencia y
+  Herramientas técnicas (barra inferior de cinco entradas en móvil).
+- **Mi cultivo** rediseñado sobre `/api/v2`: encabezado de página, selector de sector y punto de medición en tarjeta,
+  pestañas Pronóstico, Historial y Datos, y la franja de contexto compartida (`FactsStrip`) con procedencia, fecha de
+  emisión, fechas de aplicación y antigüedad de los datos. La franja aparece solo después de una consulta explícita:
+  entrar a la pantalla, cambiar de pestaña o de sensor nunca emite un pronóstico.
+- **Herramientas técnicas** queda con el pipeline plano: «Resumen e historial» (una entrada con selector interno; las
+  anclas `#resumen` y `#prediccion` siguen válidas), Datos disponibles, Ajustar próximos pronósticos y Acerca de esta
+  herramienta, más la reproducción histórica. «Ajustar próximos pronósticos» sigue sin exponerse en Mi cultivo porque
+  el ensamble no tiene esa capacidad.
+- Se definieron cuatro variables de color que Mi cultivo usaba y que habían quedado sin valor al eliminar las paletas
+  locales.
+
+Verificado: 272/272 pruebas del frontend (más una nueva), `tsc` y lint sin advertencias nuevas; a 390 px, sin
+desbordamiento, contraste de texto ≥ 7,35:1 y controles ≥ 44 px en Mi cultivo y en las herramientas. Mi cultivo se revisó
+en el navegador contra el backend productor de Docker (sensores `pergamino-ensemble-demo` y `melchor-romero-demo`); no se
+emitió ningún pronóstico en vivo, por lo que la franja de contexto de Mi cultivo está cubierta por prueba automatizada y
+no por captura.

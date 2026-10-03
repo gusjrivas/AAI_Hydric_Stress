@@ -11,7 +11,7 @@ import { EvidencePanel } from "./features/evidence/EvidencePanel";
 import { ResumenView } from "./features/summary/ResumenView";
 import { ProducerView } from "./features/producer/ProducerView";
 import { AppHeader } from "./features/navigation/AppHeader";
-import { DestinationNav } from "./features/navigation/DestinationNav";
+import { DestinationNav, SummarySwitch } from "./features/navigation/DestinationNav";
 import { DESTINATION_LABELS, ROUTE_GROUP, useHashRoute } from "./features/navigation/useHashRoute";
 import type { NavGroup } from "./features/navigation/useHashRoute";
 import { DemoPage } from "./features/demo/DemoPage";
@@ -209,6 +209,8 @@ function App() {
           </section>
         )}
 
+        {!isDemoRoute && !isHistoricalReplayRoute && (route === "resumen" || route === "prediccion") && <SummarySwitch active={route} />}
+
         {!isDemoRoute && !isHistoricalReplayRoute && route === "resumen" && (
           <section aria-labelledby="resumen-heading">
             <h2 id="resumen-heading" className="app-section-heading" tabIndex={-1}>
@@ -223,14 +225,7 @@ function App() {
           </section>
         )}
 
-        {!isDemoRoute && route === "productor" && (
-          <section aria-labelledby="productor-heading">
-            <h2 id="productor-heading" className="app-section-heading" tabIndex={-1}>
-              Mi cultivo
-            </h2>
-            <ProducerView />
-          </section>
-        )}
+        {!isDemoRoute && route === "productor" && <ProducerView />}
 
         {!isDemoRoute && route === "prediccion" && (
           <section aria-labelledby="prediccion-heading">
