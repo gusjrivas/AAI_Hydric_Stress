@@ -6,7 +6,7 @@ Ver [`docs/adr/`](docs/adr/) para las decisiones de arquitectura y stack técnic
 
 ## Probar Mi cultivo con Docker
 
-La rama de integración incluye un entorno local aislado con datos y modelos
+El repositorio incluye un entorno local aislado con datos y modelos
 sintéticos, históricos y pronósticos revisables:
 
 ```powershell
@@ -29,8 +29,8 @@ Ver [`docs/seguimiento-tareas.md`](docs/seguimiento-tareas.md) para la auditorí
 | HU4 | `predictive-modeling` — modelado predictivo y alertas tempranas | ✅ Cerrada (revalidada sobre el esquema temporal y de selección vigente) |
 | HU5 | `human-feedback` — retroalimentación humana y recalibración | ✅ Cerrada (revalidada con recalibración temporalmente controlada) |
 | HU6 | `architecture-integration` — integración de la arquitectura | ✅ Cerrada (revalidada sobre la integración end-to-end vigente) |
-| HU7 | `experiment-runner` — diseño y ejecución del plan experimental | ✅ Completa |
-| HU8 | Análisis de resultados y contrastación de la hipótesis | ✅ Cerrada y revalidada científicamente sobre controlled_daily_v3 (falta la memoria técnica final) |
+| HU7 | `experiment-runner` — diseño y ejecución del plan experimental | ✅ Implementación y ejecución experimental completadas. La evidencia de `controlled_daily_v3` se preserva y la campaña externa `controlled_daily_v4_external_pergamino` ejecutó A, B, C y H. El cierre científico confirmatorio no se alcanzó: RB-05, `sc-06-scientific-synthesis`, `SC-GOV-025` y el gate `GF` permanecen en `FAIL` por una no conformidad de gobernanza documentada. |
+| HU8 | Análisis de resultados y contrastación de la hipótesis | 🟡 Análisis y discusión completados con limitaciones explícitas. Los resultados de `controlled_daily_v3` se preservan; B y C de `controlled_daily_v4_external_pergamino` se interpretan como evidencia retrospectiva exploratoria. No se declara validación agronómica ni cierre científico confirmatorio. La memoria técnica final continúa en elaboración. |
 
 Además de las HU del backlog de tesis, el repo incluye una interfaz de usuario (`backend/` + `frontend/`, ver sección siguiente) que expone HU5+HU6 y cierra el loop de recalibración manual disparada desde la UI (ver `docs/adr/0006-recalibracion-disparada-desde-la-ui.md`).
 
@@ -44,13 +44,20 @@ Además de las HU del backlog de tesis, el repo incluye una interfaz de usuario 
 - `src/experiment_runner/`: ejecución del plan experimental (escenarios de escasez/ruido, aumentación sintética, registro de corridas en MLflow).
 - `scripts/`: puntos de entrada de línea de comandos para correr cada pipeline sobre un dataset real (`run_data_quality_pipeline.py`, `run_end_to_end_pipeline.py`, conectores de ingesta).
 - `backend/`: API FastAPI de la interfaz de usuario (alerting-ui) — fachada delgada que orquesta el pipeline y expone `POST /sensors/{sensor_id}/readings`, `POST /forecast/{sensor_id}/run`, `GET /feedback/{sensor_id}` + confirmar/rechazar por fecha, `POST /recalibrate/{sensor_id}`, y tres endpoints de observabilidad de solo lectura para la demo académica (`GET /quality/{sensor_id}`, `GET /models/{sensor_id}/active`, `GET /lineage/{sensor_id}`).
-- `frontend/`: aplicación React + TypeScript (Vite) que consume esa API — recorrido de demo de una sola pantalla: datos IoT → calidad → features → predicción → alerta → feedback humano → recalibración → linaje, más un panel estático de evidencia científica formal (`controlled_daily_v3`).
+- `frontend/`: aplicación React + TypeScript (Vite) que consume la API del productor (`/api/v2`), el pipeline plano y `/replay`. Navegación en cinco secciones: **Seguimiento histórico**, **Mi cultivo** (pantalla de entrada, pensada para un productor), **Laboratorio** (datos sintéticos, sin validez de campo), **Evidencia** (por niveles, con el estado de gobernanza siempre visible) y **Herramientas técnicas** (recorrido datos → calidad → predicción → feedback → recalibración → linaje).
 - `openspec/specs/`: especificación viva de cada capacidad (requisitos, escenarios, verificación con datos reales, limitaciones conocidas). `openspec/changes/`: historial de decisiones de diseño por *change*.
 - `docs/adr/`: decisiones de arquitectura, desde el stack técnico del PoC (ADR-0001/0002) hasta el stack web, MLflow/MinIO y la dockerización de backend/frontend (ADR-0003 a ADR-0006).
 
 ## Interfaz de usuario (alerting-ui)
 
 Backend y frontend dockerizados que exponen el pipeline completo (HU6) y la retroalimentación humana (HU5), incluyendo recalibración manual del modelo desde un botón en la UI (ver `docs/seguimiento-tareas.md`, sección "Interfaz de usuario").
+
+La interfaz es apoyo a la decisión, no automatiza el riego. «Sin alerta prevista» no equivale a ausencia de estrés hídrico, y un pronóstico con datos viejos se señala como «Este pronóstico no es actual». Mi cultivo solo lee el último pronóstico guardado; nunca emite uno por su cuenta.
+
+- Diseño y criterios: [`docs/design/ui-professional-redesign-plan.md`](docs/design/ui-professional-redesign-plan.md) y [`docs/design/alerting-ui-visual-design.md`](docs/design/alerting-ui-visual-design.md). El prototipo de la etapa de diseño se conserva en `design/prototypes/ui-professional/`.
+- Prueba con un productor: [`docs/design/prueba-con-productor.md`](docs/design/prueba-con-productor.md).
+- Demo de defensa (Pergamino, Melchor Romero, Laboratorio): [`docs/design/defense-demo-startup-guide.md`](docs/design/defense-demo-startup-guide.md). Para reiniciarla de cero con la línea base verificada: `./scripts/demo_reset.ps1 -Action Reset -StartFrontend`.
+- Versiones congeladas: tag `memoria-base-2026-09-29` (backend y protocolo) y `memoria-ui-2026-10-03` (interfaz profesional, PR #231).
 
 Para levantar el stack completo (Postgres + MinIO + MLflow + backend + frontend):
 
@@ -92,12 +99,12 @@ npm install
 npm run test
 ```
 
-## Protocolo experimental vigente
+## Evidencia y protocolos experimentales
 
-La tercera auditoría introduce `controlled_daily_v3`: objetivo observado separado
- de entradas imputadas/ruidosas, calendario diario obligatorio, contratos completos
- de modelos y evaluación temporal del ciclo de recalibración. Ver
-[protocolo y próxima fase científica](docs/research/protocolo-experimental-v3.md).
-Las corridas previas permanecen como evidencia histórica. ET0 no integra HU7/HU8.
-La UI requiere un identificador de sensor y muestra el último pronóstico emitido,
-con su fecha objetivo; solo permite validar resultados cuyo día objetivo terminó.
+El repositorio conserva dos líneas de evidencia complementarias. `controlled_daily_v3` establece el esquema causal diario utilizado para la evaluación sobre Melchor Romero: objetivo observado separado de entradas imputadas o ruidosas, calendario diario obligatorio, contratos completos de modelos y evaluación temporal del ciclo de recalibración. Ver [protocolo experimental v3](docs/research/protocolo-experimental-v3.md).
+
+La campaña externa `controlled_daily_v4_external_pergamino` ejecutó las etapas A, B y C, junto con el complemento H, sobre datos de reanálisis de Pergamino. Los resultados y sus limitaciones se preservan. Sin embargo, la auditoría final RB-05 concluyó en `FAIL` por una no conformidad de gobernanza. En consecuencia, `sc-06-scientific-synthesis`, `SC-GOV-025` y el gate `GF` permanecen en `FAIL`. Las etapas B y C se interpretan como evidencia retrospectiva exploratoria y no como cierre científico confirmatorio.
+
+Las etapas A, B y C, junto con H, no deben repetirse dentro de la campaña cerrada. Una confirmación futura requeriría una campaña nueva, independiente y basada en datos no utilizados. Ver [estado canónico del cierre científico](openspec/scientific-closure/current-execution-checkpoint.md).
+
+La interfaz de reproducción histórica conserva la causalidad temporal: presenta la fecha de origen, mantiene ocultas las observaciones futuras hasta la fecha simulada correspondiente y solo habilita la retroalimentación cuando existe una observación real. Esta interfaz permite inspección y trazabilidad. No constituye validación agronómica, eficacia de campo ni operación automática del riego.
