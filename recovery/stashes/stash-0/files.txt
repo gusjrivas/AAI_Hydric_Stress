@@ -1,0 +1,4 @@
+M	.codebase-memory/artifact.json
+M	.codebase-memory/graph.db.zst
+A	docs/design/plan-robustez-tecnica-defensa-2026-09-27.md
+A	revision-documental-3ebb004.patch

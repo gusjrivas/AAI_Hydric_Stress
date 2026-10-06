@@ -1,0 +1,10 @@
+const fs=require('node:fs'),assert=require('node:assert/strict'),{JSDOM}=require('../../frontend/node_modules/jsdom');
+const errors=[];const dom=new JSDOM(fs.readFileSync(__dirname+'/cultivo-claro-v2.html','utf8'),{runScripts:'dangerously',beforeParse(w){w.ResizeObserver=class{observe(){}};w.addEventListener('error',e=>errors.push(e.message));}});
+const q=s=>dom.window.document.querySelector(s),all=s=>[...dom.window.document.querySelectorAll(s)],change=(s,v)=>{q(s).value=v;q(s).dispatchEvent(new dom.window.Event('change'));};
+q('[data-nav="history"]').click();assert.equal(all('#c-source-records article').length,7);assert.equal(q('#c-input-soil').textContent,q('#c-moisture').textContent);
+const air=q('#c-input-air').textContent;change('#c-period','30');assert.equal(all('#c-source-records article').length,30);assert.equal(q('#c-input-air').textContent,air);assert.match(q('#c-source-quality').textContent,/un día sin lectura/);
+const predictions=q('#c-days').textContent;
+q('#c-sensor-name').value='Cantero junto al ingreso';q('#c-register-form').dispatchEvent(new dom.window.Event('submit',{cancelable:true}));assert.match(q('#c-extra-sensors').textContent,/Cantero junto al ingreso/);assert.match(q('#c-extra-sensors').textContent,/No se usa en el pronóstico/);assert.equal(q('#c-days').textContent,predictions);
+q('#c-sensor-name').value='Cantero junto al ingreso';q('#c-register-form').dispatchEvent(new dom.window.Event('submit',{cancelable:true}));assert.equal(all('#c-extra-sensors .c-sensor-row').length,1);
+change('#c-sector','sur');assert.equal(q('#c-extra-sensors').textContent,'');assert.equal(q('#c-register-result').hidden,true);change('#c-sector','norte');assert.equal(all('#c-extra-sensors .c-sensor-row').length,1);
+assert.deepEqual(errors,[]);console.log('PASS: registros coherentes, variables predictoras, faltantes, alta local, duplicados y aislamiento por sector.');dom.window.close();

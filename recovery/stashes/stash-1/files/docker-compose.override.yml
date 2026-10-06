@@ -1,0 +1,9 @@
+services:
+  minio:
+    ports: !override
+      - "9002:9000"
+      - "9003:9001"
+
+  mlflow:
+    ports: !override
+      - "5001:5000"

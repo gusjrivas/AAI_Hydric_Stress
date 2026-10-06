@@ -1,0 +1,775 @@
+diff --git a/docs/design/plan-robustez-tecnica-defensa-2026-09-27.md b/docs/design/plan-robustez-tecnica-defensa-2026-09-27.md
+new file mode 100644
+index 0000000..98b9bb1
+--- /dev/null
++++ b/docs/design/plan-robustez-tecnica-defensa-2026-09-27.md
+@@ -0,0 +1,187 @@
++# Plan de robustez técnica y científica para defensa de maestría
++
++**Fecha:** 2026-09-27
++
++**Origen:** auditoría de arquitectura sobre el grafo indexado (`codebase-memory-mcp`,
++`C-Repo-AAI_Hydric_Stress`, snapshot `57c0a86`) más relevamiento de estado de
++`openspec/scientific-closure/`, `docs/seguimiento-tareas.md` y suites de test
++(2026-09-27).
++
++**Carácter del documento:** plan de ejecución para Codex. No es una spec OpenSpec,
++no autoriza HU7/HU8 A/B/C ni reapertura de holdouts, no reemplaza
++`docs/research/protocolo-experimental-v3.md` ni las decisiones registradas en
++`openspec/scientific-closure/decisions.md`.
++
++## 0. Restricción no negociable — leer antes de ejecutar cualquier tarea
++
++El cierre científico HU7/HU8 sobre `controlled_daily_v4` **ya terminó, en FAIL,
++de forma deliberada e irreversible** (GD-40, `openspec/scientific-closure/decisions.md`,
++2026-09-22): la no conformidad se aceptó como "desviación histórica permanente e
++irreparable", el holdout consumido no se reabre, y una confirmación futura
++"requeriría datos nuevos y sería otro trabajo, no una reparación de esta campaña".
++
++En consecuencia, ninguna tarea de este plan puede:
++
++- reejecutar o revalidar A/B/C/H de `controlled_daily_v4`;
++- abrir el holdout final;
++- modificar `controlled_daily_v3` salvo bug metodológico demostrado (AGENTS.md);
++- tratar el resultado FAIL como un error a corregir (no lo es: ausencia de mejora
++  o resultado negativo válido no se "arregla").
++
++Si una tarea de Track C requiere tocar algo de lo anterior, se detiene y se
++registra como `BLOCKED`, no se reinterpreta el alcance.
++
++## Track A — Cierre de hallazgos de la auditoría de arquitectura
++
++Riesgo: bajo. No toca hipótesis, arquitectura ni experimentos.
++
++### A1. Documentar la limitación del extractor de `codebase-memory-mcp`
++
++El detector de "código muerto" del grafo no reconoce `Depends(...)` de FastAPI
++ni callbacks referenciados en JSX (`onClick={fn}`). Se verificaron como falsos
++positivos: `backend/app/config.py` / `dependencies.py` (funciones `is_*_enabled`,
++`require_*_enabled`), y en frontend `ForecastCard.cancel`,
++`RecalibrationPanel.handleRecalibrate`, `HistoricalReplayPage.resetClock`.
++
++- Agregar una nota breve en este mismo archivo de plan (sección "Notas de
++  cierre" al final, tras ejecutar) o en un comentario de una línea en el README
++  de auditorías si existe uno — **no crear un documento nuevo solo para esto**.
++- No requiere cambio de código.
++
++### A2. Blindar `OperationalRepository` (`src/human_feedback/operational_repository.py`)
++
++Concentración real de dependencias: alto fan-in cruzando backend, tests y
++`docker/producer-preview/prepare.py`. No se propone refactor (fuera de alcance
++sin pedido explícito), sí blindaje antes de que alguien lo toque sin saber el
++blast radius:
++
++- Revisar que exista cobertura de test sobre la interfaz pública de
++  `OperationalRepository` (no solo sobre los 3 llamadores directos detectados:
++  `backend/app/dependencies.get_operational_repository` y
++  `docker/producer-preview/prepare.py` x2). Si falta cobertura de algún método
++  público, agregar tests — no cambiar la implementación.
++- Documentar en un docstring corto (una línea, solo si no existe ya) que esta
++  clase es punto de alto acoplamiento y cambios de firma requieren revisar
++  todos los llamadores vía `grep -rn "OperationalRepository"`, no solo vía el
++  grafo (por la limitación de A1 con patrones indirectos).
++
++### A3. Cerrar el punto de "código muerto" sin acción
++
++No hay dead code real confirmado tras verificación manual. No ejecutar ninguna
++eliminación de código a partir de resultados del grafo sin confirmar primero
++con `grep` (lección de A1).
++
++## Track B — Robustez técnica general (backend/frontend)
++
++Riesgo: bajo. Mejora defendibilidad ante preguntas de jurado sobre calidad de
++ingeniería, sin tocar resultados experimentales.
++
++### B1. Medir cobertura de tests (sin gate estricto todavía)
++
++Estado relevado: 894 tests backend pasan (3 skipped), 162 tests frontend pasan
++(vitest, 23 archivos), `npm run build` limpio. No hay `pytest-cov` ni
++`.coveragerc` configurado — no hay visibilidad de qué % de código está cubierto.
++
++- Agregar `pytest-cov` a las dependencias de test y un `.coveragerc` (o
++  configuración equivalente en `pyproject.toml`) que excluya migraciones,
++  fixtures y código generado.
++- Correr la suite completa con cobertura y guardar el reporte (no fijar un
++  umbral mínimo todavía — primero medir, luego decidir si hace falta un gate,
++  eso es una decisión de HU4/HU6 fuera de este plan).
++- Reportar el % global y los 3-5 módulos con menor cobertura en
++  `docs/seguimiento-tareas.md`, sin implicar que baja cobertura sea per se un
++  bug.
++
++### B2. Cerrar pendiente conocido de `add-causal-historical-replay` (HU7/HU8)
++
++Documentado en `docs/seguimiento-tareas.md` como pendiente no bloqueante:
++`GET /replay/history` no distingue `medida` / `imputada` / `no_determinado`
++por fila.
++
++- Ubicar el endpoint (`backend/app/routers/replay.py` según hallazgo de
++  auditoría) y el modelo de respuesta Pydantic asociado.
++- Agregar el campo de distinción por fila si el dato de origen ya lo permite
++  (`data_ingestion.schema` u origen equivalente). Si el dato de origen no lo
++  distingue, documentar la limitación explícitamente en la respuesta/schema en
++  vez de inferir el valor (regla de AGENTS.md: "prohibido completar evidencia
++  faltante mediante inferencias" aplica también a este tipo de dato).
++- Agregar test que cubra explícitamente una fila medida y una imputada.
++
++### B3. Probar escritura concurrente de feedback para la misma predicción
++
++Pendiente documentado, no probado: dos escrituras concurrentes de feedback
++sobre la misma predicción (`human-feedback`, HU5).
++
++- Escribir un test de concurrencia (dos requests simultáneas o secuencia que
++  fuerce condición de carrera) contra el endpoint de feedback.
++- Si aparece una condición de carrera real, corregir con el mecanismo mínimo
++  necesario (lock optimista o constraint de base de datos) — no rediseñar el
++  flujo de feedback.
++
++### B4. Validación de contratos backend↔`data_ingestion.schema`
++
++Verificar puntualmente (no auditoría exhaustiva) que los modelos Pydantic de
++request/response en los routers reflejan los nombres de columnas de
++`data_ingestion.schema`, como exige la skill `backend-python-fastapi-mlflow`.
++Si se encuentra una discrepancia de nombres, corregirla; si no se encuentra
++ninguna, cerrar el punto sin cambios.
++
++## Track C — Robustez científica dentro del alcance permitido por GD-40
++
++Riesgo: requiere criterio. No hay cambios de código en este track, solo
++verificación editorial/documental.
++
++### C1. Verificar consistencia de la posición de defensa
++
++- Contrastar `docs/research/thesis-defense-position.md` contra
++  `openspec/scientific-closure/decisions.md` (GD-40) y el README canónico de
++  `openspec/scientific-closure/` para confirmar que no hay contradicciones de
++  fecha, alcance o redacción entre los tres documentos.
++- Si se detecta una inconsistencia, reportarla como hallazgo — no resolverla
++  unilateralmente reescribiendo la posición de defensa sin que el usuario la
++  revise, dado que es contenido de defensa de tesis.
++
++### C2. Verificar que `add-causal-historical-replay` no excede su alcance declarado
++
++Este change (HU7/HU8) opera sobre `base-seed4` / `controlled_daily_v3`, no
++sobre `controlled_daily_v4`. Confirmar que ningún archivo tocado por B2/B3
++(Track B) introduce una dependencia accidental hacia artefactos de
++`controlled_daily_v4` o hacia el holdout. Si aparece alguna referencia,
++detener y reportar como `BLOCKED`, no removerla sin entender por qué está.
++
++### C3. No generar nueva narrativa científica
++
++Este plan no produce afirmaciones nuevas sobre desempeño de modelos,
++comparaciones A/B/C, ni conclusiones. Cualquier necesidad de ese tipo que
++surja durante la ejecución se registra como fuera de alcance y se deriva al
++protocolo formal de `openspec/scientific-closure/` (roles R/H/N/S), no se
++resuelve dentro de este plan.
++
++## Reglas de ejecución para Codex
++
++- Un cambio acotado por tarea (A1-A3, B1-B4, C1-C3 son unidades independientes;
++  no mezclar varias en un solo commit).
++- Antes de tocar código: leer `AGENTS.md`, la spec de la capacidad afectada en
++  `openspec/specs/`, y el ADR correspondiente (0003 backend-facade, 0009
++  contratos temporales, 0013 backend-ui-productor según la tarea).
++- Ejecutar los tests afectados después de cada tarea; no avanzar a la
++  siguiente con tests rotos.
++- No hacer push, merge, PR, rebase, tag ni release sin aprobación explícita
++  del usuario en cada caso — la aprobación de una tarea no autoriza las
++  siguientes.
++- No tocar `.codex/agents/*.toml` (roles del protocolo scientific-closure) ni
++  invocar `scientific_explorer`/`scientific_implementer`/`evidence_checker`/
++  `scientific_critic`/`scientific_auditor` para nada de este plan — Track C es
++  documental, no requiere el protocolo formal de cierre.
++- Registrar cada tarea completada en `docs/seguimiento-tareas.md` siguiendo el
++  formato existente (HU/capacidad, fase CRISP-DM, impacto, evidencia).
++
++## Orden sugerido
++
++1. A3 (cierre sin acción, 5 min) → A1 (nota breve, 15 min).
++2. B1 (medir cobertura, base para priorizar) → B4 (validación de contratos,
++   acotado) → A2 (blindaje de tests sobre `OperationalRepository`).
++3. B2 y B3 (requieren entender el dato de origen y el flujo de escritura;
++   hacer después de tener cobertura visible de B1 para saber si ya hay tests
++   parciales que reutilizar).
++4. C1 y C2 al final, como verificación de cierre — no bloquean A/B.
+diff --git a/revision-documental-3ebb004.patch b/revision-documental-3ebb004.patch
+new file mode 100644
+index 0000000..00a17a4
+--- /dev/null
++++ b/revision-documental-3ebb004.patch
+@@ -0,0 +1,576 @@
++diff --git a/docs/research/scientific-closure-synthesis-2026-09-22.md b/docs/research/scientific-closure-synthesis-2026-09-22.md
++index 1e0e52a..6ba63e9 100644
++--- a/docs/research/scientific-closure-synthesis-2026-09-22.md
+++++ b/docs/research/scientific-closure-synthesis-2026-09-22.md
++@@ -1,5 +1,13 @@
++ # Síntesis científica canónica del cierre — 2026-09-22
++ 
+++**Estado canónico vigente — normalización 2026-09-26.** RB-05 fue ejecutada y
+++terminó en `FAIL`; `sc-06-scientific-synthesis`, `SC-GOV-025` y `GF` están en
+++`FAIL`. H fue ejecutado y auditado. R/N/S son `NOT_APPLICABLE` a nivel requisito
+++y sus changes permanecen bloqueados por gate negativo. B y C se leen únicamente
+++como evidencia retrospectiva exploratoria. No quedan campañas v4 pendientes y
+++el holdout no se reabre. Esta cabecera y la §7.4 gobiernan cualquier frase
+++histórica que pudiera sugerir una lectura confirmatoria.
+++
++ **Nota de reconciliación.** Este documento se redactó originalmente en la rama
++ `feat/scientific-evidence-finalization` (commit `7e63d1c`, revisado y corregido
++ hasta `f355272`, PR #211) y se incorpora aquí, a `feat/scientific-closure`, como
++@@ -50,16 +58,17 @@ supera de forma **estable** a sus rivales y, al evaluarse una única vez sobre
++ 
++ **Respuesta, en dos partes.**
++ 
++-1. La primera mitad de la hipótesis —existencia de un ganador **estable**— quedó
++-   **refutada**. La Etapa A terminó en `SIN_GANADOR_ESTABLE`.
++-2. La segunda mitad —no inferioridad frente a persistencia— quedó **satisfecha**
++-   para el candidato fijado por el desempate predeclarado, y el holdout final
++-   confirmó una ventaja en MCC. Esto **no** rehabilita la primera mitad: el
++-   modelo evaluado no es el mejor de su grilla, es el más simple de un conjunto
++-   de equivalencia.
++-
++-Esta combinación es un resultado válido del protocolo. No es un defecto de
++-software ni un fracaso experimental.
+++1. En A no se identificó un ganador **estable**: la etapa terminó en
+++   `SIN_GANADOR_ESTABLE` y el candidato se fijó por el desempate predeclarado de
+++   simplicidad.
+++2. En B se observó no inferioridad frente a persistencia y en C una diferencia
+++   favorable en MCC. Por la desviación cronológica de gates M-01/RK-20, ambos
+++   resultados son **evidencia retrospectiva exploratoria** y no confirman la
+++   hipótesis ni el cumplimiento de la secuencia protocolar.
+++
+++La combinación constituye un resultado experimental informativo y
+++reproducible, con una no conformidad de gobernanza declarada. No es un defecto
+++de software, pero tampoco una validación confirmatoria.
++ 
++ ---
++ 
++diff --git a/docs/research/thesis-defense-position.md b/docs/research/thesis-defense-position.md
++new file mode 100644
++index 0000000..b50b0af
++--- /dev/null
+++++ b/docs/research/thesis-defense-position.md
++@@ -0,0 +1,139 @@
+++# Posición para la tesis y la defensa
+++
+++## Tesis central defendible
+++
+++El trabajo demuestra que es posible construir e integrar, con trazabilidad
+++temporal y reproducibilidad, un sistema de apoyo a la decisión para anticipar
+++un proxy de baja humedad de suelo a tres días. La contribución principal es la
+++arquitectura de IA, su integración y una evaluación crítica que conserva tanto
+++los resultados favorables como los negativos y las desviaciones metodológicas.
+++
+++## Contribuciones
+++
+++- Pipeline reproducible de ingestión, calidad, modelado, alertas y feedback.
+++- Comparación temporal de cuatro familias y selección por una regla
+++  predeclarada de simplicidad cuando no apareció un ganador estable.
+++- Evaluación en una segunda fuente agroclimática y análisis de episodios,
+++  calibración, falsos avisos y deriva de prevalencia.
+++- Mecanismo HITL implementado y ensayado con correcciones simuladas, sin atribuir
+++  causalmente una mejora al feedback humano.
+++- Gobernanza que documenta limitaciones y una no conformidad en vez de ocultarla.
+++
+++## Resultados que sí pueden presentarse
+++
+++- A terminó en `SIN_GANADOR_ESTABLE`; el modelo se fijó por desempate
+++  predeclarado, no por superioridad.
+++- B mostró no inferioridad frente a persistencia y C produjo una diferencia
+++  favorable en MCC, ambos como evidencia retrospectiva exploratoria.
+++- H verificó el mecanismo técnico de corrección/recalibración con efectos de
+++  signo mixto y sin demostrar beneficio humano.
+++- Los resultados numéricos son reales y fueron recomputados; la secuencia de
+++  auditoría entre gates no satisfizo el protocolo predeclarado.
+++
+++## Tres carriles de evidencia que no deben mezclarse
+++
+++| Carril | Qué existe | Qué puede afirmarse | Límite obligatorio | Fuentes primarias |
+++| --- | --- | --- | --- | --- |
+++| **Melchor Romero — `controlled_daily_v3`** | Evidencia formal histórica sobre ocho configuraciones y cinco semillas, con horizonte t+3, dataset `melchor_romero_2024_consolidado` y resultados preservados | Permite describir el comportamiento comparativo histórico dentro de ese diseño: por ejemplo, `recent_fraction_0.5` tuvo las mayores medias de F1/MCC/AP de la tabla formal; sintéticos y anomalías tuvieron aportes mixtos | No es evidencia v4, no se extrapola a Pergamino y debe declararse la imputación causal de huecos de humedad. No prueba detección de anomalías reales, robustez general ni superioridad universal | `docs/research/reference-v3-formal-table.md`; `docs/research/reference-v3-formal-results.json`; `docs/research/hu8-resultados-discusion-conclusiones.md` §8 |
+++| **Pergamino — `controlled_daily_v4` A/B/C/H** | A terminó en `SIN_GANADOR_ESTABLE`; B observó no inferioridad; C produjo una diferencia favorable en MCC; H ensayó correcciones supervisadas simuladas | Los valores numéricos se conservan y pueden presentarse con soporte, calibración, falsos avisos y demás limitaciones | B y C son evidencia retrospectiva exploratoria, no confirmatoria; H no demuestra beneficio humano; `GF` y `SC-GOV-025` terminaron en `FAIL` | `docs/research/scientific-closure-synthesis-2026-09-22.md`; `openspec/scientific-closure/traceability.md`; GD-38/GD-40 |
+++| **Ensamble demostrativo de Pergamino** | Refit técnico propio de tres familias para +1/+2/+3: nueve modelos y nueve calibradores, tres manifests y verificación HTTP real | Demuestra que el contrato operativo del ensamble puede empaquetarse, cargarse e inferir en los tres horizontes con los datos permitidos de Pergamino | Tiene identidad, ventanas, calibración y contrato de features propios. No reutiliza artefactos ajustados de v4, no reejecuta A/B/C, no abre 2024–2025 y no aporta evidencia confirmatoria | `docs/design/ensemble-real-execution-report-2026-09-26.md` §§6–9; `src/experiment_runner/pergamino_ensemble_demo_runner.py:1-38,339-475` |
+++
+++La separación entre carriles es parte del argumento científico: que dos carriles
+++usen Pergamino o compartan constructores de modelos no los convierte en la misma
+++campaña, el mismo contrato ni la misma clase de evidencia.
+++
+++## Qué significa hoy una alerta del ensamble
+++
+++La decisión vigente **no es una votación mayoritaria**. Para cada horizonte, el
+++sistema calcula el promedio aritmético de las tres probabilidades calibradas y
+++emite `combined_alert = combined_probability >= 0.5`. `positive_votes` cuenta
+++los componentes que individualmente cruzan el umbral y `agreement_category`
+++traduce ese conteo a una etiqueta de acuerdo; ambos son metadata descriptiva y
+++no gobiernan la alerta. El contrato está implementado en
+++`src/predictive_modeling/ensemble_bundle.py:343-351` y validado nuevamente en
+++`backend/app/schemas_v2.py:202-243`.
+++
+++Los tests de discrepancia vuelven observable esta distinción:
+++`tests/test_ensemble_bundle.py:440-483` prueba tanto dos votos positivos con
+++alerta combinada negativa como un solo voto positivo con alerta combinada
+++positiva; `backend/tests/test_producer_v2_ensemble.py:174-216` confirma que la
+++API y el feedback siguen `combined_alert`, no la categoría de mayoría. Por lo
+++tanto, adoptar mayoría como política sería un cambio futuro de contrato,
+++pendiente y **no implementado**; no debe describirse como comportamiento actual.
+++
+++La probabilidad del ensamble tampoco está habilitada para presentación al
+++usuario: la emisión persiste `display_probability=None`,
+++`probability_status=not_qualified` y razón `incompatible_assessment`
+++(`src/architecture_integration/producer_emission.py:144-178`). El campo
+++`combined_probability` existe para el contrato técnico y la decisión binaria;
+++no debe mostrarse ni narrarse como riesgo calibrado para el productor.
+++
+++## Dos circuitos de feedback distintos
+++
+++| Circuito | Qué hace | Qué no hace | Fuente primaria |
+++| --- | --- | --- | --- |
+++| **Review API v2 del pronóstico** | `POST /api/v2/sensors/{sensor_id}/forecasts/{forecast_id}/reviews` registra `confirm`/`reject`, revisión y comentario. En modo ensamble, el `alert` superior está obligado a coincidir con `ensemble.combined_alert`; la opinión se refiere a esa decisión binaria | No cambia los nueve bundles ni recalibra automáticamente. El repositorio sólo escribe el evento; `training_eligibility` declara que `applied` no se alcanza allí y que el ensamble resulta `incompatible_source_model` porque no tiene una única `calibration_version` | `backend/app/routers/producer_v2.py:365-385`; `src/human_feedback/operational_repository.py:686-843`; `src/human_feedback/operational_repository.py:144-148` |
+++| **Review del recorrido histórico** | Registra una prueba técnica bajo reloj simulado y en un store separado del review operativo | No es opinión real de productor/experto, no modifica bundles y no dispara recalibración. Los tests verifican hashes idénticos antes/después y aislamiento entre ambos stores | `backend/app/routers/producer_v2.py:416-425,557-610`; `src/human_feedback/historical_review_store.py`; `backend/tests/test_pergamino_ensemble_historical_reproduction.py:208-243,392-437` |
+++| **Recalibración legacy/HU5** | `POST /recalibrate/{sensor_id}` carga el log HU5, selecciona correcciones rechazadas maduras, refitea un predictor y registra un sucesor con linaje | Es un circuito manual de **un solo modelo**; no consume el review histórico del ensamble ni recalibra sus tres componentes/nueve bundles como conjunto | `backend/app/routers/recalibration.py:34-113`; `src/human_feedback/recalibration.py:51-125`; `openspec/specs/human-feedback/spec.md` |
+++
+++El complemento científico H es otra cosa: una simulación controlada de
+++correcciones. Sirve para evaluar el mecanismo bajo su diseño predeclarado, pero
+++no convierte ninguno de estos circuitos en evidencia de mejora causada por
+++feedback humano real.
+++
+++## Limitación en una frase
+++
+++Cada carril o evaluación corresponde a un solo sitio: v3 a Melchor Romero y
+++v4/ensamble demostrativo a Pergamino. El conjunto no constituye validación
+++multisitio ni agronómica longitudinal; además, B y C no son confirmatorias por
+++la desviación cronológica de gates y no hubo evaluación con usuarios finales.
+++
+++## Afirmaciones prohibidas
+++
+++- Superioridad general de IA o del modelo elegido.
+++- Confirmación de la hipótesis mediante B o C.
+++- Validación agronómica, ahorro de agua o estrés fisiológico medido.
+++- Mejora causada por feedback humano.
+++- Generalización geográfica u operación productiva demostradas.
+++- Robustez ante sensores ausentes, detección reservada de corrupciones o error
+++  continuo de humedad, que no se evaluaron en esta campaña.
+++
+++## Estructura sugerida de defensa
+++
+++1. Problema y alcance: apoyo a la decisión, no automatización del riego.
+++2. Arquitectura y contribución de IA.
+++3. Diseño temporal, baselines y criterios predeclarados.
+++4. Resultados A, B, C y H, separando hechos de inferencias.
+++5. Limitaciones y no conformidad de gates.
+++6. Contribuciones que permanecen válidas y trabajo futuro.
+++
+++## Preguntas difíciles y respuestas honestas
+++
+++**¿La hipótesis quedó confirmada?** No de manera confirmatoria. A no encontró un
+++ganador estable; B y C aportan evidencia exploratoria útil, pero la secuencia de
+++auditoría de gates no cumplió el protocolo predeclarado.
+++
+++**¿Entonces el experimento fracasó?** No. Produjo resultados reproducibles,
+++incluido un resultado negativo en selección, y permitió cuantificar desempeño,
+++calibración, falsos avisos y límites. Lo que no corresponde es elevarlo a
+++confirmación.
+++
+++**¿Por qué no repetirlo desde otra rama?** Porque cambiar de rama no recupera
+++cegamiento: el holdout ya fue observado. Una confirmación exigiría datos nuevos.
+++
+++**¿Qué aporta el HITL?** Acredita el circuito técnico y el efecto de correcciones
+++simuladas; no demuestra mejora causada por una persona real.
+++
+++**¿La alerta del ensamble sale por mayoría?** No. Sale del promedio aritmético
+++de tres probabilidades comparado con 0,5. Los votos y la categoría de acuerdo
+++son metadata; una política de mayoría sería trabajo futuro.
+++
+++**¿Confirmar o rechazar una alerta recalibra el ensamble?** No. El review v2 o
+++histórico registra la opinión sobre `combined_alert`; no modifica los nueve
+++bundles. La recalibración manual HU5 es un endpoint legacy separado y opera
+++sobre un único predictor.
+++
+++**¿Qué hace que el trabajo sea una tesis de IA?** La formulación predictiva,
+++comparación de modelos, control temporal, análisis de incertidumbre e integración
+++del ciclo de feedback; los sensores son fuentes de datos, no la contribución
+++central.
++diff --git a/openspec/changes/sc-06-scientific-synthesis/tasks.md b/openspec/changes/sc-06-scientific-synthesis/tasks.md
++index 606c588..dedbaad 100644
++--- a/openspec/changes/sc-06-scientific-synthesis/tasks.md
+++++ b/openspec/changes/sc-06-scientific-synthesis/tasks.md
++@@ -5,6 +5,12 @@ administrativamente con no conformidad declarada, no con `PASS`
++ (`decisions.md` GD-40). Marcar una tarea **no** acredita suficiencia
++ científica: ningún PASS estructural equivale a cierre científico.
++ 
+++**Normalización 2026-09-26.** No quedan tareas experimentales ni rondas de
+++reintento pendientes en este change. T25 se ejecutó y terminó en `FAIL`. T08 y
+++REVIEW-3 permanecen sin marcar como registro de no conformidades
+++cerradas/aceptadas administrativamente por GD-40; no son una habilitación para
+++repetir auditorías, A/B/C/H ni reabrir el holdout.
+++
++ **Corrección 2026-09-22 (hallazgo material M-02 de la auditoría Codex RB-05,
++ `openspec/scientific-closure/rb05-audit-preparation-2026-09-22/reviews/review-audit-codex-round1-FAIL.md`):**
++ se preparó un dossier RB-05 (`openspec/scientific-closure/rb05-audit-preparation-2026-09-22/`)
++@@ -17,12 +23,12 @@ que debía acreditarlo no cubre esta contradicción y el propio informe FAIL la
++ identifica como afectando a SC-GOV-007/012/014, de los que T08 depende
++ indirectamente vía `operations.md`.
++ 
++-- [ ] T08 (SC-GOV-008) Revisión independiente. Comprobar: Aplicar operations.md a cada cambio y verificar identidad distinta implementador/auditor. Evidencia: audit.json. **Desmarcada 2026-09-22 (M-02):** la auditoría Codex RB-05 round 1 sobre `88ced62` encontró que el registro de cambios (`changes.json`) acredita, para sc-04 y sc-05, autorizaciones basadas en un PASS de la etapa previa fechado *después* de esas autorizaciones — ver `decisions.md` GD-38. Mientras ese hallazgo no se resuelva, T08 no puede darse por cumplida
+++- [ ] T08 (SC-GOV-008) Revisión independiente. Comprobar: Aplicar operations.md a cada cambio y verificar identidad distinta implementador/auditor. Evidencia: audit.json. **No conformidad cerrada/registrada:** la auditoría Codex RB-05 round 1 sobre `88ced62` encontró que el registro de cambios (`changes.json`) acredita, para sc-04 y sc-05, autorizaciones basadas en un PASS de la etapa previa fechado *después* de esas autorizaciones — ver `decisions.md` GD-38/GD-40. La casilla queda sin marcar porque el requisito no se cumplió; no representa trabajo pendiente ni autoriza un reintento
++ - [x] T16 (SC-GOV-016) Interpretación científica. Comprobar: Revisión frase a frase de síntesis contra claims.md, predicciones autorizadas y métricas con soporte. Evidencia: claim-evidence-review.json. *(evidencia distribuida; no hay `claim-evidence-review.json` propio, declarado en las notas)*
++ - [x] T25 (SC-GOV-025) Cierre científico. Comprobar: Auditoría final independiente requisito por requisito y evaluación de suficiencia científica sobre el alcance aprobado. Evidencia: scientific-closure-audit.json. **Completada con veredicto `FAIL`, 2026-09-22.** La auditoría requisito por requisito sobre los 25 SC-GOV corrió sobre el dossier RB-05 (`88ced62`) y terminó en `FAIL` (M-01..M-04, `openspec/changes/sc-06-scientific-synthesis/reviews/review-audit-rb05-codex-FAIL.md`). El hallazgo M-01 fue confirmado, declarado incumplimiento histórico no reparable documentalmente (`decisions.md` GD-38) y aceptado administrativamente por el responsable como desviación permanente (`decisions.md` GD-40). Marcada `[x]` porque la tarea —ejecutar la auditoría y registrar su veredicto— **se hizo**; el veredicto es negativo, no está pendiente
++ - [x] REVIEW-1 Explorador reúne evidencia antes de implementar; registrar snapshot.
++ - [x] REVIEW-2 Implementador acotado ejecuta checks y conserva evidencia.
++-- [ ] REVIEW-3 evidence_checker contrasta integridad y formatos, sin juicio científico. **No corrió** como pasada separada; declarado en `session-identity.json` (OBS-03 del auditor)
+++- [ ] REVIEW-3 evidence_checker contrasta integridad y formatos, sin juicio científico. **No conformidad cerrada/registrada:** no corrió como pasada separada; declarado en `session-identity.json` (OBS-03 del auditor). La ausencia no se completa retrospectivamente ni habilita repetir la campaña
++ - [x] REVIEW-4 scientific_critic intenta refutar cada criterio; corregir hallazgos y repetir. Corrió sobre el dossier RB-05 (no sobre la síntesis completa de `sc-06`): un hallazgo material (M-01 de esa ronda, cita mal atribuida), corregido el 2026-09-22. Ver `rb05-audit-preparation-2026-09-22/rb05-dossier.md` §2
++ - [x] REVIEW-5 scientific_auditor independiente emite PASS/FAIL/BLOCKED sobre snapshot. Corrió dos veces: (a) `PASS` sobre el alcance de seis ítems de la reconciliación (`reviews/review-audit-reconciliation.md`); (b) `FAIL` sobre los 25 requisitos, snapshot `88ced62` (`rb05-audit-preparation-2026-09-22/reviews/review-audit-codex-round1-FAIL.md`). La (b) es la auditoría que T25 exige y su veredicto es `FAIL`, no `PASS`
++ - [x] CLOSE Registrar SHA, evidencia, alcance y checkpoint. **Cerrado administrativamente con no conformidad declarada, 2026-09-22 (`decisions.md` GD-40), no con `PASS`.** El texto original de esta tarea («Solo con PASS... ») describe el cierre confirmatorio, que **no se alcanzó**; el cierre que sí ocurrió es distinto y se registra como tal: `change` en `FAIL`, `SC-GOV-025` y `GF` en `FAIL`, B y C reclasificados como evidencia retrospectiva exploratoria. No hay tareas experimentales pendientes dentro de esta campaña — una confirmación futura es una campaña nueva sobre datos no utilizados, no una reparación de ésta
++@@ -35,11 +41,10 @@ Notas de cierre parcial, para que las casillas no digan más de lo que ocurrió:
++   auditoría de esta reconciliación. No hay `audit.json` propio de `sc-06`.
++ - **T16** se cumple documentalmente contra las métricas ya recomputadas en las
++   auditorías preservadas; no hay `claim-evidence-review.json` propio.
++-- **T25 es la tarea que falta.** El camino más corto, según el propio auditor
++-  de la reconciliación: crítica independiente (`scientific_critic`) sobre el
++-  snapshot corregido con `F-01`, y luego una auditoría final **requisito por
++-  requisito sobre los 25 requisitos**. Ninguno de los dos pasos exige reabrir
++-  el holdout ni reejecutar A, B, C, H, R, N o S.
+++- **Nota superseded:** la frase original «T25 es la tarea que falta» dejó de ser
+++  cierta cuando RB-05 ejecutó la auditoría requisito por requisito y obtuvo
+++  `FAIL`. T25 está completada con resultado negativo; no queda una tercera
+++  ronda pendiente dentro de esta campaña.
++ - REVIEW-1 y REVIEW-2 los ejecutó el orquestador, sin rol separado, declarado.
++ - REVIEW-5 corrió una vez en esta reconciliación (`PASS` acotado). En
++   `f355272` corrió dos veces sobre el snapshot de esa rama (`FAIL`, `FAIL`),
++diff --git a/openspec/changes/sc-11-thesis-defense-document-normalization/proposal.md b/openspec/changes/sc-11-thesis-defense-document-normalization/proposal.md
++new file mode 100644
++index 0000000..4369587
++--- /dev/null
+++++ b/openspec/changes/sc-11-thesis-defense-document-normalization/proposal.md
++@@ -0,0 +1,90 @@
+++# Normalizar la narrativa documental para tesis y defensa
+++
+++## Why
+++
+++Los resultados de `controlled_daily_v4` y del complemento H están preservados,
+++pero varios puntos de entrada conservan estados intermedios que contradicen el
+++cierre administrativo fijado por GD-40. La tesis necesita una narrativa única,
+++honesta y defendible que distinga evidencia numérica real de confirmación
+++protocolar.
+++
+++## What Changes
+++
+++- Se agrega una cabecera vigente que supersede, sin borrar, los estados
+++  históricos incompatibles.
+++- Se fija como estado canónico: RB-05 ejecutada con veredicto `FAIL`;
+++  `sc-06-scientific-synthesis`, `SC-GOV-025` y `GF` en `FAIL`; H ejecutado y
+++  auditado; R/N/S `NOT_APPLICABLE` a nivel requisito y sus changes bloqueados
+++  por gate negativo.
+++- B y C se presentan exclusivamente como evidencia retrospectiva exploratoria,
+++  nunca como validación confirmatoria.
+++- Se incorpora una posición breve para la defensa de tesis.
+++- Tras la crítica `CRIT-SC11-01..03`, la posición separa tres carriles de
+++  evidencia, documenta la semántica real de alerta del ensamble y distingue el
+++  review v2/histórico de la recalibración legacy/HU5.
+++
+++No se ejecuta ninguna campaña, no se inspeccionan valores reservados, no se
+++reabre el holdout y no se modifica evidencia histórica.
+++
+++## Trazabilidad
+++
+++- HU afectadas: HU7 y HU8.
+++- Capacidades: `scientific-closure` (gobernanza y narrativa) y
+++  `experiment-runner` (resultados referenciados, sin modificar contratos).
+++- CRISP-DM: evaluación y documentación.
+++- Memoria: capítulos 2, 3, 4 y 5.
+++- Configuración experimental: sin impacto.
+++- Hipótesis, alcance y arquitectura: sin cambios.
+++
+++## Dependencias y autoridad
+++
+++Este cambio documental parte de decisiones y evidencia ya registradas: RB-03,
+++la ejecución y auditoría de H, RB-05 con veredicto `FAIL`, y GD-40. La
+++instrucción explícita de normalización autoriza únicamente las rutas listadas
+++en este change. No modifica `changes.json` ni se autoaprueba.
+++
+++## Archivos autorizados
+++
+++- `openspec/changes/sc-11-thesis-defense-document-normalization/`
+++- `openspec/scientific-closure/README.md`
+++- `openspec/scientific-closure/current-execution-checkpoint.md`
+++- `openspec/scientific-closure/next-session.txt`
+++- `openspec/scientific-closure/traceability.md`
+++- `openspec/scientific-closure/claims.md`
+++- `docs/research/scientific-closure-synthesis-2026-09-22.md`
+++- `docs/research/thesis-defense-position.md`
+++- `openspec/changes/sc-06-scientific-synthesis/tasks.md`
+++
+++## Archivos excluidos
+++
+++Todos los no listados, en especial `changes.json`, `src/`, `tests/`, UI,
+++protocolos v3/v4, evidencia científica, ledgers, resultados y `.codebase-memory`.
+++
+++## Acceptance
+++
+++- Todos los puntos de entrada expresan el mismo estado vigente.
+++- Ninguna frase vigente afirma que B o C confirman la hipótesis o que la
+++  campaña cumplió la secuencia de gates.
+++- Los registros históricos permanecen visibles y marcados como superseded.
+++- No quedan tareas experimentales v4 pendientes ni instrucciones de reabrir o
+++  repetir el holdout.
+++- La posición de defensa separa contribuciones, resultados, límites y
+++  afirmaciones prohibidas.
+++- La posición incluye una tabla autocontenida de v3, v4 A/B/C/H y ensamble
+++  demostrativo, sin transferir autoridad científica entre carriles.
+++- Declara que la alerta vigente usa el promedio aritmético de tres
+++  probabilidades con umbral 0,5; votos/categoría son metadata, mayoría queda
+++  pendiente y `display_probability` no está calificada.
+++- Distingue el registro de review v2/histórico, que no modifica bundles ni
+++  recalibra, del endpoint legacy/HU5 manual de un solo modelo y de H simulado.
+++
+++## Validation
+++
+++- `git diff --check`
+++- búsquedas dirigidas de estados y expresiones contradictorias
+++- validación OpenSpec estricta del change, si el CLI disponible lo permite
+++
+++## Rollback
+++
+++Revertir solamente este delta documental. Nunca alterar ni eliminar evidencia,
+++eventos o informes históricos para cambiar el sentido del veredicto.
++diff --git a/openspec/changes/sc-11-thesis-defense-document-normalization/specs/scientific-closure/spec.md b/openspec/changes/sc-11-thesis-defense-document-normalization/specs/scientific-closure/spec.md
++new file mode 100644
++index 0000000..a8e012e
++--- /dev/null
+++++ b/openspec/changes/sc-11-thesis-defense-document-normalization/specs/scientific-closure/spec.md
++@@ -0,0 +1,43 @@
+++## ADDED Requirements
+++
+++### Requirement: Narrativa canónica de tesis y defensa
+++
+++El sistema SHALL mantener una única narrativa documental vigente para HU7/HU8
+++que preserve el veredicto de RB-05, diferencie evidencia exploratoria de
+++confirmación y conserve íntegros los registros históricos superseded.
+++
+++#### Scenario: Estado vigente consistente
+++
+++- **GIVEN** RB-05 ejecutada con veredicto `FAIL`, GD-40 y las decisiones auditadas sobre H y R/N/S
+++- **WHEN** una persona consulta README, checkpoint, siguiente sesión, matriz, claims o síntesis
+++- **THEN** encuentra `sc-06`, `SC-GOV-025` y `GF` en `FAIL`; H ejecutado y auditado; R/N/S `NOT_APPLICABLE` a nivel requisito con sus changes bloqueados por gate negativo; y B/C como evidencia retrospectiva exploratoria
+++
+++#### Scenario: Historia preservada
+++
+++- **GIVEN** documentos que registran estados anteriores verdaderos en su momento
+++- **WHEN** esos estados dejan de ser vigentes
+++- **THEN** se conservan como historia con una cabecera supersesora y no se borran ni reescriben eventos, evidencia o informes
+++
+++#### Scenario: Sin nueva ejecución científica
+++
+++- **GIVEN** que la campaña v4 terminó y el holdout fue consumido
+++- **WHEN** se normaliza la documentación para la tesis
+++- **THEN** no se ejecutan A/B/C ni auxiliares, no se inicializan ledgers, no se inspecciona ni reabre el holdout y no se declara una campaña pendiente
+++
+++#### Scenario: Tres carriles de evidencia separados
+++
+++- **GIVEN** evidencia formal v3 de Melchor Romero, resultados v4 A/B/C/H de Pergamino y una demostración técnica posterior del ensamble en Pergamino
+++- **WHEN** se redacta la posición de defensa
+++- **THEN** cada carril declara objeto, resultados permitidos, límites y fuentes propias, sin presentar el ensamble demostrativo como reejecución o confirmación de v4
+++
+++#### Scenario: Semántica exacta de la alerta del ensamble
+++
+++- **GIVEN** tres probabilidades calibradas, sus votos individuales y el umbral común 0,5
+++- **WHEN** se describe la alerta vigente
+++- **THEN** se identifica `combined_alert` como comparación del promedio aritmético contra el umbral, `positive_votes` y `agreement_category` como metadata, la mayoría como cambio futuro no implementado y `display_probability` como no calificada
+++
+++#### Scenario: Circuitos de feedback no equivalentes
+++
+++- **GIVEN** review v2, review histórico, recalibración legacy/HU5 y complemento H
+++- **WHEN** se explica el feedback en la defensa
+++- **THEN** se declara que los reviews registran una opinión sobre `combined_alert` sin modificar los nueve bundles ni recalibrar, que `/recalibrate/{sensor_id}` es un circuito manual separado de un solo modelo, y que H es una simulación sin evidencia de beneficio humano
++diff --git a/openspec/changes/sc-11-thesis-defense-document-normalization/tasks.md b/openspec/changes/sc-11-thesis-defense-document-normalization/tasks.md
++new file mode 100644
++index 0000000..833e8d5
++--- /dev/null
+++++ b/openspec/changes/sc-11-thesis-defense-document-normalization/tasks.md
++@@ -0,0 +1,33 @@
+++# Tareas de sc-11-thesis-defense-document-normalization
+++
+++- [x] T01 Registrar alcance, autoridad, trazabilidad y exclusiones del cambio.
+++- [x] T02 Normalizar README, checkpoint, prompt siguiente, matriz y claims con
+++  una cabecera vigente que preserve la historia.
+++- [x] T03 Corregir la lectura confirmatoria residual de la síntesis científica.
+++- [x] T04 Registrar en `sc-06/tasks.md` que T08 y REVIEW-3 son no conformidades
+++  cerradas/registradas y que T25 ya se ejecutó con veredicto `FAIL`.
+++- [x] T05 Crear la posición breve para tesis y defensa.
+++- [x] T06 Corregir `CRIT-SC11-01`: separar en una tabla autocontenida la
+++  evidencia formal v3, la campaña v4 A/B/C/H y el ensamble demostrativo.
+++- [x] T07 Corregir `CRIT-SC11-02`: documentar desde fuentes primarias que la
+++  alerta del ensamble usa promedio y umbral 0,5; votos/categoría son metadata,
+++  mayoría no está implementada y `display_probability` no está calificada.
+++- [x] T08 Corregir `CRIT-SC11-03`: separar review v2/histórico, recalibración
+++  legacy/HU5 de un solo modelo y complemento H simulado.
+++- [x] T09 Ejecutar `git diff --check`, búsquedas dirigidas y validación OpenSpec
+++  estricta tras la corrección.
+++- [x] T10 Corregir `CRIT-SC11-04`: declarar que cada carril/evaluación es de un
+++  solo sitio —v3 Melchor Romero; v4 y demostración Pergamino— y que el conjunto
+++  no constituye validación multisitio ni agronómica longitudinal.
+++- [ ] REVIEW-1 Evidence checker: verificar mecánicamente rutas, formato y
+++  ausencia de contradicciones en el snapshot congelado.
+++- [ ] REVIEW-2 Scientific critic: intentar refutar la coherencia metodológica y
+++  la separación entre resultados exploratorios y confirmación.
+++- [ ] REVIEW-3 Scientific auditor: emitir veredicto independiente sobre el
+++  snapshot revisado.
+++- [ ] CLOSE Registrar snapshot y veredicto. El implementador no cierra ni
+++  aprueba este change.
+++
+++La corrección de `CRIT-SC11-01..03` completa tareas de implementación, pero no
+++constituye `PASS`: REVIEW-1/2/3 y CLOSE siguen reservadas a revisores
+++independientes sobre el snapshot corregido.
++diff --git a/openspec/scientific-closure/README.md b/openspec/scientific-closure/README.md
++index eb4eb15..4c7302c 100644
++--- a/openspec/scientific-closure/README.md
+++++ b/openspec/scientific-closure/README.md
++@@ -1,6 +1,23 @@
++ # Sistema de cierre científico
++ 
++-Estado inicial: PREPARATION_ONLY. No constituye autorización para A/B/C, apertura
+++## Estado canónico vigente — 2026-09-26
+++
+++Esta sección supersede cualquier estado operativo anterior conservado en este
+++archivo. RB-05 fue ejecutada y su veredicto fue **`FAIL`**. En consecuencia,
+++`sc-06-scientific-synthesis`, `SC-GOV-025` y el gate `GF` están en **`FAIL`**,
+++no en `PENDING`, `BLOCKED`, `PASS` ni `PASS_WITH_LIMITATIONS`. H fue ejecutado y
+++auditado. R, N y S son `NOT_APPLICABLE` a nivel requisito por la decisión de
+++suficiencia auditada; sus changes permanecen `BLOCKED` porque el gate
+++`REQUIRED` es negativo, no porque falte ejecutar esos complementos.
+++
+++B y C se conservan como evidencia numérica retrospectiva **exploratoria** y no
+++se presentan como validación confirmatoria. No quedan campañas v4 pendientes,
+++no se repiten A/B/C/H y el holdout consumido no se reabre. Una confirmación
+++futura requeriría datos nuevos y sería otro trabajo, no una reparación de esta
+++campaña. La posición para tesis y defensa está en
+++[`docs/research/thesis-defense-position.md`](../../docs/research/thesis-defense-position.md).
+++
+++Estado histórico inicial (superseded): PREPARATION_ONLY. No constituye autorización para A/B/C, apertura
++ de holdout ni inicialización de ledger. El cierre del sistema de preparación y el
++ cierre científico del Trabajo Final son decisiones distintas.
++ 
++@@ -34,9 +51,9 @@ independiente autorizado. No reescribir documentos históricos.
++   resultados efectivamente obtenidos en A, B, C y H, con sus limitaciones (RB-04).
++ - [Reconciliación 2026-09-22](reconciliation-2026-09-22/): trazabilidad a la
++   memoria (RB-06), tabla de reconciliación entre `65ca852` y `f355272`,
++-  identidad de sesión. **`SC-GOV-025` y `GF` siguen `PENDIENTE`** hasta el
++-  veredicto de una auditoría independiente única; ningún `PASS` estructural ni
++-  ningún veredicto `FAIL` histórico se presenta aquí como cierre científico.
+++  identidad de sesión. Esta descripción quedó **superseded** por RB-05 y GD-40:
+++  `SC-GOV-025` y `GF` terminaron en `FAIL`; ningún `PASS` estructural se presenta
+++  como cierre científico.
++ - [Suficiencia de R/N/S — RB-03](sufficiency-review-2026-09-22/): `PASS` del
++   auditor independiente sobre `65ca852`. Fuente autoritativa; no se reabre.
++ - [Dossier RB-05](rb05-audit-preparation-2026-09-22/): estado documental de
++diff --git a/openspec/scientific-closure/claims.md b/openspec/scientific-closure/claims.md
++index e027b85..1a8125b 100644
++--- a/openspec/scientific-closure/claims.md
+++++ b/openspec/scientific-closure/claims.md
++@@ -1,5 +1,20 @@
++ # Afirmaciones y suficiencia
++ 
+++## Lectura canónica vigente — 2026-09-26
+++
+++Esta sección supersede el estado operativo de las secciones históricas sin
+++borrarlas. RB-05 fue ejecutada y terminó en `FAIL`; por ello CL-10 no está
+++demostrada, `SC-GOV-025`, `GF` y `sc-06-scientific-synthesis` están en `FAIL`.
+++H fue ejecutado y auditado con limitaciones. R, N y S son `NOT_APPLICABLE` a
+++nivel requisito por RB-03, mientras sus changes permanecen `BLOCKED` por el
+++gate negativo `NOT_REQUIRED`.
+++
+++La lectura permitida de B y C es **evidencia retrospectiva exploratoria**. Sus
+++valores pueden citarse con soporte y limitaciones, pero no como confirmación de
+++la hipótesis ni como validación confirmatoria del protocolo secuencial. No hay
+++campañas v4 pendientes ni una vía legítima para recuperar cegamiento cambiando
+++de rama: el holdout no se reabre.
+++
++ Ninguna fila afirma resultados futuros. La evaluación documental de
++ `sc-01-evidence-scope` fija qué evidencia hace falta antes de observar A/B/C o
++ complementos. El alcance conserva todas las hipótesis y componentes, pero no
++diff --git a/openspec/scientific-closure/current-execution-checkpoint.md b/openspec/scientific-closure/current-execution-checkpoint.md
++index 947cc8d..2b9bcc2 100644
++--- a/openspec/scientific-closure/current-execution-checkpoint.md
+++++ b/openspec/scientific-closure/current-execution-checkpoint.md
++@@ -1,5 +1,20 @@
++ # Checkpoint de ejecución actual
++ 
+++## Estado canónico vigente — 2026-09-26
+++
+++Esta sección reemplaza toda lectura operativa de las secciones posteriores, que
+++se conservan como registro histórico. RB-05 fue ejecutada y auditada con
+++veredicto **`FAIL`**. `sc-06-scientific-synthesis`, `SC-GOV-025` y `GF` están en
+++**`FAIL`**. H fue ejecutado y auditado. R/N/S están `NOT_APPLICABLE` a nivel
+++requisito y sus changes siguen `BLOCKED` porque su condición `REQUIRED` es
+++falsa; no existe ejecución pendiente de esos complementos.
+++
+++A, B, C y H no se repiten. B y C son evidencia retrospectiva exploratoria, no
+++confirmatoria. El holdout 2024–2025 ya fue abierto una vez y no se reabre. No
+++queda ninguna campaña v4 pendiente dentro del alcance actual. El único trabajo
+++vigente de este checkpoint es documental: mantener consistente la narrativa de
+++tesis y defensa sin alterar resultados, hipótesis, configuración o arquitectura.
+++
++ ## Estado vigente — 2026-09-21, CAMPAÑA A → B → C EJECUTADA
++ 
++ Esta sección **reemplaza toda lectura de las secciones posteriores**, incluida la
++diff --git a/openspec/scientific-closure/next-session.txt b/openspec/scientific-closure/next-session.txt
++index 697883b..d2ddcfe 100644
++--- a/openspec/scientific-closure/next-session.txt
+++++ b/openspec/scientific-closure/next-session.txt
++@@ -1,3 +1,25 @@
+++PROMPT SIGUIENTE — vigente desde 2026-09-26 (NORMALIZACION DOCUMENTAL).
+++Esta cabecera REEMPLAZA toda lectura operativa del texto posterior, que se
+++conserva integro como registro historico.
+++
+++ESTADO CANONICO
+++- RB-05 fue ejecutada; veredicto FAIL.
+++- sc-06-scientific-synthesis, SC-GOV-025 y GF: FAIL.
+++- H fue ejecutado y auditado.
+++- R/N/S: NOT_APPLICABLE a nivel requisito; sc-07/sc-09/sc-10 permanecen
+++  BLOCKED porque el gate REQUIRED es negativo.
+++- B y C son evidencia retrospectiva exploratoria, nunca confirmatoria.
+++- No quedan campanas v4 pendientes. No repetir A/B/C/H, no inicializar ledgers
+++  y no reabrir ni reinspeccionar el holdout consumido.
+++
+++OBJETIVO DE UNA SESION POSTERIOR
+++Trabajar solo sobre redaccion de tesis/defensa o sobre un change nuevo y
+++explicitamente autorizado. Preservar evidencia, informes y eventos historicos.
+++No intentar convertir el FAIL en PASS mediante redaccion ni mediante otra rama.
+++Una validacion confirmatoria futura requeriria datos nuevos y un protocolo nuevo.
+++
+++=== TEXTO HISTORICO ANTERIOR (superseded) ===
+++
++ PROMPT SIGUIENTE — vigente desde 2026-09-21 (CAMPAÑA A -> B -> C EJECUTADA).
++ Esta cabecera REEMPLAZA toda lectura del texto posterior, que se conserva
++ integro como registro historico y cuyas afirmaciones sobre "A/B/C no ejecutadas",
++diff --git a/openspec/scientific-closure/traceability.md b/openspec/scientific-closure/traceability.md
++index 2e3cc13..678e717 100644
++--- a/openspec/scientific-closure/traceability.md
+++++ b/openspec/scientific-closure/traceability.md
++@@ -1,5 +1,26 @@
++ # Matriz requisito → tarea → prueba → evidencia
++ 
+++## Estado canónico vigente — 2026-09-26
+++
+++Esta sección supersede todas las tablas fechadas posteriores únicamente para el
+++estado vigente; esas tablas se preservan como historia y evidencia de cómo
+++evolucionó la evaluación.
+++
+++| Requisito / entidad | Estado vigente | Fundamento |
+++| --- | --- | --- |
+++| `SC-GOV-022` / H | `PASS_WITH_LIMITATIONS`; ejecutado y auditado | La evidencia sostiene el mecanismo y las correcciones simuladas, no beneficio humano real |
+++| `SC-GOV-021` / R | `NOT_APPLICABLE` | GD-12 fue criticada y auditada en RB-03; R es `NOT_REQUIRED` para el alcance vigente |
+++| `SC-GOV-023` / N | `NOT_APPLICABLE` | GD-12 fue criticada y auditada en RB-03; N es `NOT_REQUIRED` para el alcance vigente |
+++| `SC-GOV-024` / S | `NOT_APPLICABLE` | GD-12 fue criticada y auditada en RB-03; S es `NOT_REQUIRED` para el alcance vigente |
+++| `SC-GOV-025` | **`FAIL`** | RB-05 fue ejecutada y su auditoría requisito por requisito terminó en `FAIL` |
+++| `GF` | **`FAIL`** | GD-40 acepta administrativamente M-01/RK-20 como desviación histórica, sin convertirla en cumplimiento |
+++| `sc-06-scientific-synthesis` | **`FAIL`** | Cierre administrativo con no conformidad declarada |
+++| `sc-07`, `sc-09`, `sc-10` | `BLOCKED` (changes) | Gate negativo: R/N/S no son `REQUIRED`; el bloqueo impide ejecutar, no indica evidencia pendiente |
+++
+++B y C conservan sus resultados numéricos como evidencia retrospectiva
+++exploratoria y no confirmatoria. No hay campañas v4 pendientes, no se reabre el
+++holdout y no se reescribe ningún evento histórico.
+++
++ Fuente estructurada: requirements.json. Criterios completos: spec científica.
++ Estado histórico de este encabezado (2026-09-19): declaraba que «cada fila
++ tiene estado PENDING». Esa afirmación es **incorrecta desde el 2026-09-20**

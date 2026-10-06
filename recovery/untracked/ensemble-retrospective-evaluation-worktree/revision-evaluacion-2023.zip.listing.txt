@@ -1,0 +1,9 @@
+Archive:  /c/Users/gusta/AppData/Local/Temp/claude/C--Repo-AAI-Hydric-Stress/0bdb19e6-e913-4702-994a-22965cdcf505/scratchpad/bk/recovery/untracked/ensemble-retrospective-evaluation-worktree/revision-evaluacion-2023.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+    13720  2026-09-27 04:04   ensemble-retrospective-evaluation-results.md
+     8354  2026-09-27 03:14   ensemble-retrospective-evaluation-protocol.md
+    74708  2026-09-27 03:30   metrics.json
+    84412  2026-09-27 03:30   ui_summary.json
+---------                     -------
+   181194                     4 files

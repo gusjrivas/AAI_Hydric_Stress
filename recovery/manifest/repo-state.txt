@@ -1,0 +1,136 @@
+captured: 2026-10-06
+origin/main: 4c1cd6c8a909c8faeed3f3732c2efa1eeffd5377
+local main: b56b97a267045147648c507d68e3ce976f20d946
+--- branches (name sha upstream track)
+chore/rehearsal-producer-reset 4c734f981b1355c14124261b73a288d6af69552b origin/main [ahead 1, behind 19]
+design/ui-professional-prototype d10f6676e688d3b898acb15d45288fd9a087d6ff origin/design/ui-professional-prototype 
+docs/adr-0010-modelos-controlled-daily-v4 3fb235bd104333f38ce01d7141e893df3d2fc291 origin/docs/adr-0010-modelos-controlled-daily-v4 
+docs/auditoria-tareas 397f31560754a8d8e0e6eb81cb4793b71324d474 origin/docs/auditoria-tareas 
+docs/controlled-daily-v4-close-out-diagnostics 269c8eaf899a256759214e81603de14d2513cbaf origin/docs/controlled-daily-v4-close-out-diagnostics 
+docs/controlled-daily-v4-pergamino-protocol 2fe9fd4c8880ff911db17d2cabfed43e5ace0272 origin/docs/controlled-daily-v4-pergamino-protocol 
+docs/fix-hu8-memoria-tecnica 9fbb8257ea330bb95c6eadf1efec6581e9a055f2 origin/docs/fix-hu8-memoria-tecnica 
+docs/forecast-evidence-assessment 9aaabe2545cd6cb0ec8734db9dea616dcf821abd origin/main [ahead 1, behind 68]
+docs/hu1-antecedentes-argentina 30a6474ed79e790a5da43f14c058f26c717de8bd origin/docs/hu1-antecedentes-argentina 
+docs/hu1-cierre-cientifico 24c8b05391ed8be1143c915cf35da8206315f412 origin/docs/hu1-cierre-cientifico 
+docs/hu1-cierre-issues-github d7c96ca9aa2cb705ed72f17fcbd6a05c85f6959a origin/docs/hu1-cierre-issues-github 
+docs/hu1-cuatro-ejes b13272c8cd3a5d9c14e9a68dffca31a6c986827c origin/docs/hu1-cuatro-ejes 
+docs/hu1-estado-del-arte b32e42a536a303c3c0cce9d638c4d7683dd7e7e4  
+docs/hu1-validacion-cientifica 156e2a9ff480d2e9f6aa953beeb5d7fc40027f19 origin/docs/hu1-validacion-cientifica 
+docs/hu2-cierre-administrativo 1ff84999a207a9c6a070f464efbf7843de3d6d95 origin/docs/hu2-cierre-administrativo 
+docs/hu2-cierre-documental a4ebe1c49d92d29f3d46f4b2ae101f7fc0ae278c origin/docs/hu2-cierre-documental 
+docs/hu3-revalidacion-cierre 68f2b123316443590e6f24797397b94433ff330a origin/docs/hu3-revalidacion-cierre 
+docs/hu4-revalidacion-cierre 96c8a503da8199e4d119418d8f3409aa175cc5c0 origin/docs/hu4-revalidacion-cierre 
+docs/hu5-revalidacion-cierre 125baaede0fc4fda8615fbd00cf79bbdb099fd9c origin/docs/hu5-revalidacion-cierre 
+docs/hu6-accelerated-sensor-demo 05a8bc60c590deea49ff98c71a2ce2bc4dfb793b origin/docs/hu6-accelerated-sensor-demo 
+docs/hu6-alerting-ui-decision-workflow 5d659872d0fbdb8649077b0d3d577450ac014a88 origin/docs/hu6-alerting-ui-decision-workflow 
+docs/hu6-revalidacion-cierre 97ea8404cb03d7fdde22e047da4da0d7a8dc46ac origin/docs/hu6-revalidacion-cierre 
+docs/hu7-sync-controlled-daily-v3 ccc421dbdc89f46ccbe9758761cb6844169097c2 origin/docs/hu7-sync-controlled-daily-v3 
+docs/hu8-revalidacion-v3 30455ed530e6a476c8b4b75b844890bdff4f7ce8 origin/docs/hu8-revalidacion-v3 
+docs/readme-ui-update 42ea91ff7684bad933e55f9a01afa4c90edc78ea origin/docs/readme-ui-update 
+docs/smn-bloqueo-tecnico 1f335a3ae5eee01c6cffd4cadc7247a4e3b32734 origin/docs/smn-bloqueo-tecnico 
+docs/thesis-defense-normalization 96bb80606c9646b0946ff3bab1a5e19b2ebbf43b origin/docs/thesis-defense-normalization 
+docs/update-readme-post-recalibration f327fcfeba64319d8dc40799689701e903db90ea origin/docs/update-readme-post-recalibration 
+experiment/hu7-controlled-daily-v3-formal 2a40ee68c52d2eb5e2040a36b1029f756f9c048a  
+feat/alerting-ui-design-verification af670f64667bd43cddffaf9134178ed05bd4109b origin/feat/alerting-ui-design-verification 
+feat/alerting-ui-human-review-traceability 3850e2e7c37c692c7aea716ccb3a1280b6ac0cf7 origin/feat/alerting-ui-human-review-traceability 
+feat/alerting-ui-navigation-summary 7cc2af328bca67b41fa93a3e85a74aff58c81ffc origin/feat/alerting-ui-navigation-summary 
+feat/alerting-ui-reliable-flows 19fec9a3a76b40b6a14a85d50c04fa2cbd61c6bc origin/feat/alerting-ui-reliable-flows 
+feat/alerting-ui-visual-design c8a4613b697cd094bf927d91fcaf82cdf9b5651f origin/feat/alerting-ui-visual-design 
+feat/causal-historical-replay 90183d392f42ec6b54e36cafc626286ea2635db0 origin/feat/causal-historical-replay 
+feat/controlled-daily-v4-stage-a-b-transfer-contract a793abb0667b8a93dd45e64469d504ce3eb3d802 origin/feat/controlled-daily-v4-stage-a-b-transfer-contract 
+feat/controlled-daily-v4-stage-a-runner 645334b67651619d6f1523895dede3251550b6a9 origin/feat/controlled-daily-v4-stage-a-runner 
+feat/controlled-daily-v4-stage-b d05f80e6e4fb3402a67cac7b7416bebd2348b128 origin/feat/controlled-daily-v4-stage-b [behind 2]
+feat/controlled-daily-v4-stage-c-holdout-ledger 17da90a25788dd9ed8b1621b76a7a9b98635a335 origin/feat/controlled-daily-v4-stage-c-holdout-ledger 
+feat/data-ingestion-nasa-power 4a2180302dc1f5caaf830ad3871b84e3a1c569c4 origin/feat/data-ingestion-nasa-power 
+feat/defense-reproducible-startup dd2bab741e3bce173fc9a0ed2963936a4ea836b4 origin/feat/defense-reproducible-startup 
+feat/dockerize-alerting-ui 4a8af9a68173e17e110ca98cce76b31fba182c3d origin/feat/dockerize-alerting-ui 
+feat/ensemble-operational-integration 1e99757cb52e38e232c965cb86dd51be87d27ad1 origin/feat/ensemble-operational-integration 
+feat/ensemble-producer-ui 73fd1696e9016981c6dd0f8769adfe0566e02a73 origin/feat/ensemble-producer-ui 
+feat/ensemble-real-enablement-hito2 7b4dc727060d5d825e35e9206a4f7c52367af257 origin/feat/ensemble-real-enablement-hito2 
+feat/ensemble-real-execution-report 2edf02957fc3687a496806ca9b5c8476121a5836 origin/feat/ensemble-real-execution-report 
+feat/ensemble-retrospective-evaluation 8777f5932a84f2e529f7339009b64e697e404fff origin/feat/ensemble-retrospective-evaluation 
+feat/ensemble-ui-integration-prep 3d9f36eb8e3614c9e4a7f52e8d8d40fdd8a7321e origin/feat/ensemble-ui-integration-prep 
+feat/frontend-architecture-demo 1cf7440d4bfba50934cc6abdbf58fedde218aec3 origin/feat/frontend-architecture-demo 
+feat/hitl-recalibration-lineage 7413e2d45a4c926e144711e964ce73e3098a027f origin/feat/hitl-recalibration-lineage 
+feat/hu6-accelerated-sensor-demo-cli 59f2c15ca76deb538d9f5b0b4f2eb2123f090134 origin/feat/hu6-accelerated-sensor-demo-cli 
+feat/hu6-accelerated-sensor-demo-control b2a439141a14db590b4afa4b9ef9995a98b432aa origin/feat/hu6-accelerated-sensor-demo-control 
+feat/hu6-accelerated-sensor-demo-ui 841497aea344c8333cbb9d94107836b2996ea668 origin/feat/hu6-accelerated-sensor-demo-ui 
+feat/hu6-accelerated-sensor-demo-verificacion-integrada e2a27df2a598c7751978004f05996b5d95b61d18 origin/feat/hu6-accelerated-sensor-demo-verificacion-integrada 
+feat/hu6-backend-soporte-ui b573088cb4ee880bc551aa4972860c2cb91de0b4 origin/feat/hu6-backend-soporte-ui 
+feat/hu6-producer-friendly-ui d752c70c2b19cc4ec777eafd51021774addd3f3e origin/feat/hu6-producer-friendly-ui 
+feat/hu6-productor-integracion-final 530b45314f1748e0fba8d0bdc274e85829eeda81 origin/feat/hu6-productor-integracion-final 
+feat/hu6-productor-ui-renovada 8b2b193bb9d405d49ca5454d20c58a86a3fde454 origin/feat/hu6-productor-ui-renovada 
+feat/hu6-ui-productor-integracion a250a9e8d6af7a33f746031345a369a8059890b1  
+feat/issue-close-evidence-hook 00cd25e2bdbda472b42cf513bc2cb1ff9102eb69 origin/feat/issue-close-evidence-hook 
+feat/melchor-romero-historical-replay 7ac3b72f0eeeb35d7adcf5be0dd31e4fe1f4a78b origin/feat/melchor-romero-historical-replay 
+feat/mock-sensor-ingestion a980bf13c91c71b78f0365ea501b782e2b1c1429 origin/feat/mock-sensor-ingestion 
+feat/model-selection-engine 9575e63c4f41f4cb04da0bcdc9c3a52396242a21 origin/feat/model-selection-engine 
+feat/recalibration-trigger 4e9283db1f42abb0dec1ab1a29780d4dc327fa63 origin/feat/recalibration-trigger 
+feat/replay-ui-guided-experience cdbf71c74e0c2272c9279bf32f46dbec61a7f3fa origin/feat/replay-ui-guided-experience [gone]
+feat/scientific-closure 59612ab2d1822e7bef6f22255985866de73b6cda origin/feat/scientific-closure [behind 58]
+feat/selection-caching c6a4653ad0fc0622aa5cfde9cdcabfdd86f280d1 origin/feat/selection-caching 
+feat/skill-memoria-tecnica 7c0237c6b1fbdebb40d11cd9d22eeef2d5c42459 origin/feat/skill-memoria-tecnica 
+feat/ui-defense-pergamino bfd71e701583168aa9aa49acc5913a1b572a2b67 origin/feat/ui-defense-pergamino 
+feat/ui-defense-sensor-lab 45c8ff9802770b47d178cf651242661232779019 origin/feat/ui-defense-sensor-lab 
+fix/anomaly-feature-integration adc666b541c0413e2849f4f06c0dd7d58425b017 origin/fix/anomaly-feature-integration 
+fix/backend-technical-closure b56f08215e9a58147e70e800fbbc050eab3c694d origin/fix/backend-technical-closure 
+fix/controlled-daily-v4-reproducibility-docs 9bc1a2dddc15ae06631150be0e35c056e9b97681 origin/main [behind 276]
+fix/controlled-daily-v4-stage-a-validation ff01579204cd07e0f00c048cd8fc1b3ac7d327cf origin/fix/controlled-daily-v4-stage-a-validation 
+fix/controlled-experiments-and-inference 2648e47790dc814b28f145daf6698c3a9fa2ddf4 origin/fix/controlled-experiments-and-inference [ahead 2]
+fix/hitl-lineage-auditability 038f0d0abfed9bfc14e3109894dd40fe4548d26a origin/fix/hitl-lineage-auditability 
+fix/hitl-multiversion-recalibration 34eb4e5d490d186526c80231d2c30244ea870076 origin/fix/hitl-multiversion-recalibration 
+fix/hu6-backend-paginacion-robusta 3081a96e3996dfdcc901c06a5e0be42393581f51 origin/fix/hu6-backend-paginacion-robusta 
+fix/leakage-temporal-hu7-hu8 e7c8842de76ba16855d3703021c4e9faf46b3269 origin/fix/leakage-temporal-hu7-hu8 
+fix/melchor-romero-observation-provenance e23e6428cc035b0ce0c0281b2e455ba554206e2c origin/fix/melchor-romero-observation-provenance [behind 2]
+fix/mlflow-silent-failure 39871e3077a60e2c1e542a62f181ade0b4248ab3 origin/fix/mlflow-silent-failure 
+fix/purged-cv-and-model-contract c30212a7f7903edead8e46613d986dbd7bd8c84b origin/fix/purged-cv-and-model-contract 
+fix/sensor-demo-defense-closure 39105960df2135799bdd85572f792e4557447d8b origin/fix/sensor-demo-defense-closure 
+fix/ui-defense-layout-and-bug-sweep 49015dc9221abb205e8e4972fa52a86ac26fa01f origin/fix/ui-defense-layout-and-bug-sweep 
+main b56b97a267045147648c507d68e3ce976f20d946 origin/main [behind 19]
+pr193-fixes 011694fc8bbf33150797cf9f6bd2d1b64d0b54ab origin/feat/controlled-daily-v4-stage-b 
+stage-b-work c13b917d9dd79f91739fff1a15b9948ffd545ee7 origin/feat/controlled-daily-v4-stage-b [behind 1]
+work/melchor-provenance-followups 2903ba83141e64477f55ce0bebfb3ef3aabc33a4 origin/fix/melchor-romero-observation-provenance 
+worktree-agent-a294c2aa756f42985 c135e306a5d8e891e671850c2ed8f93bebf23e64  
+worktree-agent-a5fada407b5d48fc7 98e83e049808e247055f7acc69a04216b42ecf8f  
+worktree-agent-a72be3350e631f422 1b899d036d5e9d7952dbd504108cf2f3e7dfc873  
+worktree-agent-a7ab499c35d0a0815 277aefd3a1c8bd36bd237ed85ff0b4a67ee33e4a  
+worktree-agent-a85c7a32043b341d5 277aefd3a1c8bd36bd237ed85ff0b4a67ee33e4a  
+worktree-agent-aa2d948a004ce7ea0 5f4d5f687c89ab9043b9c8537c56dd6a4d22e3cb  
+worktree-agent-aa8267105b82d075e f17fe658bad4726202fe13784bb716c06468af9a  
+worktree-agent-abfba7decdf03bc4e 725d2365f75ad693d5da8b0128fd0fd88bb61d39  
+worktree-agent-ad0e8a21bff5b9a8e 277aefd3a1c8bd36bd237ed85ff0b4a67ee33e4a  
+worktree-agent-ad21bfcafda0ecbd3 725d2365f75ad693d5da8b0128fd0fd88bb61d39  
+--- stashes
+stash@{0}: On docs/thesis-defense-normalization: !!GitHub_Desktop<docs/thesis-defense-normalization>
+stash@{1}: On feat/hu6-ui-productor-integracion: !!GitHub_Desktop<feat/hu6-ui-productor-integracion>
+--- worktrees
+C:/Repo/AAI_Hydric_Stress                                                                                             b56b97a [main]
+C:/Repo/AAI_Hydric_Stress/.claude/worktrees/agent-a294c2aa756f42985                                                   7ac3b72 [feat/melchor-romero-historical-replay]
+C:/Repo/AAI_Hydric_Stress/.claude/worktrees/agent-a5fada407b5d48fc7                                                   b2a4391 [feat/hu6-accelerated-sensor-demo-control]
+C:/Repo/AAI_Hydric_Stress/.claude/worktrees/agent-a72be3350e631f422                                                   45c8ff9 [feat/ui-defense-sensor-lab]
+C:/Repo/AAI_Hydric_Stress/.claude/worktrees/agent-a7ab499c35d0a0815                                                   011694f [pr193-fixes]
+C:/Repo/AAI_Hydric_Stress/.claude/worktrees/agent-a85c7a32043b341d5                                                   c13b917 [stage-b-work]
+C:/Repo/AAI_Hydric_Stress/.claude/worktrees/agent-aa2d948a004ce7ea0                                                   49015dc [fix/ui-defense-layout-and-bug-sweep]
+C:/Repo/AAI_Hydric_Stress/.claude/worktrees/agent-aa8267105b82d075e                                                   cdbf71c [feat/replay-ui-guided-experience]
+C:/Repo/AAI_Hydric_Stress/.claude/worktrees/agent-abfba7decdf03bc4e                                                   2903ba8 [work/melchor-provenance-followups]
+C:/Repo/AAI_Hydric_Stress/.claude/worktrees/agent-ad0e8a21bff5b9a8e                                                   d05f80e [feat/controlled-daily-v4-stage-b]
+C:/Repo/AAI_Hydric_Stress/.claude/worktrees/agent-ad21bfcafda0ecbd3                                                   e23e642 [fix/melchor-romero-observation-provenance]
+C:/Repo/AAI_Hydric_Stress/.claude/worktrees/agent-ad3a33530c4973d78                                                   dd2bab7 [feat/defense-reproducible-startup]
+C:/Repo/AAI_Hydric_Stress/.claude/worktrees/feat+controlled-daily-v4-stage-c-holdout-ledger                           17da90a [feat/controlled-daily-v4-stage-c-holdout-ledger]
+C:/Repo/AAI_Hydric_Stress/.worktrees/sensor-closure                                                                   4c734f9 [chore/rehearsal-producer-reset]
+C:/Repo/AAI_Hydric_Stress/.worktrees/ui-defense-pergamino                                                             bfd71e7 [feat/ui-defense-pergamino]
+C:/Repo/AAI_Hydric_Stress_audit_step2                                                                                 f17fe65 (detached HEAD)
+C:/Repo/AAI_Hydric_Stress_backend_robustness                                                                          3081a96 [fix/hu6-backend-paginacion-robusta]
+C:/Repo/AAI_Hydric_Stress_backend_ui                                                                                  b573088 [feat/hu6-backend-soporte-ui]
+C:/Repo/AAI_Hydric_Stress_causal_historical_replay                                                                    90183d3 [feat/causal-historical-replay]
+C:/Repo/AAI_Hydric_Stress_ensemble_integration                                                                        73fd169 [feat/ensemble-producer-ui]
+C:/Repo/AAI_Hydric_Stress_ensemble_retrospective_evaluation                                                           8777f59 [feat/ensemble-retrospective-evaluation]
+C:/Repo/AAI_Hydric_Stress_fix_backend_closure                                                                         b56f082 [fix/backend-technical-closure]
+C:/Repo/AAI_Hydric_Stress_forecast_evidence_assessment                                                                9aaabe2 [docs/forecast-evidence-assessment]
+C:/Repo/AAI_Hydric_Stress_hu7_v3_reference                                                                            2a40ee6 [experiment/hu7-controlled-daily-v3-formal]
+C:/Repo/AAI_Hydric_Stress_integration                                                                                 530b453 [feat/hu6-productor-integracion-final]
+C:/Repo/AAI_Hydric_Stress_repro-docs                                                                                  9bc1a2d [fix/controlled-daily-v4-reproducibility-docs]
+C:/Repo/AAI_Hydric_Stress_scientific_closure                                                                          59612ab [feat/scientific-closure]
+C:/Repo/AAI_Hydric_Stress_ui_design                                                                                   42ea91f [docs/readme-ui-update]
+C:/Repo/AAI_Hydric_Stress_ui_refresh                                                                                  8b2b193 [feat/hu6-productor-ui-renovada]
+C:/Users/gusta/AppData/Local/Temp/claude/C--Repo-AAI-Hydric-Stress/0bdb19e6-e913-4702-994a-22965cdcf505/scratchpad/bk 0000000 [backup/pre-freeze-recovery-2026-10-06]
