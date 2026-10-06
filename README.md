@@ -29,8 +29,8 @@ Ver [`docs/seguimiento-tareas.md`](docs/seguimiento-tareas.md) para la auditorí
 | HU4 | `predictive-modeling` — modelado predictivo y alertas tempranas | ✅ Cerrada (revalidada sobre el esquema temporal y de selección vigente) |
 | HU5 | `human-feedback` — retroalimentación humana y recalibración | ✅ Cerrada (revalidada con recalibración temporalmente controlada) |
 | HU6 | `architecture-integration` — integración de la arquitectura | ✅ Cerrada (revalidada sobre la integración end-to-end vigente) |
-| HU7 | `experiment-runner` — diseño y ejecución del plan experimental | ✅ Completa |
-| HU8 | Análisis de resultados y contrastación de la hipótesis | ✅ Cerrada y revalidada científicamente sobre controlled_daily_v3 (falta la memoria técnica final) |
+| HU7 | `experiment-runner` — diseño y ejecución del plan experimental | ✅ Implementación y ejecución experimental completadas. La evidencia de `controlled_daily_v3` se preserva y la campaña externa `controlled_daily_v4_external_pergamino` ejecutó A, B, C y H. El cierre científico confirmatorio no se alcanzó: RB-05, `sc-06-scientific-synthesis`, `SC-GOV-025` y el gate `GF` permanecen en `FAIL` por una no conformidad de gobernanza documentada. |
+| HU8 | Análisis de resultados y contrastación de la hipótesis | 🟡 Análisis y discusión completados con limitaciones explícitas. Los resultados de `controlled_daily_v3` se preservan; B y C de `controlled_daily_v4_external_pergamino` se interpretan como evidencia retrospectiva exploratoria. No se declara validación agronómica ni cierre científico confirmatorio. La memoria técnica final continúa en elaboración. |
 
 Además de las HU del backlog de tesis, el repo incluye una interfaz de usuario (`backend/` + `frontend/`, ver sección siguiente) que expone HU5+HU6 y cierra el loop de recalibración manual disparada desde la UI (ver `docs/adr/0006-recalibracion-disparada-desde-la-ui.md`).
 
@@ -99,12 +99,12 @@ npm install
 npm run test
 ```
 
-## Protocolo experimental vigente
+## Evidencia y protocolos experimentales
 
-La tercera auditoría introduce `controlled_daily_v3`: objetivo observado separado
- de entradas imputadas/ruidosas, calendario diario obligatorio, contratos completos
- de modelos y evaluación temporal del ciclo de recalibración. Ver
-[protocolo y próxima fase científica](docs/research/protocolo-experimental-v3.md).
-Las corridas previas permanecen como evidencia histórica. ET0 no integra HU7/HU8.
-La UI requiere un identificador de sensor y muestra el último pronóstico emitido,
-con su fecha objetivo; solo permite validar resultados cuyo día objetivo terminó.
+El repositorio conserva dos líneas de evidencia complementarias. `controlled_daily_v3` establece el esquema causal diario utilizado para la evaluación sobre Melchor Romero: objetivo observado separado de entradas imputadas o ruidosas, calendario diario obligatorio, contratos completos de modelos y evaluación temporal del ciclo de recalibración. Ver [protocolo experimental v3](docs/research/protocolo-experimental-v3.md).
+
+La campaña externa `controlled_daily_v4_external_pergamino` ejecutó las etapas A, B y C, junto con el complemento H, sobre datos de reanálisis de Pergamino. Los resultados y sus limitaciones se preservan. Sin embargo, la auditoría final RB-05 concluyó en `FAIL` por una no conformidad de gobernanza. En consecuencia, `sc-06-scientific-synthesis`, `SC-GOV-025` y el gate `GF` permanecen en `FAIL`. Las etapas B y C se interpretan como evidencia retrospectiva exploratoria y no como cierre científico confirmatorio.
+
+Las etapas A, B y C, junto con H, no deben repetirse dentro de la campaña cerrada. Una confirmación futura requeriría una campaña nueva, independiente y basada en datos no utilizados. Ver [estado canónico del cierre científico](openspec/scientific-closure/current-execution-checkpoint.md).
+
+La interfaz de reproducción histórica conserva la causalidad temporal: presenta la fecha de origen, mantiene ocultas las observaciones futuras hasta la fecha simulada correspondiente y solo habilita la retroalimentación cuando existe una observación real. Esta interfaz permite inspección y trazabilidad. No constituye validación agronómica, eficacia de campo ni operación automática del riego.
