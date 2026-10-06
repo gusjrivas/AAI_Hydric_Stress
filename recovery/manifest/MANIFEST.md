@@ -47,6 +47,15 @@ Rama: `backup/pre-freeze-recovery-2026-10-06` (huérfana; exclusivamente de arch
 | untracked: `ignored-archives/mlruns-hu7-epica4-experiments.tar.gz` | ignorado `mlruns/` (2 experimentos hu7-epica4) | `82bfa3124ec6df3d0bd29eeaec317dfc7bc66f6b98be7855c1f05dd8383ca964` | `recovery/untracked/ignored-archives/mlruns-hu7-epica4-experiments.tar.gz` | archivo comprimido | copiar desde la rama |
 | untracked: `ignored-archives/demo-sessions-and-ignored-data-parquets.tar.gz` | ignorados: `demo_sessions/`, `.demo_replay_sessions/`, parquets demo/lab de `data/` | `b51818c0e8845e16046a8245cc51acf3f57c0dfdcd3f5c4ed24d7fe936c288d6` | `recovery/untracked/ignored-archives/demo-sessions-and-ignored-data-parquets.tar.gz` | archivo comprimido | copiar desde la rama |
 
+## Artefactos externos al repositorio (agregados 2026-10-06)
+
+PR #215 está cerrado sin merge. Estos archivos se preservan únicamente con fines históricos y de recuperación; no representan la UI vigente y no constituyen evidencia científica nueva. Los originales permanecen en Descargas.
+
+| Archivo | Ruta original | Ruta de backup | SHA-256 | Tamaño (bytes) | Fecha | Motivo de preservación |
+|---|---|---|---|---|---|---|
+| `Investigacion_UI_reproduccion_historica_2026-09-24.md` | `C:\Users\gusta\Downloads\Investigacion_UI_reproduccion_historica_2026-09-24.md` | `recovery/untracked/downloads-external/Investigacion_UI_reproduccion_historica_2026-09-24.md` | `7e4c0f153722e96b3e8e0785dc867209ed558c55b3a2978f57fe721bca2523c5` | 20743 | 2026-09-23 22:07 (mtime del original) | Análisis histórico de UI/reproducción causal que sirvió como insumo del PR #215, posteriormente cerrado sin merge. |
+| `replay-ui-demo-capturas.zip` | `C:\Users\gusta\Downloads\replay-ui-demo-capturas.zip` | `recovery/untracked/downloads-external/replay-ui-demo-capturas.zip` | `7d5f84f126996dbb305123d718541a05475768100f1c5ea0214a6c2aca7bfabe` | 344538 | 2026-09-23 23:01 (mtime del original) | Capturas y material visual histórico de la UI asociada al PR #215. No corresponde a la UI canónica actual. |
+
 ## Artefactos ignorados evaluados
 
 | Conjunto | Tamaño / archivos | Clasificación | Justificación |
