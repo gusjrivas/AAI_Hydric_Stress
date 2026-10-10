@@ -73,7 +73,7 @@ def update_feedback(
 def init_prediction_feedback(predictions, model_version, horizon_days, threshold=None):
     """Persist the original issued prediction, not a recomputed historical one."""
     log = init_feedback_log(predictions.timestamp, predictions["alert"])
-    log["target_timestamp"] = predictions.timestamp + pd.Timedelta(days=horizon_days)
+    log["target_timestamp"] = predictions.timestamp + pd.Timedelta(int(horizon_days), unit="D")
     log["y_proba"] = predictions.y_proba.to_numpy()
     log["model_version"] = model_version
     log["target_threshold"] = threshold

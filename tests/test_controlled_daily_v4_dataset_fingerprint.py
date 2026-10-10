@@ -35,7 +35,7 @@ def _minimal_frame(future_soil_moisture: list[float]) -> pd.DataFrame:
     ts = pd.date_range("2015-01-07", periods=n, freq="D")
     data = {
         "feature_timestamp": ts,
-        "target_timestamp": ts + pd.Timedelta(days=3),
+        "target_timestamp": ts + pd.Timedelta(3, unit="D"),
         "soil_moisture": [0.35] * n,
         "RH2M": [70.0] * n,
         "ALLSKY_SFC_SW_DWN": [18.0] * n,

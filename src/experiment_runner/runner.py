@@ -73,7 +73,7 @@ def run_configuration(
     eligible = (
         clean_features[base_names + feature_columns].notna().all(axis=1)
         & clean_labels.stress_label.notna()
-        & (reference.timestamp + pd.Timedelta(days=horizon_days) < cutoff)
+        & (reference.timestamp + pd.Timedelta(int(horizon_days), unit="D") < cutoff)
     )
     rows, artifacts = [], []
     for seed in seeds:

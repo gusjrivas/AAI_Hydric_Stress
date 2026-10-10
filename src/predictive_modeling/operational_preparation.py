@@ -113,7 +113,9 @@ def add_calendar_target(
     if pd.api.types.is_bool_dtype(target_values.dtype):
         raise ValueError(f"La variable objetivo {column!r} no puede ser booleana.")
     result[column] = target_values
-    result[TARGET_DATE_COLUMN] = result[TIMESTAMP_COLUMN] + pd.Timedelta(days=horizon_days)
+    result[TARGET_DATE_COLUMN] = result[TIMESTAMP_COLUMN] + pd.Timedelta(
+        int(horizon_days), unit="D"
+    )
     observed_by_date = result.set_index(TIMESTAMP_COLUMN)[column]
     result[TARGET_VALUE_COLUMN] = result[TARGET_DATE_COLUMN].map(observed_by_date)
     result["target_observed"] = result[TARGET_VALUE_COLUMN].notna()

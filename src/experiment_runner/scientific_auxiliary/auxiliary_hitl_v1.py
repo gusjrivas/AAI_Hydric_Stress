@@ -256,6 +256,7 @@ def assert_no_reserved_paths(paths: dict[str, Any]) -> list[str]:
     corrida, en lugar de una constante `abc_artifacts_touched: 0`.
     """
     offending = []
+    reported: set[tuple[str, str]] = set()
     for name, value in paths.items():
         if value is None:
             continue
@@ -270,8 +271,10 @@ def assert_no_reserved_paths(paths: dict[str, Any]) -> list[str]:
             pass
         for text in sorted(candidates):
             for marker in RESERVED_PATH_MARKERS:
-                if marker in text:
+                key = (name, marker)
+                if marker in text and key not in reported:
                     offending.append(f"{name}={text} contiene {marker!r}")
+                    reported.add(key)
     return offending
 
 
@@ -884,10 +887,10 @@ def validate_feedback_events(
             by_rule["R11-timestamp"] = by_rule.get("R11-timestamp", 0) + 1
             continue
 
-        if target != fecha + pd.Timedelta(days=HORIZON_DAYS):
+        if target != fecha + pd.Timedelta(HORIZON_DAYS, unit="D"):
             fail("R12-horizon", f"{tag}: target_timestamp no es fecha + {HORIZON_DAYS} días")
 
-        if validated < target + pd.Timedelta(days=1):
+        if validated < target + pd.Timedelta(1, unit="D"):
             fail(
                 "R13-maturation",
                 f"{tag}: validated_at anterior al cierre del día objetivo (fuga temporal)",
