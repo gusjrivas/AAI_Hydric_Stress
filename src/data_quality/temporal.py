@@ -18,6 +18,6 @@ def validate_daily_series(df: pd.DataFrame) -> pd.DataFrame:
     dates = result["timestamp"]
     if dates.duplicated().any() or not dates.eq(dates.dt.normalize()).all():
         raise ValueError("Se requiere exactamente una fila por día y por serie.")
-    if not dates.diff().dropna().eq(pd.Timedelta(1, unit="D")).all():
+    if not dates.diff().dropna().eq(pd.Timedelta(days=1)).all():
         raise ValueError("Calendario irregular: reindexar explícitamente a frecuencia diaria.")
     return result
