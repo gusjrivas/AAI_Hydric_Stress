@@ -17,7 +17,7 @@ jobs:
           python-version: "3.11"
 
       - name: Instalar dependencias
-        run: pip install -e ".[dev]"
+        run: pip install -c constraints-ci-direct.txt -e ".[dev]"
 
       - name: Lint (ruff)
         run: ruff check src tests
@@ -50,7 +50,7 @@ jobs:
           python-version: "3.11"
 
       - name: Instalar dependencias
-        run: pip install -e ".[dev,backend]"
+        run: pip install -c constraints-ci-direct.txt -e ".[dev,backend]"
 
       - name: Lint (ruff)
         run: ruff check backend/app
@@ -74,6 +74,9 @@ jobs:
 
       - name: Instalar dependencias
         run: cd frontend && npm ci
+
+      - name: Lint (oxlint)
+        run: cd frontend && npm run lint
 
       - name: Tests (vitest)
         run: cd frontend && npm run test

@@ -364,7 +364,7 @@ def onset_metrics(y_true, y_pred, feature_timestamps, segment_ids=None):
         raise ValueError("Onset timestamps must be daily midnight")
     if not np.isin(y, [0, 1]).all() or not np.isin(alerts, [0, 1]).all():
         raise ValueError("Onset labels must be binary")
-    targets = dates + pd.Timedelta(days=HORIZON_DAYS)
+    targets = dates + pd.Timedelta(HORIZON_DAYS, unit="D")
     breaks = np.ones(len(y), dtype=bool)
     if len(y) > 1:
         breaks[1:] = (np.diff(dates.values) != np.timedelta64(1, "D")) | (

@@ -48,7 +48,9 @@ def predict_available(df, predictor: FittedPredictor):
     elif predictor.detector is not None:
         featured["is_anomaly"] = pd.Series(dtype=bool)
     featured = featured.reset_index(drop=True)
-    featured["target_timestamp"] = featured.timestamp + pd.Timedelta(days=contract["horizon_days"])
+    featured["target_timestamp"] = featured.timestamp + pd.Timedelta(
+        int(contract["horizon_days"]), unit="D"
+    )
     probabilities = positive_probability(predictor.model, featured[contract["model_features"]])
     featured["y_proba"] = probabilities
     featured["alert"] = generate_alerts(probabilities, contract["alert_threshold"])
@@ -137,7 +139,7 @@ def run_end_to_end_pipeline(
     labels = add_stress_label(reference, label_column, horizon_days, threshold)
     featured["stress_label"] = labels["stress_label"]
     featured["target_observed"] = reference[label_column].shift(-horizon_days).notna()
-    featured["target_timestamp"] = reference.timestamp + pd.Timedelta(days=horizon_days)
+    featured["target_timestamp"] = reference.timestamp + pd.Timedelta(int(horizon_days), unit="D")
     base_names = [c for c in contract["model_features"] if c != "is_anomaly"]
     eligible = featured.dropna(subset=base_names + feature_columns + ["stress_label"])
     # Purge by target date, not the number of retained rows after missing targets.

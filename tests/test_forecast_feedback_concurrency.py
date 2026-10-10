@@ -50,7 +50,7 @@ def _fresh(dates, y_proba, model_version="model-x"):
 def _seed_confirmable_log(data_dir: Path, fecha: str) -> None:
     dates = pd.to_datetime([fecha])
     log = init_feedback_log(dates, pd.Series([1]))
-    log["target_timestamp"] = dates + pd.Timedelta(days=3)
+    log["target_timestamp"] = dates + pd.Timedelta(3, unit="D")
     log["model_version"] = "seed-model"
     log["y_proba"] = [0.8]
     log["target_threshold"] = 0.5
