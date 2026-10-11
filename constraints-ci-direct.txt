@@ -1,0 +1,17 @@
+# Dependencias directas validadas por la auditoría de main (2026-10-10).
+# Estabiliza el CI general. La reproducibilidad científica de
+# controlled_daily_v4 sigue gobernada por docker/experiment-v4/constraints.txt.
+pandas==2.3.3
+pyarrow==19.0.1
+requests==2.34.2
+xarray==2026.7.0
+netCDF4==1.7.4
+scikit-learn==1.9.0
+mlflow==2.22.5
+SQLAlchemy==2.0.52
+pytest==9.1.1
+ruff==0.16.6
+black==26.5.1
+fastapi==0.141.1
+uvicorn==0.52.4
+httpx==0.28.1

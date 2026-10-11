@@ -153,15 +153,6 @@ export function HistoricalReplayPage() {
     const clock = simulatedDate;
     const stillCurrent = () => mountedRef.current && generationRef.current === myGeneration;
 
-    setPredictionState(taggedFor(origin, clock, LOADING_PREDICTION));
-    setHistoryState(taggedFor(origin, clock, LOADING_HISTORY));
-    setFeedbackState(taggedFor(origin, clock, LOADING_FEEDBACK));
-    setFeedbackSubmitError(null);
-    // Un envío de feedback en vuelo pertenece a la selección anterior: no
-    // debe seguir bloqueando el formulario de la nueva selección, aunque su
-    // respuesta (ya ignorada por generación) todavía no haya llegado.
-    setFeedbackSubmitting(false);
-
     getPrediction(origin, clock)
       .then((result) => {
         if (!stillCurrent()) return;
@@ -207,8 +198,18 @@ export function HistoricalReplayPage() {
       });
   }, [selectedOrigin, simulatedDate]);
 
+  function prepareSelectionChange() {
+    // Invalida inmediatamente las respuestas en vuelo y limpia el estado del
+    // formulario desde el evento que cambia la selección, no desde el efecto
+    // que sincroniza las consultas remotas.
+    generationRef.current += 1;
+    setFeedbackSubmitError(null);
+    setFeedbackSubmitting(false);
+  }
+
   function moveClock(days: number) {
     if (!candidate) return;
+    prepareSelectionChange();
     setSimulatedDate((current) =>
       clampIso(addDaysIso(current, days), candidate.periodo_inicio, candidate.periodo_fin),
     );
@@ -216,6 +217,7 @@ export function HistoricalReplayPage() {
 
   function resetClock() {
     if (!origins.length || !candidate) return;
+    prepareSelectionChange();
     setSelectedOrigin(origins[0]);
     setSimulatedDate(origins[0]);
   }
@@ -314,7 +316,10 @@ export function HistoricalReplayPage() {
           Origen de la predicción
           <select
             value={selectedOrigin}
-            onChange={(event) => setSelectedOrigin(event.target.value)}
+            onChange={(event) => {
+              prepareSelectionChange();
+              setSelectedOrigin(event.target.value);
+            }}
           >
             {origins.map((origin) => (
               <option key={origin} value={origin}>

@@ -41,14 +41,14 @@ def test_validate_stage_window_full_coverage_accepts_series_covering_the_full_wi
 
 def test_validate_stage_window_full_coverage_rejects_series_truncated_at_the_end():
     window_start, window_end = compute_stage_window_bounds(STAGE_B_BOUNDS)
-    series = _continuous_daily_series(window_start, window_end - pd.Timedelta(days=30))
+    series = _continuous_daily_series(window_start, window_end - pd.Timedelta(30, unit="D"))
     with pytest.raises(CalendarIntegrityError):
         validate_stage_window_full_coverage(series, STAGE_B_BOUNDS)
 
 
 def test_validate_stage_window_full_coverage_rejects_series_truncated_at_the_start():
     window_start, window_end = compute_stage_window_bounds(STAGE_B_BOUNDS)
-    series = _continuous_daily_series(window_start + pd.Timedelta(days=10), window_end)
+    series = _continuous_daily_series(window_start + pd.Timedelta(10, unit="D"), window_end)
     with pytest.raises(CalendarIntegrityError):
         validate_stage_window_full_coverage(series, STAGE_B_BOUNDS)
 

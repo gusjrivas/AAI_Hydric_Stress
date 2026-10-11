@@ -14,7 +14,7 @@ def _seed_feedback_log(sensor_id: str, data_dir: Path) -> str:
     dates = pd.to_datetime(["2024-10-19", "2024-10-20"])
     alerts = pd.Series([1, 0])
     log = init_feedback_log(dates, alerts)
-    log["target_timestamp"] = dates + pd.Timedelta(days=3)
+    log["target_timestamp"] = dates + pd.Timedelta(3, unit="D")
     log["model_version"] = "test-model"
     log["validated_at"] = pd.NaT
     save_feedback_log(feedback_log_name_for(sensor_id), log, data_dir=data_dir)

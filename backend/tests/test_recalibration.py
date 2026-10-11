@@ -268,7 +268,7 @@ def test_recalibration_lineage_reconstructs_full_a_to_b_to_c_chain(tmp_path):
     # Avanza el dataset una fecha real (ADR-0007) para que el ciclo 2 emita
     # un pronóstico genuinamente nuevo con B; no se reutiliza el forecast de A.
     df, _ = load_dataset_or_raise("sensor-a", tmp_path)
-    next_day = df.timestamp.max() + pd.Timedelta(days=1)
+    next_day = df.timestamp.max() + pd.Timedelta(1, unit="D")
     reading = client.post(
         "/sensors/sensor-a/readings",
         json={

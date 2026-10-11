@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import copy
 import json
+import os
+import sys
 from datetime import datetime, timezone
 
 import numpy as np
@@ -348,7 +350,7 @@ def test_temporal_leak_before_maturation_is_rejected(frames: h.HitlFrames, prepa
     """Validar antes de que cierre el día objetivo es fuga temporal."""
     events = _events(prepared, frames)
     target = pd.Timestamp(events[0]["target_timestamp"])
-    events[0]["validated_at"] = (target - pd.Timedelta(days=1)).isoformat()
+    events[0]["validated_at"] = (target - pd.Timedelta(1, unit="D")).isoformat()
     with pytest.raises(h.HitlValidationError) as error:
         _validate(events, frames, prepared)
     assert "R13-maturation" in _rules(error.value)
@@ -928,7 +930,6 @@ def test_the_runner_never_imports_the_holdout_ledger() -> None:
     import ast
     import pathlib
     import subprocess
-    import sys
 
     tree = ast.parse(pathlib.Path(h.__file__).read_text(encoding="utf-8"))
     imported: list[str] = []
@@ -946,10 +947,12 @@ def test_the_runner_never_imports_the_holdout_ledger() -> None:
         "import experiment_runner.scientific_auxiliary.auxiliary_hitl_v1;"
         "print([n for n in sys.modules if n.endswith('holdout_ledger')])"
     )
+    clean_environment = dict(os.environ)
+    clean_environment["PYTHONPATH"] = str(repo_root / "src")
     completed = subprocess.run(
         [sys.executable, "-c", probe],
         cwd=str(repo_root),
-        env={"PYTHONPATH": str(repo_root / "src"), "PATH": "/usr/bin:/bin"},
+        env=clean_environment,
         capture_output=True,
         text=True,
         timeout=120,
@@ -1150,7 +1153,12 @@ def test_reserved_paths_are_detected_through_a_symlink(tmp_path) -> None:
     target = tmp_path / "evidence" / "A"
     target.mkdir(parents=True)
     link = tmp_path / "entrada-inocua"
-    link.symlink_to(target)
+    try:
+        link.symlink_to(target, target_is_directory=True)
+    except OSError as error:
+        if sys.platform == "win32" and error.winerror == 1314:
+            pytest.skip("Windows requiere privilegio de symlink o Developer Mode para esta prueba")
+        raise
     assert h.assert_no_reserved_paths({"output_dir": link})
 
 

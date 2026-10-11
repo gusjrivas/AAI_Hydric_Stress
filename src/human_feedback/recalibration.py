@@ -70,13 +70,13 @@ def recalibrate_predictor(predictor, df, feedback_log):
         & feedback_log.etiqueta_corregida.notna()
         & feedback_log.validated_at.notna()
         & (feedback_log.validated_at <= now)
-        & (feedback_log.validated_at >= feedback_log.target_timestamp + pd.Timedelta(days=1))
+        & (feedback_log.validated_at >= feedback_log.target_timestamp + pd.Timedelta(1, unit="D"))
         & (feedback_log.target_timestamp < now.normalize())
         & feedback_log.model_version.notna()
     ].copy()
     if not valid.target_threshold.eq(predictor.threshold).all():
         raise ValueError("Las correcciones corresponden a otro umbral de referencia.")
-    if not valid.target_timestamp.eq(valid.fecha + pd.Timedelta(days=horizon)).all():
+    if not valid.target_timestamp.eq(valid.fecha + pd.Timedelta(int(horizon), unit="D")).all():
         raise ValueError("Horizonte de feedback incompatible con el modelo.")
     previous = dict(predictor.applied_feedback or {})
     corrections = dict(previous)

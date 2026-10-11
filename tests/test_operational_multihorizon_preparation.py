@@ -137,13 +137,13 @@ def test_partition_purges_by_target_date_at_every_temporal_boundary(horizon):
             part["target_date"].between(pd.Timestamp(bounds.start), pd.Timestamp(bounds.end)).all()
         )
     assert prepared.train["timestamp"].max() == pd.Timestamp("2024-01-05") - pd.Timedelta(
-        days=horizon
+        horizon, unit="D"
     )
     assert prepared.calibration["timestamp"].max() == pd.Timestamp("2024-01-10") - pd.Timedelta(
-        days=horizon
+        horizon, unit="D"
     )
     assert prepared.evaluation["timestamp"].max() == pd.Timestamp("2024-01-14") - pd.Timedelta(
-        days=horizon
+        horizon, unit="D"
     )
     assert pd.Timestamp("2024-01-15") in set(prepared.inference["timestamp"])
 

@@ -49,7 +49,7 @@ def test_daily_contract_rejects_invalid_calendars(kind):
     if kind == "duplicate":
         df.loc[20, "timestamp"] = df.timestamp.iloc[19]
     if kind == "intraday":
-        df.loc[20, "timestamp"] += pd.Timedelta(hours=1)
+        df.loc[20, "timestamp"] += pd.Timedelta(1, unit="h")
     if kind == "null":
         df.loc[20, "timestamp"] = pd.NaT
     with pytest.raises(ValueError):
@@ -134,7 +134,7 @@ def test_reuse_freezes_threshold_and_detector_and_predicts_unlabeled_tail(monkey
     assert reused["threshold"] == result["threshold"]
     forecasts = predict_available(df, predictor)
     assert forecasts.timestamp.max() == df.timestamp.max()
-    assert forecasts.target_timestamp.max() == df.timestamp.max() + pd.Timedelta(days=3)
+    assert forecasts.target_timestamp.max() == df.timestamp.max() + pd.Timedelta(3, unit="D")
     with pytest.raises(ModelContractMismatch):
         run(df, model=predictor, skip_fit=True, include_anomaly_detection=True, lags=[2])
 
@@ -190,7 +190,7 @@ def test_recalibration_supports_two_successive_hitl_cycles_across_model_versions
 
     # Feedback inmaduro (target_timestamp futuro) presente en el log no debe
     # bloquear la recalibración ni incorporarse.
-    future_fecha = pd.Timestamp.now().normalize() + pd.Timedelta(days=30)
+    future_fecha = pd.Timestamp.now().normalize() + pd.Timedelta(30, unit="D")
     immature = pd.DataFrame(
         {
             "fecha": [future_fecha],
@@ -198,7 +198,7 @@ def test_recalibration_supports_two_successive_hitl_cycles_across_model_versions
             "estado_validacion": ["rechazada"],
             "etiqueta_corregida": pd.array([1], dtype="Int64"),
             "observacion": [None],
-            "target_timestamp": [future_fecha + pd.Timedelta(days=3)],
+            "target_timestamp": [future_fecha + pd.Timedelta(3, unit="D")],
             "y_proba": [0.9],
             "model_version": [predictor_b.model_id],
             "target_threshold": [predictor_b.threshold],
