@@ -23,6 +23,8 @@ import { PergaminoDefensePage } from "./features/defense/PergaminoDefensePage";
 import { MelchorRomeroDefensePage } from "./features/defense/MelchorRomeroDefensePage";
 import { SensorLabPage } from "./features/lab/SensorLabPage";
 import { EvidenceResultsPage } from "./features/evidence/EvidenceResultsPage";
+import { ModeBadge } from "./features/navigation/ModeBadge";
+import { modeForView } from "./features/navigation/viewMode";
 
 const DEFENSE_ROUTES = ["defensa-pergamino", "defensa-melchor-romero"] as const;
 function isDefenseRoute(route: string): route is (typeof DEFENSE_ROUTES)[number] {
@@ -230,6 +232,15 @@ function App() {
       )}
 
       <main id="main-content" className="app-sections" tabIndex={-1}>
+        <ModeBadge mode={modeForView(viewKey, { simulatedSensor: isViewingDemoSensor || labSensorId === activeSensorId })} />
+        {!isDemoRoute && route === "arquitectura" && (
+          <section aria-labelledby="arquitectura-heading">
+            <h1 id="arquitectura-heading" className="app-section-heading" tabIndex={-1}>
+              Arquitectura del sistema
+            </h1>
+            <ArchitectureFlow />
+          </section>
+        )}
         {!isDemoRoute && route === "defensa-pergamino" && <PergaminoDefensePage />}
         {!isDemoRoute && route === "defensa-melchor-romero" && <MelchorRomeroDefensePage />}
         {!isDemoRoute && route === LAB_ROUTE && <SensorLabPage onSensorWithData={setLabSensorId} onOpenInTools={openLabSensorInTools} />}
@@ -317,7 +328,9 @@ function App() {
             <p>Fue desarrollada como parte de un trabajo de investigación. Sus resultados no garantizan el estado del cultivo ni reemplazan la revisión en el lugar.</p>
             <details className="app-technical">
               <summary>Ver el estudio y la documentación técnica</summary>
-              <ArchitectureFlow />
+              <p>
+                El mapa de la arquitectura está en <a href="#arquitectura">Arquitectura del sistema</a>.
+              </p>
               <EvidencePanel />
             </details>
           </section>

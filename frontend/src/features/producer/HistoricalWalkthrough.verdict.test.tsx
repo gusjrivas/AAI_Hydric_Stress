@@ -58,7 +58,7 @@ const row = (date: string, soil: number | null): ReadingRow => ({
 
 function readings(rows: ReadingRow[], end = "2023-06-13"): ReadingsResult {
   return {
-    input_roles: [], sensor_id: "s", calendar_timezone: "UTC", server_today: end, snapshot_id: null,
+    sensor_id: "s", calendar_timezone: "UTC", server_today: end, snapshot_id: null,
     window: { start_date: "2023-06-08", end_date: end, expected_days: 6 }, status: "ready", rows,
     missing_dates: [],
     variable_coverage: [{ variable: "soil_moisture", observed_days: rows.length, missing_days: 0, imputed_days: 0, unverified_days: 0 }],
