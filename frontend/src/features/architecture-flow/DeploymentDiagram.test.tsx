@@ -16,6 +16,11 @@ function mockReducedMotion(matches: boolean) {
   );
 }
 
+/** Cada paso programa el siguiente al renderizar: se avanza un paso por vez, como ocurre en el navegador. */
+function advanceSteps(count: number) {
+  for (let i = 0; i < count; i += 1) act(() => void vi.advanceTimersByTime(4200));
+}
+
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
@@ -79,7 +84,7 @@ describe("DeploymentDiagram", () => {
     fireEvent.click(screen.getByRole("button", { name: /ver el recorrido/i }));
     expect(screen.getByTestId("tour-caption")).toHaveTextContent(DEPLOYMENT_TOUR[0].caption);
 
-    act(() => void vi.advanceTimersByTime(4200));
+    advanceSteps(1);
     expect(screen.getByTestId("tour-caption")).toHaveTextContent(DEPLOYMENT_TOUR[1].caption);
 
     fireEvent.click(screen.getByRole("button", { name: /pausar/i }));
@@ -87,9 +92,36 @@ describe("DeploymentDiagram", () => {
     expect(screen.getByTestId("tour-caption")).toHaveTextContent(DEPLOYMENT_TOUR[1].caption);
 
     fireEvent.click(screen.getByRole("button", { name: /ver el recorrido/i }));
-    act(() => void vi.advanceTimersByTime(4200 * DEPLOYMENT_TOUR.length));
+    advanceSteps(DEPLOYMENT_TOUR.length - 2);
     expect(screen.getByTestId("tour-caption")).toHaveTextContent(DEPLOYMENT_TOUR[DEPLOYMENT_TOUR.length - 1].caption);
+  });
+
+  it("holds the last step for 6 seconds and then returns to the start", () => {
+    mockReducedMotion(false);
+    vi.useFakeTimers();
+    render(<DeploymentDiagram />);
+    fireEvent.click(screen.getByRole("button", { name: /ver el recorrido/i }));
+    advanceSteps(DEPLOYMENT_TOUR.length - 1);
+    const last = DEPLOYMENT_TOUR[DEPLOYMENT_TOUR.length - 1];
+    expect(screen.getByTestId("tour-caption")).toHaveTextContent(last.caption);
+    expect(screen.getByRole("button", { name: /^MinIO/ })).toHaveAttribute("aria-current", "step");
+
+    act(() => void vi.advanceTimersByTime(5999));
+    expect(screen.getByTestId("tour-caption")).toHaveTextContent(last.caption);
+
+    act(() => void vi.advanceTimersByTime(1));
+    expect(screen.getByTestId("tour-caption")).not.toHaveTextContent(last.caption);
+    expect(screen.getByTestId("tour-caption")).not.toHaveTextContent(DEPLOYMENT_TOUR[0].caption);
+    expect(screen.queryByRole("button", { current: "step" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /ver el recorrido/i })).toBeInTheDocument();
+  });
+
+  it("does not return to the start by itself when the last step was reached by hand", async () => {
+    render(<DeploymentDiagram />);
+    const next = screen.getByRole("button", { name: /siguiente/i });
+    for (let i = 0; i < DEPLOYMENT_TOUR.length; i += 1) await userEvent.click(next);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.getByTestId("tour-caption")).toHaveTextContent(DEPLOYMENT_TOUR[DEPLOYMENT_TOUR.length - 1].caption);
   });
 
   it("does not advance by itself when the user prefers reduced motion", () => {

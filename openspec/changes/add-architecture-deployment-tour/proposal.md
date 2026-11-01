@@ -6,5 +6,6 @@
 - Las siete etapas existentes, sus enlaces y la tabla de componentes se conservan sin cambios.
 - El recorrido es un guion fijo: resalta componentes y conexiones y muestra un subtítulo. No consulta servicios, no muestra datos, métricas, estados ni tiempos, y se rotula como ilustrativo. MLflow aparece únicamente en los pasos de recalibración, porque el pronóstico no lo utiliza.
 - Cada componente cita rutas del repositorio y puertos declarados en `docker-compose.yml`; una prueba verifica ambas cosas.
+- Al terminar la reproducción automática, el último paso (MLflow guarda en PostgreSQL y MinIO) permanece 6 segundos y el recorrido vuelve al estado inicial.
 - Accesibilidad: controles de reproducción, pausa, anterior, siguiente y salida; subtítulo en región `aria-live`; con `prefers-reduced-motion` no hay avance automático ni animación.
 - Non-goals: telemetría real, estado de salud de los servicios, enlaces al repositorio remoto, cambios de datos, modelos o experimentos. Rollback: revertir el PR.

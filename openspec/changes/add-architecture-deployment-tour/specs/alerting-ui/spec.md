@@ -19,7 +19,8 @@ La vista de arquitectura DEBE incluir un diagrama de despliegue con los componen
 - **WHEN** se inicia el recorrido
 - **THEN** cada paso resalta los componentes y conexiones involucrados y muestra un subtítulo, con controles de pausa, anterior, siguiente y salida
 - **AND** el rótulo «Recorrido ilustrativo · sin datos ni métricas reales» permanece visible
-- **AND** MLflow solo se resalta en los pasos de recalibración posteriores a la retroalimentación humana.
+- **AND** MLflow solo se resalta en los pasos de recalibración posteriores a la retroalimentación humana
+- **AND** al terminar la reproducción automática, el último paso permanece 6 segundos y el recorrido vuelve al estado inicial, mientras que un recorrido hecho paso a paso con los controles no vuelve solo al inicio.
 
 #### Scenario: Preferencia de movimiento reducido
 

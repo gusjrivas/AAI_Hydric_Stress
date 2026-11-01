@@ -4,6 +4,8 @@ import { DEPLOYMENT_COMPONENTS, DEPLOYMENT_EDGES, DEPLOYMENT_TOUR } from "./depl
 import type { DeploymentComponent } from "./deploymentCatalog";
 
 const STEP_MS = 4200;
+/** El último paso permanece visible antes de volver al inicio. */
+const END_HOLD_MS = 6000;
 const LAST_STEP = DEPLOYMENT_TOUR.length - 1;
 const IDLE_CAPTION =
   "Mostrá, paso a paso, cómo viaja un dato desde el sensor hasta el registro de una recalibración.";
@@ -42,20 +44,25 @@ export function DeploymentDiagram() {
   const [step, setStep] = useState(-1);
   const [playing, setPlaying] = useState(false);
 
-  // La reproducción termina sola al llegar al último paso: se deriva en el render.
-  const isPlaying = playing && step < LAST_STEP;
-
+  // Reproducción automática: cada paso dura STEP_MS; el último permanece END_HOLD_MS y el recorrido vuelve al inicio.
   useEffect(() => {
-    if (!isPlaying) return;
-    const timer = setInterval(() => setStep((current) => Math.min(current + 1, LAST_STEP)), STEP_MS);
-    return () => clearInterval(timer);
-  }, [isPlaying]);
+    if (!playing) return;
+    if (step < LAST_STEP) {
+      const timer = setTimeout(() => setStep(step + 1), STEP_MS);
+      return () => clearTimeout(timer);
+    }
+    const timer = setTimeout(() => {
+      setPlaying(false);
+      setStep(-1);
+    }, END_HOLD_MS);
+    return () => clearTimeout(timer);
+  }, [playing, step]);
 
   const current = step >= 0 ? DEPLOYMENT_TOUR[step] : null;
   const selected = DEPLOYMENT_COMPONENTS.find((component) => component.id === selectedId) ?? null;
 
   function togglePlay() {
-    if (isPlaying) {
+    if (playing) {
       setPlaying(false);
       return;
     }
@@ -82,7 +89,7 @@ export function DeploymentDiagram() {
 
       <div className="dd-tour" role="group" aria-label="Recorrido ilustrativo del flujo">
         <button type="button" className="dd-primary" onClick={togglePlay}>
-          {isPlaying ? "❚❚ Pausar" : "▶ Ver el recorrido"}
+          {playing ? "❚❚ Pausar" : "▶ Ver el recorrido"}
         </button>
         <button type="button" onClick={() => { setPlaying(false); setStep((s) => Math.max(0, s - 1)); }}>
           ‹ Anterior
