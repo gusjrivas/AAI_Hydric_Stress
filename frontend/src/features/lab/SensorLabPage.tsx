@@ -3,8 +3,10 @@ import "./SensorLabPage.css";
 import { QualityPanel } from "../quality/QualityPanel";
 import { ForecastPage } from "../forecast/ForecastPage";
 import { useForecastWorkspace } from "../forecast/useForecastWorkspace";
+import { LabStage } from "./LabStage";
 import { makeLabSensorId } from "./labSensor";
-import { LAB_SEED, useSensorLabScenarios } from "./useSensorLabScenarios";
+import { LAB_DEMO_PAUSE_MS, useLabDemoRun } from "./useLabDemoRun";
+import { LAB_DRY_DAYS, LAB_SEED, useSensorLabScenarios } from "./useSensorLabScenarios";
 import type { LabPhase } from "./useSensorLabScenarios";
 
 const PHASE_LABELS: Record<LabPhase, string> = {
@@ -17,10 +19,12 @@ const PHASE_LABELS: Record<LabPhase, string> = {
   interrupted: "Paso C · Envío del generador suspendido",
   recovering: "Simulando la recuperación (paso D)…",
   recovered: "Paso D · Lecturas de prueba para las fechas pendientes",
+  drying: "Generando la sequía simulada (paso E)…",
+  drought: "Paso E · Sequía simulada y pronóstico solicitado",
   error: "El paso solicitado no pudo completarse",
 };
 
-/** Qué hacer a continuación, según la fase; nunca sugiere acciones fuera de la secuencia A–D. */
+/** Qué hacer a continuación, según la fase; nunca sugiere acciones fuera de la secuencia A–E. */
 const NEXT_ACTION: Record<LabPhase, string> = {
   idle: "Generar el historial de prueba (paso A).",
   seeding: "Esperá: se está generando el historial de prueba.",
@@ -30,24 +34,30 @@ const NEXT_ACTION: Record<LabPhase, string> = {
   interrupting: "Esperá: se está simulando la interrupción.",
   interrupted: "Simular la recuperación (paso D).",
   recovering: "Esperá: se está simulando la recuperación.",
-  recovered: "El recorrido terminó. Podés iniciar una sesión nueva.",
+  recovered: "Simular una sequía (paso E).",
+  drying: "Esperá: se está generando la sequía simulada.",
+  drought: "El recorrido terminó. Podés iniciar una sesión nueva.",
   error: "Iniciar una sesión nueva: los datos de la sesión anterior se conservan.",
 };
 
 export const LAB_ERROR_GUIDANCE =
   "Este paso no pudo completarse. Para evitar modificar lecturas ya guardadas, iniciá una sesión nueva. Los datos de la sesión anterior se conservan.";
 
-/** Por qué un paso está deshabilitado, según la fase real; no agrega reglas fuera de la secuencia A–D. */
+const STEP_BUSY_NOTE = "Se habilita al completar el paso anterior. Hay un paso en curso: esperá a que termine.";
+
+/** Por qué un paso está deshabilitado, según la fase real; no agrega reglas fuera de la secuencia A–E. */
 const DISABLED_STEP_NOTE: Record<LabPhase, string> = {
   idle: "Se habilita al completar el paso anterior. Por ahora solo está disponible el paso A.",
-  seeding: "Se habilita al completar el paso anterior. Hay un paso en curso: esperá a que termine.",
+  seeding: STEP_BUSY_NOTE,
   normal: "Se habilita al completar el paso anterior. Por ahora solo está disponible el paso B.",
-  "injecting-anomaly": "Se habilita al completar el paso anterior. Hay un paso en curso: esperá a que termine.",
+  "injecting-anomaly": STEP_BUSY_NOTE,
   anomaly: "Se habilita al completar el paso anterior. Por ahora solo está disponible el paso C.",
-  interrupting: "Se habilita al completar el paso anterior. Hay un paso en curso: esperá a que termine.",
+  interrupting: STEP_BUSY_NOTE,
   interrupted: "Se habilita al completar el paso anterior. Por ahora solo está disponible el paso D.",
-  recovering: "Se habilita al completar el paso anterior. Hay un paso en curso: esperá a que termine.",
-  recovered: "El recorrido A–D terminó: no quedan pasos pendientes. Iniciá una sesión nueva para repetirlo.",
+  recovering: STEP_BUSY_NOTE,
+  recovered: "Se habilita al completar el paso anterior. Por ahora solo está disponible el paso E.",
+  drying: STEP_BUSY_NOTE,
+  drought: "El recorrido A–E terminó: no quedan pasos pendientes. Iniciá una sesión nueva para repetirlo.",
   error: "El paso anterior no pudo completarse, así que los pasos siguientes no están disponibles. Iniciá una sesión nueva.",
 };
 
@@ -60,16 +70,32 @@ function realNowLabel(): string {
 }
 
 /** Fases en las que el sensor de prueba ya tiene lecturas guardadas (el paso A terminó). */
-const PHASES_WITH_DATA: readonly LabPhase[] = ["normal", "injecting-anomaly", "anomaly", "interrupting", "interrupted", "recovering", "recovered"];
+const PHASES_WITH_DATA: readonly LabPhase[] = [
+  "normal",
+  "injecting-anomaly",
+  "anomaly",
+  "interrupting",
+  "interrupted",
+  "recovering",
+  "recovered",
+  "drying",
+  "drought",
+];
+
+/** Fases desde las que la demostración automática puede continuar. */
+const PHASES_DEMO_CAN_RESUME: readonly LabPhase[] = ["idle", "normal", "anomaly", "interrupted", "recovered"];
 
 export function SensorLabPage({
   onSensorWithData,
   onOpenInTools,
+  demoPauseMs = LAB_DEMO_PAUSE_MS,
 }: {
   /** Se llama cuando la sesión ya tiene datos, para que el resto de la app conozca el sensor sin copiar su id. */
   onSensorWithData?: (sensorId: string) => void;
   /** Abre el sensor de la sesión en Herramientas técnicas (Resumen e historial). */
   onOpenInTools?: (sensorId: string) => void;
+  /** Pausa entre pasos de la demostración automática. */
+  demoPauseMs?: number;
 } = {}) {
   const disabledNoteId = useId();
   const [sensorId, setSensorId] = useState(() => makeLabSensorId());
@@ -80,6 +106,7 @@ export function SensorLabPage({
     onIngested: () => setQualityRefreshToken((token) => token + 1),
     runForecast: workspace.runForecast,
   });
+  const demo = useLabDemoRun(lab, demoPauseMs);
 
   const hasData = PHASES_WITH_DATA.includes(lab.phase);
   useEffect(() => {
@@ -87,6 +114,7 @@ export function SensorLabPage({
   }, [hasData, sensorId, onSensorWithData]);
 
   function startNewSession() {
+    demo.stop();
     setSensorId(makeLabSensorId());
     setQualityRefreshToken(0);
   }
@@ -95,6 +123,8 @@ export function SensorLabPage({
   const canRunB = lab.phase === "normal";
   const canRunC = lab.phase === "anomaly";
   const canRunD = lab.phase === "interrupted";
+  const canRunE = lab.phase === "recovered";
+  const canDemo = PHASES_DEMO_CAN_RESUME.includes(lab.phase) && !lab.busy;
   const stepProps = (enabled: boolean) => ({
     className: enabled ? "sl-btn-primary" : "sl-btn-secondary",
     disabled: !enabled || lab.busy,
@@ -112,102 +142,29 @@ export function SensorLabPage({
         <h1 id="laboratorio-sensores-heading" tabIndex={-1}>Laboratorio de sensor simulado</h1>
         <p className="sl-journey">
           Este recorrido genera lecturas de prueba para mostrar cómo responde la aplicación ante datos
-          normales, un valor anómalo y una interrupción. Los días avanzan de forma simulada; no estamos
-          recibiendo mediciones de un cultivo.
+          normales, un valor anómalo, una interrupción y una sequía. Los días avanzan de forma simulada; no se
+          reciben mediciones de un cultivo.
         </p>
       </header>
 
-      <p className="sl-disclaimer sl-disclaimer--top" role="note">
-        El predictor operativo puede entrenarse o actualizarse con las lecturas sintéticas de esta sesión. Sus
-        resultados sirven para demostrar el funcionamiento del sistema; no prueban precisión en campo ni
-        mejoran la evidencia científica del trabajo. Guardar una revisión humana no inicia por sí solo
-        entrenamiento ni recalibración.
-      </p>
-
-      <div className="sl-explain">
-        <section aria-labelledby="sl-simulated-heading">
-          <h2 id="sl-simulated-heading">Qué simulamos</h2>
-          <p>
-            Las lecturas, las fechas y la interrupción se generan para esta demostración. La temperatura
-            anómala se introduce deliberadamente.
-          </p>
-        </section>
-        <section aria-labelledby="sl-real-heading">
-          <h2 id="sl-real-heading">Qué funciona realmente</h2>
-          <p>
-            La aplicación recibe y guarda las lecturas de prueba, evalúa su calidad, ejecuta el predictor
-            operativo y permite registrar una revisión humana cuando corresponde.
-          </p>
-        </section>
-      </div>
-
-      <section aria-label="Trazabilidad de esta sesión de prueba" className="sl-trace">
-        <h2>Trazabilidad de esta sesión de prueba</h2>
-        <dl>
-          <div>
-            <dt>Sensor de prueba (sensor_id)</dt>
-            <dd>
-              <code>{sensorId}</code>
-            </dd>
-          </div>
-          <div>
-            <dt>Semilla del generador</dt>
-            <dd>{LAB_SEED}</dd>
-          </div>
-          <div>
-            <dt>Procedencia de las lecturas</dt>
-            <dd>sintético</dd>
-          </div>
-          <div>
-            <dt>Reloj local ficticio</dt>
-            <dd>{lab.clockDate ?? "Sin iniciar"}</dd>
-          </div>
-        </dl>
-        <p className="sl-unavailable">
-          No disponible en este recorrido: commit, SHA-256 del dataset, corridas de MLflow, versión de modelo
-          y linaje de recalibración.
-        </p>
-        <p>
-          El reloj es ficticio: organiza los escenarios y no representa fechas de medición reales. Los datos y
-          la revisión humana son sintéticos y no aportan evidencia científica.
-        </p>
-      </section>
-
-      <dl className="sl-identity">
-        <div>
-          <dt>Hora real del sistema (UTC)</dt>
-          <dd>{realNowLabel()}</dd>
-        </div>
-        <div>
-          <dt>Estado del escenario</dt>
-          <dd aria-live="polite">{PHASE_LABELS[lab.phase]}</dd>
-        </div>
-      </dl>
-      <p className="sl-clock-note">
-        El reloj de esta pantalla organiza los escenarios. No cambia la fecha real del servidor ni
-        habilita por sí mismo la revisión de resultados futuros.
-      </p>
-
-      <p className="sl-next" aria-live="polite">
-        <strong>Siguiente acción:</strong> {NEXT_ACTION[lab.phase]}
-      </p>
-
-      {hasData && onOpenInTools && (
-        <p className="sl-open-tools">
-          Este sensor ya tiene datos.{" "}
-          <button type="button" onClick={() => onOpenInTools(sensorId)}>
-            Ver «{sensorId}» en Resumen e historial
-          </button>
-        </p>
-      )}
-
       <div className="sl-controls" role="group" aria-label="Escenarios del laboratorio">
+        <div className="sl-demo-row">
+          <button
+            type="button"
+            className="sl-btn-demo"
+            onClick={demo.running ? demo.stop : demo.start}
+            disabled={!demo.running && !canDemo}
+          >
+            {demo.running ? "❚❚ Detener la demostración" : "▶ Ver la demostración"}
+          </button>
+          <p className="sl-demo-hint">Ejecuta los pasos pendientes, de A a E, con una pausa entre cada uno.</p>
+        </div>
         <ol className="sl-steps">
           <li>
             <button type="button" onClick={() => void lab.runScenarioA()} {...stepProps(canStartA)}>
               {lab.phase === "seeding" ? "Generando…" : "A — Generar historial de prueba"}
             </button>
-            <p>Carga 120 días sintéticos con variaciones normales y solicita un pronóstico.</p>
+            <p>Carga 120 días sintéticos con lluvias y calor, y solicita un pronóstico.</p>
           </li>
           <li>
             <button type="button" onClick={() => void lab.runScenarioB()} {...stepProps(canRunB)}>
@@ -237,6 +194,15 @@ export function SensorLabPage({
               pronóstico. No se recuperan mediciones almacenadas por un dispositivo.
             </p>
           </li>
+          <li>
+            <button type="button" onClick={() => void lab.runScenarioE()} {...stepProps(canRunE)}>
+              {lab.phase === "drying" ? "Simulando…" : "E — Simular una sequía"}
+            </button>
+            <p>
+              Genera {LAB_DRY_DAYS} días secos y calurosos, sin lluvia, y vuelve a solicitar un pronóstico real.
+              La humedad del suelo generada baja; si hay una alerta, la decide el predictor operativo.
+            </p>
+          </li>
         </ol>
         <p id={disabledNoteId} className="sl-disabled-note">
           {DISABLED_STEP_NOTE[lab.phase]}
@@ -263,6 +229,96 @@ export function SensorLabPage({
           estado vigente. <strong>Verificar sensor y cultivo.</strong>
         </p>
       )}
+
+      <LabStage phase={lab.phase} readings={lab.readings} forecastRows={workspace.rows} quality={lab.lastQuality} />
+
+      <p className="sl-next" aria-live="polite">
+        <strong>Siguiente acción:</strong> {NEXT_ACTION[lab.phase]}
+      </p>
+
+      {hasData && onOpenInTools && (
+        <p className="sl-open-tools">
+          Este sensor ya tiene datos.{" "}
+          <button type="button" onClick={() => onOpenInTools(sensorId)}>
+            Ver «{sensorId}» en Resumen e historial
+          </button>
+        </p>
+      )}
+
+      <details className="sl-info">
+        <summary>Qué simulamos, qué funciona realmente y trazabilidad de esta sesión</summary>
+
+        <p className="sl-disclaimer" role="note">
+          El predictor operativo puede entrenarse o actualizarse con las lecturas sintéticas de esta sesión. Sus
+          resultados sirven para demostrar el funcionamiento del sistema; no prueban precisión en campo ni
+          mejoran la evidencia científica del trabajo. Guardar una revisión humana no inicia por sí solo
+          entrenamiento ni recalibración.
+        </p>
+
+        <div className="sl-explain">
+          <section aria-labelledby="sl-simulated-heading">
+            <h2 id="sl-simulated-heading">Qué simulamos</h2>
+            <p>
+              Las lecturas, las fechas, la interrupción y la sequía se generan para esta demostración. La
+              temperatura anómala se introduce deliberadamente.
+            </p>
+          </section>
+          <section aria-labelledby="sl-real-heading">
+            <h2 id="sl-real-heading">Qué funciona realmente</h2>
+            <p>
+              La aplicación recibe y guarda las lecturas de prueba, evalúa su calidad, ejecuta el predictor
+              operativo y permite registrar una revisión humana cuando corresponde.
+            </p>
+          </section>
+        </div>
+
+        <section aria-label="Trazabilidad de esta sesión de prueba" className="sl-trace">
+          <h2>Trazabilidad de esta sesión de prueba</h2>
+          <dl>
+            <div>
+              <dt>Sensor de prueba (sensor_id)</dt>
+              <dd>
+                <code>{sensorId}</code>
+              </dd>
+            </div>
+            <div>
+              <dt>Semilla del generador</dt>
+              <dd>{LAB_SEED}</dd>
+            </div>
+            <div>
+              <dt>Procedencia de las lecturas</dt>
+              <dd>sintético</dd>
+            </div>
+            <div>
+              <dt>Reloj local ficticio</dt>
+              <dd>{lab.clockDate ?? "Sin iniciar"}</dd>
+            </div>
+          </dl>
+          <p className="sl-unavailable">
+            No disponible en este recorrido: commit, SHA-256 del dataset, corridas de MLflow, versión de modelo
+            y linaje de recalibración.
+          </p>
+          <p>
+            El reloj es ficticio: organiza los escenarios y no representa fechas de medición reales. Los datos y
+            la revisión humana son sintéticos y no aportan evidencia científica.
+          </p>
+        </section>
+
+        <dl className="sl-identity">
+          <div>
+            <dt>Hora real del sistema (UTC)</dt>
+            <dd>{realNowLabel()}</dd>
+          </div>
+          <div>
+            <dt>Estado del escenario</dt>
+            <dd aria-live="polite">{PHASE_LABELS[lab.phase]}</dd>
+          </div>
+        </dl>
+        <p className="sl-clock-note">
+          El reloj de esta pantalla organiza los escenarios. No cambia la fecha real del servidor ni
+          habilita por sí mismo la revisión de resultados futuros.
+        </p>
+      </details>
 
       {lab.log.length > 0 && (
         <section aria-label="Registro del laboratorio" className="sl-log">

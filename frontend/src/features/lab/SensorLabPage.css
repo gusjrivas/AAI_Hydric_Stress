@@ -123,3 +123,12 @@
   .sensor-lab summary { min-height: 44px; padding-block: 12px; box-sizing: border-box; }
   .sensor-lab .no-readings-hint a { display: inline-flex; align-items: center; min-height: 44px; }
 }
+
+/* Demostración automática y bloque plegable de explicación y trazabilidad. */
+.sl-demo-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.sl-demo-hint { margin: 0; font-size: .875rem; color: var(--color-muted); }
+.sl-controls button.sl-btn-demo { background: var(--color-navy); border-color: var(--color-navy); }
+.sl-controls button.sl-btn-demo:disabled { background: var(--color-surface-2); border-color: var(--color-border); }
+.sl-info { border: 1px solid var(--color-border); border-radius: 12px; padding: var(--space-2) var(--space-4); background: var(--color-surface); margin: var(--space-3) 0; }
+.sl-info > summary { cursor: pointer; font-weight: 650; min-height: 44px; display: flex; align-items: center; }
+.sl-info[open] > summary { margin-bottom: var(--space-2); }

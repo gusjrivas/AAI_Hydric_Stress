@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { getQualityReport } from "../quality/api";
 import type { QualityReport } from "../quality/api";
 import { addDaysUtc, labBackfillEndDateUtc } from "./labSensor";
-import { generateNormalReading, injectRangeAnomaly, mulberry32 } from "./readingGenerator";
+import { generateWaterBalanceReading, injectRangeAnomaly, mulberry32 } from "./readingGenerator";
 import type { LabReadingValues } from "./readingGenerator";
 import { ingestLabReading } from "./sensorLabApi";
 
@@ -15,6 +15,8 @@ import { ingestLabReading } from "./sensorLabApi";
 export const LAB_SEED = 42;
 export const LAB_HISTORY_DAYS = 120;
 export const LAB_GAP_DAYS = 4;
+/** Días secos y calurosos del paso E (sequía). */
+export const LAB_DRY_DAYS = 14;
 
 export const LAB_ERROR_NO_LAST_READING =
   "No se pudo determinar la última lectura guardada. La recuperación se detuvo. Iniciá una sesión nueva.";
@@ -31,12 +33,24 @@ export type LabPhase =
   | "interrupted"
   | "recovering"
   | "recovered"
+  | "drying"
+  | "drought"
   | "error";
 
 export interface LabLogEntry {
   id: string;
-  scenario: "A" | "B" | "C" | "D";
+  scenario: "A" | "B" | "C" | "D" | "E";
   message: string;
+}
+
+/** Tipo de lectura de la sesión, para distinguirla en los gráficos. */
+export type LabReadingKind = "normal" | "anomaly" | "dry";
+
+/** Una lectura sintética ya aceptada por el backend. */
+export interface LabSeriesPoint {
+  date: string;
+  values: LabReadingValues;
+  kind: LabReadingKind;
 }
 
 interface UseSensorLabScenariosOptions {
@@ -47,6 +61,8 @@ interface UseSensorLabScenariosOptions {
    * (`useForecastWorkspace`); este hook nunca llama al pipeline
    * directamente. */
   runForecast: () => Promise<void>;
+  /** Semilla del generador; por defecto `LAB_SEED`. */
+  seed?: number;
 }
 
 export interface SensorLabScenarios {
@@ -56,10 +72,13 @@ export interface SensorLabScenarios {
   log: LabLogEntry[];
   clockDate: string | null;
   lastQuality: QualityReport | null;
+  /** Lecturas aceptadas por el backend en esta sesión, en orden de fecha. */
+  readings: LabSeriesPoint[];
   runScenarioA: () => Promise<void>;
   runScenarioB: () => Promise<void>;
   runScenarioC: () => Promise<void>;
   runScenarioD: () => Promise<void>;
+  runScenarioE: () => Promise<void>;
 }
 
 /** Señal interna: la ejecución dejó de ser vigente (pantalla desmontada
@@ -75,8 +94,8 @@ interface RunContext {
 
 /**
  * Orquestación cliente del laboratorio (tercer modo de la UI de defensa):
- * un `sensor_id` propio por sesión, avance de escenarios A→B→C→D
- * mediante los endpoints reales de `alerting-ui`
+ * un `sensor_id` propio por sesión, avance de escenarios A→B→C→D→E
+ * (más el paso E de sequía) mediante los endpoints reales de `alerting-ui`
  * (`POST /sensors/{id}/readings`, `GET /quality/{id}`,
  * `POST /forecast/{id}/run` vía `runForecast`), nunca un backend
  * paralelo.
@@ -101,6 +120,8 @@ export function useSensorLabScenarios(
   const clockRef = useRef<string | null>(null);
   const rngRef = useRef(mulberry32(LAB_SEED));
   const prevValuesRef = useRef<LabReadingValues | null>(null);
+  const dayIndexRef = useRef(0);
+  const readingsRef = useRef<LabSeriesPoint[]>([]);
   const optionsRef = useRef(options);
   useLayoutEffect(() => {
     optionsRef.current = options;
@@ -113,6 +134,7 @@ export function useSensorLabScenarios(
   const [log, setLog] = useState<LabLogEntry[]>([]);
   const [clockDate, setClockState] = useState<string | null>(null);
   const [lastQuality, setLastQuality] = useState<QualityReport | null>(null);
+  const [readings, setReadings] = useState<LabSeriesPoint[]>([]);
 
   if (sensorId !== trackedSensorId) {
     setTrackedSensorId(sensorId);
@@ -122,6 +144,7 @@ export function useSensorLabScenarios(
     setLog([]);
     setClockState(null);
     setLastQuality(null);
+    setReadings([]);
   }
 
   // Inicio de ciclo de vida (montaje o nuevo sensor): reinicia el estado
@@ -133,8 +156,10 @@ export function useSensorLabScenarios(
     runningRef.current = false;
     phaseRef.current = "idle";
     clockRef.current = null;
-    rngRef.current = mulberry32(LAB_SEED);
+    rngRef.current = mulberry32(optionsRef.current.seed ?? LAB_SEED);
     prevValuesRef.current = null;
+    dayIndexRef.current = 0;
+    readingsRef.current = [];
     return () => {
       generationRef.current += 1;
       runningRef.current = false;
@@ -184,6 +209,7 @@ export function useSensorLabScenarios(
       if (generationRef.current === generation) {
         runningRef.current = false;
         setBusy(false);
+        setReadings([...readingsRef.current]);
       }
     }
   }
@@ -197,11 +223,19 @@ export function useSensorLabScenarios(
     return report;
   }
 
-  async function ingest(ctx: RunContext, isoDate: string, reading: LabReadingValues) {
+  /** Siguiente lectura del generador de balance hídrico (el estado es la lectura previa y el día del ciclo). */
+  function nextReading(dry = false): LabReadingValues {
+    const reading = generateWaterBalanceReading(prevValuesRef.current, rngRef.current, dayIndexRef.current, { dry });
+    dayIndexRef.current += 1;
+    return reading;
+  }
+
+  async function ingest(ctx: RunContext, isoDate: string, reading: LabReadingValues, kind: LabReadingKind = "normal") {
     ctx.ensure();
     await ingestLabReading(ctx.sensorId, isoDate, reading);
     ctx.ensure();
     prevValuesRef.current = reading;
+    readingsRef.current.push({ date: isoDate, values: reading, kind });
   }
 
   async function forecast(ctx: RunContext) {
@@ -216,8 +250,7 @@ export function useSensorLabScenarios(
       const startDate = addDaysUtc(endDate, -(LAB_HISTORY_DAYS - 1));
       let cursor = startDate;
       for (let i = 0; i < LAB_HISTORY_DAYS; i += 1) {
-        const reading = generateNormalReading(prevValuesRef.current, rngRef.current);
-        await ingest(ctx, cursor, reading);
+        await ingest(ctx, cursor, nextReading());
         cursor = addDaysUtc(cursor, 1);
       }
       setClock(endDate);
@@ -235,9 +268,8 @@ export function useSensorLabScenarios(
   async function runScenarioB() {
     await withStep("normal", "injecting-anomaly", async (ctx) => {
       const anomalyDate = addDaysUtc(clockRef.current as string, 1);
-      const base = generateNormalReading(prevValuesRef.current, rngRef.current);
-      const reading = injectRangeAnomaly(base);
-      await ingest(ctx, anomalyDate, reading);
+      const reading = injectRangeAnomaly(nextReading());
+      await ingest(ctx, anomalyDate, reading, "anomaly");
       setClock(anomalyDate);
       const report = await refreshQuality(ctx);
       optionsRef.current.onIngested();
@@ -275,8 +307,7 @@ export function useSensorLabScenarios(
       let cursor = addDaysUtc(lastConfirmed, 1);
       const recoveryEnd = clockRef.current as string;
       while (cursor <= recoveryEnd) {
-        const reading = generateNormalReading(prevValuesRef.current, rngRef.current);
-        await ingest(ctx, cursor, reading);
+        await ingest(ctx, cursor, nextReading());
         cursor = addDaysUtc(cursor, 1);
       }
       const report = await refreshQuality(ctx);
@@ -294,6 +325,30 @@ export function useSensorLabScenarios(
     });
   }
 
+  /** Paso E: racha seca y calurosa sin lluvia; la humedad del suelo cae y se pide un pronóstico nuevo. */
+  async function runScenarioE() {
+    await withStep("recovered", "drying", async (ctx) => {
+      let cursor = addDaysUtc(clockRef.current as string, 1);
+      for (let i = 0; i < LAB_DRY_DAYS; i += 1) {
+        await ingest(ctx, cursor, nextReading(true), "dry");
+        setClock(cursor);
+        cursor = addDaysUtc(cursor, 1);
+      }
+      const report = await refreshQuality(ctx);
+      optionsRef.current.onIngested();
+      appendLog(
+        "E",
+        `Sequía simulada: ${LAB_DRY_DAYS} días secos y calurosos, sin lluvia, hasta el ${clockRef.current} (${report.total_rows} filas totales, confirmado por el backend). La humedad del suelo generada baja de forma sostenida.`,
+      );
+      await forecast(ctx);
+      appendLog(
+        "E",
+        "Se solicitó un nuevo pronóstico; su resultado real, alerta o sin alerta, se muestra en el panel de pronóstico.",
+      );
+      setPhase("drought");
+    });
+  }
+
   return {
     phase,
     busy,
@@ -301,9 +356,11 @@ export function useSensorLabScenarios(
     log,
     clockDate,
     lastQuality,
+    readings,
     runScenarioA,
     runScenarioB,
     runScenarioC,
     runScenarioD,
+    runScenarioE,
   };
 }

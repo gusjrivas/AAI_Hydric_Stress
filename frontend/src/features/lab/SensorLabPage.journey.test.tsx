@@ -93,7 +93,12 @@ describe("SensorLabPage · jerarquía de acciones y trazabilidad", () => {
     expect(noteOf(stepB())).toHaveTextContent(/solo está disponible el paso D/i);
     await user.click(stepD());
     await waitFor(() => expect(stepD()).toBeDisabled());
-    expect(noteOf(stepD())).toHaveTextContent(/el recorrido A–D terminó/i);
+    expect(noteOf(stepD())).toHaveTextContent(/solo está disponible el paso E/i);
+    const stepE = () => screen.getByRole("button", { name: /simular una sequía/i });
+    await waitFor(() => expect(stepE()).toBeEnabled());
+    await user.click(stepE());
+    await waitFor(() => expect(stepE()).toBeDisabled());
+    expect(noteOf(stepE())).toHaveTextContent(/el recorrido A–E terminó/i);
   });
 
   it("shows the traceability panel with sensor, seed, synthetic provenance and fictitious clock", () => {

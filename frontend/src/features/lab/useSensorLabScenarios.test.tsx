@@ -7,7 +7,9 @@ import * as sensorLabApi from "./sensorLabApi";
 import * as qualityApi from "../quality/api";
 import type { QualityReport } from "../quality/api";
 import {
+  LAB_DRY_DAYS,
   LAB_ERROR_NO_LAST_READING,
+  LAB_GAP_DAYS,
   LAB_HISTORY_DAYS,
   useSensorLabScenarios,
 } from "./useSensorLabScenarios";
@@ -230,5 +232,109 @@ describe("useSensorLabScenarios: ciclo de vida, reintentos y recuperación", () 
     expect(hook.result.current.busy).toBe(false);
     expect(hook.result.current.error).toBe("consulta fallida");
     expect(ingest.mock.calls.length).toBe(ingestBefore);
+  });
+});
+
+describe("useSensorLabScenarios: paso E (sequía) y lecturas para los gráficos", () => {
+  const runForecast = vi.fn();
+  const onIngested = vi.fn();
+  let ingest: MockInstance<typeof sensorLabApi.ingestLabReading>;
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    runForecast.mockReset().mockResolvedValue(undefined);
+    onIngested.mockReset();
+    ingest = vi.spyOn(sensorLabApi, "ingestLabReading").mockResolvedValue(ok);
+    // El informe refleja lo realmente ingerido, como el backend: la última fecha y la cantidad de filas.
+    vi.spyOn(qualityApi, "getQualityReport").mockImplementation(async () =>
+      quality({ period_end: (ingest.mock.calls.at(-1)?.[1] as string | undefined) ?? null, total_rows: ingest.mock.calls.length }),
+    );
+  });
+
+  function mount(sensorId = "lab-a") {
+    return renderHook(({ id }) => useSensorLabScenarios(id, { onIngested, runForecast }), {
+      initialProps: { id: sensorId },
+    });
+  }
+
+  async function runThrough(hook: ReturnType<typeof mount>, last: "A" | "B" | "C" | "D" | "E") {
+    const order = ["A", "B", "C", "D", "E"] as const;
+    for (const step of order.slice(0, order.indexOf(last) + 1)) {
+      await act(async () => {
+        await hook.result.current[`runScenario${step}` as const]();
+      });
+    }
+  }
+
+  it("E runs only after D, ingests the dry days after the clock and asks for a new forecast", async () => {
+    const hook = mount();
+    await act(async () => {
+      await hook.result.current.runScenarioE(); // sin A..D: no hace nada
+    });
+    expect(ingest).not.toHaveBeenCalled();
+
+    await runThrough(hook, "D");
+    expect(hook.result.current.phase).toBe("recovered");
+    const clockBefore = hook.result.current.clockDate as string;
+    const ingestBefore = ingest.mock.calls.length;
+    const forecastsBefore = runForecast.mock.calls.length;
+
+    await act(async () => {
+      await hook.result.current.runScenarioE();
+    });
+    expect(hook.result.current.phase).toBe("drought");
+    expect(ingest.mock.calls.length - ingestBefore).toBe(LAB_DRY_DAYS);
+    expect(runForecast.mock.calls.length - forecastsBefore).toBe(1);
+
+    const dryDates = ingest.mock.calls.slice(ingestBefore).map((call) => call[1]);
+    expect(dryDates[0] > clockBefore).toBe(true);
+    expect(new Set(dryDates).size).toBe(LAB_DRY_DAYS);
+    expect(hook.result.current.clockDate).toBe(dryDates[dryDates.length - 1]);
+    for (const call of ingest.mock.calls.slice(ingestBefore)) expect(call[2].precipitation).toBe(0);
+    expect(hook.result.current.log.some((entry) => entry.scenario === "E")).toBe(true);
+  });
+
+  it("E does not repeat once the drought has been simulated", async () => {
+    const hook = mount();
+    await runThrough(hook, "E");
+    const ingestAfterE = ingest.mock.calls.length;
+    await act(async () => {
+      await hook.result.current.runScenarioE();
+    });
+    expect(ingest.mock.calls.length).toBe(ingestAfterE);
+  });
+
+  it("exposes the readings of the session, in date order, tagged by kind", async () => {
+    const hook = mount();
+    expect(hook.result.current.readings).toEqual([]);
+    await runThrough(hook, "E");
+    const readings = hook.result.current.readings;
+    expect(readings).toHaveLength(LAB_HISTORY_DAYS + 1 + LAB_GAP_DAYS + LAB_DRY_DAYS);
+    expect(readings.slice(0, LAB_HISTORY_DAYS).every((r) => r.kind === "normal")).toBe(true);
+    expect(readings[LAB_HISTORY_DAYS].kind).toBe("anomaly");
+    expect(readings[LAB_HISTORY_DAYS].values.temperature).toBeGreaterThan(50);
+    expect(readings.slice(-LAB_DRY_DAYS).every((r) => r.kind === "dry")).toBe(true);
+    const dates = readings.map((r) => r.date);
+    expect([...dates].sort()).toEqual(dates);
+    expect(new Set(dates).size).toBe(dates.length);
+  });
+
+  it("makes the soil moisture fall during the drought, the signal the predictor has to react to", async () => {
+    const hook = mount();
+    await runThrough(hook, "E");
+    const dry = hook.result.current.readings.filter((r) => r.kind === "dry");
+    expect(dry[dry.length - 1].values.soil_moisture).toBeLessThan(dry[0].values.soil_moisture - 0.1);
+  });
+
+  it("clears the readings when the session changes", async () => {
+    const hook = mount("lab-old");
+    await runThrough(hook, "A");
+    expect(hook.result.current.readings.length).toBe(LAB_HISTORY_DAYS);
+    hook.rerender({ id: "lab-new" });
+    expect(hook.result.current.readings).toEqual([]);
+    await act(async () => {
+      await hook.result.current.runScenarioA();
+    });
+    expect(hook.result.current.readings.length).toBe(LAB_HISTORY_DAYS);
   });
 });

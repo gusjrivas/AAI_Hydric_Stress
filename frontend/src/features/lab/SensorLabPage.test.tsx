@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SensorLabPage } from "./SensorLabPage";
@@ -150,7 +150,7 @@ describe("SensorLabPage", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Este paso no pudo completarse. Para evitar modificar lecturas ya guardadas, iniciá una sesión nueva. Los datos de la sesión anterior se conservan.",
     );
-    for (const name of [/generar historial de prueba/i, /introducir una lectura anómala/i, /simular una interrupción/i, /simular la recuperación/i]) {
+    for (const name of [/generar historial de prueba/i, /introducir una lectura anómala/i, /simular una interrupción/i, /simular la recuperación/i, /simular una sequía/i]) {
       expect(screen.getByRole("button", { name })).toBeDisabled();
     }
 
@@ -158,6 +158,55 @@ describe("SensorLabPage", () => {
     expect(screen.getByText(/^lab-/).textContent).not.toBe(firstSensorId);
     expect(screen.getByRole("button", { name: /generar historial de prueba/i })).toBeEnabled();
     expect(screen.queryByText(/este paso no pudo completarse/i)).toBeNull();
+  });
+
+  it("offers the drought step E after recovery and a one-click demonstration, both unavailable at the start", () => {
+    render(<SensorLabPage />);
+    expect(screen.getByRole("button", { name: /simular una sequía/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /ver la demostración/i })).toBeEnabled();
+    expect(screen.getByRole("img", { name: /humedad del suelo/i })).toBeInTheDocument();
+    expect(screen.getByTestId("lab-caption")).toHaveTextContent(/todavía no se ejecutó ningún paso/i);
+  });
+
+  it("runs the whole demonstration, A to E, with a single click", async () => {
+    vi.spyOn(qualityApi, "getQualityReport").mockImplementation(async () =>
+      baseQuality({
+        period_end: ((sensorLabApi.ingestLabReading as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[1] as string) ?? null,
+        total_rows: (sensorLabApi.ingestLabReading as ReturnType<typeof vi.fn>).mock.calls.length,
+      }),
+    );
+    const user = userEvent.setup();
+    render(<SensorLabPage demoPauseMs={0} />);
+    await user.click(screen.getByRole("button", { name: /ver la demostración/i }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /simular una sequía/i })).toBeDisabled(), { timeout: 8000 });
+    await waitFor(() => expect(screen.getByTestId("lab-caption")).toHaveTextContent(/días secos y calurosos/i), { timeout: 8000 });
+    expect(screen.getByText(/sequía simulada:/i)).toBeInTheDocument();
+    for (const letter of ["A", "B", "C", "D", "E"]) {
+      expect(screen.getAllByText(letter, { selector: ".sl-log strong" }).length).toBeGreaterThan(0);
+    }
+    // La demostración llamó al pipeline real en cada pronóstico (A, B, D y E; C no pide uno).
+    expect(forecastApi.runForecast).toHaveBeenCalledTimes(4);
+    expect(screen.getByRole("button", { name: /ver la demostración/i })).toBeDisabled();
+  }, 20000);
+
+  it("shows in the scene the verdict the backend returned, as an alert only when it is one", async () => {
+    vi.spyOn(qualityApi, "getQualityReport").mockResolvedValue(baseQuality());
+    (forecastApi.runForecast as ReturnType<typeof vi.fn>).mockResolvedValue({
+      verdicts: [{ fecha: "2026-04-01", alerta: true, probabilidad: 0.8, fecha_objetivo: "2026-04-04" }],
+      train_rows: 90,
+      test_rows: 20,
+    });
+    // El historial que el backend devuelve tras el pronóstico incluye el veredicto emitido.
+    (forecastApi.listFeedback as ReturnType<typeof vi.fn>).mockResolvedValue({
+      rows: [
+        { fecha: "2026-04-01", alerta_generada: 1, estado_validacion: "pendiente", etiqueta_corregida: null, observacion: null, y_proba: 0.8, fecha_objetivo: "2026-04-04" },
+      ],
+    });
+    const user = userEvent.setup();
+    render(<SensorLabPage />);
+    await user.click(screen.getByRole("button", { name: /generar historial de prueba/i }));
+    await waitFor(() => expect(within(screen.getByTestId("forecast-tile")).getByText(/alerta · prob\. 0,80/i)).toBeInTheDocument());
   });
 
   it("tells the app which sensor has data once scenario A finishes, and opens it in the tools without copying the id", async () => {
