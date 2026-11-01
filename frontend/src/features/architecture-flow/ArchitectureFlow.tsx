@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "./ArchitectureFlow.css";
 import { ARCHITECTURE_NODES } from "./architectureCatalog";
+import { DeploymentDiagram } from "./DeploymentDiagram";
 
 const STAGES = ARCHITECTURE_NODES.filter((node) => node.kind === "stage");
 const ADAPTERS = ARCHITECTURE_NODES.filter((node) => node.kind === "adapter");
@@ -21,6 +22,7 @@ export function ArchitectureFlow() {
         <strong>Diseño documentado</strong> · mapa estático y versionado: no es monitoreo en vivo y
         no refleja el estado en vivo de ningún componente.
       </p>
+      <DeploymentDiagram />
       <nav className="af-flow" aria-label="Etapas de la arquitectura, con acceso directo a cada sección">
         <ol>
           {STAGES.map((stage, index) => (
@@ -84,6 +86,7 @@ export function ArchitectureFlow() {
         )}
       </div>
 
+      <div className="af-table-scroll" tabIndex={0} role="region" aria-label="Tabla de etapas, desplazable en pantallas angostas">
       <table className="af-table">
         <caption>Componentes de la arquitectura (alternativa textual del mapa)</caption>
         <thead>
@@ -105,6 +108,7 @@ export function ArchitectureFlow() {
           ))}
         </tbody>
       </table>
+      </div>
     </header>
   );
 }

@@ -33,6 +33,14 @@ describe("ArchitectureFlow", () => {
     expect(within(table).getAllByRole("row").length).toBeGreaterThanOrEqual(8);
   });
 
+  it("leads with the deployment diagram and keeps the pipeline stages below it", () => {
+    render(<ArchitectureFlow />);
+    const diagram = screen.getByRole("img", { name: /diagrama de despliegue/i });
+    const stages = screen.getByRole("navigation", { name: /etapas de la arquitectura/i });
+    expect(diagram.compareDocumentPosition(stages) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole("button", { name: /ver el recorrido/i })).toBeInTheDocument();
+  });
+
   it("never presents a stage as running nor shows live metrics or traces", () => {
     render(<ArchitectureFlow />);
     expect(screen.queryByText(/en ejecución|en curso|en tiempo real|latencia|trazas?/i)).not.toBeInTheDocument();

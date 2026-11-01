@@ -1,0 +1,65 @@
+.dd { margin: 24px 0; }
+.dd-title { margin: 0 0 8px; }
+.dd-tour { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.dd-tour button { font: inherit; min-height: 44px; padding: 6px 16px; border: 1px solid var(--color-brand); background: var(--color-surface); color: var(--color-brand); border-radius: 8px; cursor: pointer; }
+.dd-tour button.dd-primary { background: var(--color-brand); color: #fff; }
+.dd-tour button:focus-visible, .dd-node:focus-visible rect { outline: 3px solid var(--color-cyan); outline-offset: 2px; }
+.dd-flag { margin-left: auto; padding: 2px 10px; border-radius: 999px; background: var(--color-imputed-bg); color: var(--color-imputed); font-size: 0.8125rem; font-weight: 600; }
+.dd-caption { margin: 0; min-height: 64px; padding: 10px 14px; border: 1px solid var(--color-cyan); background: var(--color-cyan-bg); color: var(--color-navy); border-radius: 10px; }
+
+.dd-svg { display: block; width: 100%; height: auto; margin: 12px 0; }
+.dd-compose { fill: none; stroke: var(--color-border-strong); stroke-width: 2; stroke-dasharray: 8 6; }
+.dd-enc { text-anchor: start; font: 600 13px system-ui, sans-serif; fill: var(--color-muted); }
+.dd-node rect { fill: var(--color-surface-2); stroke: var(--color-brand); stroke-width: 2; cursor: pointer; }
+.dd-node:hover rect, .dd-selected rect { fill: var(--color-obs-bg); stroke: var(--color-navy); stroke-width: 3; }
+.dd-ext rect { fill: var(--color-surface); stroke: var(--color-border-strong); stroke-dasharray: 6 4; }
+.dd-opt rect { stroke-dasharray: 6 4; }
+.dd-node { transition: opacity 0.25s; }
+.dd-node text { text-anchor: middle; fill: var(--color-ink); pointer-events: none; }
+.dd-t { font: 700 15px system-ui, sans-serif; }
+.dd-s { font: 12.5px system-ui, sans-serif; fill: var(--color-muted); }
+.dd-p { font: 12px ui-monospace, Consolas, monospace; fill: var(--color-cyan-text); }
+
+.dd-edges path { fill: none; stroke: var(--color-brand); stroke-width: 2; marker-end: url(#dd-arrow); }
+.dd-edges path.dd-bi { marker-start: url(#dd-arrow); }
+.dd-arrowhead { fill: var(--color-brand); }
+.dd-l { text-anchor: middle; font: 12px system-ui, sans-serif; fill: var(--color-cyan-text); paint-order: stroke; stroke: var(--color-surface); stroke-width: 4px; }
+
+.dd-playing .dd-node:not(.dd-active) { opacity: 0.4; }
+.dd-playing .dd-edges path:not(.dd-active) { opacity: 0.25; }
+.dd-node.dd-active rect { fill: var(--color-cyan-bg); stroke: var(--color-cyan); stroke-width: 4; }
+.dd-edges path.dd-active { stroke: var(--color-cyan); stroke-width: 4; stroke-dasharray: 10 8; animation: dd-flow 0.8s linear infinite; }
+@keyframes dd-flow { to { stroke-dashoffset: -18; } }
+@media (prefers-reduced-motion: reduce) {
+  .dd-edges path.dd-active { animation: none; stroke-dasharray: none; }
+  .dd-node { transition: none; }
+}
+
+.dd-hint { color: var(--color-muted); }
+.dd-sheet { border: 1px solid var(--color-border); border-radius: 12px; padding: 12px 16px; background: var(--color-surface); }
+.dd-sheet h4 { margin: 0 0 8px; }
+.dd-sheet dt { font-weight: 600; margin-top: 8px; }
+.dd-sheet dd { margin: 0; color: var(--color-muted); }
+.dd-sheet ul { margin: 0; padding-left: 1.2em; }
+
+.dd-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 0.9375rem; }
+.dd-table caption { text-align: left; font-weight: 600; padding-bottom: 6px; }
+.dd-table th, .dd-table td { border: 1px solid var(--color-border); padding: 6px 10px; text-align: left; vertical-align: top; }
+.dd-table thead th { background: var(--color-surface-2); }
+
+.dd-scroll { overflow-x: auto; }
+.dd-scroll:focus-visible { outline: 3px solid var(--color-cyan); outline-offset: 2px; }
+
+@media (max-width: 800px) {
+  /* El diagrama conserva un tamaño legible y se desplaza en horizontal. */
+  .dd-svg { min-width: 760px; }
+}
+
+.dd { min-width: 0; max-width: 100%; }
+.dd-table-scroll { overflow-x: auto; max-width: 100%; margin-top: 16px; }
+.dd-table-scroll:focus-visible { outline: 3px solid var(--color-cyan); outline-offset: 2px; }
+.dd-table-scroll .dd-table { margin-top: 0; min-width: 520px; }
+
+@media (max-width: 600px) {
+  .dd-flag { margin-left: 0; }
+}
