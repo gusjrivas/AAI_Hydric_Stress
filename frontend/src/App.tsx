@@ -23,6 +23,7 @@ import { PergaminoDefensePage } from "./features/defense/PergaminoDefensePage";
 import { MelchorRomeroDefensePage } from "./features/defense/MelchorRomeroDefensePage";
 import { SensorLabPage } from "./features/lab/SensorLabPage";
 import { EvidenceResultsPage } from "./features/evidence/EvidenceResultsPage";
+import { CaseSwitch } from "./features/navigation/CaseSwitch";
 import { ModeBadge } from "./features/navigation/ModeBadge";
 import { modeForView } from "./features/navigation/viewMode";
 
@@ -232,6 +233,7 @@ function App() {
       )}
 
       <main id="main-content" className="app-sections" tabIndex={-1}>
+        {!isDemoRoute && !isHistoricalReplayRoute && <CaseSwitch route={route} />}
         <ModeBadge mode={modeForView(viewKey, { simulatedSensor: isViewingDemoSensor || labSensorId === activeSensorId })} />
         {!isDemoRoute && route === "arquitectura" && (
           <section aria-labelledby="arquitectura-heading">

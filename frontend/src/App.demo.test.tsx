@@ -65,7 +65,7 @@ describe("App — demostración acelerada (entrega 3)", () => {
     render(<App />);
     await waitFor(() => expect(forecastApi.listFeedback).toHaveBeenCalledWith("sensor-a"));
 
-    expect(screen.queryByRole("link", { name: /demostración/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Demostración" })).not.toBeInTheDocument();
     expect(getSpy).not.toHaveBeenCalled();
   });
 
@@ -75,7 +75,7 @@ describe("App — demostración acelerada (entrega 3)", () => {
     const startSpy = vi.spyOn(demoApi, "startDemo");
 
     render(<App />);
-    await userEvent.click(screen.getByRole("link", { name: /demostración/i }));
+    await userEvent.click(screen.getByRole("link", { name: "Demostración" }));
 
     await screen.findByText("Demostración con datos simulados");
     expect(screen.getByText("demo-sensor-1")).toBeInTheDocument();

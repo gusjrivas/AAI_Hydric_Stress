@@ -35,10 +35,6 @@ export function SiteHeader({ site }: { site: DefenseSite }) {
             {info.chips.map((chip) => <span key={chip.label} className={`site-chip ${chip.className}`}>{chip.label}</span>)}
           </div>
         </div>
-        <nav className="site-switch" aria-label="Localidad">
-          <a href="#defensa-pergamino" aria-current={site === "pergamino" ? "page" : undefined}>Pergamino</a>
-          <a href="#defensa-melchor-romero" aria-current={site === "melchor" ? "page" : undefined}>Melchor Romero</a>
-        </nav>
       </div>
       <p className="site-period">{info.period}</p>
     </header>

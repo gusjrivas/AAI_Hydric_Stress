@@ -15,8 +15,8 @@ export const ROUTES = [
 ] as const;
 export type RouteId = (typeof ROUTES)[number];
 
-/** Quien abre la app sin ruta es, en primer lugar, un productor: ve «Mi cultivo». */
-export const DEFAULT_ROUTE: RouteId = "productor";
+/** La app abre en «Arquitectura»: la presentación empieza por cómo está construido el sistema. */
+export const DEFAULT_ROUTE: RouteId = "arquitectura";
 
 export const DESTINATION_LABELS: Record<RouteId, string> = {
   resumen: "Resumen",
