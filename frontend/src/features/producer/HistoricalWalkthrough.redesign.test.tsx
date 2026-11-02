@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HistoricalWalkthrough } from "./HistoricalWalkthrough";
@@ -42,28 +42,25 @@ const readings = (end: string): ReadingsResult => ({
 });
 
 describe("HistoricalWalkthrough — rediseño", () => {
-  it("summarizes data source, emission, applicable dates and the clock in one reading strip", async () => {
+  it("labels the source in one chip and keeps the soil-moisture counts in one line", async () => {
     vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockResolvedValue(unavailableBatch("2023-06-13"));
     vi.spyOn(historicalApi, "getHistoricalReadings").mockResolvedValue(readings("2023-06-13"));
     render(<HistoricalWalkthrough sensorId="pergamino-ensemble-demo" defense />);
-    const strip = screen.getByText("Datos que se ven").closest("dl") as HTMLElement;
-    expect(within(strip).getByText("Datos externos")).toBeInTheDocument();
-    expect(within(strip).getByText(/horizontes \+1, \+2 y \+3 días/i)).toBeInTheDocument();
-    expect(within(strip).getByText(/se revelan datos hasta esta fecha/i)).toBeInTheDocument();
+    expect(screen.getByText("Datos externos · ERA5-Land / NASA POWER (reanálisis)")).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector(".historical-quality-line")).toHaveTextContent(/4 con dato.*1 imputado.*0 sin verificar.*1 sin dato/i));
+    await userEvent.click(screen.getByRole("tab", { name: /datos y calidad/i }));
     expect(await screen.findByRole("group", { name: /cobertura de la humedad del suelo/i })).toHaveTextContent(/4 con dato.*1 imputado.*0 sin verificar.*1 sin dato/i);
   });
 
-  it("advances and rewinds the clock one day at a time within the allowed range", async () => {
+  it("advances and rewinds the clock within the allowed range", async () => {
     const batch = vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockResolvedValue(unavailableBatch("2023-06-13"));
     vi.spyOn(historicalApi, "getHistoricalReadings").mockResolvedValue(readings("2023-06-13"));
     render(<HistoricalWalkthrough sensorId="pergamino-ensemble-demo" defense />);
-    const back = screen.getByRole("button", { name: /día anterior/i });
-    const forward = screen.getByRole("button", { name: /día siguiente/i });
-    expect(back).toBeDisabled();
-    await userEvent.click(forward);
+    const clock = await screen.findByRole("slider", { name: /reloj del recorrido/i });
+    expect(clock).toHaveValue("0");
+    fireEvent.change(clock, { target: { value: "1" } });
     await waitFor(() => expect(batch).toHaveBeenLastCalledWith("pergamino-ensemble-demo", "2023-06-13", "2023-06-14"));
-    expect(back).toBeEnabled();
-    await userEvent.click(back);
+    fireEvent.change(screen.getByRole("slider", { name: /reloj del recorrido/i }), { target: { value: "0" } });
     await waitFor(() => expect(batch).toHaveBeenLastCalledWith("pergamino-ensemble-demo", "2023-06-13", undefined));
   });
 
@@ -72,16 +69,17 @@ describe("HistoricalWalkthrough — rediseño", () => {
     vi.spyOn(historicalApi, "getHistoricalReadings").mockResolvedValue(readings("2023-06-13"));
     render(<HistoricalWalkthrough sensorId="pergamino-ensemble-demo" defense />);
     expect(await screen.findByRole("img", { name: /4 observados, 1 imputados, 0 de procedencia no verificada y 1 sin dato/i })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: /observaciones/i }));
     expect(screen.getByRole("table")).toBeInTheDocument();
     expect(screen.getByText(/sin observación en la fuente/i)).toBeInTheDocument();
   });
 
-  it("keeps heading levels contiguous: h2 under the site title in defense mode, h3 elsewhere", async () => {
+  it("keeps heading levels contiguous: the headline is the h2 in defense mode, h3 elsewhere", async () => {
     vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockResolvedValue(unavailableBatch("2023-06-13"));
     vi.spyOn(historicalApi, "getHistoricalReadings").mockResolvedValue(readings("2023-06-13"));
     const { unmount } = render(<HistoricalWalkthrough sensorId="pergamino-ensemble-demo" defense />);
-    expect(screen.getByRole("heading", { name: "Recorrido histórico", level: 2 })).toBeInTheDocument();
-    await screen.findByRole("heading", { name: /procedencia y calidad de datos/i, level: 3 });
+    expect(await screen.findByRole("heading", { level: 2, name: /13 de jun de 2023/ })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
     unmount();
     render(<HistoricalWalkthrough sensorId="sensor-a" />);
     expect(screen.getByRole("heading", { name: "Recorrido histórico", level: 3 })).toBeInTheDocument();

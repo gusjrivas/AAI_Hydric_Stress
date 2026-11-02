@@ -73,75 +73,85 @@ function setup(b: ForecastBatch, rows: ReadingRow[] = PAST, props: Partial<Param
   return render(<HistoricalWalkthrough sensorId="s" defense {...props} />);
 }
 
+const slider = () => screen.getByRole("slider", { name: /reloj del recorrido/i });
+const openTab = async (name: RegExp) => userEvent.click(await screen.findByRole("tab", { name }));
+
 describe("HistoricalWalkthrough — veredicto, jerarquía, trazabilidad, defensa en profundidad", () => {
-  it("shows a readable alert verdict with agreement and target date, hiding reality before the clock reaches it", async () => {
+  it("shows a readable alert verdict with the model vote and target date, hiding reality before the clock reaches it", async () => {
     setup(batch(true));
-    const verdict = await screen.findByRole("group", { name: /veredicto del ensamble/i });
-    expect(verdict).toHaveAttribute("aria-live", "polite");
-    expect(verdict).toHaveTextContent("ALERTA DE HUMEDAD BAJA");
-    expect(verdict).not.toHaveTextContent("SIN ALERTA");
-    expect(verdict).toHaveTextContent("Los 3 modelos coinciden en la alerta");
-    expect(verdict).toHaveTextContent(/14 de jun de 2023/i);
-    expect(verdict).toHaveTextContent(/todavía no disponible/i);
+    const strip = await screen.findByRole("group", { name: /pronóstico por horizonte/i });
+    const cell = within(strip).getAllByRole("button")[0];
+    expect(cell).toHaveTextContent(/alerta/i);
+    expect(cell).not.toHaveTextContent(/sin alerta/i);
+    expect(cell).toHaveTextContent("Los 3 modelos coinciden en la alerta");
+    expect(cell).toHaveTextContent(/14 de jun de 2023/i);
+    await userEvent.click(cell);
+    const panel = await screen.findByRole("region", { name: /tu revisión · \+1/i });
+    expect(panel).toHaveTextContent(/todavía no se puede revisar/i);
+    expect(panel).not.toHaveTextContent(/dato real revelado/i);
   });
 
   it("shows the no-alert verdict and reveals reality only once the clock reaches the target date", async () => {
     setup(batch(false), [...PAST, row("2023-06-14", 0.2)]);
-    const verdict = await screen.findByRole("group", { name: /veredicto del ensamble/i });
-    expect(verdict).toHaveTextContent("SIN ALERTA DE HUMEDAD BAJA");
-    expect(verdict).toHaveTextContent("Los 3 modelos coinciden en que no hay alerta");
-    await userEvent.click(screen.getByRole("button", { name: /día siguiente/i }));
-    await waitFor(() => expect(screen.getByRole("group", { name: /veredicto del ensamble/i })).toHaveTextContent(/realidad revelada/i));
-    expect(screen.getByRole("group", { name: /veredicto del ensamble/i })).not.toHaveTextContent(/todavía no disponible/i);
+    const strip = await screen.findByRole("group", { name: /pronóstico por horizonte/i });
+    const cell = within(strip).getAllByRole("button")[0];
+    expect(cell).toHaveTextContent(/sin alerta/i);
+    expect(cell).toHaveTextContent("Los 3 modelos coinciden en que no hay alerta");
+    fireEvent.change(slider(), { target: { value: "1" } });
+    const panel = await screen.findByRole("region", { name: /tu revisión · \+1/i });
+    await waitFor(() => expect(panel).toHaveTextContent(/dato real revelado/i));
+    expect(panel).not.toHaveTextContent(/todavía no se puede revisar/i);
   });
 
-  it("makes the next-day step primary, the previous-day step secondary, and explains the disabled end", async () => {
+  it("limits the clock slider to the revealable days of the emission", async () => {
     setup(batch(true), PAST, { availableDates: ["2023-06-13"], revealMax: "2023-06-14" });
-    const next = await screen.findByRole("button", { name: /día siguiente/i });
-    const prev = screen.getByRole("button", { name: /día anterior/i });
-    expect(next).toHaveClass("historical-step-primary");
-    expect(prev).toHaveClass("historical-step-secondary");
-    expect(screen.queryByText("No quedan días por revelar en esta emisión.")).not.toBeInTheDocument();
-    await userEvent.click(next);
-    await waitFor(() => expect(screen.getByRole("button", { name: /día siguiente/i })).toBeDisabled());
-    const disabled = screen.getByRole("button", { name: /día siguiente/i });
-    const note = screen.getByText("No quedan días por revelar en esta emisión.");
-    expect(disabled.getAttribute("aria-describedby")).toBe(note.id);
-    expect(note).toHaveAttribute("role", "status");
-    expect(note).toHaveFocus();
-    expect(note.id).not.toBe("historical-step-end-note");
+    await screen.findByRole("group", { name: /pronóstico por horizonte/i });
+    expect(slider()).toHaveAttribute("max", "1");
+    fireEvent.change(slider(), { target: { value: "1" } });
+    await waitFor(() => expect(slider()).toHaveAttribute("aria-valuetext", expect.stringMatching(/\+1 día.*14 de jun/i)));
+    fireEvent.change(slider(), { target: { value: "9" } });
+    expect(Number((slider() as HTMLInputElement).value)).toBeLessThanOrEqual(1);
   });
 
-  it("shows the effective reveal date in the clock field from the start", async () => {
-    setup(batch(true));
-    const clock = await screen.findByLabelText(/recorrido hasta/i);
-    expect(clock).toHaveValue("2023-06-13");
+  it("shows the effective reveal date in the clock field from the start (classic mode)", async () => {
+    vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockResolvedValue(batch(true));
+    vi.spyOn(historicalApi, "getHistoricalReadings").mockResolvedValue(readings(PAST));
+    render(<HistoricalWalkthrough sensorId="s" />);
+    fireEvent.change(screen.getByLabelText(/emisión seleccionada/i), { target: { value: "2023-06-13" } });
+    expect(await screen.findByLabelText(/recorrido hasta/i)).toHaveValue("2023-06-13");
   });
 
-  it("keeps a half-edited (empty) clock field empty while editing instead of snapping back", async () => {
-    setup(batch(true));
+  it("keeps a half-edited (empty) clock field empty while editing instead of snapping back (classic mode)", async () => {
+    vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockResolvedValue(batch(true));
+    vi.spyOn(historicalApi, "getHistoricalReadings").mockResolvedValue(readings(PAST));
+    render(<HistoricalWalkthrough sensorId="s" />);
+    fireEvent.change(screen.getByLabelText(/emisión seleccionada/i), { target: { value: "2023-06-13" } });
     const clock = await screen.findByLabelText(/recorrido hasta/i);
     fireEvent.change(clock, { target: { value: "2023-06-15" } });
     expect(clock).toHaveValue("2023-06-15");
     fireEvent.change(clock, { target: { value: "" } });
     expect(clock).toHaveValue("");
-    await userEvent.click(screen.getByRole("button", { name: /día siguiente/i }));
+    fireEvent.change(clock, { target: { value: "2023-06-14" } });
     await waitFor(() => expect(screen.getByLabelText(/recorrido hasta/i)).toHaveValue("2023-06-14"));
   });
 
-  it("does not revive an old empty draft after the clock goes A -> B -> A", async () => {
-    setup(batch(true));
+  it("does not revive an old empty draft after the clock goes A -> B -> A (classic mode)", async () => {
+    vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockResolvedValue(batch(true));
+    vi.spyOn(historicalApi, "getHistoricalReadings").mockResolvedValue(readings(PAST));
+    render(<HistoricalWalkthrough sensorId="s" />);
+    fireEvent.change(screen.getByLabelText(/emisión seleccionada/i), { target: { value: "2023-06-13" } });
     const clock = await screen.findByLabelText(/recorrido hasta/i);
     fireEvent.change(clock, { target: { value: "" } });
     expect(clock).toHaveValue("");
-    await userEvent.click(screen.getByRole("button", { name: /día siguiente/i }));
+    fireEvent.change(clock, { target: { value: "2023-06-14" } });
     await waitFor(() => expect(screen.getByLabelText(/recorrido hasta/i)).toHaveValue("2023-06-14"));
-    await userEvent.click(screen.getByRole("button", { name: /día anterior/i }));
+    fireEvent.change(screen.getByLabelText(/recorrido hasta/i), { target: { value: "2023-06-13" } });
     await waitFor(() => expect(screen.getByLabelText(/recorrido hasta/i)).toHaveValue("2023-06-13"));
   });
 
   it("traces the displayed prediction and declares unavailable lineage explicitly", async () => {
     setup(batch(true));
+    await openTab(/trazabilidad/i);
     const trace = await screen.findByRole("region", { name: /trazabilidad de la predicción/i });
     expect(trace).toHaveTextContent("Versión del modelo: mv-1");
     for (const text of ["2022-12-31", "cal-7", "2023-01-31", "assess-9", "policy-v3", SHA, "mv-1-0", "mv-1-2", "0.4"]) {
@@ -156,6 +166,7 @@ describe("HistoricalWalkthrough — veredicto, jerarquía, trazabilidad, defensa
 
   it("says the model version is unavailable when the payload carries null, and follows the site's own source", async () => {
     setup(batch(true, null), PAST, { sourceSummary: { label: "Datos del sitio", detail: "Fuente propia de Melchor Romero" } });
+    await openTab(/trazabilidad/i);
     const trace = await screen.findByRole("region", { name: /trazabilidad de la predicción/i });
     expect(trace).toHaveTextContent("Versión del modelo: no disponible");
     expect(trace).toHaveTextContent("Fuente propia de Melchor Romero");
@@ -165,6 +176,8 @@ describe("HistoricalWalkthrough — veredicto, jerarquía, trazabilidad, defensa
 
   it("drops client-side any observation row dated after the revealed clock", async () => {
     setup(batch(true), [...PAST, row("2023-06-14", 0.111)]);
+    await screen.findByRole("group", { name: /pronóstico por horizonte/i });
+    await openTab(/observaciones/i);
     await screen.findByRole("table");
     const bodyRows = within(screen.getByRole("table")).getAllByRole("row").slice(1);
     expect(bodyRows).toHaveLength(3);
