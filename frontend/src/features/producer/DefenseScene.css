@@ -51,3 +51,11 @@
   .ds-review .forecast-card-buttons button, .ds-review .forecast-card-choice { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .defense-scene * { transition: none; } }
+
+/* La fecha objetivo ya está en el título del panel; los botones de revisión son el elemento principal. */
+.ds-review .forecast-card-target { display: none; }
+.ds-review .forecast-card-choice { font: inherit; font-weight: 700; border: 2px solid #1443b6; color: #1443b6; background: #fff; border-radius: 10px; cursor: pointer; }
+.ds-review .forecast-card-choice:nth-child(2) { border-color: #961f0e; color: #961f0e; }
+.ds-review .forecast-card-choice:hover { background: #eef2ff; }
+.ds-review .forecast-card-choice:nth-child(2):hover { background: #fbebe6; }
+.ds-review .forecast-card-choice:focus-visible { outline: 3px solid #00b4d8; outline-offset: 2px; }
