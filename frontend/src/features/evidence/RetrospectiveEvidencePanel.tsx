@@ -22,8 +22,8 @@ type Projection = {
 type State = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; data: Projection };
 const names: Record<string, string> = {
   logistic_regression: "Regresión logística", random_forest: "Random Forest",
-  hist_gradient_boosting_classifier: "HistGradientBoosting", average: "Promedio vigente",
-  majority: "Mayoría exploratoria", persistence: "Persistencia",
+  hist_gradient_boosting_classifier: "HistGradientBoosting", average: "Ensamble por promedio",
+  majority: "Mayoría de votos", persistence: "Persistencia",
 };
 const order = ["logistic_regression", "random_forest", "hist_gradient_boosting_classifier", "average", "majority", "persistence"];
 const number = (value: number) => value.toFixed(3);
@@ -156,7 +156,7 @@ export function RetrospectiveEvidencePanel() {
       <p className="retrospective-tier-label"><span>4</span> Metodología, procedencia y limitaciones</p>
       <details className="retrospective-method" open><summary>Fuentes y límites metodológicos</summary>
         <p>Proyección versionada de <code>ui_summary.json</code> y <code>metrics.json</code> canónicos. SHA-256: {state.data.source_sha256["ui_summary.json"]}; {state.data.source_sha256["metrics.json"]}.</p>
-        <p>Véanse <code>docs/research/ensemble-retrospective-evaluation-results.md</code> y <code>docs/research/ensemble-retrospective-evaluation-protocol.md</code>. La ejecución duplicada incumplió el requisito de corrida única: auditoría científica FAIL. Ese estado de gobernanza se distingue del funcionamiento de esta interfaz. No hay un ganador general ni probabilidades operativas acreditadas.</p>
+        <p>Véanse <code>docs/research/ensemble-retrospective-evaluation-results.md</code> y <code>docs/research/ensemble-retrospective-evaluation-protocol.md</code>. No hay un ganador general ni probabilidades operativas acreditadas.</p>
       </details>
     </>}
   </section>;

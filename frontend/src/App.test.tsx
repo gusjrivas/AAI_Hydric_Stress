@@ -139,34 +139,57 @@ describe("App — navegación por hash (Entrega 2)", () => {
     expect(screen.queryByText(/Melchor Romero · emisiones persistidas/i)).not.toBeInTheDocument();
   });
 
-  it("opens on Mi cultivo when there is no route, so a producer lands on their own question", async () => {
+  it("opens on Arquitectura when there is no route, so the presentation starts with how the system is built", async () => {
     window.location.hash = "";
-    vi.spyOn(catalogApi, "listSectors").mockResolvedValue({ items: [], next_cursor: null });
-    vi.spyOn(catalogApi, "listSensors").mockResolvedValue({ items: [], next_cursor: null });
     render(<App />);
-    expect(screen.getByRole("heading", { name: "Mi cultivo", level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Arquitectura del sistema", level: 1 })).toBeInTheDocument();
     const primary = screen.getByRole("navigation", { name: /secciones principales/i });
-    expect(within(primary).getByRole("link", { name: "Mi cultivo" })).toHaveAttribute("aria-current", "page");
-    expect(screen.queryByLabelText(/punto de medición \(sensor\)/i)).not.toBeInTheDocument();
-    // `#demo` y `#reproduccion-historica` siguen siendo vistas de Herramientas técnicas.
-    expect(screen.getByRole("link", { name: /seguimiento del agua en el cultivo, ir a mi cultivo/i })).toHaveAttribute("href", "#productor");
+    expect(within(primary).getByRole("link", { name: "Arquitectura" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: /seguimiento del agua en el cultivo, ir a arquitectura/i })).toHaveAttribute("href", "#arquitectura");
   });
 
-  it("groups the app in five stable sections and marks the active one without hiding any capability", async () => {
+  it("offers three presentation entries and keeps every other destination under Más", async () => {
     window.location.hash = "#defensa-melchor-romero";
     render(<App />);
     const primary = screen.getByRole("navigation", { name: /secciones principales/i });
-    for (const label of ["Seguimiento histórico", "Mi cultivo", "Laboratorio", "Evidencia", "Herramientas técnicas"]) {
+    for (const label of ["Arquitectura", "Caso de demostración", "Resultados"]) {
       expect(within(primary).getByRole("link", { name: label })).toBeInTheDocument();
     }
-    expect(within(primary).getByRole("link", { name: "Seguimiento histórico" })).toHaveAttribute("aria-current", "page");
-    expect(within(primary).getByRole("link", { name: "Herramientas técnicas" })).not.toHaveAttribute("aria-current");
-    // La localidad se cambia dentro del seguimiento, sin perder el sitio vigente.
-    const locality = screen.getByRole("navigation", { name: /localidad/i });
-    expect(within(locality).getByRole("link", { name: "Melchor Romero" })).toHaveAttribute("aria-current", "page");
-    expect(within(locality).getByRole("link", { name: "Pergamino" })).not.toHaveAttribute("aria-current");
+    expect(within(primary).getByRole("link", { name: "Caso de demostración" })).toHaveAttribute("aria-current", "page");
+    expect(within(primary).getByRole("link", { name: "Arquitectura" })).not.toHaveAttribute("aria-current");
+    // Mi cultivo y las herramientas técnicas no se pierden: viven bajo «Más».
+    const more = within(primary).getByText("Más");
+    expect(more.closest("details")).not.toBeNull();
+    for (const label of ["Mi cultivo", "Herramientas técnicas"]) {
+      expect(within(more.closest("details") as HTMLElement).getByRole("link", { name: label })).toBeInTheDocument();
+    }
+    // El caso se elige dentro de la entrada, sin perder el caso vigente.
+    const cases = screen.getByRole("navigation", { name: /^caso de demostración$/i });
+    expect(within(cases).getByRole("link", { name: "Melchor Romero" })).toHaveAttribute("aria-current", "page");
+    expect(within(cases).getByRole("link", { name: "Pergamino" })).not.toHaveAttribute("aria-current");
+    expect(within(cases).getByRole("link", { name: "Laboratorio de sensores" })).toHaveAttribute("href", "#laboratorio-sensores");
     // Las herramientas técnicas no se muestran fuera de su sección.
     expect(screen.queryByRole("link", { name: "Datos disponibles" })).not.toBeInTheDocument();
+  });
+
+  it("rotulates each demonstration case with what it is, in one line", async () => {
+    for (const [hash, text] of [
+      ["#defensa-pergamino", /reanálisis · era5-land y nasa power/i],
+      ["#defensa-melchor-romero", /satelitales y climáticos · esa cci y nasa power/i],
+      ["#laboratorio-sensores", /sintético · sensores de prueba/i],
+    ] as const) {
+      window.location.hash = hash;
+      const view = render(<App />);
+      const cases = screen.getByRole("navigation", { name: /^caso de demostración$/i });
+      expect(within(cases.parentElement as HTMLElement).getByText(text)).toBeInTheDocument();
+      view.unmount();
+    }
+  });
+
+  it("does not show the case selector outside the demonstration cases", async () => {
+    window.location.hash = "#arquitectura";
+    render(<App />);
+    expect(screen.queryByRole("navigation", { name: /^caso de demostración$/i })).not.toBeInTheDocument();
   });
 
   it("keeps every existing tool reachable from Herramientas técnicas", async () => {
@@ -179,14 +202,49 @@ describe("App — navegación por hash (Entrega 2)", () => {
     expect(screen.getByRole("link", { name: "Reproducción histórica" })).toBeInTheDocument();
   });
 
+  it("shows the architecture view as its own destination with the design-documentation mode", async () => {
+    window.location.hash = "#arquitectura";
+    render(<App />);
+    expect(screen.getByRole("heading", { name: "Arquitectura del sistema", level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("note")).toHaveTextContent(/documentación de diseño/i);
+    const primary = screen.getByRole("navigation", { name: /secciones principales/i });
+    expect(within(primary).getByRole("link", { name: "Arquitectura" })).toHaveAttribute("aria-current", "page");
+    expect(within(primary).getByRole("link", { name: "Herramientas técnicas" })).not.toHaveAttribute("aria-current");
+    // El mapa deja de estar escondido en un <details> colapsado de Herramientas.
+    expect(screen.getByRole("navigation", { name: /etapas de la arquitectura/i })).toBeVisible();
+  });
+
+  it("points Acerca de esta herramienta to the architecture destination", async () => {
+    window.location.hash = "#evidencia";
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
+    render(<App />);
+    expect(screen.getByRole("link", { name: "Arquitectura del sistema" })).toHaveAttribute("href", "#arquitectura");
+    vi.unstubAllGlobals();
+  });
+
+  it.each([
+    ["#defensa-pergamino", /reproducción histórica/i],
+    ["#laboratorio-sensores", /laboratorio sintético/i],
+    ["#productor", /^operación$/i],
+  ])("labels the mode of %s so replay, lab and operation are never confused", async (hash, text) => {
+    window.location.hash = hash;
+    vi.spyOn(catalogApi, "listSectors").mockResolvedValue({ items: [], next_cursor: null });
+    vi.spyOn(catalogApi, "listSensors").mockResolvedValue({ items: [], next_cursor: null });
+    render(<App />);
+    const badge = document.querySelector(".mode-badge");
+    expect(badge).not.toBeNull();
+    expect(badge!.querySelector("strong")!.textContent).toMatch(text);
+  });
+
   it("opens the Evidencia section with the governance status visible", async () => {
     window.location.hash = "#evidencia-resultados";
     vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
     render(<App />);
     expect(screen.getByRole("heading", { name: /qué se midió y qué se puede afirmar/i, level: 1 })).toBeInTheDocument();
-    expect(screen.getByText(/auditoría científica FAIL/i)).toBeInTheDocument();
+    expect(screen.getByText(/estado de gobernanza/i)).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/auditoría científica FAIL|ejecución duplicada/i);
     const primary = screen.getByRole("navigation", { name: /secciones principales/i });
-    expect(within(primary).getByRole("link", { name: "Evidencia" })).toHaveAttribute("aria-current", "page");
+    expect(within(primary).getByRole("link", { name: "Resultados" })).toHaveAttribute("aria-current", "page");
     vi.unstubAllGlobals();
   });
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForecastReviews } from "./useForecastReviews";
 import {
   DemoWriteLockedError,
@@ -56,6 +56,8 @@ interface Draft {
   comment: string;
 }
 
+type FocusTarget = "pending" | "notice" | "prompt" | "blocked" | "alert";
+
 export function ForecastCard({
   sensorId,
   forecast: initialForecast,
@@ -63,6 +65,7 @@ export function ForecastCard({
   submitReviewFn = submitReview,
   refetchFn = getForecast,
   historicalNotice,
+  compact = false,
 }: {
   sensorId: string;
   forecast: Forecast;
@@ -77,6 +80,9 @@ export function ForecastCard({
    * aislada de los procesos operativos), mostrado además del resto de los
    * mensajes de estado. */
   historicalNotice?: string;
+  /** Variante para la escena de defensa: sin mensaje de probabilidad, sin puntajes por modelo y con
+   * el texto mínimo; el flujo de revisión (confirmar o rechazar, alerta o ausencia de alerta) no cambia. */
+  compact?: boolean;
 }) {
   const [localForecast, setForecast] = useState(initialForecast);
   const { updates, publish } = useForecastReviews();
@@ -88,6 +94,15 @@ export function ForecastCard({
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // Guardia síncrona contra doble envío (el estado de React se actualiza luego del clic).
+  const submittingRef = useRef(false);
+  // Destino estable del foco cuando el control activo se deshabilita o desaparece.
+  const [focusRequest, setFocusRequest] = useState<{ target: FocusTarget; n: number } | null>(null);
+  const pendingRef = useRef<HTMLParagraphElement>(null);
+  const noticeRef = useRef<HTMLParagraphElement>(null);
+  const promptRef = useRef<HTMLParagraphElement>(null);
+  const blockedRef = useRef<HTMLParagraphElement>(null);
+  const alertRef = useRef<HTMLParagraphElement>(null);
   // Rechazo 409 real del backend (el estado cambió entre la consulta y el POST):
   // bloquea esta revisión hasta que llegue un estado nuevo del pronóstico.
   const [serverBlock, setServerBlock] = useState<{ reason: ReviewBlockedReason; review: ForecastReview } | null>(null);
@@ -98,8 +113,19 @@ export function ForecastCard({
     activeServerBlock ?? (review.reviewable ? null : (review.blocked_reason ?? "review_not_open"));
   const reviewable = blockedReason === null;
   const observationMessage = blockedReason ? (TARGET_OBSERVATION_MESSAGES[blockedReason] ?? null) : null;
+  const choiceHelpId = `review-choice-help-${initialForecast.forecast_id}`;
   const isCorrecting = review.status !== "pending";
   const frozen = submitting || formError !== null;
+
+  function requestFocus(target: FocusTarget) {
+    setFocusRequest((previous) => ({ target, n: (previous?.n ?? 0) + 1 }));
+  }
+
+  useEffect(() => {
+    if (!focusRequest) return;
+    const element = { pending: pendingRef, notice: noticeRef, prompt: promptRef, blocked: blockedRef, alert: alertRef }[focusRequest.target].current;
+    element?.focus();
+  }, [focusRequest]);
 
   function openForm(action: ReviewAction) {
     setNotice(null);
@@ -112,13 +138,16 @@ export function ForecastCard({
     setDraft(null);
     setRequestId(null);
     setFormError(null);
+    requestFocus("prompt");
   }
 
   async function submit() {
     // Se vuelve a comprobar aquí: no se confía solo en el atributo disabled.
-    if (!draft || !requestId || submitting || !reviewable) return;
+    if (!draft || !requestId || submitting || submittingRef.current || !reviewable) return;
+    submittingRef.current = true;
     setSubmitting(true);
     setFormError(null);
+    requestFocus("pending");
     try {
       const updatedReview = await submitReviewFn(sensorId, forecast.forecast_id, {
         requestId,
@@ -136,6 +165,7 @@ export function ForecastCard({
       );
       publish(updated);
       onChanged?.(updated);
+      requestFocus("notice");
       return;
     } catch (error) {
       setSubmitting(false);
@@ -143,6 +173,7 @@ export function ForecastCard({
         setDraft(null);
         setRequestId(null);
         setNotice("Se registró otra opinión mientras completabas este formulario.");
+        requestFocus("notice");
         try {
           const fresh = await refetchFn(sensorId, forecast.forecast_id);
           setForecast(fresh);
@@ -157,36 +188,44 @@ export function ForecastCard({
       if (error instanceof ReviewIdempotencyConflictError) {
         setDraft(null);
         setRequestId(null);
-        setNotice("Ese envío ya se había usado con otro contenido. Iniciá la revisión de nuevo si hace falta.");
+        setNotice("Ese envío ya se había usado con otro contenido. Se puede iniciar la revisión de nuevo si hace falta.");
+        requestFocus("notice");
         return;
       }
       if (error instanceof TargetObservationBlockedError) {
         setRequestId(null);
         setFormError(null);
         setServerBlock({ reason: error.reason, review });
+        requestFocus("blocked");
         return;
       }
       if (error instanceof DemoWriteLockedError) {
         setDraft(null);
         setRequestId(null);
         setNotice(error.message);
+        requestFocus("notice");
         return;
       }
       if (error instanceof ReviewNotOpenError) {
         setDraft(null);
         setRequestId(null);
         setNotice("Todavía no se puede revisar este resultado.");
+        requestFocus("notice");
         return;
       }
       if (error instanceof ForecastNotFoundError) {
         setDraft(null);
         setRequestId(null);
         setNotice(error.message);
+        requestFocus("notice");
         return;
       }
       // Error recuperable (red, servidor no disponible): se conserva el
       // formulario y el mismo request_id para no duplicar el envío al reintentar.
       setFormError(error instanceof Error ? error.message : "No se pudo enviar la revisión.");
+      requestFocus("alert");
+    } finally {
+      submittingRef.current = false;
     }
   }
 
@@ -195,10 +234,10 @@ export function ForecastCard({
       <header className="forecast-card-header">
         <div>
           <p className="forecast-card-target">{historicalNotice ? `+${forecast.horizon_days} · Objetivo: ${displayForecastDate(forecast.target_date)}` : displayForecastDate(forecast.target_date)}</p>
-          <details className="forecast-card-details"><summary>Ver de cuándo son los datos</summary><p className="forecast-card-meta">
+          {!compact && <details className="forecast-card-details"><summary>Ver de cuándo son los datos</summary><p className="forecast-card-meta">
             {HORIZON_LABELS[forecast.horizon_days]} · Emitido el {displayIssuedAt(forecast.issued_at)} a partir de
             datos del {displayForecastDate(forecast.as_of_date)}
-          </p></details>
+          </p></details>}
         </div>
         <span className={`forecast-card-badge ${forecast.alert ? "is-alert" : "is-clear"}`}>
           {forecast.alert ? <AlertIcon /> : <CalmIcon />}
@@ -206,9 +245,9 @@ export function ForecastCard({
         </span>
       </header>
 
-      <p className="forecast-card-guidance">{forecast.alert ? "Puede haber falta de agua. Revisá cómo está el cultivo." : "No se anticipa una alerta para esta fecha. Seguí observando el cultivo."}</p>
-      {historicalNotice && <p className="forecast-card-historical-notice">El resultado refiere al objetivo de baja humedad del protocolo; no es un diagnóstico agronómico validado. La ausencia de alerta no garantiza ausencia de estrés. La falta de datos tampoco equivale a ausencia de alerta.</p>}
-      <p className="forecast-probability">{forecast.probability_status === "not_qualified" || forecast.display_probability === null ? "Probabilidad no disponible: todavía no hay un porcentaje respaldado para mostrar." : `Posibilidad de alerta: ${displayProbability(forecast)}`}</p>
+      {!compact && <p className="forecast-card-guidance">{forecast.alert ? "Puede haber falta de agua. Conviene revisar el estado del cultivo." : "No se anticipa una alerta para esta fecha. Se recomienda seguir observando el cultivo."}</p>}
+      {historicalNotice && !compact && <p className="forecast-card-historical-notice">El resultado refiere al objetivo de baja humedad del protocolo; no es un diagnóstico agronómico validado. La ausencia de alerta no garantiza ausencia de estrés. La falta de datos tampoco equivale a ausencia de alerta.</p>}
+      {!compact && <p className="forecast-probability">{forecast.probability_status === "not_qualified" || forecast.display_probability === null ? "Probabilidad no disponible: todavía no hay un porcentaje respaldado para mostrar." : `Posibilidad de alerta: ${displayProbability(forecast)}`}</p>}
       {forecast.ensemble && (
         <div className="forecast-card-agreement">
           <span className="forecast-pips" aria-hidden="true">
@@ -218,20 +257,23 @@ export function ForecastCard({
             })}
           </span>
           <p><strong>Acuerdo entre modelos:</strong> {forecast.ensemble.components.length === 3
-            ? `${agreementLabel(forecast.ensemble)} (${agreementVotesLabel(forecast.ensemble)}).`
+            ? (compact ? `${agreementLabel(forecast.ensemble)}.` : `${agreementLabel(forecast.ensemble)} (${agreementVotesLabel(forecast.ensemble)}).`)
             : `${forecast.ensemble.components.length} de 3 modelos disponibles; el faltante no cuenta como voto negativo.`}</p>
           <details>
-            <summary>Ver detalle por modelo</summary>
+            <summary>{compact ? "Ver qué indicó cada modelo" : "Ver detalle por modelo"}</summary>
             <ul>
               {forecast.ensemble.components.map((component) => (
                 <li key={component.family}>
-                  {familyLabel(component.family)}: score {component.score.toFixed(3)} · {component.alert ? "indica alerta" : "no indica alerta"}
+                  {compact
+                    ? `${familyLabel(component.family)}: ${component.alert ? "indica alerta" : "no indica alerta"}`
+                    : `${familyLabel(component.family)}: score ${component.score.toFixed(3)} · ${component.alert ? "indica alerta" : "no indica alerta"}`}
                 </li>
               ))}
             </ul>
             {forecast.ensemble.components.length < 3 && <p>No disponibles: {(["logistic_regression", "random_forest", "hist_gradient_boosting_classifier"] as const)
               .filter((family) => !forecast.ensemble?.components.some((component) => component.family === family))
               .map(familyLabel).join(", ")}.</p>}
+            {compact && <p className="forecast-card-hint">El veredicto resume la evaluación conjunta de los modelos; no es una explicación de causas.</p>}
           </details>
         </div>
       )}
@@ -247,16 +289,16 @@ export function ForecastCard({
         </p>
       )}
 
-      {notice && <p role="status">{notice}</p>}
+      {notice && <p role="status" tabIndex={-1} ref={noticeRef}>{notice}</p>}
 
       {!reviewable && observationMessage && (
-        <p className="forecast-card-blocked" role="status">
+        <p className="forecast-card-blocked" role="status" tabIndex={-1} ref={blockedRef}>
           <LockIcon />
           {observationMessage}
         </p>
       )}
       {!reviewable && !observationMessage && (
-        <p className="forecast-card-blocked">
+        <p className="forecast-card-blocked" tabIndex={-1} ref={blockedRef}>
           <LockIcon />
           {review.blocked_reason === "review_not_open"
             ? `Vas a poder revisar este resultado a partir del ${displayIssuedAt(review.review_open_at)}.`
@@ -266,16 +308,20 @@ export function ForecastCard({
 
       {reviewable && !draft && (
         <div className="forecast-card-actions">
-          <p>¿Coincidió con lo que observaste?</p>
+          <p ref={promptRef} tabIndex={-1}>{compact ? `¿Coincidió «${forecast.alert ? "Alerta" : "Sin alerta"}» con lo que observaste?` : "¿Coincidió con lo que observaste?"}</p>
+          <p className="forecast-card-hint" id={choiceHelpId} hidden={compact}>
+            Seleccionar una opción para continuar: Confirmar resultado indica que coincidió con lo observado; Rechazar
+            resultado indica que no coincidió. Antes de guardar vas a poder revisar tu elección y agregar un comentario.
+          </p>
           <div className="forecast-card-buttons">
-            <button type="button" onClick={() => openForm("confirm")}>
+            <button type="button" className="forecast-card-choice" aria-describedby={choiceHelpId} onClick={() => openForm("confirm")}>
               Confirmar resultado
             </button>
-            <button type="button" onClick={() => openForm("reject")}>
+            <button type="button" className="forecast-card-choice" aria-describedby={choiceHelpId} onClick={() => openForm("reject")}>
               Rechazar resultado
             </button>
           </div>
-          {isCorrecting && <p className="forecast-card-hint">Podés corregir tu opinión cuando quieras: no vence.</p>}
+          {isCorrecting && <p className="forecast-card-hint">La opinión puede corregirse en cualquier momento: no vence.</p>}
         </div>
       )}
 
@@ -288,7 +334,7 @@ export function ForecastCard({
           }}
         >
           <p>{historicalNotice
-            ? (draft.action === "confirm" ? "Confirmo la decisión mostrada para este objetivo de humedad." : "Rechazo la decisión mostrada para este objetivo de humedad.")
+            ? (draft.action === "confirm" ? "Confirmo" : "Rechazo") + ` la decisión mostrada${compact ? ` «${forecast.alert ? "Alerta" : "Sin alerta"}»` : ""} para este objetivo de humedad.`
             : reviewActionCopy(forecast)[draft.action]}</p>
           <label>
             Comentario (opcional)
@@ -299,8 +345,9 @@ export function ForecastCard({
               onChange={(event) => setDraft({ ...draft, comment: event.target.value })}
             />
           </label>
+          <p role="status" tabIndex={-1} ref={pendingRef} className="forecast-card-pending">{submitting ? "Guardando tu opinión…" : ""}</p>
           {formError && (
-            <p role="alert">
+            <p role="alert" tabIndex={-1} ref={alertRef}>
               {formError} El envío no se duplicará: al reintentar se usa la misma solicitud.
             </p>
           )}

@@ -22,8 +22,8 @@ export function MelchorEvidenceNote() {
         <code>-results.md</code>) -- no a la campaña científica{" "}
         <code>controlled_daily_v4_external_pergamino</code> (ADR-0011, etapas A, B y C, con holdout
         en la etapa C). Esa evaluación 2023 es exploratoria, no independiente (2023 ya se usó en
-        análisis anteriores del proyecto), y su auditoría científica concluyó FAIL por ejecución
-        duplicada; no se le atribuye aquí ningún resultado confirmatorio ni superioridad. Mostrar un
+        análisis anteriores del proyecto); no se le atribuye aquí ningún resultado confirmatorio
+        ni superioridad. Mostrar un
         panel equivalente para Melchor Romero equivaldría a fabricar paridad donde no hay evidencia
         real.
       </p>

@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { HistoricalWalkthrough } from "./HistoricalWalkthrough";
@@ -38,14 +38,14 @@ describe("HistoricalWalkthrough", () => {
         last_reading_date: null, data_age_days: null, provenance: "external_reanalysis",
       });
     render(<HistoricalWalkthrough sensorId="pergamino-ensemble-demo" defense />);
-    expect(await screen.findAllByText(/no se pudo consultar la observación/i)).not.toHaveLength(0);
+    expect(await screen.findByText(/no se pudieron consultar las observaciones/i)).toBeInTheDocument();
     expect(screen.queryByText(/cargando dato posterior/i)).not.toBeInTheDocument();
-    await userEvent.click(screen.getAllByRole("button", { name: /reintentar lecturas/i })[0]);
+    await userEvent.click(screen.getByRole("button", { name: /reintentar lecturas/i }));
     await waitFor(() => expect(readings).toHaveBeenCalledTimes(2));
-    expect(await screen.findAllByText(/sin observación en la fuente/i)).not.toHaveLength(0);
+    await waitFor(() => expect(screen.queryByText(/no se pudieron consultar las observaciones/i)).not.toBeInTheDocument());
   });
 
-  it("limits defense navigation to the five persisted emission dates and does not show a later target as observed", async () => {
+  it("limits defense navigation to the five persisted emission dates", async () => {
     vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockResolvedValue(batchFor("2023-06-13", "14"));
     vi.spyOn(historicalApi, "getHistoricalReadings").mockResolvedValue({
       sensor_id: "pergamino-ensemble-demo", calendar_timezone: "UTC", server_today: "2023-06-13",
@@ -54,12 +54,13 @@ describe("HistoricalWalkthrough", () => {
       last_reading_date: null, data_age_days: null, provenance: "external_reanalysis",
     });
     render(<HistoricalWalkthrough sensorId="pergamino-ensemble-demo" defense />);
-    const select = screen.getByLabelText(/emisión seleccionada/i);
-    expect(select).toHaveValue("2023-06-13");
-    expect(screen.getAllByRole("option")).toHaveLength(5);
-    expect(await screen.findAllByText(/todavía no disponible según el reloj/i)).toHaveLength(3);
-    expect(screen.getByText(/1 fecha sin datos/i)).toBeInTheDocument();
+    const group = await screen.findByRole("group", { name: /emisión \(cuándo se hizo el pronóstico\)/i });
+    const buttons = within(group).getAllByRole("button");
+    expect(buttons).toHaveLength(5);
+    expect(buttons[0]).toHaveAttribute("aria-pressed", "true");
     expect(historicalApi.getHistoricalForecastBatch).toHaveBeenCalledWith("pergamino-ensemble-demo", "2023-06-13", undefined);
+    await userEvent.click(screen.getByRole("tab", { name: /datos y calidad/i }));
+    expect(await screen.findByText(/1 fecha sin datos/i)).toBeInTheDocument();
   });
   it("keeps the emission date and the walked-forward reveal date visually separate, never merged", async () => {
     vi.spyOn(historicalApi, "getHistoricalForecastBatch").mockResolvedValue(batchFor("2023-06-13", "14"));
@@ -98,10 +99,8 @@ describe("HistoricalWalkthrough", () => {
     const emissionInput = screen.getByLabelText(/emisión seleccionada/i);
 
     await userEvent.type(emissionInput, "2023-06-13"); // A
-    await userEvent.clear(emissionInput);
-    await userEvent.type(emissionInput, "2023-06-14"); // B
-    await userEvent.clear(emissionInput);
-    await userEvent.type(emissionInput, "2023-06-13"); // A again
+    fireEvent.change(emissionInput, { target: { value: "2023-06-14" } }); // B
+    fireEvent.change(emissionInput, { target: { value: "2023-06-13" } }); // A again
     await waitFor(() => expect(resolvers).toHaveLength(3));
 
     // Resolve out of order: the middle (B) and the first A resolve after
@@ -174,7 +173,7 @@ describe("HistoricalWalkthrough", () => {
 
     render(<HistoricalWalkthrough sensorId="sensor-a" />);
     await userEvent.type(screen.getByLabelText(/emisión seleccionada/i), "2023-06-13");
-    await userEvent.type(screen.getByLabelText(/recorrido hasta/i), "2023-06-20");
+    fireEvent.change(screen.getByLabelText(/recorrido hasta/i), { target: { value: "2023-06-20" } });
     await userEvent.click(await screen.findByRole("button", { name: /confirmar resultado/i }));
     await userEvent.click(screen.getByRole("button", { name: /guardar opinión/i }));
     await waitFor(() => expect(submit).toHaveBeenCalled());
@@ -257,8 +256,7 @@ describe("HistoricalWalkthrough", () => {
     await userEvent.click(screen.getByRole("button", { name: /guardar opinión/i }));
 
     // Navigate away before the review submission resolves.
-    await userEvent.clear(emissionInput);
-    await userEvent.type(emissionInput, "2023-06-14");
+    fireEvent.change(emissionInput, { target: { value: "2023-06-14" } });
     await waitFor(() => expect(screen.getByLabelText(/emisión seleccionada/i)).toHaveValue("2023-06-14"));
 
     await act(async () => {
@@ -322,13 +320,17 @@ describe("HistoricalWalkthrough", () => {
     });
 
     render(<HistoricalWalkthrough sensorId="pergamino-ensemble-demo" defense />);
-    expect(await screen.findByText("1 de 1 horizonte disponible con alerta prevista")).toBeInTheDocument();
-    expect(screen.getByText(/1 fecha sin datos/i)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: /según los modelos, alerta de humedad baja en 1 de 1 horizonte/i })).toBeInTheDocument();
+    const strip = screen.getByRole("group", { name: /pronóstico por horizonte/i });
+    expect(within(strip).getAllByRole("button")).toHaveLength(1);
+    expect(within(strip).getByRole("button")).toHaveTextContent(/alerta/i);
+    expect(within(strip).getAllByText(/sin pronóstico disponible/i)).toHaveLength(2);
+    expect(screen.getByText(/quede por debajo de 18\.0 %/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: /datos y calidad/i }));
+    expect(await screen.findByText(/1 fecha sin datos/i)).toBeInTheDocument();
     expect(screen.getByText(/era5-land\/nasa power \(datos externos\)/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/sin pronóstico disponible/i)).toHaveLength(2);
-    // El gráfico repite el último valor como etiqueta SVG; aquí se cuentan solo los textos HTML (resumen y tabla).
-    expect(screen.getAllByText(/37\.5 %/i, { ignore: "script, style, text" })).toHaveLength(2);
-    expect(screen.getByText(/18\.0 %/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: /observaciones/i }));
+    expect(within(screen.getByRole("table")).getByText(/37\.5 %/)).toBeInTheDocument();
   });
 
   it("a submit response from an earlier reveal clock never overrides the card after the clock moved back on the same emission", async () => {
@@ -351,14 +353,13 @@ describe("HistoricalWalkthrough", () => {
     const emissionInput = screen.getByLabelText(/emisión seleccionada/i);
     const revealInput = screen.getByLabelText(/recorrido hasta/i);
     await userEvent.type(emissionInput, "2023-06-13");
-    await userEvent.type(revealInput, "2023-06-20");
+    fireEvent.change(revealInput, { target: { value: "2023-06-20" } });
     await userEvent.click(await screen.findByRole("button", { name: /confirmar resultado/i }));
     await userEvent.click(screen.getByRole("button", { name: /guardar opinión/i }));
 
     // Retroceder el reloj del recorrido a la propia fecha de emisión,
     // antes de que la respuesta del envío llegue.
-    await userEvent.clear(revealInput);
-    await userEvent.type(revealInput, "2023-06-13");
+    fireEvent.change(revealInput, { target: { value: "2023-06-13" } });
     await waitFor(() => expect(screen.getByText(/vas a poder revisar este resultado a partir del/i)).toBeInTheDocument());
 
     await act(async () => {
@@ -387,9 +388,9 @@ describe("HistoricalWalkthrough", () => {
     await userEvent.type(emissionInput, "2023-06-13");
     await waitFor(() => expect(resolvers).toHaveLength(1)); // request for revealedThrough = emissionDate
 
-    await userEvent.type(revealInput, "2023-06-20"); // A -> B
+    fireEvent.change(revealInput, { target: { value: "2023-06-20" } }); // A -> B
     await userEvent.clear(revealInput); // B -> back to A (clearing falls back to emissionDate)
-    await userEvent.type(revealInput, "2023-06-13"); // re-typed explicitly: A again
+    fireEvent.change(revealInput, { target: { value: "2023-06-13" } }); // re-typed explicitly: A again
     await waitFor(() => expect(resolvers.length).toBeGreaterThanOrEqual(3));
     const lastIndex = resolvers.length - 1;
 
@@ -429,8 +430,7 @@ describe("HistoricalWalkthrough", () => {
     await userEvent.click(screen.getByRole("button", { name: /guardar opinión/i }));
 
     // Navigate away (new emission) before the rejected submit resolves.
-    await userEvent.clear(emissionInput);
-    await userEvent.type(emissionInput, "2023-06-14");
+    fireEvent.change(emissionInput, { target: { value: "2023-06-14" } });
     await waitFor(() => expect(callCount).toBeGreaterThanOrEqual(2));
 
     await act(async () => { rejectSubmit(new Error("Fallo de red")); });
@@ -448,9 +448,12 @@ describe("HistoricalWalkthrough", () => {
       () => new Promise((resolve) => resolvers.push(resolve)),
     );
     vi.spyOn(historicalApi, "getHistoricalReadings").mockReturnValue(new Promise(() => {}));
+    const group = () => screen.getByRole("group", { name: /emisión \(cuándo se hizo el pronóstico\)/i });
 
     const view = render(<HistoricalWalkthrough sensorId="pergamino-ensemble-demo" defense />);
-    expect(screen.getByLabelText(/emisión seleccionada/i)).toHaveValue("2023-06-13");
+    expect(within(group()).getAllByRole("button")[0]).toHaveAttribute("aria-pressed", "true");
+    expect(within(group()).getAllByRole("button")[0]).toHaveTextContent("13 jun");
+    await userEvent.click(screen.getByRole("tab", { name: /datos y calidad/i }));
     expect(screen.getByText(/Origen: Pergamino/i)).toBeInTheDocument();
     await waitFor(() => expect(resolvers).toHaveLength(1));
 
@@ -465,21 +468,21 @@ describe("HistoricalWalkthrough", () => {
         provenanceNotice={<p className="historical-provenance">Origen: Melchor Romero · ESA CCI/NASA POWER.</p>}
       />,
     );
-    expect(screen.getByLabelText(/emisión seleccionada/i)).toHaveValue("2024-10-20");
+    expect(within(group()).getAllByRole("button")[0]).toHaveTextContent("20 oct");
+    expect(within(group()).getAllByRole("button")[0]).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText(/Origen: Melchor Romero/i)).toBeInTheDocument();
     expect(screen.queryByText(/Origen: Pergamino/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/13 al 17 de junio/i)).not.toBeInTheDocument();
 
     // Pergamino's stale in-flight response must never populate Melchor
-    // Romero's screen after the switch: the clock still reflects Melchor
-    // Romero's own selected emission (2024-10-20), never Pergamino's.
+    // Romero's screen after the switch.
     await act(async () => { resolvers[0](batchFor("2023-06-13", "14")); });
-    expect(screen.getByText(/viendo la emisión del/i)).toHaveTextContent(/20 de oct de 2024/i);
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(/20 de oct de 2024/i);
     expect(screen.queryByText(/13 de jun/i)).not.toBeInTheDocument();
 
     // B -> A again: back to Pergamino, with no Melchor Romero residue.
     view.rerender(<HistoricalWalkthrough sensorId="pergamino-ensemble-demo" defense />);
-    expect(screen.getByLabelText(/emisión seleccionada/i)).toHaveValue("2023-06-13");
+    expect(within(group()).getAllByRole("button")[0]).toHaveTextContent("13 jun");
     expect(screen.getByText(/Origen: Pergamino/i)).toBeInTheDocument();
     expect(screen.queryByText(/Origen: Melchor Romero/i)).not.toBeInTheDocument();
   });
@@ -612,33 +615,49 @@ describe("HistoricalWalkthrough", () => {
         revealMax="2024-10-27"
       />,
     );
-    await userEvent.selectOptions(screen.getByLabelText(/emisión seleccionada/i), "2024-10-23");
+    const pickEmission = async (label: string) => {
+      const group = await screen.findByRole("group", { name: /emisión \(cuándo se hizo el pronóstico\)/i });
+      await userEvent.click(within(group).getByRole("button", { name: label }));
+    };
+    const pickHorizon = async (horizon: number) => {
+      const strip = await screen.findByRole("group", { name: /pronóstico por horizonte/i });
+      await userEvent.click(within(strip).getByRole("button", { name: new RegExp(`^\\+${horizon} `) }));
+      return screen.findByRole("region", { name: new RegExp(`tu revisión · \\+${horizon}`, "i") });
+    };
+    const moveClock = (days: number) =>
+      fireEvent.change(screen.getByRole("slider", { name: /reloj del recorrido/i }), { target: { value: String(days) } });
+
+    await pickEmission("23 oct");
 
     // Antes de avanzar el reloj del recorrido (arranca igual a la
-    // emisión, 23/10), el objetivo posterior (26/10, y los demás
-    // horizontes de esta emisión) todavía NO puede mostrarse -- ni como
-    // observación real ni como imputada.
-    expect((await screen.findAllByText(/todavía no disponible según el reloj/i)).length).toBeGreaterThan(0);
+    // emisión, 23/10), el objetivo posterior (26/10) todavía NO puede
+    // mostrarse -- ni como observación real ni como imputada.
+    let panel = await pickHorizon(3);
+    expect(panel).toHaveTextContent(/todavía no se puede revisar/i);
     expect(screen.queryByText(/valor imputado/i)).not.toBeInTheDocument();
 
-    await userEvent.type(screen.getByLabelText(/recorrido hasta/i), "2024-10-27");
+    moveClock(4);
 
     // Emisión 23/10 +3 apunta al 26/10: el valor se muestra pero
     // identificado explícitamente como imputado, nunca implicando que es
     // una observación real independiente con la que contrastar el
     // pronóstico.
-    expect(await screen.findByText(/valor imputado/i)).toBeInTheDocument();
-    expect(screen.getByText(/no es una observación independiente/i)).toBeInTheDocument();
+    panel = await screen.findByRole("region", { name: /tu revisión · \+3/i });
+    expect(await within(panel).findByText(/valor imputado/i)).toBeInTheDocument();
+    expect(within(panel).getByText(/no es una observación independiente/i)).toBeInTheDocument();
 
-    // 25/10: observación real conservada, contrastable, y distinguida del 26/10 imputado.
-    expect(screen.getAllByText(/fuente real/i).length).toBeGreaterThan(0);
-    // 27/10 real: valor propio, nunca confundido con el 26/10 imputado.
-    expect(screen.getAllByText(/33\.0 %/i).length).toBeGreaterThan(0);
-    // 19/10: caso GENÉRICO de dato ausente, separado del 27/10 real.
-    expect(screen.getAllByText(/sin observación en la fuente/i).length).toBeGreaterThan(0);
+    // La tabla de observaciones distingue: 25/10 observación real conservada,
+    // 27/10 valor propio (nunca confundido con el 26/10 imputado) y 19/10
+    // caso GENÉRICO de dato ausente, separado del 27/10 real.
+    await userEvent.click(screen.getByRole("tab", { name: /observaciones/i }));
+    const table = await screen.findByRole("table");
+    expect(within(table).getAllByText(/fuente real/i).length).toBeGreaterThan(0);
+    expect(within(table).getAllByText(/33\.0 %/i).length).toBeGreaterThan(0);
+    expect(within(table).getAllByText(/sin observación en la fuente/i).length).toBeGreaterThan(0);
 
     // Cobertura: el día imputado no cuenta como observación.
-    await userEvent.click(screen.getByText(/ver disponibilidad por variable/i));
+    await userEvent.click(screen.getByRole("tab", { name: /datos y calidad/i }));
+    await userEvent.click(await screen.findByText(/ver disponibilidad por variable/i));
     expect(
       screen.getByText(/8 días con dato, 1 sin dato, 1 imputado \(no cuenta como observación\)/i),
     ).toBeInTheDocument();
@@ -646,18 +665,22 @@ describe("HistoricalWalkthrough", () => {
     // Cambiar a la emisión 24/10 -- reinicia el reloj del recorrido a la
     // nueva emisión (24/10): el objetivo 26/10 (ahora horizonte +2) vuelve
     // a estar oculto hasta volver a avanzar el reloj.
-    await userEvent.selectOptions(screen.getByLabelText(/emisión seleccionada/i), "2024-10-24");
-    expect((await screen.findAllByText(/todavía no disponible según el reloj/i)).length).toBeGreaterThan(0);
+    await pickEmission("24 oct");
+    panel = await pickHorizon(2);
+    expect(panel).toHaveTextContent(/todavía no se puede revisar/i);
     expect(screen.queryByText(/valor imputado/i)).not.toBeInTheDocument();
 
-    await userEvent.type(screen.getByLabelText(/recorrido hasta/i), "2024-10-27");
+    moveClock(3);
 
     // Emisión 24/10 +2 también apunta al 26/10: mismo valor imputado,
     // identificado de la misma forma, nunca como observación independiente.
-    expect(await screen.findByText(/valor imputado/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/no es una observación independiente/i).length).toBeGreaterThan(0);
+    panel = await pickHorizon(2);
+    expect(await within(panel).findByText(/valor imputado/i)).toBeInTheDocument();
+    expect(within(panel).getByText(/no es una observación independiente/i)).toBeInTheDocument();
     // Emisión 24/10 +3 apunta al 27/10, real -- explícitamente distinto
-    // del 26/10 imputado, en la misma tarjeta de "Observación posterior".
-    expect(screen.getAllByText(/fuente real/i).length).toBeGreaterThan(0);
+    // del 26/10 imputado.
+    panel = await pickHorizon(3);
+    expect(await within(panel).findByText(/dato real revelado/i)).toHaveTextContent(/33\.0 %.*fuente real/i);
+    expect(within(panel).queryByText(/valor imputado/i)).not.toBeInTheDocument();
   });
 });
