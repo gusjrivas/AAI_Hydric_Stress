@@ -12,12 +12,12 @@ const CASES: readonly DemoCase[] = [
   {
     route: "defensa-pergamino",
     label: "Pergamino",
-    blurb: "Datos reales · histórico — recorrido día a día con modelo de ensamble y procedencia externa explícita.",
+    blurb: "Datos de reanálisis · ERA5-Land y NASA POWER — pronósticos del ensamble preparados sobre datos históricos, contrastados por horizonte.",
   },
   {
     route: "defensa-melchor-romero",
     label: "Melchor Romero",
-    blurb: "Datos reales · reproducible — el mismo recorrido, reproducible desde el propio repositorio.",
+    blurb: "Datos satelitales y climáticos · ESA CCI y NASA POWER — pronósticos preparados para otra demostración, no la ejecución experimental.",
   },
   {
     route: "laboratorio-sensores",

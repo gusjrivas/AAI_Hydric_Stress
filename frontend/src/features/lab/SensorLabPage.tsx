@@ -27,23 +27,23 @@ const PHASE_LABELS: Record<LabPhase, string> = {
 /** Qué hacer a continuación, según la fase; nunca sugiere acciones fuera de la secuencia A–E. */
 const NEXT_ACTION: Record<LabPhase, string> = {
   idle: "Generar el historial de prueba (paso A).",
-  seeding: "Esperá: se está generando el historial de prueba.",
+  seeding: "En curso: se está generando el historial de prueba.",
   normal: "Introducir una lectura anómala (paso B).",
-  "injecting-anomaly": "Esperá: se está enviando la lectura anómala.",
+  "injecting-anomaly": "En curso: se está enviando la lectura anómala.",
   anomaly: "Simular una interrupción (paso C).",
-  interrupting: "Esperá: se está simulando la interrupción.",
+  interrupting: "En curso: se está simulando la interrupción.",
   interrupted: "Simular la recuperación (paso D).",
-  recovering: "Esperá: se está simulando la recuperación.",
+  recovering: "En curso: se está simulando la recuperación.",
   recovered: "Simular una sequía (paso E).",
-  drying: "Esperá: se está generando la sequía simulada.",
-  drought: "El recorrido terminó. Podés iniciar una sesión nueva.",
+  drying: "En curso: se está generando la sequía simulada.",
+  drought: "El recorrido terminó. Puede iniciarse una sesión nueva.",
   error: "Iniciar una sesión nueva: los datos de la sesión anterior se conservan.",
 };
 
 export const LAB_ERROR_GUIDANCE =
-  "Este paso no pudo completarse. Para evitar modificar lecturas ya guardadas, iniciá una sesión nueva. Los datos de la sesión anterior se conservan.";
+  "Este paso no pudo completarse. Para evitar modificar lecturas ya guardadas, iniciar una sesión nueva. Los datos de la sesión anterior se conservan.";
 
-const STEP_BUSY_NOTE = "Se habilita al completar el paso anterior. Hay un paso en curso: esperá a que termine.";
+const STEP_BUSY_NOTE = "Se habilita al completar el paso anterior. Hay un paso en curso: esperar a que termine.";
 
 /** Por qué un paso está deshabilitado, según la fase real; no agrega reglas fuera de la secuencia A–E. */
 const DISABLED_STEP_NOTE: Record<LabPhase, string> = {
@@ -57,8 +57,8 @@ const DISABLED_STEP_NOTE: Record<LabPhase, string> = {
   recovering: STEP_BUSY_NOTE,
   recovered: "Se habilita al completar el paso anterior. Por ahora solo está disponible el paso E.",
   drying: STEP_BUSY_NOTE,
-  drought: "El recorrido A–E terminó: no quedan pasos pendientes. Iniciá una sesión nueva para repetirlo.",
-  error: "El paso anterior no pudo completarse, así que los pasos siguientes no están disponibles. Iniciá una sesión nueva.",
+  drought: "El recorrido A–E terminó: no quedan pasos pendientes. Para repetirlo, iniciar una sesión nueva.",
+  error: "El paso anterior no pudo completarse, así que los pasos siguientes no están disponibles. Iniciar una sesión nueva.",
 };
 
 function realNowLabel(): string {

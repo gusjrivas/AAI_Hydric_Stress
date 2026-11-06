@@ -101,7 +101,7 @@ export const DEPLOYMENT_COMPONENTS: readonly DeploymentComponent[] = [
   {
     id: "modelos",
     label: "Modelos",
-    lines: ["Regresión logística", "Random Forest", "Hist. Gradient Boosting", "ensamble · acuerdo"],
+    lines: ["Regresión logística", "Random Forest", "Hist. Gradient Boosting", "ensamble · promedio"],
     box: { x: 240, y: 190, w: 170, h: 130 },
     responsibility: "Tres familias combinadas con la política ensemble_agreement_v1 (pesos uniformes 1/3).",
     connections: "Se cargan desde bundles que lee el núcleo.",
@@ -179,7 +179,7 @@ export const DEPLOYMENT_TOUR: readonly TourStep[] = [
   { id: "p1", caption: "1 · Llega una lectura del sensor (o un dato histórico) y entra por la ingesta del núcleo.", nodes: ["fuentes", "nucleo"], edges: ["fuentes-nucleo"] },
   { id: "p2", caption: "2 · Se evalúa la calidad del dato: observado, imputado o sin observación.", nodes: ["nucleo"], edges: [] },
   { id: "p3", caption: "3 · Se calculan las variables y se cargan los modelos del bundle.", nodes: ["nucleo", "modelos"], edges: ["nucleo-modelos"] },
-  { id: "p4", caption: "4 · Tres familias (regresión logística, Random Forest y Hist Gradient Boosting) estiman el riesgo; el ensamble por acuerdo (ensemble_agreement_v1) combina los resultados.", nodes: ["modelos"], edges: [] },
+  { id: "p4", caption: "4 · Tres familias (regresión logística, Random Forest y Hist Gradient Boosting) estiman si habrá baja humedad (por debajo del umbral); el ensamble por promedio (ensemble_agreement_v1) combina los resultados y conserva el acuerdo entre modelos como indicador.", nodes: ["modelos"], edges: [] },
   { id: "p5", caption: "5 · El backend entrega el pronóstico y el aviso a la interfaz por la API REST.", nodes: ["nucleo", "backend", "frontend"], edges: ["backend-nucleo", "frontend-backend"] },
   { id: "p6", caption: "6 · La interfaz muestra el aviso como apoyo a la decisión. No automatiza el riego.", nodes: ["frontend", "usuario"], edges: ["usuario-frontend"] },
   { id: "p7", caption: "7 · La persona revisa el aviso y registra su respuesta (retroalimentación humana).", nodes: ["usuario", "frontend", "backend", "nucleo"], edges: ["usuario-frontend", "frontend-backend", "backend-nucleo"] },

@@ -188,7 +188,7 @@ export function ForecastCard({
       if (error instanceof ReviewIdempotencyConflictError) {
         setDraft(null);
         setRequestId(null);
-        setNotice("Ese envío ya se había usado con otro contenido. Iniciá la revisión de nuevo si hace falta.");
+        setNotice("Ese envío ya se había usado con otro contenido. Se puede iniciar la revisión de nuevo si hace falta.");
         requestFocus("notice");
         return;
       }
@@ -245,7 +245,7 @@ export function ForecastCard({
         </span>
       </header>
 
-      {!compact && <p className="forecast-card-guidance">{forecast.alert ? "Puede haber falta de agua. Revisá cómo está el cultivo." : "No se anticipa una alerta para esta fecha. Seguí observando el cultivo."}</p>}
+      {!compact && <p className="forecast-card-guidance">{forecast.alert ? "Puede haber falta de agua. Conviene revisar el estado del cultivo." : "No se anticipa una alerta para esta fecha. Se recomienda seguir observando el cultivo."}</p>}
       {historicalNotice && !compact && <p className="forecast-card-historical-notice">El resultado refiere al objetivo de baja humedad del protocolo; no es un diagnóstico agronómico validado. La ausencia de alerta no garantiza ausencia de estrés. La falta de datos tampoco equivale a ausencia de alerta.</p>}
       {!compact && <p className="forecast-probability">{forecast.probability_status === "not_qualified" || forecast.display_probability === null ? "Probabilidad no disponible: todavía no hay un porcentaje respaldado para mostrar." : `Posibilidad de alerta: ${displayProbability(forecast)}`}</p>}
       {forecast.ensemble && (
@@ -256,7 +256,7 @@ export function ForecastCard({
               return <span key={index} className={`forecast-pip ${component === undefined ? "is-missing" : component.alert ? "is-on" : ""}`} />;
             })}
           </span>
-          <p><strong>{compact ? "Votación de los modelos:" : "Acuerdo entre modelos:"}</strong> {forecast.ensemble.components.length === 3
+          <p><strong>Acuerdo entre modelos:</strong> {forecast.ensemble.components.length === 3
             ? (compact ? `${agreementLabel(forecast.ensemble)}.` : `${agreementLabel(forecast.ensemble)} (${agreementVotesLabel(forecast.ensemble)}).`)
             : `${forecast.ensemble.components.length} de 3 modelos disponibles; el faltante no cuenta como voto negativo.`}</p>
           <details>
@@ -310,7 +310,7 @@ export function ForecastCard({
         <div className="forecast-card-actions">
           <p ref={promptRef} tabIndex={-1}>{compact ? `¿Coincidió «${forecast.alert ? "Alerta" : "Sin alerta"}» con lo que observaste?` : "¿Coincidió con lo que observaste?"}</p>
           <p className="forecast-card-hint" id={choiceHelpId} hidden={compact}>
-            Elegí una opción para continuar: Confirmar resultado indica que coincidió con lo que observaste; Rechazar
+            Seleccionar una opción para continuar: Confirmar resultado indica que coincidió con lo observado; Rechazar
             resultado indica que no coincidió. Antes de guardar vas a poder revisar tu elección y agregar un comentario.
           </p>
           <div className="forecast-card-buttons">
@@ -321,7 +321,7 @@ export function ForecastCard({
               Rechazar resultado
             </button>
           </div>
-          {isCorrecting && <p className="forecast-card-hint">Podés corregir tu opinión cuando quieras: no vence.</p>}
+          {isCorrecting && <p className="forecast-card-hint">La opinión puede corregirse en cualquier momento: no vence.</p>}
         </div>
       )}
 

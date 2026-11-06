@@ -15,7 +15,6 @@ const TEMP = { h: 190, top: 14, bottom: 22, min: -10, max: 95 };
 const DAY_MS = 86_400_000;
 
 const dayNumber = (isoDate: string) => Math.round(Date.parse(`${isoDate.slice(0, 10)}T00:00:00Z`) / DAY_MS);
-const decimal = (value: number) => value.toFixed(2).replace(".", ",");
 
 function xOf(offset: number): number {
   return X0 + ((X1 - X0) * offset) / (TOTAL_DAYS - 1);
@@ -78,8 +77,8 @@ function latestRow(rows: FeedbackRow[]): FeedbackRow | null {
 function verdictSentence(row: FeedbackRow | null): string {
   if (!row || row.y_proba == null) return "";
   return row.alerta_generada === 1
-    ? `Pronóstico: ALERTA (probabilidad ${decimal(row.y_proba)}).`
-    : `Pronóstico: sin alerta (probabilidad ${decimal(row.y_proba)}).`;
+    ? "Pronóstico: ALERTA."
+    : "Pronóstico: sin alerta.";
 }
 
 function captionFor(
@@ -91,7 +90,7 @@ function captionFor(
   const verdict = latestRow(rows);
   switch (phase) {
     case "idle":
-      return "Todavía no se ejecutó ningún paso. Empezá por el paso A o tocá «Ver la demostración».";
+      return "Todavía no se ejecutó ningún paso. Se comienza por el paso A o con «Ver la demostración».";
     case "seeding":
       return "Generando el historial de prueba…";
     case "normal": {
@@ -128,10 +127,10 @@ function captionFor(
       const tail = "Son datos sintéticos de demostración: no es evidencia científica.";
       const head = `Se generaron ${LAB_DRY_DAYS} días secos y calurosos, sin lluvia: la humedad del suelo cae.`;
       if (verdict && verdict.alerta_generada === 1 && verdict.y_proba != null) {
-        return `${head} El pronóstico real emitió una ALERTA (probabilidad ${decimal(verdict.y_proba)}): el modelo estima que la humedad quedará por debajo de su nivel de estrés. Una alerta señala una posible falta de agua; no la confirma. ${tail}`;
+        return `${head} El pronóstico real emitió una ALERTA: el modelo estima que la humedad quedará por debajo del umbral relativo del entrenamiento. Una alerta señala una posible falta de agua; no la confirma. ${tail}`;
       }
       if (verdict && verdict.y_proba != null) {
-        return `${head} El pronóstico real no emitió alerta (probabilidad ${decimal(verdict.y_proba)}). ${tail}`;
+        return `${head} El pronóstico real no emitió alerta. ${tail}`;
       }
       return `${head} ${tail}`;
     }
@@ -301,7 +300,6 @@ export function LabStage({
               {entries.map(({ row, letter }) => (
                 <li key={row.fecha} className={row.alerta_generada === 1 ? "ls-legend--alert" : undefined}>
                   {letter} · {row.alerta_generada === 1 ? "ALERTA" : "sin alerta"}
-                  {row.y_proba != null ? ` · prob. ${decimal(row.y_proba)}` : ""}
                 </li>
               ))}
             </ul>
@@ -326,7 +324,7 @@ export function LabStage({
           <small>Último pronóstico</small>
           <div className="ls-value">
             {verdict && verdict.y_proba != null
-              ? `${alert ? "ALERTA" : "Sin alerta"} · prob. ${decimal(verdict.y_proba)}`
+              ? (alert ? "ALERTA" : "Sin alerta")
               : "—"}
           </div>
           <div>

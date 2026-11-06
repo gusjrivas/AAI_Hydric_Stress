@@ -69,6 +69,12 @@ describe("ForecastCard compact", () => {
     ]);
   });
 
+  it("names the model count as agreement between models, as the memoria does, not as a vote", () => {
+    render(<ForecastCard sensorId="s" forecast={forecast(false, 2)} historicalNotice={NOTICE} compact />);
+    expect(screen.getByText(/acuerdo entre modelos:/i)).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent(/votaci/i);
+  });
+
   it("does not claim the vote count is the decision rule", () => {
     render(<ForecastCard sensorId="s" forecast={forecast(false, 2)} historicalNotice={NOTICE} compact />);
     expect(screen.getByText(/no es una explicación de causas/i)).toBeInTheDocument();

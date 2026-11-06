@@ -174,8 +174,8 @@ describe("App — navegación por hash (Entrega 2)", () => {
 
   it("rotulates each demonstration case with what it is, in one line", async () => {
     for (const [hash, text] of [
-      ["#defensa-pergamino", /datos reales · histórico/i],
-      ["#defensa-melchor-romero", /datos reales · reproducible/i],
+      ["#defensa-pergamino", /reanálisis · era5-land y nasa power/i],
+      ["#defensa-melchor-romero", /satelitales y climáticos · esa cci y nasa power/i],
       ["#laboratorio-sensores", /sintético · sensores de prueba/i],
     ] as const) {
       window.location.hash = hash;
@@ -223,7 +223,7 @@ describe("App — navegación por hash (Entrega 2)", () => {
   });
 
   it.each([
-    ["#defensa-pergamino", /replay histórico/i],
+    ["#defensa-pergamino", /reproducción histórica/i],
     ["#laboratorio-sensores", /laboratorio sintético/i],
     ["#productor", /^operación$/i],
   ])("labels the mode of %s so replay, lab and operation are never confused", async (hash, text) => {
@@ -241,7 +241,8 @@ describe("App — navegación por hash (Entrega 2)", () => {
     vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
     render(<App />);
     expect(screen.getByRole("heading", { name: /qué se midió y qué se puede afirmar/i, level: 1 })).toBeInTheDocument();
-    expect(screen.getByText(/auditoría científica FAIL/i)).toBeInTheDocument();
+    expect(screen.getByText(/estado de gobernanza/i)).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/auditoría científica FAIL|ejecución duplicada/i);
     const primary = screen.getByRole("navigation", { name: /secciones principales/i });
     expect(within(primary).getByRole("link", { name: "Resultados" })).toHaveAttribute("aria-current", "page");
     vi.unstubAllGlobals();

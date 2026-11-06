@@ -123,7 +123,7 @@ describe("HistoricalWalkthrough — escena de defensa", () => {
     await screen.findByRole("heading", { level: 2, name: /según los modelos/i });
     expect(screen.queryByText(/reproducción de datos pasados/i)).not.toBeInTheDocument();
     expect(screen.getByText(/datos externos · era5-land \/ nasa power \(reanálisis\)/i)).toBeInTheDocument();
-    expect(screen.queryByText(/elegí una emisión guardada y avanzá el reloj/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/seleccionar una emisión guardada y avanzar el reloj/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Datos que se ven")).not.toBeInTheDocument();
   });
 
@@ -203,7 +203,17 @@ describe("HistoricalWalkthrough — escena de defensa", () => {
 
   it("states what an alert means using the protocol threshold delivered by the backend", async () => {
     setup();
-    expect(await screen.findByText(/humedad del suelo quede por debajo de 25\.5 %.*umbral del protocolo/i)).toBeInTheDocument();
+    expect(await screen.findByText(/humedad del suelo quede por debajo de 25\.5 %.*percentil 20 del entrenamiento/i)).toBeInTheDocument();
+  });
+
+  it("explains the reading with what the memoria documents: information up to the emission date, no variable list", async () => {
+    setup();
+    await screen.findByRole("heading", { level: 2 });
+    const panel = screen.getByRole("tabpanel");
+    expect(panel).toHaveTextContent(/información disponible hasta la fecha de emisión/i);
+    expect(panel).not.toHaveTextContent(/radiación|humedad relativa/i);
+    expect(panel).toHaveTextContent(/acuerdo entre modelos/i);
+    expect(panel).not.toHaveTextContent(/votaci/i);
   });
 
   it("keeps the decision-support notice visible", async () => {

@@ -148,7 +148,7 @@ describe("SensorLabPage", () => {
     await user.click(screen.getByRole("button", { name: /generar historial de prueba/i }));
     await waitFor(() => screen.getByText(/este paso no pudo completarse/i));
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Este paso no pudo completarse. Para evitar modificar lecturas ya guardadas, iniciá una sesión nueva. Los datos de la sesión anterior se conservan.",
+      "Este paso no pudo completarse. Para evitar modificar lecturas ya guardadas, iniciar una sesión nueva. Los datos de la sesión anterior se conservan.",
     );
     for (const name of [/generar historial de prueba/i, /introducir una lectura anómala/i, /simular una interrupción/i, /simular la recuperación/i, /simular una sequía/i]) {
       expect(screen.getByRole("button", { name })).toBeDisabled();
@@ -206,7 +206,7 @@ describe("SensorLabPage", () => {
     const user = userEvent.setup();
     render(<SensorLabPage />);
     await user.click(screen.getByRole("button", { name: /generar historial de prueba/i }));
-    await waitFor(() => expect(within(screen.getByTestId("forecast-tile")).getByText(/alerta · prob\. 0,80/i)).toBeInTheDocument());
+    await waitFor(() => expect(within(screen.getByTestId("forecast-tile")).getByText(/^alerta$/i)).toBeInTheDocument());
   });
 
   it("tells the app which sensor has data once scenario A finishes, and opens it in the tools without copying the id", async () => {

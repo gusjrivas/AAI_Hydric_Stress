@@ -41,7 +41,7 @@ export function ArchitectureFlow() {
       </nav>
 
       <div className="af-details">
-        <p className="af-details-intro">Elegí un componente para ver su ficha:</p>
+        <p className="af-details-intro">Seleccionar un componente para ver su ficha:</p>
         <ul className="af-detail-buttons">
           {[...STAGES, ...ADAPTERS].map((node) => (
             <li key={node.id}>

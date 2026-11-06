@@ -377,7 +377,7 @@ export function HistoricalWalkthrough({
   return (
     <section className="historical-walkthrough" aria-labelledby="historical-walkthrough-title">
       <HeadingTop id="historical-walkthrough-title">Recorrido histórico</HeadingTop>
-      <p>Elegí una emisión guardada y avanzá el reloj para ver las observaciones posteriores y registrar tu revisión. Solo hay cinco emisiones preparadas; este recorrido no genera pronósticos nuevos.</p>
+      <p>Seleccionar una emisión guardada y avanzar el reloj permite ver las observaciones posteriores y registrar la revisión. Solo hay cinco emisiones preparadas; este recorrido no genera pronósticos nuevos.</p>
 
       <div className="historical-walkthrough-controls">
         <label>

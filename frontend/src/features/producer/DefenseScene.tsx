@@ -49,7 +49,7 @@ const TAB_LABELS = ["Cómo leer", "Datos y calidad", "Trazabilidad", "Observacio
 /**
  * Escena de lectura rápida del recorrido histórico (modo defensa). Es presentacional: el estado, las
  * consultas y la revisión viven en `HistoricalWalkthrough`. No calcula si un pronóstico acertó ni
- * muestra probabilidades: presenta el veredicto del backend, la votación de los modelos y el dato real
+ * muestra probabilidades: presenta el veredicto del backend, el acuerdo entre los modelos y el dato real
  * revelado con su procedencia.
  */
 export function DefenseScene({
@@ -111,8 +111,8 @@ export function DefenseScene({
   const tabPanels = [
     <p key="how">
       Cada celda bajo el gráfico es el pronóstico de un horizonte: «alerta» o «sin alerta», según los modelos, junto con
-      cuántos de los 3 modelos indican alerta. La alerta resume la evaluación de tres modelos sobre los últimos días de humedad,
-      radiación y humedad relativa; no es una explicación de causas ni depende solo del último dato. Al mover el reloj se revela
+      el acuerdo entre modelos (cuántos de los 3 indican alerta). La alerta resume la evaluación conjunta de tres modelos con la información disponible hasta la fecha de emisión;
+      no es una explicación de causas ni depende solo del último dato. Al mover el reloj se revela
       el dato real de cada día; nunca se muestran datos posteriores. La revisión es tu opinión sobre si el resultado coincidió con lo que observaste.
     </p>,
     <div key="quality">{provenanceNotice}{qualityPanel}</div>,
@@ -130,7 +130,7 @@ export function DefenseScene({
         {batch.kind === "ready" ? headline(emissionDate, available) : `Recorrido histórico · ${displayForecastDate(emissionDate)}`}
       </h2>
       <p className="ds-sub">
-        {thresholdText && <><strong>Alerta</strong> = los modelos evalúan que la humedad del suelo quede por debajo de {thresholdText} (umbral del protocolo). </>}
+        {thresholdText && <><strong>Alerta</strong> = los modelos evalúan que la humedad del suelo quede por debajo de {thresholdText} (umbral relativo: percentil 20 del entrenamiento). </>}
         Se reproduce una emisión guardada; este recorrido no genera pronósticos nuevos.
       </p>
 
@@ -150,7 +150,7 @@ export function DefenseScene({
       <div className="ds-scene">
         <div className="ds-chart">{chart}</div>
         {batch.kind === "ready" && (
-          <div className="ds-strip" role="group" aria-label="Pronóstico por horizonte (elegí uno para revisarlo)">
+          <div className="ds-strip" role="group" aria-label="Pronóstico por horizonte (seleccionar uno para revisarlo)">
             {slots.map((slot) => {
               if (slot.status !== "available") {
                 return (
@@ -231,7 +231,7 @@ export function DefenseScene({
           ) : (
             <>
               <h3 id={`${tabsId}-review`}>Tu revisión</h3>
-              <p className="ds-real">Elegí un horizonte (+1, +2 o +3) para ver su resultado. Cuando el reloj llegue a ese día vas a poder confirmar o rechazar.</p>
+              <p className="ds-real">Seleccionar un horizonte (+1, +2 o +3) para ver su resultado. Cuando el reloj llegue a ese día se podrá confirmar o rechazar.</p>
             </>
           )}
         </section>

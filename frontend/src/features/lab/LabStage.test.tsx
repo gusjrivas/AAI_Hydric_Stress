@@ -115,7 +115,7 @@ describe("LabStage", () => {
     expect(screen.queryByTestId("gap-band")).not.toBeInTheDocument();
     const tile = screen.getByTestId("forecast-tile");
     expect(within(tile).getByText(/sin alerta/i)).toBeInTheDocument();
-    expect(within(tile).getByText(/0,01/)).toBeInTheDocument();
+    expect(tile).not.toHaveTextContent(/0,01|prob/i);
     expect(screen.getAllByTestId("forecast-marker")).toHaveLength(2);
   });
 
@@ -123,7 +123,7 @@ describe("LabStage", () => {
     const last = dateOf(LAB_HISTORY_DAYS + LAB_GAP_DAYS + LAB_DRY_DAYS);
     const { unmount } = stage("drought", "E", { quality: quality({ total_rows: 139 }), rows: [row(dateOf(LAB_HISTORY_DAYS), 0, 0.05), row(last, 1, 0.8)] });
     expect(screen.getByTestId("dry-band")).toBeInTheDocument();
-    expect(within(screen.getByTestId("forecast-tile")).getByText(/alerta · prob/i)).toBeInTheDocument();
+    expect(within(screen.getByTestId("forecast-tile")).getByText(/^alerta$/i)).toBeInTheDocument();
     expect(screen.getByTestId("lab-caption")).toHaveTextContent(/ALERTA/);
     expect(screen.getByTestId("lab-caption")).toHaveTextContent(/no la confirma/i);
     expect(screen.getByTestId("alert-marker")).toBeInTheDocument();
@@ -147,13 +147,14 @@ describe("LabStage", () => {
     const legend = screen.getByRole("list", { name: /pronósticos emitidos/i });
     const items = within(legend).getAllByRole("listitem").map((item) => item.textContent);
     expect(items).toEqual([
-      expect.stringMatching(/^A · sin alerta · prob\. 0,02/),
-      expect.stringMatching(/^B · sin alerta · prob\. 0,05/),
-      expect.stringMatching(/^D · sin alerta · prob\. 0,01/),
-      expect.stringMatching(/^E · ALERTA · prob\. 0,80/),
+      expect.stringMatching(/^A · sin alerta$/),
+      expect.stringMatching(/^B · sin alerta$/),
+      expect.stringMatching(/^D · sin alerta$/),
+      expect.stringMatching(/^E · ALERTA$/),
     ]);
     // Los rombos del gráfico llevan solo la letra del paso; el detalle está en la leyenda.
     expect(screen.queryByText(/sin alerta · prob\./, { selector: "svg text" })).not.toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent(/prob\.|probabilidad/i);
   });
 
   it("lets the charts shrink so a wide chart scrolls inside its box instead of widening the page (CSS)", () => {

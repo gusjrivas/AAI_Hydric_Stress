@@ -37,7 +37,7 @@ describe("modeForView with simulated sensors", () => {
 describe("ModeBadge", () => {
   it.each([
     ["operacion", /operación/i],
-    ["replay", /replay histórico/i],
+    ["replay", /reproducción histórica/i],
     ["laboratorio", /laboratorio sintético/i],
     ["diseno", /documentación de diseño/i],
   ] as const)("shows visible text for %s, not only color", (mode, text) => {

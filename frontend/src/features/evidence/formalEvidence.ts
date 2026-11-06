@@ -54,8 +54,20 @@ export const FORMAL_EVIDENCE_LIMITATIONS: string[] = [
   "«Completa» es consistentemente peor que «base» en las 3 métricas (AP 5/5 semillas); no incluye HITL cuantitativo y no debe describirse como \"arquitectura completa de los cuatro componentes\".",
   "Escasez por recencia (recent_fraction_0.5) es el único efecto consistente del estudio (5/5 semillas positivas en F1/MCC/AP); no permite afirmar que \"menos datos mejora el desempeño\" en general.",
   "Ruido (noise_both_0.3, noise_test_only_0.3): patrón casi nulo/mixto, sin evidencia de degradación uniforme ni de robustez general.",
-  "Retroalimentación humana (HITL): evidencia funcional SÍ — evidencia cuantitativa formal de mejora predictiva NO (diseñada pero no ejecutada dentro de controlled_daily_v3, ver ADR-0009).",
+  "Retroalimentación humana (HITL): implementada de forma funcional y trazable. Las correcciones simuladas (Pergamino, cinco semillas) no produjeron una mejora uniforme del MCC y la interacción humana controlada no aportó evidencia de beneficio predictivo (ver ADR-0009).",
 ];
+
+/** Nombres de las configuraciones tal como figuran en la tabla 4.1 de la memoria. */
+export const FORMAL_CONFIGURATION_LABELS: Record<string, string> = {
+  base: "Base",
+  sinteticos: "Con datos sintéticos",
+  anomalias: "Con detección de anomalías",
+  completa: "Con ambos componentes",
+  "coverage_fraction_0.5": "Mitad del entrenamiento distribuida",
+  "recent_fraction_0.5": "Mitad más reciente del entrenamiento",
+  "noise_test_only_0.3": "Ruido solo en evaluación",
+  "noise_both_0.3": "Ruido en entrenamiento y evaluación",
+};
 
 export const OPERATIONAL_PREDICTOR_NOTE =
   "El predictor operativo vigente (esta demo) usa un contrato Random Forest explícito, " +

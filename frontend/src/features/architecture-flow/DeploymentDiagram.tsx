@@ -8,7 +8,7 @@ const STEP_MS = 4200;
 const END_HOLD_MS = 6000;
 const LAST_STEP = DEPLOYMENT_TOUR.length - 1;
 const IDLE_CAPTION =
-  "Mostrá, paso a paso, cómo viaja un dato desde el sensor hasta el registro de una recalibración.";
+  "Muestra, paso a paso, cómo viaja un dato desde el sensor hasta el registro de una recalibración.";
 
 function prefersReducedMotion(): boolean {
   return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -199,7 +199,7 @@ export function DeploymentDiagram() {
           </dl>
         </section>
       ) : (
-        <p className="dd-hint">Elegí un componente del diagrama para ver su ficha.</p>
+        <p className="dd-hint">Seleccionar un componente del diagrama para ver su ficha.</p>
       )}
 
       <div className="dd-table-scroll" tabIndex={0} role="region" aria-label="Tabla de componentes, desplazable en pantallas angostas">
