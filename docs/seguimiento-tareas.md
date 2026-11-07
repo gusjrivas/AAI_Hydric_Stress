@@ -411,9 +411,11 @@ HU8 no tiene capacidad de código (igual que HU1) — se dividió en tres sub-pr
 | Redactar la sección de resultados experimentales | ✅ | Sección 1. |
 | Redactar la discusión y las conclusiones | ✅ | Sección 4, con 5 recomendaciones concretas para trabajo futuro ordenadas por impacto esperado. |
 | Consolidar tablas, figuras, referencias y evidencias | ✅ | Sección 5: tabla de fuentes de evidencia primaria con referencia a cada spec/documento verificado. |
-| Redactar la memoria técnica final (documento de tesis) | ⬜ | No iniciada. `docs/research/hu8-analisis-resultados.md` y `hu8-resultados-discusion-conclusiones.md` son insumos verificados para esta redacción, no la memoria en sí — no existe todavía un documento consolidado de tesis en el repo. |
+| Redactar la memoria técnica final (documento de tesis) | ✅ | Actualización 2026-11-07: versión final V6 redactada y versionada en `docs/memoria/TI_Rivas_Gustavo_V6.pdf`; pendiente la aprobación de la cátedra. El estado anterior (no iniciada) queda en el historial de git. `docs/research/hu8-analisis-resultados.md` y `hu8-resultados-discusion-conclusiones.md` fueron insumo verificado de la redacción. |
 
 **Balance HU8:** de 16 tareas, 15 completas, 0 parciales, 1 no iniciada (la memoria técnica final). HU8 parcial.
+
+**Actualización (2026-11-07):** la memoria técnica final (V6) está redactada y las 16 tareas de HU8 figuran completas. La aprobación de la cátedra sigue pendiente y no se declara cerrada la HU8 hasta recibirla.
 
 **Revalidación posterior al cierre de HU8 (2026-09-06):** auditoría científica integral realizada contra la evidencia formal `controlled_daily_v3` (`docs/research/reference-v3-formal-results.json`/`reference-v3-formal-table.md`, 8 configuraciones × 5 semillas). El issue #17 y sus 15 issues hijos (#97-#111) continúan CLOSED / completed; CA1-CA4 permanecen CUMPLE CON LIMITACIÓN (evidencia formal válida, pero los documentos de análisis no la incorporaban todavía — sincronizado en esta iteración). Conclusión científica: la evidencia es parcial y mixta, no permite sostener una mejora general de la arquitectura; `recent_fraction_0.5` es el único efecto consistente (sin corresponder a un componente de la hipótesis); anomalías y sintéticos muestran evidencia mixta, no la narrativa histórica de "modesto positivo"/"empeora consistentemente"; la retroalimentación humana tiene evidencia funcional pero no cuantitativa (diseñada, no ejecutada). No se requiere reejecutar HU7 ni HU8, ni reabrir ninguno de los dos. Ver `docs/research/hu8-auditoria-revalidacion.md`.
 
