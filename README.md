@@ -46,7 +46,7 @@ Ver [`docs/seguimiento-tareas.md`](docs/seguimiento-tareas.md) para la auditorí
 | HU | Capacidad | Estado |
 |----|-----------|--------|
 | HU1 | Estado del arte y comprensión del dominio | ✅ Cerrada (estado del arte definitivo y auditoría de cierre completos) |
-| HU2 | `data-ingestion` — preparación del conjunto experimental de datos | ✅ Cerrada (conjunto experimental real y reproducible NASA POWER + ESA CCI Soil Moisture, Melchor Romero 2024) |
+| HU2 | `data-ingestion` — preparación del conjunto experimental de datos | ✅ Cerrada (conjunto experimental reproducible a partir de NASA POWER (reanálisis) y ESA CCI Soil Moisture (satelital), Melchor Romero 2024) |
 | HU3 | `data-quality` — calidad, anomalías y datos sintéticos | ✅ Cerrada (revalidada sobre el pipeline causal vigente) |
 | HU4 | `predictive-modeling` — modelado predictivo y alertas tempranas | ✅ Cerrada (revalidada sobre el esquema temporal y de selección vigente) |
 | HU5 | `human-feedback` — retroalimentación humana y recalibración | ✅ Cerrada (revalidada con recalibración temporalmente controlada) |
@@ -65,10 +65,10 @@ Además de las HU del backlog de tesis, el repo incluye una interfaz de usuario 
 - `src/architecture_integration/`: orquestador de punta a punta que encadena las capacidades anteriores.
 - `src/historical_replay/`: reproducción histórica causal (emisiones preparadas, observaciones futuras ocultas hasta la fecha simulada).
 - `src/experiment_runner/`: ejecución del plan experimental (`controlled_daily_v3` y `controlled_daily_v4`, escenarios de escasez/ruido, aumentación sintética, evaluación retrospectiva del ensamble, registro de corridas en MLflow).
-- `scripts/`: puntos de entrada de línea de comandos para correr cada pipeline sobre un dataset real (`run_data_quality_pipeline.py`, `run_end_to_end_pipeline.py`, conectores de ingesta).
+- `scripts/`: puntos de entrada de línea de comandos para correr cada pipeline sobre un conjunto de datos de reanálisis o satelital (`run_data_quality_pipeline.py`, `run_end_to_end_pipeline.py`, conectores de ingesta).
 - `backend/`: API FastAPI de la interfaz de usuario (alerting-ui) — fachada delgada que orquesta el pipeline y expone `POST /sensors/{sensor_id}/readings`, `POST /forecast/{sensor_id}/run`, `GET /feedback/{sensor_id}` + confirmar/rechazar por fecha, `POST /recalibrate/{sensor_id}`, y tres endpoints de observabilidad de solo lectura para la demo académica (`GET /quality/{sensor_id}`, `GET /models/{sensor_id}/active`, `GET /lineage/{sensor_id}`).
 - `frontend/`: aplicación React + TypeScript (Vite) que consume la API del productor (`/api/v2`), el pipeline plano y `/replay`. Menú de presentación de tres entradas (**Arquitectura**, **Caso de demostración** y **Resultados**); bajo «Más» quedan **Mi cultivo** (pantalla pensada para un productor, prototipo local) y **Herramientas técnicas** (recorrido datos → calidad → predicción → feedback → recalibración → linaje). El Laboratorio (datos sintéticos, sin validez de campo) se elige dentro de «Caso de demostración».
-- `openspec/specs/`: especificación viva de cada capacidad (requisitos, escenarios, verificación con datos reales, limitaciones conocidas). `openspec/changes/`: historial de decisiones de diseño por *change*.
+- `openspec/specs/`: especificación viva de cada capacidad (requisitos, escenarios, verificación con datos externos de reanálisis y satelitales, limitaciones conocidas). `openspec/changes/`: historial de decisiones de diseño por *change*.
 - `docs/adr/`: decisiones de arquitectura (ADR-0001 a ADR-0013): stack del PoC, stack web, MLflow/MinIO, dockerización, recalibración desde la UI, ingesta de sensores, contratos temporales, selección de modelos y protocolo `controlled_daily_v4`, controlador de la demo y backend del productor.
 - `docs/memoria/`: memoria técnica (V6). `docs/research/`: protocolos y resultados experimentales. `docs/design/`: guías de la interfaz y de la demo.
 
@@ -122,4 +122,4 @@ La campaña externa `controlled_daily_v4_external_pergamino` ejecutó las etapas
 
 Las etapas A, B y C, junto con H, no deben repetirse dentro de la campaña cerrada. Una confirmación futura requeriría una campaña nueva, independiente y basada en datos no utilizados. Ver [estado canónico del cierre científico](openspec/scientific-closure/current-execution-checkpoint.md).
 
-La interfaz de reproducción histórica conserva la causalidad temporal: presenta la fecha de origen, mantiene ocultas las observaciones futuras hasta la fecha simulada correspondiente y solo habilita la retroalimentación cuando existe una observación real. Esta interfaz permite inspección y trazabilidad. No constituye validación agronómica, eficacia de campo ni operación automática del riego.
+La interfaz de reproducción histórica conserva la causalidad temporal: presenta la fecha de origen, mantiene ocultas las observaciones futuras hasta la fecha simulada correspondiente y solo habilita la retroalimentación cuando existe una observación efectivamente medida (no imputada) en el producto de datos. Esta interfaz permite inspección y trazabilidad. No constituye validación agronómica, eficacia de campo ni operación automática del riego.
