@@ -92,7 +92,7 @@ def live_backend(tmp_path):
         try:
             requests.get(f"{base_url}/openapi.json", timeout=0.5)
             break
-        except requests.exceptions.ConnectionError:
+        except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
             time.sleep(0.05)
     else:
         thread.stop()
