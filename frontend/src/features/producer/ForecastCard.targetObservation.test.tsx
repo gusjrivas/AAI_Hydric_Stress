@@ -75,7 +75,7 @@ describe("ForecastCard: motivos de bloqueo por la observación del día objetivo
 
   it("keeps the existing temporal message for a target not yet revealed", () => {
     render(<ForecastCard sensorId="melchor-romero-demo" forecast={blocked("review_not_open")} />);
-    expect(screen.getByText(/vas a poder revisar este resultado/i)).toBeInTheDocument();
+    expect(screen.getByText(/este resultado se podrá revisar/i)).toBeInTheDocument();
   });
 
   it("an open form whose forecast becomes blocked disables saving, keeps the text and lets cancel, sending nothing", async () => {

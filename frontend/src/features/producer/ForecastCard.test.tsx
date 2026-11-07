@@ -158,7 +158,7 @@ describe("ForecastCard", () => {
     };
     vi.spyOn(forecastsApi, "submitReview").mockResolvedValue({ ...reviewed, status: "rejected", revision: 2 });
     render(<ForecastCard sensorId="sensor-a" forecast={{ ...baseForecast, review: reviewed }} />);
-    expect(screen.getByText(/podés corregir tu opinión cuando quieras: no vence/i)).toBeInTheDocument();
+    expect(screen.getByText(/la opinión puede corregirse en cualquier momento: no vence/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /rechazar resultado/i }));
     await userEvent.click(screen.getByRole("button", { name: /guardar opinión/i }));
     await waitFor(() => expect(screen.getByText(/rechazado por vos/i)).toBeInTheDocument());
@@ -175,7 +175,7 @@ describe("ForecastCard", () => {
       />,
     );
     expect(screen.queryByRole("button", { name: /confirmar resultado/i })).not.toBeInTheDocument();
-    expect(screen.getByText(/vas a poder revisar este resultado a partir del/i)).toBeInTheDocument();
+    expect(screen.getByText(/este resultado se podrá revisar a partir del/i)).toBeInTheDocument();
   });
 
   it("retries a recoverable error reusing the same request_id, without duplicating the submission", async () => {

@@ -14,7 +14,7 @@ it("keeps the governance status and the exploratory limits visible at the top, n
   stubProjection();
   render(<EvidenceResultsPage />);
   expect(screen.getByText(/estado de gobernanza: evaluación exploratoria no independiente/i)).toBeVisible();
-  expect(screen.getByText(/auditoría científica FAIL/i)).toBeVisible();
+  expect(document.body.textContent).not.toMatch(/auditoría científica FAIL|ejecución duplicada/i);
   expect(screen.getByText(/ningún resultado de esta sección acredita validación agronómica/i)).toBeVisible();
   await screen.findByText(/soporte común 364\/364/i);
 });
@@ -54,7 +54,7 @@ it("does not show an aggregate panel for Melchor Romero and explains why", async
   stubProjection();
   render(<EvidenceResultsPage />);
   await userEvent.click(screen.getByRole("tab", { name: /melchor romero/i }));
-  expect(screen.getByRole("heading", { name: /melchor romero no tiene evaluación agregada propia/i })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: /las emisiones de demostración de melchor romero no tienen evaluación propia/i })).toBeInTheDocument();
   expect(screen.getByText(/equivaldría a fabricar paridad/i)).toBeInTheDocument();
   expect(screen.queryByRole("group", { name: /MCC por método/i })).not.toBeInTheDocument();
 });
@@ -88,4 +88,34 @@ it("does not skip heading levels under the page title", async () => {
   expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: /evidencia del pronóstico · 2023/i, level: 2 })).toBeInTheDocument();
   expect(screen.queryAllByRole("heading", { level: 3 }).length).toBeGreaterThan(0);
+});
+
+it("uses the method names of the memoria in the comparison", async () => {
+  stubProjection();
+  render(<EvidenceResultsPage />);
+  await screen.findByText(/soporte común 364\/364/i);
+  const group = screen.getByRole("group", { name: /MCC por método/i });
+  expect(within(group).getByText("Ensamble por promedio")).toBeInTheDocument();
+  expect(within(group).getByText("Mayoría de votos")).toBeInTheDocument();
+  expect(screen.queryByText(/promedio vigente|mayoría exploratoria/i)).not.toBeInTheDocument();
+});
+
+it("presents the v3 experiment as the Melchor Romero 2024 evaluation with the configuration names of the memoria", async () => {
+  stubProjection();
+  render(<EvidenceResultsPage />);
+  await userEvent.click(screen.getByRole("tab", { name: /experimento controlado v3/i }));
+  expect(screen.getByRole("heading", { level: 2, name: /melchor romero 2024/i })).toBeInTheDocument();
+  expect(screen.getByText(/67 casos comunes/i)).toBeInTheDocument();
+  const bars = screen.getByRole("group", { name: /F1 medio por configuración/i });
+  expect(within(bars).getByText("Mitad más reciente del entrenamiento")).toBeInTheDocument();
+  expect(within(bars).getByText("Con datos sintéticos")).toBeInTheDocument();
+  expect(within(bars).queryByText(/recent_fraction|sinteticos|noise_both/)).not.toBeInTheDocument();
+});
+
+it("describes the human-feedback evidence as the memoria does: simulated corrections without uniform improvement", async () => {
+  stubProjection();
+  render(<EvidenceResultsPage />);
+  await userEvent.click(screen.getByRole("tab", { name: /experimento controlado v3/i }));
+  expect(screen.getByText(/correcciones simuladas.*no produjeron una mejora uniforme/i)).toBeInTheDocument();
+  expect(screen.queryByText(/diseñada pero no ejecutada/i)).not.toBeInTheDocument();
 });

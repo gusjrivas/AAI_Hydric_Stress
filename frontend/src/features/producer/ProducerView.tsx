@@ -27,7 +27,7 @@ export function ProducerView() {
   return (
     <div className="producer-view">
       <header className="producer-page-head">
-        <p className="producer-eyebrow">Mi cultivo · seguimiento en vivo</p>
+        <p className="producer-eyebrow">Mi cultivo · prototipo local</p>
         <h1 id="productor-heading" tabIndex={-1}>Mi cultivo</h1>
         <p className="producer-lead">¿Habrá falta de agua en los próximos días? Elegí tu lote y mirá qué se espera.</p>
       </header>

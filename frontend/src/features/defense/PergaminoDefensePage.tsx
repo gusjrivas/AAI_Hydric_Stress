@@ -11,7 +11,7 @@ export function PergaminoDefensePage() {
     <section id="defense-evidence" className="site-evidence-link" aria-label="Evidencia de este método">
       <p>
         <strong>Evidencia de este método.</strong> Hay una evaluación agregada de Pergamino 2023,
-        exploratoria y no independiente (auditoría de gobernanza: FAIL por ejecución duplicada).{" "}
+        exploratoria y no independiente.{" "}
         <a href="#evidencia-resultados">Ver evidencia y sus límites</a>.
       </p>
     </section>

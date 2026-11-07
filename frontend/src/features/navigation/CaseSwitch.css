@@ -1,0 +1,11 @@
+.case-switch-wrap { margin-bottom: var(--space-4); }
+.case-switch { display: inline-flex; padding: 4px; gap: 4px; background: #fff; border: 1px solid var(--color-border); border-radius: 999px; max-width: 100%; }
+.case-switch a { min-height: 44px; display: inline-flex; align-items: center; padding: 0 var(--space-4); border-radius: 999px; color: var(--color-ink); font-weight: 600; text-decoration: none; }
+.case-switch a:hover { background: var(--color-surface-2); }
+.case-switch a[aria-current="page"] { background: var(--color-navy); color: #fff; }
+.case-blurb { margin: var(--space-2) 0 0; color: var(--color-muted); }
+
+@media (max-width: 600px) {
+  .case-switch { display: flex; flex-direction: column; border-radius: 16px; width: 100%; }
+  .case-switch a { justify-content: center; }
+}
