@@ -7,4 +7,3 @@
 # checkout; autocrlf no debe alterarlos (ver F-06/F-07, Paso 2 auditoría).
 /replay_packages/**/*.json -text
 /replay_packages/**/*.parquet -text
-data/external/raw/*.csv -text
