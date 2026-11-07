@@ -106,7 +106,7 @@ describe("ForecastCard compact", () => {
     render(<ForecastCard sensorId="s" forecast={blocked} historicalNotice={NOTICE} compact />);
     expect(screen.getByText(NOTICE)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /confirmar resultado/i })).not.toBeInTheDocument();
-    expect(within(document.body).getByText(/todavía no se puede revisar|vas a poder revisar/i)).toBeInTheDocument();
+    expect(within(document.body).getByText(/todavía no se puede revisar|se podrá revisar/i)).toBeInTheDocument();
   });
 
   it("leaves the default card unchanged: probability message and scores remain outside compact mode", async () => {

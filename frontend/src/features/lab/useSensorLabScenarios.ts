@@ -19,7 +19,7 @@ export const LAB_GAP_DAYS = 4;
 export const LAB_DRY_DAYS = 14;
 
 export const LAB_ERROR_NO_LAST_READING =
-  "No se pudo determinar la última lectura guardada. La recuperación se detuvo. Iniciá una sesión nueva.";
+  "No se pudo determinar la última lectura guardada. La recuperación se detuvo. Iniciar una sesión nueva.";
 
 const LAB_ERROR_NO_QUALITY = "El backend no devolvió el informe de calidad de las lecturas guardadas.";
 

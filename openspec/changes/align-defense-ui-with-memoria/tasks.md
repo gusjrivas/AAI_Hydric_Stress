@@ -6,5 +6,5 @@
 - [x] 1.4 RED/GREEN diagrama de despliegue sin «ensamble por acuerdo» ni «riesgo» (`deploymentWording.test.ts`).
 - [x] 1.5 RED/GREEN laboratorio sin probabilidades (`LabStage.test.tsx`, `SensorLabPage.test.tsx`).
 - [x] 1.6 RED/GREEN resultados con nombres de la memoria y descripción de la retroalimentación humana (`EvidenceResultsPage.test.tsx`).
-- [ ] 1.7 Revisión de la autoría de los puntos fuera de alcance.
-- [ ] 1.8 Revisión independiente.
+- [x] 1.7 Revisión de la autoría de los puntos fuera de alcance (2026-11-07: retiro del estado FAIL y paso a registro impersonal incorporados a la proposal; quedan fuera `demo-control`, la separación del diagrama y el voseo fuera del video).
+- [x] 1.8 Revisión independiente sobre `ae67a00`: PASS condicionado; la verificación contra la memoria V6 se completó después y las observaciones de voseo (`ForecastCard.tsx:304` y `:314`, `DefenseScene.tsx:219`, `useSensorLabScenarios.ts:22`) se corrigieron después, sin revisión independiente de ese ajuste.

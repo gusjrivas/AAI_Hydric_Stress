@@ -301,7 +301,7 @@ export function ForecastCard({
         <p className="forecast-card-blocked" tabIndex={-1} ref={blockedRef}>
           <LockIcon />
           {review.blocked_reason === "review_not_open"
-            ? `Vas a poder revisar este resultado a partir del ${displayIssuedAt(review.review_open_at)}.`
+            ? `Este resultado se podrá revisar a partir del ${displayIssuedAt(review.review_open_at)}.`
             : "Todavía no se puede revisar este resultado."}
         </p>
       )}
@@ -311,7 +311,7 @@ export function ForecastCard({
           <p ref={promptRef} tabIndex={-1}>{compact ? `¿Coincidió «${forecast.alert ? "Alerta" : "Sin alerta"}» con lo que observaste?` : "¿Coincidió con lo que observaste?"}</p>
           <p className="forecast-card-hint" id={choiceHelpId} hidden={compact}>
             Seleccionar una opción para continuar: Confirmar resultado indica que coincidió con lo observado; Rechazar
-            resultado indica que no coincidió. Antes de guardar vas a poder revisar tu elección y agregar un comentario.
+            resultado indica que no coincidió. Antes de guardar se puede revisar la elección y agregar un comentario.
           </p>
           <div className="forecast-card-buttons">
             <button type="button" className="forecast-card-choice" aria-describedby={choiceHelpId} onClick={() => openForm("confirm")}>

@@ -216,7 +216,7 @@ export function DefenseScene({
               <h3 id={`${tabsId}-review`}>Tu revisión · +{activeSlot.horizon_days} día{activeSlot.horizon_days === 1 ? "" : "s"} ({displayForecastDate(activeSlot.target_date)})</h3>
               {activeSlot.target_date <= effectiveReveal
                 ? <p className="ds-real">Dato real revelado: {describeRealValue(activeSlot.target_date)}</p>
-                : <p className="ds-real">Todavía no se puede revisar este resultado: avanzá el reloj hasta el {displayForecastDate(activeSlot.target_date)}.</p>}
+                : <p className="ds-real">Todavía no se puede revisar este resultado: avanzar el reloj hasta el {displayForecastDate(activeSlot.target_date)}.</p>}
               <ForecastCard
                 key={activeSlot.forecast_id}
                 sensorId={sensorId}

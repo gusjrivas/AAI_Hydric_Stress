@@ -360,7 +360,7 @@ describe("HistoricalWalkthrough", () => {
     // Retroceder el reloj del recorrido a la propia fecha de emisión,
     // antes de que la respuesta del envío llegue.
     fireEvent.change(revealInput, { target: { value: "2023-06-13" } });
-    await waitFor(() => expect(screen.getByText(/vas a poder revisar este resultado a partir del/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/este resultado se podrá revisar a partir del/i)).toBeInTheDocument());
 
     await act(async () => {
       resolveSubmit({
@@ -372,7 +372,7 @@ describe("HistoricalWalkthrough", () => {
     // reviewable=false), nunca el reviewable=true de la respuesta tardía
     // originada bajo el reloj anterior (20/06).
     expect(screen.queryByText(/confirmado por vos/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/vas a poder revisar este resultado a partir del/i)).toBeInTheDocument();
+    expect(screen.getByText(/este resultado se podrá revisar a partir del/i)).toBeInTheDocument();
   });
 
   it("discards a stale response when only the reveal clock changes A -> B -> A on the same emission", async () => {

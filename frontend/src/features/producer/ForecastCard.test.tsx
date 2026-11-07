@@ -175,7 +175,7 @@ describe("ForecastCard", () => {
       />,
     );
     expect(screen.queryByRole("button", { name: /confirmar resultado/i })).not.toBeInTheDocument();
-    expect(screen.getByText(/vas a poder revisar este resultado a partir del/i)).toBeInTheDocument();
+    expect(screen.getByText(/este resultado se podrá revisar a partir del/i)).toBeInTheDocument();
   });
 
   it("retries a recoverable error reusing the same request_id, without duplicating the submission", async () => {
