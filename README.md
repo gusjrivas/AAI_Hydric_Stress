@@ -60,15 +60,17 @@ Además de las HU del backlog de tesis, el repo incluye una interfaz de usuario 
 
 - `src/data_ingestion/`: esquema del contrato de datos, conectores (NASA POWER, ESA CCI Soil Moisture) y consolidación de fuentes.
 - `src/data_quality/`: limpieza, detección de anomalías (Isolation Forest), generación de datos sintéticos y pipeline integrado.
-- `src/predictive_modeling/`: etiquetado, ingeniería de variables, modelos (persistencia, regresión logística, Random Forest), evaluación y alertas.
+- `src/predictive_modeling/`: etiquetado, ingeniería de variables, modelos (persistencia, regresión logística, Random Forest e Hist Gradient Boosting), ensamble por promedio, calibración, evaluación, contratos de inferencia operativa y alertas.
 - `src/human_feedback/`: esquema y registro de retroalimentación humana sobre alertas, e integración con predicciones para recalibración supervisada.
-- `src/architecture_integration/`: orquestador de punta a punta que encadena las cuatro capacidades anteriores.
-- `src/experiment_runner/`: ejecución del plan experimental (escenarios de escasez/ruido, aumentación sintética, registro de corridas en MLflow).
+- `src/architecture_integration/`: orquestador de punta a punta que encadena las capacidades anteriores.
+- `src/historical_replay/`: reproducción histórica causal (emisiones preparadas, observaciones futuras ocultas hasta la fecha simulada).
+- `src/experiment_runner/`: ejecución del plan experimental (`controlled_daily_v3` y `controlled_daily_v4`, escenarios de escasez/ruido, aumentación sintética, evaluación retrospectiva del ensamble, registro de corridas en MLflow).
 - `scripts/`: puntos de entrada de línea de comandos para correr cada pipeline sobre un dataset real (`run_data_quality_pipeline.py`, `run_end_to_end_pipeline.py`, conectores de ingesta).
 - `backend/`: API FastAPI de la interfaz de usuario (alerting-ui) — fachada delgada que orquesta el pipeline y expone `POST /sensors/{sensor_id}/readings`, `POST /forecast/{sensor_id}/run`, `GET /feedback/{sensor_id}` + confirmar/rechazar por fecha, `POST /recalibrate/{sensor_id}`, y tres endpoints de observabilidad de solo lectura para la demo académica (`GET /quality/{sensor_id}`, `GET /models/{sensor_id}/active`, `GET /lineage/{sensor_id}`).
 - `frontend/`: aplicación React + TypeScript (Vite) que consume la API del productor (`/api/v2`), el pipeline plano y `/replay`. Menú de presentación de tres entradas (**Arquitectura**, **Caso de demostración** y **Resultados**); bajo «Más» quedan **Mi cultivo** (pantalla pensada para un productor, prototipo local) y **Herramientas técnicas** (recorrido datos → calidad → predicción → feedback → recalibración → linaje). El Laboratorio (datos sintéticos, sin validez de campo) se elige dentro de «Caso de demostración».
 - `openspec/specs/`: especificación viva de cada capacidad (requisitos, escenarios, verificación con datos reales, limitaciones conocidas). `openspec/changes/`: historial de decisiones de diseño por *change*.
-- `docs/adr/`: decisiones de arquitectura, desde el stack técnico del PoC (ADR-0001/0002) hasta el stack web, MLflow/MinIO y la dockerización de backend/frontend (ADR-0003 a ADR-0006).
+- `docs/adr/`: decisiones de arquitectura (ADR-0001 a ADR-0013): stack del PoC, stack web, MLflow/MinIO, dockerización, recalibración desde la UI, ingesta de sensores, contratos temporales, selección de modelos y protocolo `controlled_daily_v4`, controlador de la demo y backend del productor.
+- `docs/memoria/`: memoria técnica (V6). `docs/research/`: protocolos y resultados experimentales. `docs/design/`: guías de la interfaz y de la demo.
 
 ## Interfaz de usuario (alerting-ui)
 
