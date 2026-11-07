@@ -390,9 +390,11 @@ HU7 se dividió en tres *changes* de OpenSpec independientes (diseño experiment
 
 **Balance HU7:** de 12 tareas, 12 completas, 0 parciales, 0 no iniciadas. HU7 completa. Ninguna de las dos correcciones de fuga temporal reabre una tarea (todas seguían siendo ✅ como procedimiento), pero cambian sustancialmente los resultados numéricos reportados — ver las dos filas anteriores y HU8 secciones 11-12.
 
+**Actualización de gobernanza (2026-11-07), según el estado canónico de `openspec/scientific-closure/current-execution-checkpoint.md` (2026-09-26):** la campaña `controlled_daily_v4_external_pergamino` ejecutó las etapas A, B y C, con el holdout 2024-2025 abierto una vez, y el complemento H. La auditoría final RB-05 concluyó en `FAIL` por una no conformidad de gobernanza; `sc-06-scientific-synthesis`, `SC-GOV-025` y el gate `GF` permanecen en `FAIL`. R, N y S son `NOT_APPLICABLE`. B y C se interpretan como evidencia retrospectiva exploratoria y no como cierre científico confirmatorio. Esto no reabre tareas de HU7 ni modifica la evidencia de `controlled_daily_v3`; las entradas v4 anteriores a esa fecha (por ejemplo, 2026-09-20: «A, B y C no se ejecutaron») fueron ciertas en su momento y se conservan como registro histórico.
+
 ## HU8 — Análisis de resultados y contrastación de la hipótesis
 
-HU8 no tiene capacidad de código (igual que HU1) — se dividió en tres sub-proyectos documentales: análisis de resultados, redacción de resultados/discusión/conclusiones, y la memoria técnica final. Los primeros dos ya están implementados; la memoria técnica final todavía no se redactó.
+HU8 no tiene capacidad de código (igual que HU1) — se dividió en tres sub-proyectos documentales: análisis de resultados, redacción de resultados/discusión/conclusiones, y la memoria técnica final. Los primeros dos ya están implementados; la memoria técnica final (V6) fue redactada el 2026-11-07 y espera la aprobación de la cátedra.
 
 | Tarea | Estado | Evidencia / motivo |
 |---|---|---|
@@ -411,9 +413,11 @@ HU8 no tiene capacidad de código (igual que HU1) — se dividió en tres sub-pr
 | Redactar la sección de resultados experimentales | ✅ | Sección 1. |
 | Redactar la discusión y las conclusiones | ✅ | Sección 4, con 5 recomendaciones concretas para trabajo futuro ordenadas por impacto esperado. |
 | Consolidar tablas, figuras, referencias y evidencias | ✅ | Sección 5: tabla de fuentes de evidencia primaria con referencia a cada spec/documento verificado. |
-| Redactar la memoria técnica final (documento de tesis) | ⬜ | No iniciada. `docs/research/hu8-analisis-resultados.md` y `hu8-resultados-discusion-conclusiones.md` son insumos verificados para esta redacción, no la memoria en sí — no existe todavía un documento consolidado de tesis en el repo. |
+| Redactar la memoria técnica final (documento de tesis) | ✅ | Actualización 2026-11-07: versión final V6 redactada y versionada en `docs/memoria/TI_Rivas_Gustavo_V6.pdf`; pendiente la aprobación de la cátedra. El estado anterior (no iniciada) queda en el historial de git. `docs/research/hu8-analisis-resultados.md` y `hu8-resultados-discusion-conclusiones.md` fueron insumo verificado de la redacción. |
 
-**Balance HU8:** de 16 tareas, 15 completas, 0 parciales, 1 no iniciada (la memoria técnica final). HU8 parcial.
+**Balance HU8:** de 16 tareas, 16 completas, 0 parciales, 0 no iniciadas (la memoria técnica final V6 está redactada; ver la actualización siguiente). Hasta el 2026-11-07 el balance era 15 completas y 1 no iniciada.
+
+**Actualización (2026-11-07):** la memoria técnica final (V6) está redactada y las 16 tareas de HU8 figuran completas. La aprobación de la cátedra sigue pendiente y no se declara cerrada la HU8 hasta recibirla.
 
 **Revalidación posterior al cierre de HU8 (2026-09-06):** auditoría científica integral realizada contra la evidencia formal `controlled_daily_v3` (`docs/research/reference-v3-formal-results.json`/`reference-v3-formal-table.md`, 8 configuraciones × 5 semillas). El issue #17 y sus 15 issues hijos (#97-#111) continúan CLOSED / completed; CA1-CA4 permanecen CUMPLE CON LIMITACIÓN (evidencia formal válida, pero los documentos de análisis no la incorporaban todavía — sincronizado en esta iteración). Conclusión científica: la evidencia es parcial y mixta, no permite sostener una mejora general de la arquitectura; `recent_fraction_0.5` es el único efecto consistente (sin corresponder a un componente de la hipótesis); anomalías y sintéticos muestran evidencia mixta, no la narrativa histórica de "modesto positivo"/"empeora consistentemente"; la retroalimentación humana tiene evidencia funcional pero no cuantitativa (diseñada, no ejecutada). No se requiere reejecutar HU7 ni HU8, ni reabrir ninguno de los dos. Ver `docs/research/hu8-auditoria-revalidacion.md`.
 

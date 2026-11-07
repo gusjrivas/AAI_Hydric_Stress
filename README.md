@@ -4,18 +4,40 @@ Prototipo experimental de la arquitectura de inteligencia artificial para detecc
 
 Ver [`docs/adr/`](docs/adr/) para las decisiones de arquitectura y stack técnico, y [`openspec/project.md`](openspec/project.md) para el contexto, alcance y convenciones del proyecto.
 
-## Probar Mi cultivo con Docker
+## Cómo levantar el proyecto
 
-El repositorio incluye un entorno local aislado con datos y modelos
-sintéticos, históricos y pronósticos revisables:
+Requisitos: Docker con contenedores Linux (camino recomendado); para desarrollo sin Docker, Python 3.10 o superior y Node.js con npm.
 
-```powershell
-docker compose -f compose.producer-preview.yml up -d --build
+**1. Stack completo (Postgres, MinIO, MLflow, backend y frontend):**
+
+```bash
+cp .env.example .env   # valores de desarrollo local, no credenciales de producción
+docker compose up -d --build
 ```
 
-Abrir http://localhost:5180. No requiere instalar Python/Node ni modifica los
-servicios o datos del stack habitual. [Guía de prueba y reinicio](docker/producer-preview/README.md).
-No representa validación predictiva real ni cierre científico.
+| Servicio | URL |
+|----------|-----|
+| Frontend (interfaz de presentación) | http://localhost:5173 |
+| Backend (FastAPI) | http://localhost:8000 |
+| MLflow Tracking UI | http://localhost:5000 |
+| Consola de MinIO | http://localhost:9001 |
+
+La interfaz abre en **Arquitectura**. El menú principal sigue el orden de la defensa: **Arquitectura** (cómo está construido), **Caso de demostración** (Pergamino, Melchor Romero y Laboratorio de sensores) y **Resultados** (qué se obtuvo). **Mi cultivo** y **Herramientas técnicas** están bajo «Más».
+
+**2. Solo la interfaz de Mi cultivo, con datos y modelos sintéticos:** `docker compose -f compose.producer-preview.yml up -d --build` y abrir http://localhost:5180 (ver [`docker/producer-preview/README.md`](docker/producer-preview/README.md)). No requiere instalar Python/Node, no modifica los servicios del stack habitual y no representa validación predictiva real ni cierre científico.
+
+**3. Demo de defensa (Pergamino, Melchor Romero y Laboratorio):** requiere artefactos preparados fuera de `data/`. Melchor Romero es reproducible desde este repositorio; los artefactos de Pergamino no se distribuyen en un clon limpio. Pasos y alcance de cada modo en [`docs/design/defense-demo-startup-guide.md`](docs/design/defense-demo-startup-guide.md); arranque con `scripts/start_defense_demo.ps1`.
+
+**4. Controlador de la demo acelerada (opcional):** `docker compose --profile demo up -d` habilita `demo-control` en `127.0.0.1:8010`. No forma parte del arranque normal (ADR-0012).
+
+Para correr el frontend fuera de Docker: `cd frontend && npm ci && npm run dev`. Si el backend está en otro host o puerto, configurar `VITE_API_BASE_URL` (ver `frontend/.env.example`; por defecto `http://localhost:8000`).
+
+## Datos y memoria técnica
+
+- `data/`: conjuntos procesados de la memoria (NASA POWER La Plata 2024-2025 y Melchor Romero 2024, ESA CCI Soil Moisture y consolidado de Melchor Romero), cada uno con su archivo `_coverage.csv`, y `data/dictionaries/` con los diccionarios de datos.
+- `data/external/raw/`: respaldo de los CSV crudos de Pergamino y Balcarce (ERA5-Land horario y NASA POWER diario, 2015-2025), con tamaños y hashes SHA-256 en su `README.md`. El protocolo `controlled_daily_v4` los referencia fuera del repositorio; esta carpeta es una copia byte a byte.
+- `replay_packages/`: paquetes científicos autorizados de la reproducción histórica.
+- Memoria técnica: [`docs/memoria/TI_Rivas_Gustavo_V6.pdf`](docs/memoria/TI_Rivas_Gustavo_V6.pdf), versión final entregada, pendiente de aprobación de la cátedra.
 
 ## Estado del proyecto
 
@@ -24,13 +46,13 @@ Ver [`docs/seguimiento-tareas.md`](docs/seguimiento-tareas.md) para la auditorí
 | HU | Capacidad | Estado |
 |----|-----------|--------|
 | HU1 | Estado del arte y comprensión del dominio | ✅ Cerrada (estado del arte definitivo y auditoría de cierre completos) |
-| HU2 | `data-ingestion` — preparación del conjunto experimental de datos | ✅ Cerrada (conjunto experimental real y reproducible NASA POWER + ESA CCI Soil Moisture, Melchor Romero 2024) |
+| HU2 | `data-ingestion` — preparación del conjunto experimental de datos | ✅ Cerrada (conjunto experimental reproducible a partir de NASA POWER (reanálisis) y ESA CCI Soil Moisture (satelital), Melchor Romero 2024) |
 | HU3 | `data-quality` — calidad, anomalías y datos sintéticos | ✅ Cerrada (revalidada sobre el pipeline causal vigente) |
 | HU4 | `predictive-modeling` — modelado predictivo y alertas tempranas | ✅ Cerrada (revalidada sobre el esquema temporal y de selección vigente) |
 | HU5 | `human-feedback` — retroalimentación humana y recalibración | ✅ Cerrada (revalidada con recalibración temporalmente controlada) |
 | HU6 | `architecture-integration` — integración de la arquitectura | ✅ Cerrada (revalidada sobre la integración end-to-end vigente) |
 | HU7 | `experiment-runner` — diseño y ejecución del plan experimental | ✅ Implementación y ejecución experimental completadas. La evidencia de `controlled_daily_v3` se preserva y la campaña externa `controlled_daily_v4_external_pergamino` ejecutó A, B, C y H. El cierre científico confirmatorio no se alcanzó: RB-05, `sc-06-scientific-synthesis`, `SC-GOV-025` y el gate `GF` permanecen en `FAIL` por una no conformidad de gobernanza documentada. |
-| HU8 | Análisis de resultados y contrastación de la hipótesis | 🟡 Análisis y discusión completados con limitaciones explícitas. Los resultados de `controlled_daily_v3` se preservan; B y C de `controlled_daily_v4_external_pergamino` se interpretan como evidencia retrospectiva exploratoria. No se declara validación agronómica ni cierre científico confirmatorio. La memoria técnica final continúa en elaboración. |
+| HU8 | Análisis de resultados y contrastación de la hipótesis | 🟡 Análisis y discusión completados con limitaciones explícitas. Los resultados de `controlled_daily_v3` se preservan; B y C de `controlled_daily_v4_external_pergamino` se interpretan como evidencia retrospectiva exploratoria. No se declara validación agronómica ni cierre científico confirmatorio. La memoria técnica está en su versión final (V6) y espera la aprobación de la cátedra. |
 
 Además de las HU del backlog de tesis, el repo incluye una interfaz de usuario (`backend/` + `frontend/`, ver sección siguiente) que expone HU5+HU6 y cierra el loop de recalibración manual disparada desde la UI (ver `docs/adr/0006-recalibracion-disparada-desde-la-ui.md`).
 
@@ -38,15 +60,17 @@ Además de las HU del backlog de tesis, el repo incluye una interfaz de usuario 
 
 - `src/data_ingestion/`: esquema del contrato de datos, conectores (NASA POWER, ESA CCI Soil Moisture) y consolidación de fuentes.
 - `src/data_quality/`: limpieza, detección de anomalías (Isolation Forest), generación de datos sintéticos y pipeline integrado.
-- `src/predictive_modeling/`: etiquetado, ingeniería de variables, modelos (persistencia, regresión logística, Random Forest), evaluación y alertas.
+- `src/predictive_modeling/`: etiquetado, ingeniería de variables, modelos (persistencia, regresión logística, Random Forest e Hist Gradient Boosting), ensamble por promedio, calibración, evaluación, contratos de inferencia operativa y alertas.
 - `src/human_feedback/`: esquema y registro de retroalimentación humana sobre alertas, e integración con predicciones para recalibración supervisada.
-- `src/architecture_integration/`: orquestador de punta a punta que encadena las cuatro capacidades anteriores.
-- `src/experiment_runner/`: ejecución del plan experimental (escenarios de escasez/ruido, aumentación sintética, registro de corridas en MLflow).
-- `scripts/`: puntos de entrada de línea de comandos para correr cada pipeline sobre un dataset real (`run_data_quality_pipeline.py`, `run_end_to_end_pipeline.py`, conectores de ingesta).
+- `src/architecture_integration/`: orquestador de punta a punta que encadena las capacidades anteriores.
+- `src/historical_replay/`: reproducción histórica causal (emisiones preparadas, observaciones futuras ocultas hasta la fecha simulada).
+- `src/experiment_runner/`: ejecución del plan experimental (`controlled_daily_v3` y `controlled_daily_v4`, escenarios de escasez/ruido, aumentación sintética, evaluación retrospectiva del ensamble, registro de corridas en MLflow).
+- `scripts/`: puntos de entrada de línea de comandos para correr cada pipeline sobre un conjunto de datos de reanálisis o satelital (`run_data_quality_pipeline.py`, `run_end_to_end_pipeline.py`, conectores de ingesta).
 - `backend/`: API FastAPI de la interfaz de usuario (alerting-ui) — fachada delgada que orquesta el pipeline y expone `POST /sensors/{sensor_id}/readings`, `POST /forecast/{sensor_id}/run`, `GET /feedback/{sensor_id}` + confirmar/rechazar por fecha, `POST /recalibrate/{sensor_id}`, y tres endpoints de observabilidad de solo lectura para la demo académica (`GET /quality/{sensor_id}`, `GET /models/{sensor_id}/active`, `GET /lineage/{sensor_id}`).
-- `frontend/`: aplicación React + TypeScript (Vite) que consume la API del productor (`/api/v2`), el pipeline plano y `/replay`. Navegación en cinco secciones: **Seguimiento histórico**, **Mi cultivo** (pantalla de entrada, pensada para un productor), **Laboratorio** (datos sintéticos, sin validez de campo), **Evidencia** (por niveles, con el estado de gobernanza siempre visible) y **Herramientas técnicas** (recorrido datos → calidad → predicción → feedback → recalibración → linaje).
-- `openspec/specs/`: especificación viva de cada capacidad (requisitos, escenarios, verificación con datos reales, limitaciones conocidas). `openspec/changes/`: historial de decisiones de diseño por *change*.
-- `docs/adr/`: decisiones de arquitectura, desde el stack técnico del PoC (ADR-0001/0002) hasta el stack web, MLflow/MinIO y la dockerización de backend/frontend (ADR-0003 a ADR-0006).
+- `frontend/`: aplicación React + TypeScript (Vite) que consume la API del productor (`/api/v2`), el pipeline plano y `/replay`. Menú de presentación de tres entradas (**Arquitectura**, **Caso de demostración** y **Resultados**); bajo «Más» quedan **Mi cultivo** (pantalla pensada para un productor, prototipo local) y **Herramientas técnicas** (recorrido datos → calidad → predicción → feedback → recalibración → linaje). El Laboratorio (datos sintéticos, sin validez de campo) se elige dentro de «Caso de demostración».
+- `openspec/specs/`: especificación viva de cada capacidad (requisitos, escenarios, verificación con datos externos de reanálisis y satelitales, limitaciones conocidas). `openspec/changes/`: historial de decisiones de diseño por *change*.
+- `docs/adr/`: decisiones de arquitectura (ADR-0001 a ADR-0013): stack del PoC, stack web, MLflow/MinIO, dockerización, recalibración desde la UI, ingesta de sensores, contratos temporales, selección de modelos y protocolo `controlled_daily_v4`, controlador de la demo y backend del productor.
+- `docs/memoria/`: memoria técnica (V6). `docs/research/`: protocolos y resultados experimentales. `docs/design/`: guías de la interfaz y de la demo.
 
 ## Interfaz de usuario (alerting-ui)
 
@@ -59,18 +83,7 @@ La interfaz es apoyo a la decisión, no automatiza el riego. «Sin alerta previs
 - Demo de defensa (Pergamino, Melchor Romero, Laboratorio): [`docs/design/defense-demo-startup-guide.md`](docs/design/defense-demo-startup-guide.md). Para reiniciarla de cero con la línea base verificada: `./scripts/demo_reset.ps1 -Action Reset -StartFrontend`.
 - Versiones congeladas: tag `memoria-base-2026-09-29` (backend y protocolo) y `memoria-ui-2026-10-03` (interfaz profesional, PR #231).
 
-Para levantar el stack completo (Postgres + MinIO + MLflow + backend + frontend):
-
-```bash
-cp .env.example .env   # ajustar si hace falta
-docker compose up -d --build
-```
-
-- Frontend: http://localhost:5173
-- Backend (FastAPI): http://localhost:8000
-- MLflow Tracking UI: http://localhost:5000
-
-Para correr el frontend fuera de Docker (`cd frontend && npm run dev`) apuntando a un backend en otro host/puerto, configurar `VITE_API_BASE_URL` (ver `frontend/.env.example`); por defecto usa `http://localhost:8000`.
+El arranque del stack y las URLs están en «Cómo levantar el proyecto».
 
 ## Desarrollo y tests
 
@@ -95,8 +108,10 @@ Para los tests del frontend:
 
 ```bash
 cd frontend
-npm install
-npm run test
+npm ci
+npm run test      # vitest
+npm run lint      # oxlint
+npm run build     # tsc -b && vite build
 ```
 
 ## Evidencia y protocolos experimentales
@@ -107,4 +122,4 @@ La campaña externa `controlled_daily_v4_external_pergamino` ejecutó las etapas
 
 Las etapas A, B y C, junto con H, no deben repetirse dentro de la campaña cerrada. Una confirmación futura requeriría una campaña nueva, independiente y basada en datos no utilizados. Ver [estado canónico del cierre científico](openspec/scientific-closure/current-execution-checkpoint.md).
 
-La interfaz de reproducción histórica conserva la causalidad temporal: presenta la fecha de origen, mantiene ocultas las observaciones futuras hasta la fecha simulada correspondiente y solo habilita la retroalimentación cuando existe una observación real. Esta interfaz permite inspección y trazabilidad. No constituye validación agronómica, eficacia de campo ni operación automática del riego.
+La interfaz de reproducción histórica conserva la causalidad temporal: presenta la fecha de origen, mantiene ocultas las observaciones futuras hasta la fecha simulada correspondiente y solo habilita la retroalimentación cuando existe una observación efectivamente medida (no imputada) en el producto de datos. Esta interfaz permite inspección y trazabilidad. No constituye validación agronómica, eficacia de campo ni operación automática del riego.

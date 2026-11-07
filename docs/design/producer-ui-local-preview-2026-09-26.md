@@ -7,7 +7,7 @@ fixtures. Corresponde a la corrección de PR #221, sección 5.
 
 ## Qué NO es esto
 
-- **No** es `docker-compose.producer-preview.yml` (si existe en el
+- **No** es `compose.producer-preview.yml` (en la raíz del
   repositorio): ese flujo prepara datos **sintéticos**, nunca sirve como
   evidencia del recorrido real de Pergamino.
 - **No** toca `historical_replay`/`replay_packages/`: es un sistema

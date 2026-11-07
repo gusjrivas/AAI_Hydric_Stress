@@ -23,7 +23,7 @@ de artefactos ni su lógica.
 | Modo | Qué demuestra | Qué NO permite concluir |
 | --- | --- | --- |
 | **Pergamino** | Recorrido histórico real sobre un demo-runner de ensamble (`pergamino-ensemble-demo`) con emisiones ya preparadas y persistidas, con procedencia externa (ERA5-Land/NASA POWER) explícita. | No es la campaña científica cerrada `controlled_daily_v4_external_pergamino` (ADR-0011, `FAIL` de gobernanza, GD-38/GD-40) ni la reabre; no evalúa el holdout 2024-2025; no es evidencia de superioridad de ningún modelo. |
-| **Melchor Romero** | El mismo recorrido, pero completamente reproducible desde el propio repositorio (dataset real ya versionado `data/melchor_romero_2024_consolidado.parquet`), incluida la distinción real/imputado/sin-observación corregida en PR #228. | No tiene evaluación agregada retrospectiva propia (a diferencia del panel 2023 de Pergamino, que a su vez es exploratorio, no confirmatorio). No reejecuta ni reinterpreta `controlled_daily_v3`. |
+| **Melchor Romero** | El mismo recorrido, pero completamente reproducible desde el propio repositorio (conjunto de datos de ESA CCI y NASA POWER ya versionado, `data/melchor_romero_2024_consolidado.parquet`), incluida la distinción real/imputado/sin-observación corregida en PR #228. | No tiene evaluación agregada retrospectiva propia (a diferencia del panel 2023 de Pergamino, que a su vez es exploratorio, no confirmatorio). No reejecuta ni reinterpreta `controlled_daily_v3`. |
 | **Laboratorio de sensores** | Escenarios sintéticos controlados (ruido, anomalías, sensor de prueba) contra el pipeline operativo real (ingesta, calidad, pronóstico, feedback), identificados inequívocamente como sintéticos. | Los scores del laboratorio no son evidencia científica ni probabilidades calibradas sobre datos reales; solo ilustran el comportamiento del pipeline. |
 
 ## 1. Requisitos previos
@@ -61,8 +61,8 @@ python scripts/prepare_melchor_romero_historical_demo.py `
     --bundle-root <directorio externo vacío, p. ej. $env:TEMP\melchor-bundles>
 ```
 
-Ajusta y calibra las 3 familias del ensamble sobre el dataset real
-versionado y prepara las 5 emisiones históricas reales
+Ajusta y calibra las 3 familias del ensamble sobre el conjunto de datos
+versionado (ESA CCI y NASA POWER) y prepara las 5 emisiones históricas
 (`2024-10-20`..`2024-10-24`). No requiere ningún insumo externo al
 repositorio ni credenciales.
 
