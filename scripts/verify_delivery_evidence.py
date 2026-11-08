@@ -7,7 +7,10 @@ publicadas agregando predicciones originales ya existentes.
 
   python scripts/verify_delivery_evidence.py --root <AAI_ARTIFACT_ROOT>
 
-Cada comprobación se informa como PASS, FAIL o NOT_RUN. Código de salida 1 si hay FAIL.
+Cada comprobación se informa como PASS, FAIL, BLOCKED o NOT_RUN. El código de salida
+es 0 únicamente si TODAS las comprobaciones obligatorias se ejecutaron y aprobaron:
+cualquier FAIL, BLOCKED o NOT_RUN (incluidas dependencias ausentes o una comprobación
+obligatoria que no llegó a registrarse) da un código distinto de 0.
 """
 
 from __future__ import annotations
@@ -15,6 +18,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -27,6 +31,28 @@ FIGURES = {
         "hist_gradient_boosting_classifier": 0.685799,
     }
 }
+REQUIRED = (
+    "H: manifest/SHA256SUMS",
+    "H: contract_sha256 congelado",
+    "H: package_sha256 canónico",
+    "H: response_sha256 congelado",
+    "H: transcripción 1 congelada",
+    "H: congelados y revisiones idénticos a los del repositorio (salvo CR/LF)",
+    "Campaña: manifest/SHA256SUMS",
+    "A/B/C: SHA256SUMS de la instantánea final",
+    "C: integrity_manifest.json",
+    *(f"A MCC {fam}" for fam in FIGURES["A"]),
+    "A 2184 filas / 727 positivos",
+    "B 362 filas / 96 positivos",
+    "C MCC candidato",
+    "C MCC persistencia",
+    "C ROC-AUC candidato",
+    "C Brier candidato",
+    "C matriz del candidato",
+    "C matriz de la persistencia",
+)
+STATES = ("PASS", "FAIL", "BLOCKED", "NOT_RUN")
+_LINE = re.compile(r"^([0-9a-f]{64})  (\S.*)$")
 results: list[tuple[str, str, str]] = []
 
 
@@ -39,19 +65,47 @@ def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _inside(base: Path, rel: str) -> Path | None:
+    """Resuelve rel dentro de base; None si es absoluta, sube con '..' o sale de base."""
+    if not rel or rel.startswith(("/", "\\")) or ":" in rel or "\\" in rel:
+        return None
+    if any(part in ("", "..") for part in rel.split("/") if part != "."):
+        return None
+    target = (base / rel).resolve()
+    return target if base.resolve() in target.parents else None
+
+
 def check_sums(base: Path, sums: Path, label: str) -> None:
-    if not sums.exists():
+    if not sums.is_file():
         record("BLOCKED", label, f"falta {sums.name}")
         return
-    ok = bad = 0
+    ok = bad = malformed = 0
     for line in sums.read_text(encoding="utf-8").splitlines():
-        digest, _, rel = line.partition("  ")
-        target = base / rel.removeprefix("./")
-        if target.is_file() and sha(target) == digest:
+        if not line.strip():
+            continue
+        match = _LINE.match(line)
+        if not match:
+            malformed += 1
+            continue
+        digest, rel = match.groups()
+        target = _inside(base, rel.removeprefix("./"))
+        if target is not None and target.is_file() and sha(target) == digest:
             ok += 1
         else:
             bad += 1
-    record("PASS" if not bad else "FAIL", label, f"{ok} OK, {bad} con diferencias")
+    if malformed or bad or not ok:
+        reason = (
+            "sin entradas válidas: no acredita integridad"
+            if not ok and not (bad or malformed)
+            else ""
+        )
+        record(
+            "FAIL",
+            label,
+            f"{ok} OK, {bad} con diferencias, {malformed} líneas malformadas {reason}".strip(),
+        )
+        return
+    record("PASS", label, f"{ok} OK, 0 con diferencias")
 
 
 def same_text(a: Path, b: Path) -> bool:
@@ -92,13 +146,30 @@ def check_hitl(root: Path) -> None:
         (h / "package" / "human-package-freeze.json", HITL_FREEZE / "human-package-freeze.json"),
         (h / "response" / "human-response-freeze.json", HITL_FREEZE / "human-response-freeze.json"),
     ]
-    pairs += [(f, HITL_FREEZE / "reviews" / f.name) for f in sorted((h / "reviews").glob("*"))]
+    reviews = sorted((h / "reviews").glob("*"))
+    pairs += [(f, HITL_FREEZE / "reviews" / f.name) for f in reviews]
     diffs = [a.name for a, b in pairs if not b.exists() or not same_text(a, b)]
-    record(
-        "PASS" if not diffs else "FAIL",
-        "H: congelados y revisiones idénticos a los del repositorio (salvo CR/LF)",
-        ", ".join(diffs),
-    )
+    name = "H: congelados y revisiones idénticos a los del repositorio (salvo CR/LF)"
+    if not reviews:
+        record("FAIL", name, "sin informes de revisión")
+    else:
+        record("PASS" if not diffs else "FAIL", name, ", ".join(diffs))
+
+
+def integrity_items(entries: object) -> list[tuple[str, str]]:
+    """Normaliza files de un integrity_manifest; ValueError si está vacío o malformado."""
+    if isinstance(entries, dict):
+        raw = [(k, v.get("sha256") if isinstance(v, dict) else v) for k, v in entries.items()]
+    elif isinstance(entries, list):
+        raw = [(e.get("path"), e.get("sha256")) for e in entries]
+    else:
+        raise ValueError("files no es un objeto ni una lista")
+    if not raw:
+        raise ValueError("integrity_manifest sin archivos: no acredita integridad")
+    for rel, digest in raw:
+        if not isinstance(rel, str) or not isinstance(digest, str) or len(digest) != 64:
+            raise ValueError("entrada malformada en integrity_manifest")
+    return raw
 
 
 def check_closure(root: Path) -> Path:
@@ -106,26 +177,22 @@ def check_closure(root: Path) -> Path:
     check_sums(c, c / "manifest" / "SHA256SUMS", "Campaña: manifest/SHA256SUMS")
     snap = c / "evidence-snapshots" / "final"
     check_sums(snap, snap / "SHA256SUMS", "A/B/C: SHA256SUMS de la instantánea final")
-    integrity = json.loads((snap / "evidence" / "C" / "integrity_manifest.json").read_text("utf-8"))
-    entries = integrity["files"]
-    items = (
-        entries.items()
-        if isinstance(entries, dict)
-        else [(e["path"], e["sha256"]) for e in entries]
-    )
+    stage_c = snap / "evidence" / "C"
+    integrity = json.loads((stage_c / "integrity_manifest.json").read_text(encoding="utf-8"))
+    label = "C: integrity_manifest.json"
+    try:
+        items = integrity_items(integrity["files"])
+    except (KeyError, ValueError, AttributeError) as error:
+        record("FAIL", label, str(error) or "sin 'files'")
+        return snap / "evidence"
     good = bad = 0
     for rel, digest in items:
-        digest = digest.get("sha256") if isinstance(digest, dict) else digest
-        target = snap / "evidence" / "C" / rel
-        if target.is_file() and sha(target) == digest:
+        target = _inside(stage_c, rel)
+        if target is not None and target.is_file() and sha(target) == digest:
             good += 1
         else:
             bad += 1
-    record(
-        "PASS" if not bad else "FAIL",
-        "C: integrity_manifest.json",
-        f"{good} OK, {bad} con diferencias",
-    )
+    record("PASS" if not bad else "FAIL", label, f"{good} OK, {bad} con diferencias")
     return snap / "evidence"
 
 
@@ -175,28 +242,39 @@ def check_figures(ev: Path) -> None:
     )
 
 
-def main() -> int:
+_ERRORS = (OSError, KeyError, ValueError, TypeError, AttributeError)
+
+
+def run(root: Path) -> int:
+    """Ejecuta todas las comprobaciones y devuelve el código de salida (0 solo si todo PASS)."""
+    results.clear()
+    steps = (
+        ("H", lambda: check_hitl(root)),
+        ("campaña A/B/C", lambda: check_figures(check_closure(root))),
+    )
+    for label, step in steps:
+        try:
+            step()
+        except _ERRORS as error:
+            record("BLOCKED", label, f"{type(error).__name__}: {error}")
+    seen = {name for _, name, _ in results}
+    for name in REQUIRED:
+        if name not in seen:
+            record("NOT_RUN", name, "comprobación obligatoria no ejecutada")
+    status = {name: state for state, name, _ in results}
+    bad = [s for s, _, _ in results if s != "PASS"]
+    complete = all(status.get(name) == "PASS" for name in REQUIRED) and not bad
+    summary = {s: sum(1 for r in results if r[0] == s) for s in STATES}
+    print(summary, "->", "COMPLETA" if complete else "INCOMPLETA")
+    return 0 if complete else 1
+
+
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     ap.add_argument("--root", type=Path, required=True)
-    root = ap.parse_args().root
-    for step in (check_hitl,):
-        try:
-            step(root)
-        except (OSError, KeyError, ValueError) as error:
-            record("BLOCKED", step.__name__, f"{type(error).__name__}: {error}")
-    try:
-        ev = check_closure(root)
-        check_figures(ev)
-    except (OSError, KeyError, ValueError) as error:
-        record("BLOCKED", "campaña A/B/C", f"{type(error).__name__}: {error}")
-    failed = [r for r in results if r[0] == "FAIL"]
-    summary = {
-        s: sum(1 for r in results if r[0] == s) for s in ("PASS", "FAIL", "BLOCKED", "NOT_RUN")
-    }
-    print(summary)
-    return 1 if failed else 0
+    return run(ap.parse_args(argv).root)
 
 
 if __name__ == "__main__":

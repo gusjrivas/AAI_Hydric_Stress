@@ -162,6 +162,7 @@ def build(out: Path, commit: str, version: str = "") -> int:
         "build_problems": problems,
         "package_version": version or "v1",
         "known_missing": selection["known_missing"],
+        "scope_definition": selection.get("scope_definition", ""),
         "limitations": selection.get("limitations", []),
         "excluded_on_purpose": selection["excluded_on_purpose"],
         "tracked_in_git": selection["tracked_in_git"],

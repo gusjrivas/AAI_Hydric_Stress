@@ -4,8 +4,9 @@
   "tooling_note": "delivery_package.py llega con el PR 239, posterior a la base",
   "package_status": "COMPLETE",
   "build_problems": [],
-  "package_version": "v2",
+  "package_version": "v3",
   "known_missing": [],
+  "scope_definition": "COMPLETE significa: todos los grupos obligatorios de este archivo están presentes y verifican contra sus hashes y manifiestos; no significa reproducibilidad por reejecución.",
   "limitations": [
     "Los 75 archivos de A/A_sensitivity_7_28cm/B/C que en WSL son de root con modo 0600 no se leyeron: la comparación con los originales fue por nombre y tamaño (76/76 idénticos) y, para los 16 archivos legibles, por bytes. No se ejecutó la copia con privilegios porque el respaldo resolvió A/B/C.",
     "El respaldo recibido es un ZIP de Google Drive con tres ZIP anidados; no se puede demostrar que sea una copia exacta del disco USB 1 (serie 8986451183503575922), solo que sus manifiestos internos verifican.",

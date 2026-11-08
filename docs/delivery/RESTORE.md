@@ -100,6 +100,7 @@ $env:AAI_ARTIFACT_ROOT = "<directorio NUEVO y vacío donde restaurar>"
 
    ```powershell
    python scripts/verify_delivery_evidence.py --root $env:AAI_ARTIFACT_ROOT
+   echo $LASTEXITCODE   # 0 solo si TODAS las comprobaciones obligatorias se ejecutaron y aprobaron
    ```
 
    Rutas restauradas: `$AAI_ARTIFACT_ROOT/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/{A,A_sensitivity_7_28cm,B,C}` y `$AAI_ARTIFACT_ROOT/hitl-complement-2026-09-21/`. Cada árbol conserva su `SHA256SUMS` para `sha256sum -c`.
