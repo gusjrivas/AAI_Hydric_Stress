@@ -33,12 +33,16 @@ implementation_status:
   stage_c_verification: SYNTHETIC_TESTS_AND_REAL_EXECUTION
   stage_b_real_execution: EXECUTED_2026_09_21
   stage_c_real_execution: EXECUTED_2026_09_21
-  complementary_runners: DESIGN_ONLY_NOT_IMPLEMENTED
+  complementary_runners: "H implementado y ejecutado; R/N/S no aplicables a la campaña cerrada."
   note: >
     Actualizado 2026-09-21. Las tres etapas se ejecutaron realmente sobre Pergamino
     dentro de la imagen aprobada sha256:55bc923e..., con identidad ejecutable
-    214735e42ee04f018156cd630591e798aadd8bf3. Los complementos R/H/N/S siguen sin
-    implementar y NO se ejecutaron. La versión del 17/09 decía «sin resultados
+    214735e42ee04f018156cd630591e798aadd8bf3. Estado histórico (2026-09-21), superado:
+    los complementos R/H/N/S figuraban sin implementar y sin ejecutar. Estado vigente
+    según el checkpoint canónico (openspec/scientific-closure/current-execution-checkpoint.md,
+    2026-09-26): H fue ejecutado y auditado y sc-08-aux-hitl está en PASS; R/N/S son
+    NOT_APPLICABLE a nivel requisito y sus changes permanecen BLOCKED por condición
+    REQUIRED falsa. La versión del 17/09 decía «sin resultados
     científicos»: cierto hasta el 2026-09-20, falso desde el 2026-09-21.
     Ver scientific-closure-decisions.md y scientific-closure-runbook.md.
 

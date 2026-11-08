@@ -68,7 +68,15 @@ describe("deployment catalog", () => {
     const feedbackStep = DEPLOYMENT_TOUR.findIndex((s) => /retroalimentación|revisa/i.test(s.caption));
     expect(feedbackStep).toBeGreaterThanOrEqual(0);
     expect(firstMlflow).toBeGreaterThan(feedbackStep);
-    expect(DEPLOYMENT_TOUR[firstMlflow].caption).toMatch(/recalibraci/i);
+    expect(DEPLOYMENT_TOUR[firstMlflow].caption).toMatch(/reajuste de un predictor individual/i);
+  });
+
+  it("keeps the ensemble review separate from the base-application recalibration circuit", () => {
+    const byId = Object.fromEntries(DEPLOYMENT_TOUR.map((s) => [s.id, s]));
+    expect(byId.p7.caption).toMatch(/no modifica sus modelos ni ejecuta una recalibración/);
+    expect(byId.p8.caption).toMatch(/Circuito distinto: en la aplicación base/);
+    expect(byId.p8.nodes).not.toContain("modelos");
+    expect(byId.p9.caption).toMatch(/no actualiza los modelos del ensamble/);
   });
 
   it("never uses wording that suggests live execution, metrics or traces", () => {

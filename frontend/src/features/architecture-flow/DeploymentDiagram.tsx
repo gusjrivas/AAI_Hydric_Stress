@@ -8,7 +8,9 @@ const STEP_MS = 4200;
 const END_HOLD_MS = 6000;
 const LAST_STEP = DEPLOYMENT_TOUR.length - 1;
 const IDLE_CAPTION =
-  "Muestra, paso a paso, cómo viaja un dato desde el sensor hasta el registro de una recalibración.";
+  "Recorrido del pronóstico del ensamble y su revisión. Al final se presenta, por separado, la recalibración del predictor individual de la aplicación base.";
+const CIRCUIT_NOTE =
+  "El ensamble registra revisiones sin actualizar sus modelos. La recalibración manual corresponde a un predictor individual de la aplicación base.";
 
 function prefersReducedMotion(): boolean {
   return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -104,6 +106,9 @@ export function DeploymentDiagram() {
       </div>
       <p className="dd-caption" data-testid="tour-caption" aria-live="polite">
         {current ? current.caption : IDLE_CAPTION}
+      </p>
+      <p className="dd-circuit-note" data-testid="circuit-note">
+        {CIRCUIT_NOTE}
       </p>
 
       <div className="dd-scroll" tabIndex={0} role="region" aria-label="Diagrama de despliegue, desplazable en pantallas angostas">
