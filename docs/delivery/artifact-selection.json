@@ -1,0 +1,72 @@
+{
+  "schema": "aai_delivery_selection.v1",
+  "roots": {
+    "DEMO_RUNTIME": "Carpeta con pergamino-walkthrough-2023-06-13_17 y pergamino-ensemble-demo-2026-09-26T034114Z",
+    "RETRO_RUNTIME": "Carpeta con la ejecución canónica pergamino-ensemble-retrospective-2023-20260927T062026Z",
+    "CLOSURE_RUNTIME": "Copia de solo lectura de scientific-closure-runtime (evidence/, ledger/) de la campaña de cierre",
+    "SCI_VALIDATION": "Carpeta scientific_runtime/validation (entorno preejecución)"
+  },
+  "groups": [
+    {"id": "demo-datos-pergamino", "category": "demo", "required": true, "root": "DEMO_RUNTIME", "dir": "pergamino-walkthrough-2023-06-13_17",
+     "include": ["sensor__pergamino-ensemble-demo.parquet", "ui_metadata/operational_v2__pergamino-ensemble-demo.json"], "exclude": [],
+     "restore_to": "demo/pergamino-walkthrough-2023-06-13_17",
+     "purpose": "Lecturas y emisiones históricas del recorrido de Pergamino 2023-06-13..17. Entrada de scripts/prepare_defense_data.ps1 (-SourceDataDir), que exige los SHA-256 fijados en ese script.",
+     "provenance": "docs/design/ensemble-historical-walkthrough-report-2026-09-26.md"},
+    {"id": "demo-bundles-ensamble", "category": "demo", "required": true, "root": "DEMO_RUNTIME", "dir": "pergamino-ensemble-demo-2026-09-26T034114Z",
+     "include": ["**"], "exclude": ["**/*.lock"],
+     "restore_to": "demo/pergamino-ensemble-demo-2026-09-26T034114Z",
+     "purpose": "Nueve bundles (3 familias x 3 horizontes: modelo, calibrador, contrato) con ensemble_manifest.json por horizonte y run_manifest.json. Es la raíz -BundleRoot / PRODUCER_BUNDLE_ROOT.",
+     "provenance": "docs/design/ensemble-real-execution-report-2026-09-26.md; run_manifest.json (commit 67eed9d0d3b9657ae43f267e258af549f8c3a9a8)"},
+    {"id": "demo-procedencia-ejecucion", "category": "demo-provenance", "required": false, "root": "DEMO_RUNTIME", "dir": ".",
+     "include": ["pergamino-ensemble-demo-2026-09-26T034114Z-logs/*", "pergamino-walkthrough-2023-06-13_17-logs/*"], "exclude": [],
+     "restore_to": "demo-provenance",
+     "purpose": "Registros de la generación de bundles y del recorrido (execution_record, http_verification_report, walkthrough_report). Solo lectura; no se necesitan para arrancar.",
+     "provenance": "docs/design/ensemble-real-execution-report-2026-09-26.md"},
+    {"id": "evidencia-ensamble-retrospectivo-2023", "category": "figures-evidence", "required": true, "root": "RETRO_RUNTIME", "dir": "pergamino-ensemble-retrospective-2023-20260927T062026Z",
+     "include": ["**"], "exclude": [],
+     "restore_to": "evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z",
+     "purpose": "Ejecución canónica del ensamble retrospectivo 2023 (metrics.json, predictions.csv, execution_manifest.json). Fuente de las tablas 4.4-4.7 y la figura 4.4; permite regenerar docs/research/tables/ensemble-retrospective-2023 con scripts/export_ensemble_retrospective_tables.py.",
+     "provenance": "docs/research/tables/ensemble-retrospective-2023/README.md; docs/memoria/trazabilidad-cifras-memoria-v6.md"},
+    {"id": "evidencia-cierre-gobernanza", "category": "figures-evidence", "required": true, "root": "CLOSURE_RUNTIME", "dir": "evidence",
+     "include": ["governance/**", "environment-identity.json", "preflight.json", "B/stage_b_custody.json"], "exclude": [],
+     "restore_to": "evidence/closure-campaign-2026-09-21",
+     "purpose": "Registros de gobernanza, identidad de entorno y custodia de las etapas A, B y C. Las salidas crudas por etapa no están incluidas (ver faltantes).",
+     "provenance": "openspec/scientific-closure/current-execution-checkpoint.md; manifiesto del protocolo, actual_paths"},
+    {"id": "ledger-holdout", "category": "provenance", "required": false, "root": "CLOSURE_RUNTIME", "dir": "ledger",
+     "include": ["*.sqlite"], "exclude": [],
+     "restore_to": "evidence/closure-campaign-2026-09-21/ledger",
+     "purpose": "Registros SQLite de acceso al holdout y custodia de B. Solo para auditoría; abrir en modo solo lectura.",
+     "provenance": "src/experiment_runner/controlled_daily_v4 (holdout ledger)"},
+    {"id": "entorno-preejecucion", "category": "provenance", "required": false, "root": "SCI_VALIDATION", "dir": ".",
+     "include": ["*"], "exclude": [],
+     "restore_to": "evidence/closure-campaign-2026-09-21/validation-windows",
+     "purpose": "pip-freeze y pruebas de aceptación de imagen previas a la ejecución.",
+     "provenance": "openspec/scientific-closure/preparation-validation.md"}
+  ],
+  "tracked_in_git": [
+    {"path": "data/external/raw/", "note": "CSV crudos de Pergamino y Balcarce; copia byte a byte idéntica a la de la ejecución (verificado)."},
+    {"path": "docs/research/tables/ensemble-retrospective-2023/", "note": "Tablas agregadas de la memoria."},
+    {"path": "docs/research/reference-v3-formal-results.json", "note": "Resultados formales de Melchor Romero."},
+    {"path": "data/melchor_romero_2024_consolidado.parquet", "note": "Demo de Melchor Romero: reproducible desde el repositorio."}
+  ],
+  "known_missing": [
+    {"id": "salidas-crudas-ABC", "required": true,
+     "what": "evidence/{A,A_sensitivity_7_28cm,B,C}/* de la campaña de cierre (metrics.json, oof_predictions_*.csv, predictions_2023.csv, predictions_2024_2025.csv, integrity_manifest.json, etc.; 75 archivos ilegibles, más los de H).",
+     "reason": "En /home/gus/scientific-closure-runtime/evidence pertenecen a root con modo 0600; el usuario de trabajo no puede leerlos y no se elevaron privilegios. La copia de respaldo documentada (/mnt/scientific-backup) no está montada.",
+     "blocks": "Recalcular desde cero las cifras de las etapas A, B y C (verificación de procedencia completa)."},
+    {"id": "evidencia-H", "required": true,
+     "what": "evidence/governance/hitl-complement-2026-09-21/ y las salidas del complemento H.",
+     "reason": "No existe en el árbol de trabajo WSL; según los congelados de sc-08 reside en /mnt/scientific-backup/AAI_Hydric_Stress/hitl-complement-2026-09-21, que no está montado.",
+     "blocks": "Verificar la evidencia del complemento H y su manifest/SHA256SUMS."},
+    {"id": "respaldo-usb-cierre", "required": false,
+     "what": "/mnt/scientific-backup/AAI_Hydric_Stress/closure-campaign-2026-09-21 (disco USB 1).",
+     "reason": "Punto de montaje presente pero vacío.", "blocks": "Contrastar la copia de trabajo con el respaldo."}
+  ],
+  "excluded_on_purpose": [
+    "pergamino-ensemble-demo-...-httpdata (copia de verificación HTTP con hash distinto del recorrido) ",
+    "pergamino-walkthrough-2023-06-13_17/historical_feedback (estado de revisiones de una sesión de demo)",
+    "pergamino-ensemble-retrospective-2023-attempt2-* (corrida duplicada, no canónica) y table-export-check-*",
+    "archivos *.lock, entornos virtuales (scientific-closure-runtime/env, 680 MB), logs de ejecución, copias de ensayo (backups/rehearsal)",
+    "Cualquier .env, credencial o token (no se encontraron en los directorios seleccionados)"
+  ]
+}

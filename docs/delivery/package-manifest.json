@@ -1,0 +1,748 @@
+{
+  "schema": "aai_delivery_package.v1",
+  "repository_commit": "02b4036eff939d442d63c10af99c0bc433917316",
+  "package_status": "PARTIAL",
+  "build_problems": [],
+  "known_missing": [
+    {
+      "id": "salidas-crudas-ABC",
+      "required": true,
+      "what": "evidence/{A,A_sensitivity_7_28cm,B,C}/* de la campaña de cierre (metrics.json, oof_predictions_*.csv, predictions_2023.csv, predictions_2024_2025.csv, integrity_manifest.json, etc.; 75 archivos ilegibles, más los de H).",
+      "reason": "En /home/gus/scientific-closure-runtime/evidence pertenecen a root con modo 0600; el usuario de trabajo no puede leerlos y no se elevaron privilegios. La copia de respaldo documentada (/mnt/scientific-backup) no está montada.",
+      "blocks": "Recalcular desde cero las cifras de las etapas A, B y C (verificación de procedencia completa)."
+    },
+    {
+      "id": "evidencia-H",
+      "required": true,
+      "what": "evidence/governance/hitl-complement-2026-09-21/ y las salidas del complemento H.",
+      "reason": "No existe en el árbol de trabajo WSL; según los congelados de sc-08 reside en /mnt/scientific-backup/AAI_Hydric_Stress/hitl-complement-2026-09-21, que no está montado.",
+      "blocks": "Verificar la evidencia del complemento H y su manifest/SHA256SUMS."
+    },
+    {
+      "id": "respaldo-usb-cierre",
+      "required": false,
+      "what": "/mnt/scientific-backup/AAI_Hydric_Stress/closure-campaign-2026-09-21 (disco USB 1).",
+      "reason": "Punto de montaje presente pero vacío.",
+      "blocks": "Contrastar la copia de trabajo con el respaldo."
+    }
+  ],
+  "excluded_on_purpose": [
+    "pergamino-ensemble-demo-...-httpdata (copia de verificación HTTP con hash distinto del recorrido) ",
+    "pergamino-walkthrough-2023-06-13_17/historical_feedback (estado de revisiones de una sesión de demo)",
+    "pergamino-ensemble-retrospective-2023-attempt2-* (corrida duplicada, no canónica) y table-export-check-*",
+    "archivos *.lock, entornos virtuales (scientific-closure-runtime/env, 680 MB), logs de ejecución, copias de ensayo (backups/rehearsal)",
+    "Cualquier .env, credencial o token (no se encontraron en los directorios seleccionados)"
+  ],
+  "tracked_in_git": [
+    {
+      "path": "data/external/raw/",
+      "note": "CSV crudos de Pergamino y Balcarce; copia byte a byte idéntica a la de la ejecución (verificado)."
+    },
+    {
+      "path": "docs/research/tables/ensemble-retrospective-2023/",
+      "note": "Tablas agregadas de la memoria."
+    },
+    {
+      "path": "docs/research/reference-v3-formal-results.json",
+      "note": "Resultados formales de Melchor Romero."
+    },
+    {
+      "path": "data/melchor_romero_2024_consolidado.parquet",
+      "note": "Demo de Melchor Romero: reproducible desde el repositorio."
+    }
+  ],
+  "compatible_environment": {
+    "python": "3.13.x",
+    "numpy": "2.5.1",
+    "pandas": "2.3.3",
+    "pyarrow": "19.0.1",
+    "scikit-learn": "1.9.0",
+    "source": "run_manifest.json de los bundles (los .joblib requieren la misma versión de scikit-learn)"
+  },
+  "files": [
+    {
+      "group": "demo-datos-pergamino",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-walkthrough-2023-06-13_17/sensor__pergamino-ensemble-demo.parquet",
+      "restore_path": "demo/pergamino-walkthrough-2023-06-13_17/sensor__pergamino-ensemble-demo.parquet",
+      "size": 75823,
+      "sha256": "f6f9e19ae19c0835d6da57cfda490de4e81d84f0657ed0118d609f3a9da3f98c"
+    },
+    {
+      "group": "demo-datos-pergamino",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-walkthrough-2023-06-13_17/ui_metadata/operational_v2__pergamino-ensemble-demo.json",
+      "restore_path": "demo/pergamino-walkthrough-2023-06-13_17/ui_metadata/operational_v2__pergamino-ensemble-demo.json",
+      "size": 1182738,
+      "sha256": "fcd7ac529b6ce300905eba805e4655ab8bafaf1e63cbe7b2e7316d37bf535dcd"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/hist_gradient_boosting_classifier/bundle.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/hist_gradient_boosting_classifier/bundle.json",
+      "size": 2437,
+      "sha256": "8327396144a483ca067a500acb7594a01e6f1d9ef624ee039a03e949fd5d426c"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/hist_gradient_boosting_classifier/calibrator.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/hist_gradient_boosting_classifier/calibrator.joblib",
+      "size": 224976,
+      "sha256": "9ef458ec9fd3f295a0dff73bc284031ecca1e501c630acbc2300c67ecd59d7eb"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/hist_gradient_boosting_classifier/contract.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/hist_gradient_boosting_classifier/contract.json",
+      "size": 1371,
+      "sha256": "3280d3b9c5b78c31b44b10e9ceacf268ceb74181453bf5a582ab53f8ba8214af"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/hist_gradient_boosting_classifier/model.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/hist_gradient_boosting_classifier/model.joblib",
+      "size": 222234,
+      "sha256": "161ed26f57f541987001987fe968bea441640491be4879cb92ac61af227f0b4c"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/logistic_regression/bundle.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/logistic_regression/bundle.json",
+      "size": 2409,
+      "sha256": "81de41bc5dc1f05ec2b6e240f20a9613f2d00f2e8708254ccc4cca93dfe5378c"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/logistic_regression/calibrator.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/logistic_regression/calibrator.joblib",
+      "size": 3814,
+      "sha256": "62a5d10d307a64970041d920190dbe29f099818f4cc0d5739ddd503fb87c5b13"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/logistic_regression/contract.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/logistic_regression/contract.json",
+      "size": 1343,
+      "sha256": "b3d02168c579ab212157c157ec25393ad0a106aacbec6bf07e4a0fb92a451b42"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/logistic_regression/model.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/logistic_regression/model.joblib",
+      "size": 2655,
+      "sha256": "fa405ca5778bc33b6c177ac5b8bbf28e88f11cafb7457573e5ed9671bbf34fe0"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/random_forest/bundle.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/random_forest/bundle.json",
+      "size": 2397,
+      "sha256": "173b025faf86f912876ccb45493b01f404a05d0eed7076f0c4b83bb18194b398"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/random_forest/calibrator.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/random_forest/calibrator.joblib",
+      "size": 597952,
+      "sha256": "1a5e7b810b9fbb393284aef193b6536dd3eb3bf9efcd307c8695b741b0eaa117"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/random_forest/contract.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/random_forest/contract.json",
+      "size": 1331,
+      "sha256": "f7a266d0a2b35ee05cb93a8090ee5868070f0b7987f477e7d1559233c034f900"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/random_forest/model.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble/random_forest/model.joblib",
+      "size": 596819,
+      "sha256": "a06f6841aa66a596378a30e57ca5f664976a24c2d053130b8ce650b018548ea7"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble_manifest.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_1/ensemble_manifest.json",
+      "size": 430,
+      "sha256": "cbed06abd8536914816a550a955979ac35fa59a8799b1b08640d3d5bbc9c6bd3"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/hist_gradient_boosting_classifier/bundle.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/hist_gradient_boosting_classifier/bundle.json",
+      "size": 2437,
+      "sha256": "944075f5534d8b546b5c3e54dfe80a73fe4ff7326da34e7b2b2db46326f85e8d"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/hist_gradient_boosting_classifier/calibrator.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/hist_gradient_boosting_classifier/calibrator.joblib",
+      "size": 224976,
+      "sha256": "7fc5e3abc970182e0a7184e4e049d05bae092a5edf92225fff8509694ce3fad8"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/hist_gradient_boosting_classifier/contract.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/hist_gradient_boosting_classifier/contract.json",
+      "size": 1371,
+      "sha256": "5a986429bd0aef24df31af526c5bf280da7c8cf9c7353797205b8408609c0bfa"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/hist_gradient_boosting_classifier/model.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/hist_gradient_boosting_classifier/model.joblib",
+      "size": 222234,
+      "sha256": "c21f51664eb053d5d2ee8eb9a8fb66aedc8656a4ae36334edbf896bdacaa102e"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/logistic_regression/bundle.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/logistic_regression/bundle.json",
+      "size": 2409,
+      "sha256": "6eb50e495378d6cc398b2515b8cf6f4e3a9aae6d0ac088a02308489e6511e813"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/logistic_regression/calibrator.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/logistic_regression/calibrator.joblib",
+      "size": 3814,
+      "sha256": "66f710a81728700b78828c88fd1b17dda954cdb94a846d3df592aa7c8841142f"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/logistic_regression/contract.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/logistic_regression/contract.json",
+      "size": 1343,
+      "sha256": "97e672c0840e306b936275cdfd3db1dfbd329361b1436a0d2359a188d5dde322"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/logistic_regression/model.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/logistic_regression/model.joblib",
+      "size": 2655,
+      "sha256": "b15ad8741615af7c833fd5368e81c21247ebae5846a3e2c7a5f5a1239fbf43d3"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/random_forest/bundle.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/random_forest/bundle.json",
+      "size": 2397,
+      "sha256": "4edce7f1df54a559112f3dd68018a1b399f1e5f57d54eb2c7ba5709f3c804c7c"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/random_forest/calibrator.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/random_forest/calibrator.joblib",
+      "size": 774736,
+      "sha256": "d378e54f503610cfe5388bddaa66c82a60f615478df3d98a0900c64f1cb80d18"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/random_forest/contract.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/random_forest/contract.json",
+      "size": 1331,
+      "sha256": "d1bd12d0316262c56264ff0b7f5d4eab84fedd38dd0599affb5aa4f4e824c34f"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/random_forest/model.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble/random_forest/model.joblib",
+      "size": 773603,
+      "sha256": "60e34c9a9d1dd94a1aeabb77d6aa7b08a08cfc5f82b865bc66243a238046478b"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble_manifest.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_2/ensemble_manifest.json",
+      "size": 430,
+      "sha256": "8fa2db46a99b6c9e7afa19630696dc320b825e23b1fa04a24d0b6d3107f63c7f"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/hist_gradient_boosting_classifier/bundle.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/hist_gradient_boosting_classifier/bundle.json",
+      "size": 2437,
+      "sha256": "34f138feeee46062d6dbd109564524bc8702c9000afb47341f92ffddd7e54499"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/hist_gradient_boosting_classifier/calibrator.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/hist_gradient_boosting_classifier/calibrator.joblib",
+      "size": 224976,
+      "sha256": "480e167666b1915fbba647ec4134a009091f20c54f1b26183561908d63b182db"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/hist_gradient_boosting_classifier/contract.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/hist_gradient_boosting_classifier/contract.json",
+      "size": 1371,
+      "sha256": "19c7d909b7023a0b08063e541ecc59bfe697fb74bad1f6571f11a9898751a8e0"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/hist_gradient_boosting_classifier/model.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/hist_gradient_boosting_classifier/model.joblib",
+      "size": 222234,
+      "sha256": "e191ee2c18c6bbb60c2e0ee81398a8e5cf5ba9b5eb1f75b98f62b3884baf1468"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/logistic_regression/bundle.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/logistic_regression/bundle.json",
+      "size": 2409,
+      "sha256": "5313c9ee62ed7351baa451a081267917cb3b3c3f110da02a5eb48bf84f6d8a4a"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/logistic_regression/calibrator.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/logistic_regression/calibrator.joblib",
+      "size": 3814,
+      "sha256": "81c3ab0014b0ec8f5f6755b09b6fc2e6a39ad253f8fb17d9cfb1464f256e8fb1"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/logistic_regression/contract.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/logistic_regression/contract.json",
+      "size": 1343,
+      "sha256": "f89750f5d2e4ca693ff0e392e005b319537e0dcb08030f2176c92c167a73a2e0"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/logistic_regression/model.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/logistic_regression/model.joblib",
+      "size": 2655,
+      "sha256": "b41b604063da408a5214efece49de930787c11842ba06b136b8e0307b26e1ff2"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/random_forest/bundle.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/random_forest/bundle.json",
+      "size": 2397,
+      "sha256": "ddbac8d0f526519799630784af6180eff990a42dc04f2a27c401b4e17bbc2802"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/random_forest/calibrator.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/random_forest/calibrator.joblib",
+      "size": 916336,
+      "sha256": "3a15ac2cdff13306f1100f97adc75387aa265f8b70c0dfd9fb2d24a97689fc78"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/random_forest/contract.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/random_forest/contract.json",
+      "size": 1331,
+      "sha256": "55725056ac9848bd95236a39a35ac99cade1b9a0044586afbfece9d96c6044a9"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/random_forest/model.joblib",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble/random_forest/model.joblib",
+      "size": 915203,
+      "sha256": "c1aa9ecfbcf620e83c632fad15a39255b3538fa9f12cc8b638ac88c113dfb251"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble_manifest.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/pergamino-ensemble-demo/horizon_3/ensemble_manifest.json",
+      "size": 430,
+      "sha256": "237142232cd2ddd9b009bc0cc5f61e9555f04ec27ca6090d5410927fc549ec0a"
+    },
+    {
+      "group": "demo-bundles-ensamble",
+      "category": "demo",
+      "required": true,
+      "package_path": "payload/demo/pergamino-ensemble-demo-2026-09-26T034114Z/run_manifest.json",
+      "restore_path": "demo/pergamino-ensemble-demo-2026-09-26T034114Z/run_manifest.json",
+      "size": 5986,
+      "sha256": "8d9fd2614ca98c9e73ab65bc6627f99efc3b7ddc7d2ff0a456d53a0e21e8c943"
+    },
+    {
+      "group": "demo-procedencia-ejecucion",
+      "category": "demo-provenance",
+      "required": false,
+      "package_path": "payload/demo-provenance/pergamino-ensemble-demo-2026-09-26T034114Z-logs/execution_record.json",
+      "restore_path": "demo-provenance/pergamino-ensemble-demo-2026-09-26T034114Z-logs/execution_record.json",
+      "size": 8483,
+      "sha256": "af8f077f8ba1b0e29104825c5bd83f68d002fea45ca8a18145a54d5174e55dce"
+    },
+    {
+      "group": "demo-procedencia-ejecucion",
+      "category": "demo-provenance",
+      "required": false,
+      "package_path": "payload/demo-provenance/pergamino-ensemble-demo-2026-09-26T034114Z-logs/exit_code.log",
+      "restore_path": "demo-provenance/pergamino-ensemble-demo-2026-09-26T034114Z-logs/exit_code.log",
+      "size": 12,
+      "sha256": "1ca4a13146b2891c0e462123ac0cb848f92e6221f18b870a1b78c232d1956c35"
+    },
+    {
+      "group": "demo-procedencia-ejecucion",
+      "category": "demo-provenance",
+      "required": false,
+      "package_path": "payload/demo-provenance/pergamino-ensemble-demo-2026-09-26T034114Z-logs/http_verification_report.json",
+      "restore_path": "demo-provenance/pergamino-ensemble-demo-2026-09-26T034114Z-logs/http_verification_report.json",
+      "size": 44342,
+      "sha256": "40f592680d4ea8b79b8a6b41bf67bd45d8351f99e55127065e452fba73df3bac"
+    },
+    {
+      "group": "demo-procedencia-ejecucion",
+      "category": "demo-provenance",
+      "required": false,
+      "package_path": "payload/demo-provenance/pergamino-ensemble-demo-2026-09-26T034114Z-logs/stderr.log",
+      "restore_path": "demo-provenance/pergamino-ensemble-demo-2026-09-26T034114Z-logs/stderr.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "group": "demo-procedencia-ejecucion",
+      "category": "demo-provenance",
+      "required": false,
+      "package_path": "payload/demo-provenance/pergamino-ensemble-demo-2026-09-26T034114Z-logs/stdout.log",
+      "restore_path": "demo-provenance/pergamino-ensemble-demo-2026-09-26T034114Z-logs/stdout.log",
+      "size": 279,
+      "sha256": "ae877d029d93fd1d03ac408dcbde64a61bb491ae1a7d7808e8980cdb6bd41e8f"
+    },
+    {
+      "group": "demo-procedencia-ejecucion",
+      "category": "demo-provenance",
+      "required": false,
+      "package_path": "payload/demo-provenance/pergamino-walkthrough-2023-06-13_17-logs/walkthrough_report.json",
+      "restore_path": "demo-provenance/pergamino-walkthrough-2023-06-13_17-logs/walkthrough_report.json",
+      "size": 12012,
+      "sha256": "b295a477aa95549d1bfdaa3ac26821ff64c255ad3cb940e5a8d8cec02e579fc6"
+    },
+    {
+      "group": "evidencia-ensamble-retrospectivo-2023",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z/backup_verification.json",
+      "restore_path": "evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z/backup_verification.json",
+      "size": 1081,
+      "sha256": "780c5325bce823278121d49243c22d369fe3f34d68c2dd4ba7ec4599ea1dedf8"
+    },
+    {
+      "group": "evidencia-ensamble-retrospectivo-2023",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z/execution_manifest.json",
+      "restore_path": "evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z/execution_manifest.json",
+      "size": 38404,
+      "sha256": "780386ff58b490a452d77f968e61efcd15b998a97d28de2f908ab1a346d9d33b"
+    },
+    {
+      "group": "evidencia-ensamble-retrospectivo-2023",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z/metrics.json",
+      "restore_path": "evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z/metrics.json",
+      "size": 74708,
+      "sha256": "6a6a31d35196313061aa4363c98d422f4d1446a9f996d7af51cd93f762e67732"
+    },
+    {
+      "group": "evidencia-ensamble-retrospectivo-2023",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z/predictions.csv",
+      "restore_path": "evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z/predictions.csv",
+      "size": 180875,
+      "sha256": "9b773b186db56e35963ba6538f2f932cd6bab21487fce81568f88c8be02e9194"
+    },
+    {
+      "group": "evidencia-ensamble-retrospectivo-2023",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z/report.md",
+      "restore_path": "evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z/report.md",
+      "size": 3041,
+      "sha256": "ee7ce7104793183ad48cb2a354620dfb051fb6022496cf22722176587fef10a7"
+    },
+    {
+      "group": "evidencia-ensamble-retrospectivo-2023",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z/restricted_inputs/era5_2022-12-26_2023-12-31.csv",
+      "restore_path": "evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z/restricted_inputs/era5_2022-12-26_2023-12-31.csv",
+      "size": 365355,
+      "sha256": "986eeb366f4d87f99a7a8012b0360c9c7a857ee3b34b0c4e4f144174624d22f8"
+    },
+    {
+      "group": "evidencia-ensamble-retrospectivo-2023",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z/restricted_inputs/nasa_power_2022-12-26_2023-12-31.csv",
+      "restore_path": "evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z/restricted_inputs/nasa_power_2022-12-26_2023-12-31.csv",
+      "size": 12439,
+      "sha256": "043aa44bc11441830ef2a4f00489c9e1f9f3eb63ba4900971d940cc25cd311ed"
+    },
+    {
+      "group": "evidencia-ensamble-retrospectivo-2023",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z/ui_summary.json",
+      "restore_path": "evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z/ui_summary.json",
+      "size": 84412,
+      "sha256": "2b640b360671e03fac9f8223380395667eb8d62df9845d39a2f9f508ce660998"
+    },
+    {
+      "group": "evidencia-cierre-gobernanza",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/B/stage_b_custody.json",
+      "restore_path": "evidence/closure-campaign-2026-09-21/B/stage_b_custody.json",
+      "size": 6456,
+      "sha256": "c87750a2f6d50ce829a531c2dacf6c441ebfe8eb393fcddb33a09c7ad71c0173"
+    },
+    {
+      "group": "evidencia-cierre-gobernanza",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/environment-identity.json",
+      "restore_path": "evidence/closure-campaign-2026-09-21/environment-identity.json",
+      "size": 3555,
+      "sha256": "c6fa30cb00954298476f942c6f3445561526eb802b62f70eb098046c913a51f7"
+    },
+    {
+      "group": "evidencia-cierre-gobernanza",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-03-stage-a/execution-record.json",
+      "restore_path": "evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-03-stage-a/execution-record.json",
+      "size": 6385,
+      "sha256": "3efc14ba877a6dccc2c061ae1d511fcd41a3289d65eaa2b5d56da671de280833"
+    },
+    {
+      "group": "evidencia-cierre-gobernanza",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-03-stage-a/gate-review.json",
+      "restore_path": "evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-03-stage-a/gate-review.json",
+      "size": 2116,
+      "sha256": "81e4155118caeddf2b83a1f6e296a97049ab098be00ff5a0196ca672ee59f9b6"
+    },
+    {
+      "group": "evidencia-cierre-gobernanza",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-03-stage-a/sensitivity-7-28cm-record.json",
+      "restore_path": "evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-03-stage-a/sensitivity-7-28cm-record.json",
+      "size": 2597,
+      "sha256": "26035522ca75524a486d96d9e25bf824224bbc60faa81da81a8b8822acf6c94f"
+    },
+    {
+      "group": "evidencia-cierre-gobernanza",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-03-stage-a/statistical-review.json",
+      "restore_path": "evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-03-stage-a/statistical-review.json",
+      "size": 2855,
+      "sha256": "9ad511ee30756dfff8e9c64edc9e66cc5e45944a0adbc2b41104d942d18f3802"
+    },
+    {
+      "group": "evidencia-cierre-gobernanza",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-03-stage-a/temporal-contract-check.json",
+      "restore_path": "evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-03-stage-a/temporal-contract-check.json",
+      "size": 2686,
+      "sha256": "cf8f97e7fadb265fb7c9430c137849fb6c7e79c71cd38a37015b804d5df9224e"
+    },
+    {
+      "group": "evidencia-cierre-gobernanza",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-04-stage-b/custody-review.json",
+      "restore_path": "evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-04-stage-b/custody-review.json",
+      "size": 2550,
+      "sha256": "1bd18af3938ee8f3edfdc75563a511d6b2b715bbd9e0da17d7ec84bc93bcda70"
+    },
+    {
+      "group": "evidencia-cierre-gobernanza",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-04-stage-b/execution-record.json",
+      "restore_path": "evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-04-stage-b/execution-record.json",
+      "size": 7096,
+      "sha256": "549b52abafe0ee30a747c9d6a6fe01f9135f719bbc436584a990d6d78c3b9ade"
+    },
+    {
+      "group": "evidencia-cierre-gobernanza",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-04-stage-b/gate-review.json",
+      "restore_path": "evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-04-stage-b/gate-review.json",
+      "size": 2442,
+      "sha256": "bb952e64345a4babb5528573c9965f1f12df82848666edaf8a57643c8e6bd6ba"
+    },
+    {
+      "group": "evidencia-cierre-gobernanza",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-05-stage-c/execution-record.json",
+      "restore_path": "evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-05-stage-c/execution-record.json",
+      "size": 12468,
+      "sha256": "9985ea9dee97bb31da8b8a4e9f27330be1221fec5fbc0e4e86ec03a3cad09194"
+    },
+    {
+      "group": "evidencia-cierre-gobernanza",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-05-stage-c/holdout-review.json",
+      "restore_path": "evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/sc-05-stage-c/holdout-review.json",
+      "size": 7491,
+      "sha256": "35d1e8196f6e8596523cbf037abe9654ba7fa57d8839bd266dc172bba7f25fa1"
+    },
+    {
+      "group": "evidencia-cierre-gobernanza",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/validation/validation-record.json",
+      "restore_path": "evidence/closure-campaign-2026-09-21/governance/closure-campaign-2026-09-21/validation/validation-record.json",
+      "size": 2716,
+      "sha256": "6105f782ae7058306e4857ea21303eeffe0b48a51826c1a131fba105c14d5053"
+    },
+    {
+      "group": "evidencia-cierre-gobernanza",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/preflight.json",
+      "restore_path": "evidence/closure-campaign-2026-09-21/preflight.json",
+      "size": 2619,
+      "sha256": "fb0474f11cb28dc82a739848520a295fbbc0a4066f384b81962aa04bcf77fcf2"
+    },
+    {
+      "group": "ledger-holdout",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/ledger/holdout.sqlite",
+      "restore_path": "evidence/closure-campaign-2026-09-21/ledger/holdout.sqlite",
+      "size": 16384,
+      "sha256": "5beb684adfd73ee574773c8a4ce20bb31b85e5f09368b8b921ee21e8a1bf717c"
+    },
+    {
+      "group": "ledger-holdout",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/ledger/stage_b.sqlite",
+      "restore_path": "evidence/closure-campaign-2026-09-21/ledger/stage_b.sqlite",
+      "size": 24576,
+      "sha256": "141dd0a99c0ce56a840c42f814325b54e19016c43be8299f0dbb64226dbb71c4"
+    },
+    {
+      "group": "entorno-preejecucion",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/validation-windows/image-acceptance-tests.xml",
+      "restore_path": "evidence/closure-campaign-2026-09-21/validation-windows/image-acceptance-tests.xml",
+      "size": 8317,
+      "sha256": "a67e2b465cde165b1dfd5fb37d61db05a65572accfbe8a66fbb82c6f0c07f34d"
+    },
+    {
+      "group": "entorno-preejecucion",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/validation-windows/pip-freeze.txt",
+      "restore_path": "evidence/closure-campaign-2026-09-21/validation-windows/pip-freeze.txt",
+      "size": 426,
+      "sha256": "d0f0b9129c8229ce0ea281e02cf0066bbb00d369e511737fc07547956a387667"
+    },
+    {
+      "group": "entorno-preejecucion",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/validation-windows/preexecution-environment.json",
+      "restore_path": "evidence/closure-campaign-2026-09-21/validation-windows/preexecution-environment.json",
+      "size": 1850,
+      "sha256": "03aa0d2871d815b19496c4da5018a44ccdb0a72c6605de23f70a11713b88e6cd"
+    },
+    {
+      "group": "entorno-preejecucion",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence/closure-campaign-2026-09-21/validation-windows/v4-tests.xml",
+      "restore_path": "evidence/closure-campaign-2026-09-21/validation-windows/v4-tests.xml",
+      "size": 73874,
+      "sha256": "0ee57b78da281d660b32d6f4032a8a16ab6a8e76278574d3be30270370eac196"
+    }
+  ]
+}
