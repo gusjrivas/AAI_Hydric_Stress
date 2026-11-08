@@ -53,6 +53,13 @@ describe("DeploymentDiagram", () => {
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
   });
 
+  it("always shows the circuit clarification, with no node selected and before the tour starts", () => {
+    render(<DeploymentDiagram />);
+    expect(screen.getByTestId("circuit-note")).toHaveTextContent(
+      "El ensamble registra revisiones sin actualizar sus modelos. La recalibración manual corresponde a un predictor individual de la aplicación base.",
+    );
+  });
+
   it("walks the tour step by step and marks the components involved", async () => {
     render(<DeploymentDiagram />);
     const caption = screen.getByTestId("tour-caption");

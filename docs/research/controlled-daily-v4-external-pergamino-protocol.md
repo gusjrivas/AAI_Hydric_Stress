@@ -1,8 +1,17 @@
 # Protocolo experimental: controlled_daily_v4_external_pergamino
 
-Estado: ~~**PROTOCOL_ONLY** — protocolo formalizado, sin implementación de código ni ejecución.~~ **Actualización (2026-09-13):** el protocolo permanece formalizado como fuente normativa. La Etapa A (secciones 5–9) cuenta con implementación de código y verificación exhaustiva sobre datos sintéticos desde el *change* `implement-controlled-daily-v4-stage-a` (mergeado; correcciones posteriores en los *changes* `fix/controlled-daily-v4-stage-a-validation` y `fix/controlled-daily-v4-reproducibility-docs`, PR #188–#190) — no así las Etapas B (sección 10) ni C (sección 11), que siguen sin ningún código asociado (ver `docs/seguimiento-tareas.md`). Ninguna ejecución real sobre los CSV de Pergamino se realizó todavía en ninguna etapa; toda verificación existente es exclusivamente sintética. Este documento sigue siendo la fuente detallada y reproducible del protocolo; la decisión y su justificación quedan registradas en [ADR-0011](../adr/0011-protocolo-controlled-daily-v4-external-pergamino.md), que no debe duplicar este contenido.
+> **Estado vigente según el cierre canónico del 2026-09-26:** las etapas A, B y C y el complemento H fueron ejecutados. La campaña está cerrada y no quedan ejecuciones pendientes dentro de su alcance. B y C se interpretan como evidencia retrospectiva exploratoria, no confirmatoria. RB-05, sc-06-scientific-synthesis, SC-GOV-025 y GF mantienen el estado FAIL documentado. sc-08-aux-hitl está en PASS. R/N/S son NOT_APPLICABLE a nivel requisito y sus changes permanecen BLOCKED porque no se cumple la condición REQUIRED. No corresponde repetir A/B/C/H ni reabrir el holdout 2024–2025.
+>
+> Referencias: [punto de control de ejecución vigente](../../openspec/scientific-closure/current-execution-checkpoint.md) · [README del cierre científico](../../openspec/scientific-closure/README.md).
 
-**Vigencia 2026-09-17:** el párrafo anterior documenta el estado histórico del
+Los dos párrafos siguientes se conservan íntegros como antecedentes históricos, superados por la nota anterior.
+
+---
+
+
+**Estado histórico 2026-09-13:** ~~**PROTOCOL_ONLY** — protocolo formalizado, sin implementación de código ni ejecución.~~ **Actualización (2026-09-13):** el protocolo permanece formalizado como fuente normativa. La Etapa A (secciones 5–9) cuenta con implementación de código y verificación exhaustiva sobre datos sintéticos desde el *change* `implement-controlled-daily-v4-stage-a` (mergeado; correcciones posteriores en los *changes* `fix/controlled-daily-v4-stage-a-validation` y `fix/controlled-daily-v4-reproducibility-docs`, PR #188–#190) — no así las Etapas B (sección 10) ni C (sección 11), que siguen sin ningún código asociado (ver `docs/seguimiento-tareas.md`). Ninguna ejecución real sobre los CSV de Pergamino se realizó todavía en ninguna etapa; toda verificación existente es exclusivamente sintética. Este documento sigue siendo la fuente detallada y reproducible del protocolo; la decisión y su justificación quedan registradas en [ADR-0011](../adr/0011-protocolo-controlled-daily-v4-external-pergamino.md), que no debe duplicar este contenido.
+
+**Estado histórico 2026-09-17:** el párrafo anterior documenta el estado histórico del
 13/09. A, B y C están implementadas e integradas con pruebas sintéticas; no se
 han ejecutado científicamente. Rigen las
 [decisiones de cierre previas a ejecución](scientific-closure-decisions.md)
