@@ -26,7 +26,7 @@ La interfaz abre en **Arquitectura**. El menú principal sigue el orden de la de
 
 **2. Solo la interfaz de Mi cultivo, con datos y modelos sintéticos:** `docker compose -f compose.producer-preview.yml up -d --build` y abrir http://localhost:5180 (ver [`docker/producer-preview/README.md`](docker/producer-preview/README.md)). No requiere instalar Python/Node, no modifica los servicios del stack habitual y no representa validación predictiva real ni cierre científico.
 
-**3. Demo de defensa (Pergamino, Melchor Romero y Laboratorio):** requiere artefactos preparados fuera de `data/`. Melchor Romero es reproducible desde este repositorio; los artefactos de Pergamino no se distribuyen en un clon limpio. Pasos y alcance de cada modo en [`docs/design/defense-demo-startup-guide.md`](docs/design/defense-demo-startup-guide.md); arranque con `scripts/start_defense_demo.ps1`.
+**3. Demo de defensa (Pergamino, Melchor Romero y Laboratorio):** requiere artefactos preparados fuera de `data/`. Melchor Romero es reproducible desde este repositorio; los artefactos de Pergamino no se distribuyen en un clon limpio. El paquete externo y su restauración se describen en [`docs/delivery/RESTORE.md`](docs/delivery/RESTORE.md). Pasos y alcance de cada modo en [`docs/design/defense-demo-startup-guide.md`](docs/design/defense-demo-startup-guide.md); arranque con `scripts/start_defense_demo.ps1`.
 
 **4. Controlador de la demo acelerada (opcional):** `docker compose --profile demo up -d` habilita `demo-control` en `127.0.0.1:8010`. No forma parte del arranque normal (ADR-0012).
 
