@@ -16,7 +16,25 @@ Versionado en Git (no está en el paquete): `data/external/raw/` (CSV crudos), `
 
 ## Entorno compatible
 
-Los `.joblib` se serializaron con `scikit-learn 1.9.0`. Entorno de los bundles (`run_manifest.json`): Python 3.13.x, numpy 2.5.1, pandas 2.3.3, pyarrow 19.0.1, scikit-learn 1.9.0. Commit de código que generó los bundles: `67eed9d0d3b9657ae43f267e258af549f8c3a9a8`. Commit del repositorio al que corresponde el paquete: el indicado en `repository_commit` del manifiesto.
+Los `.joblib` se serializaron con `scikit-learn 1.9.0`. Entorno de los bundles (`run_manifest.json`): Python 3.13.x, numpy 2.5.1, pandas 2.3.3, pyarrow 19.0.1, scikit-learn 1.9.0. Commit de código que generó los bundles: `67eed9d0d3b9657ae43f267e258af549f8c3a9a8`. ## Dos referencias de repositorio distintas
+
+| Referencia | Qué identifica | Valor |
+| --- | --- | --- |
+| `artifact_base_commit` (en `PACKAGE_MANIFEST.json`) | Estado del repositorio al que corresponden los artefactos (merge del PR #238) | `02b4036eff939d442d63c10af99c0bc433917316` |
+| Versión con la herramienta | Primer estado que contiene `scripts/delivery_package.py`, esta guía y `docs/delivery/` | rama `fix/paquete-entrega-artefactos` (PR #239) y, tras su integración, `main` |
+
+El commit `02b4036` **precede** a la herramienta: un clon en ese commit no tiene `delivery_package.py`. El código de la demo y de los cargadores es el mismo en ambas referencias (el PR #239 solo agrega documentación, la herramienta y su prueba), por lo que se usa la versión con la herramienta para todo el procedimiento.
+
+## Copia limpia, de principio a fin
+
+```powershell
+git clone https://github.com/gusjrivas/AAI_Hydric_Stress.git aai-restore
+cd aai-restore
+git checkout fix/paquete-entrega-artefactos      # o `main` una vez integrado el PR #239
+git log -1 --format=%H                           # anotar el commit usado
+```
+
+Luego seguir los pasos de la sección siguiente. Para un diagnóstico, el primer comando de la herramienta (`verify`) no necesita dependencias de Python más allá de la biblioteca estándar.
 
 ## Pasos
 
