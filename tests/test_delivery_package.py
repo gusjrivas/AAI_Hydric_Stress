@@ -1,4 +1,4 @@
-"""Pruebas de scripts/delivery_package.py con datos mínimos de ejemplo (no usa artefactos reales)."""
+"""Pruebas de scripts/delivery_package.py con datos mínimos (sin artefactos reales)."""
 import json
 import zipfile
 from pathlib import Path
@@ -17,8 +17,10 @@ def package(tmp_path, monkeypatch):
     (src / "skip.lock").write_bytes(b"1")
     selection = {
         "roots": {"R": "x"},
-        "groups": [{"id": "g", "category": "demo", "required": True, "root": "R", "dir": "grp",
-                    "include": ["**"], "exclude": ["**/*.lock", "*.lock"], "restore_to": "demo/grp"}],
+        "groups": [{
+            "id": "g", "category": "demo", "required": True, "root": "R", "dir": "grp",
+            "include": ["**"], "exclude": ["**/*.lock", "*.lock"], "restore_to": "demo/grp",
+        }],
         "tracked_in_git": [], "known_missing": [{"id": "m"}], "excluded_on_purpose": [],
     }
     sel = tmp_path / "selection.json"
