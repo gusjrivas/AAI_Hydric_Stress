@@ -2,7 +2,7 @@
 
 Guía portable. No depende de usuarios ni de rutas de una máquina concreta. El paquete **no** está en Git ni en ninguna release: se entrega aparte, con su archivo `.zip.sha256`.
 
-**Estado del paquete: PARCIAL.** Cubre la demostración de Pergamino y la evidencia necesaria para contrastar las cifras de la memoria del ensamble retrospectivo; **no** incluye las salidas crudas de las etapas A/B/C ni la evidencia del complemento H (ver `known_missing` en `PACKAGE_MANIFEST.json`). Por eso no permite reproducir completamente la procedencia de la campaña `controlled_daily_v4_external_pergamino`.
+**Estado del paquete: PARCIAL.** Cubre la demostración de Pergamino y la evidencia necesaria para contrastar las cifras de la memoria del ensamble retrospectivo; **no** incluye las salidas crudas de las etapas A/B/C ni la evidencia del complemento H (ver `known_missing` en `PACKAGE_MANIFEST.json`). Cómo recuperar los faltantes: `docs/delivery/RECOVERY.md` del repositorio. Por eso no permite reproducir completamente la procedencia de la campaña `controlled_daily_v4_external_pergamino`.
 
 ## Contenido por finalidad
 
