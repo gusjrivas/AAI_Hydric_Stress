@@ -100,8 +100,8 @@ def build(out: Path, commit: str) -> int:
         z.write(restore_md, "RESTORE.md")
         for e in entries:
             z.write(e["_src"], e["package_path"])
-    (out / f"{name}.zip.sha256").write_text(f"{sha256(zpath)}  {zpath.name}\n", encoding="utf-8")
-    Path(os.environ.get("AAI_PORTABLE_MANIFEST", out / "package-manifest.json")).write_text(mtext, encoding="utf-8")
+    (out / f"{name}.zip.sha256").write_bytes((f"{sha256(zpath)}  {zpath.name}" + chr(10)).encode("utf-8"))
+    Path(os.environ.get("AAI_PORTABLE_MANIFEST", out / "package-manifest.json")).write_bytes(mtext.encode("utf-8"))
     print(f"{zpath} {zpath.stat().st_size} bytes, {len(entries)} archivos, estado={manifest['package_status']}")
     for p in problems:
         print("PROBLEMA:", p)
