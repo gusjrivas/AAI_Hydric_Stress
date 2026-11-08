@@ -6,9 +6,9 @@ HU7/HU8 · capacidad `experiment-runner` (solo cierre técnico de la entrega) ·
 
 - Base de los artefactos: `02b4036eff939d442d63c10af99c0bc433917316` (merge del PR #238; su CI completo está en éxito, run 42439030794).
 - Versión del repositorio con la herramienta: rama `fix/paquete-entrega-artefactos` (PR #239). `02b4036` precede a `delivery_package.py`.
-- Verificación sobre un clon limpio y aislado del commit `d7475cbee79bc564d21503a2f8bc81912767323d` (herramienta y `RESTORE.md` que contiene el paquete; los commits posteriores solo agregan este informe), con Python 3.13.14, numpy 2.5.1, pandas 2.3.3, pyarrow 19.0.1 y scikit-learn 1.9.0.
-- **Paquete vigente (v2):** `aai-hydric-stress-delivery-package-02b4036-v2.zip`, 263 215 921 bytes, 314 archivos (276 878 344 bytes sin comprimir), SHA-256 `f91f1ad73853bd056cd0c2844cdb0eea345124eaf48d047d8ad455725fc6dd95`, estado **COMPLETE para el alcance definido** (`scope_definition` y `limitations` en el manifiesto).
-- Paquetes anteriores, conservados fuera del repositorio: v1 de la primera versión (SHA 89e63917, `d5ccd777…`) y la versión parcial con correcciones de rutas (SHA e6997168, `d3c88874…`).
+- Verificación sobre un clon limpio y aislado del commit `e974379de91a548ed0f784fd0889d8d32cb9d362` (herramienta, `RESTORE.md` y manifiesto que contiene el paquete v3; los commits posteriores solo actualizan este informe), con Python 3.13.14, numpy 2.5.1, pandas 2.3.3, pyarrow 19.0.1 y scikit-learn 1.9.0.
+- **Paquete vigente (v3):** `aai-hydric-stress-delivery-package-02b4036-v3.zip`, 263 216 066 bytes, 314 archivos (276 878 344 bytes sin comprimir), SHA-256 `bead22cb01bec6ab8f258d5fcf70a07aa0cb63a3dce6f08481251f889cd05bec`, estado **COMPLETE para el alcance definido**. Los 314 archivos de contenido son idénticos hash a hash a los de v2; v3 solo cambia el manifiesto (agrega `scope_definition`, antes ausente del manifiesto generado) y `RESTORE.md` (código de salida del verificador).
+- Paquetes anteriores, conservados fuera del repositorio: v2 (`f91f1ad7…`, SHA 1d55e530; `previous-v2/`), v1 de la primera versión (SHA 89e63917, `d5ccd777…`) y la versión parcial con correcciones de rutas (SHA e6997168, `d3c88874…`).
 
 ## Respaldo recibido
 
@@ -38,7 +38,7 @@ Discrepancia sin impacto numérico: el ZIP de Drive no demuestra ser copia exact
 
 ## Cifras contrastadas (agregación de predicciones originales; sin ejecutar modelos)
 
-`scripts/verify_delivery_evidence.py` sobre lo restaurado: 21 PASS, 0 FAIL, 0 BLOCKED, 0 NOT_RUN.
+`scripts/verify_delivery_evidence.py` sobre el paquete v3 restaurado: 21 PASS, 0 FAIL, 0 BLOCKED, 0 NOT_RUN, **código de salida 0**. Control negativo con un directorio vacío: código 1. El verificador devuelve 0 solo si todas las comprobaciones obligatorias se ejecutaron y aprobaron: FAIL, BLOCKED o NOT_RUN (incluidas dependencias ausentes o una comprobación obligatoria no registrada) dan código distinto de 0; SHA256SUMS vacíos o malformados, entradas que escapan del directorio base y un `integrity_manifest` vacío o malformado dan FAIL.
 
 - A: MCC soft voting 0,708028, regresión logística 0,697968, Random Forest 0,695372, HGB 0,685799 (desde predicciones y desde `metrics.json`); 2184 filas y 727 positivos.
 - B: 362 filas y 96 positivos.
@@ -52,7 +52,7 @@ Discrepancia sin impacto numérico: el ZIP de Drive no demuestra ser copia exact
 | Hash del zip contra su `.zip.sha256` | PASS |
 | `verify` del zip y del paquete extraído (314 archivos) | PASS |
 | `restore` en directorio nuevo y revalidación (314 archivos) | PASS |
-| Pruebas: 26 pasan, 2 omitidas (enlaces simbólicos; Windows sin permiso) | PASS; las 2 omitidas no cuentan como verificación |
+| Pruebas: 43 pasan, 2 omitidas (enlaces simbólicos; Windows sin permiso) | PASS; las 2 omitidas no cuentan como verificación |
 | `ruff check src tests scripts/delivery_package.py scripts/verify_delivery_evidence.py` y `black --check src tests` | PASS |
 | `load_ensemble_bundle` de los 3 horizontes (9 componentes) con Python 3.13.14 | PASS |
 | Arranque de la demo Pergamino desde lo restaurado (`/docs` 200, sensor listado, histórico 2023-06-15 con 3 `slots`, detención) | PASS |
@@ -72,6 +72,8 @@ Discrepancia sin impacto numérico: el ZIP de Drive no demuestra ser copia exact
 Excluido a propósito: instantáneas intermedias, `rehearsal` y `code-final` de la campaña (fuera de su SHA256SUMS), y lo ya listado en `excluded_on_purpose`.
 
 ## Antecedentes
+
+Revisión del SHA 1d55e530: el verificador devolvía 0 con comprobaciones BLOCKED o NOT_RUN, y aceptaba SHA256SUMS o `integrity_manifest` vacíos con «0 OK». Corregido en v3 con 20 casos de prueba de regresión sintéticos (directorio vacío, comprobación obligatoria bloqueada, dependencias ausentes, SHA256SUMS vacío o malformado, manifiesto de C vacío o malformado, verificación completa con código 0). La demostración y la carga de bundles no se repitieron para v3 porque el contenido es idéntico hash a hash al de v2, donde pasaron.
 
 Los defectos de rutas, faltantes obligatorios y `.lock` de la revisión del SHA 89e63917 y la exigencia de Python 3.13.14 exacto se corrigieron antes (SHA e6997168, CI en éxito); sus pruebas siguen vigentes. El estado anterior era PARCIAL por la falta de A/B/C y H.
 
