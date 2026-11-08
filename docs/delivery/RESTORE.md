@@ -20,6 +20,8 @@ Los `.joblib` se serializaron con `scikit-learn 1.9.0`. Entorno de los bundles (
 
 ## Pasos
 
+En Windows, elegir rutas cortas (p. ej. `C:\aai-art`): los bundles tienen rutas profundas y una ruta de destino larga supera el límite de 260 caracteres.
+
 Variables (PowerShell; en bash usar `export`):
 
 ```powershell
