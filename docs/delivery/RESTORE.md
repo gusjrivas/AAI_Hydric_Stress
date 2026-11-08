@@ -16,7 +16,7 @@ Versionado en Git (no está en el paquete): `data/external/raw/` (CSV crudos), `
 
 ## Entorno compatible
 
-Los `.joblib` se serializaron con `scikit-learn 1.9.0`. Entorno de los bundles (`run_manifest.json`): Python 3.13.x, numpy 2.5.1, pandas 2.3.3, pyarrow 19.0.1, scikit-learn 1.9.0. Commit de código que generó los bundles: `67eed9d0d3b9657ae43f267e258af549f8c3a9a8`. ## Dos referencias de repositorio distintas
+El cargador de bundles (`load_operational_bundle`) exige que el entorno capturado coincida **exactamente** con el declarado en cada `bundle.json`, incluida la versión de parche de Python; con otra versión (p. ej. 3.13.15) rechaza los bundles con `incompatible_environment`. Entorno requerido: **Python 3.13.14**, numpy 2.5.1, pandas 2.3.3, pyarrow 19.0.1, scikit-learn 1.9.0. El modo de demostración con emisiones persistidas arranca igualmente con otro Python porque no carga modelos, pero no sirve para cargar o ejecutar los bundles. Commit de código que generó los bundles: `67eed9d0d3b9657ae43f267e258af549f8c3a9a8`. ## Dos referencias de repositorio distintas
 
 | Referencia | Qué identifica | Valor |
 | --- | --- | --- |
@@ -63,9 +63,10 @@ $env:AAI_ARTIFACT_ROOT = "<directorio NUEVO y vacío donde restaurar>"
 3. Crear el entorno compatible e instalar el proyecto:
 
    ```powershell
-   python -m venv .venv ; .\.venv\Scripts\Activate.ps1
-   pip install -e ".[backend]"
-   pip install numpy==2.5.1 pandas==2.3.3 pyarrow==19.0.1 scikit-learn==1.9.0
+   pip install uv ; uv python install 3.13.14      # o cualquier instalación de Python 3.13.14 exacta
+   uv venv --python 3.13.14 .venv ; .\.venv\Scripts\Activate.ps1
+   uv pip install -e ".[backend]" numpy==2.5.1 pandas==2.3.3 pyarrow==19.0.1 scikit-learn==1.9.0
+   python -c "from src.predictive_modeling.operational_inference import capture_environment as c; print(c())"   # debe mostrar python 3.13.14
    ```
 
 4. Preparar los datos de la demo en un directorio nuevo dentro de `.demo-defense-data/` (el script comprueba los SHA-256 fijados):

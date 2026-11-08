@@ -157,19 +157,19 @@ def build(out: Path, commit: str) -> int:
     manifest = {
         "schema": "aai_delivery_package.v1",
         "artifact_base_commit": commit,
-        "tooling_note": "delivery_package.py se incorpora en el PR 239, posterior a artifact_base_commit",
+        "tooling_note": "delivery_package.py llega con el PR 239, posterior a la base",
         "package_status": "PARTIAL" if partial else "COMPLETE",
         "build_problems": problems,
         "known_missing": selection["known_missing"],
         "excluded_on_purpose": selection["excluded_on_purpose"],
         "tracked_in_git": selection["tracked_in_git"],
         "compatible_environment": {
-            "python": "3.13.x",
+            "python": "3.13.14",
             "numpy": "2.5.1",
             "pandas": "2.3.3",
             "pyarrow": "19.0.1",
             "scikit-learn": "1.9.0",
-            "source": "run_manifest.json de los bundles (los .joblib exigen esta versión)",
+            "source": "bundle.json de cada componente; coincidencia exacta exigida por el cargador",
         },
         "files": [{k: v for k, v in e.items() if k != "_src"} for e in entries],
     }
