@@ -437,7 +437,7 @@ future_versioned_artifacts:
     oof_predictions: /home/gus/scientific-closure-runtime/evidence/A/oof_predictions_<family>.csv (NOT_VERSIONED_IN_GIT)
     results: /home/gus/scientific-closure-runtime/evidence/{A,B,C} (NOT_VERSIONED_IN_GIT)
     external_backup: /mnt/scientific-backup/AAI_Hydric_Stress/closure-campaign-2026-09-21 (USB disk 1, serial 8986451183503575922)
-    raw_csv_policy: los CSV crudos permanecen fuera de Git, sin excepcion
+    raw_csv_policy: los cuatro CSV crudos de Pergamino y Balcarce se respaldan en Git desde 2026-11-07 en data/external/raw/ (SHA-256 en su README.md, identicos a los de este manifiesto); el resto de las salidas de la campaña permanece fuera de Git
 
 current_interpretation:
   feature_contract: pergamino_features.v1

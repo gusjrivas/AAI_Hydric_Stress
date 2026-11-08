@@ -37,7 +37,7 @@ Para correr el frontend fuera de Docker: `cd frontend && npm ci && npm run dev`.
 - `data/`: conjuntos procesados de la memoria (NASA POWER La Plata 2024-2025 y Melchor Romero 2024, ESA CCI Soil Moisture y consolidado de Melchor Romero), cada uno con su archivo `_coverage.csv`, y `data/dictionaries/` con los diccionarios de datos.
 - `data/external/raw/`: respaldo de los CSV crudos de Pergamino y Balcarce (ERA5-Land horario y NASA POWER diario, 2015-2025), con tamaños y hashes SHA-256 en su `README.md`. El protocolo `controlled_daily_v4` los referencia fuera del repositorio; esta carpeta es una copia byte a byte.
 - `replay_packages/`: paquetes científicos autorizados de la reproducción histórica.
-- Memoria técnica: [`docs/memoria/TI_Rivas_Gustavo_V6.pdf`](docs/memoria/TI_Rivas_Gustavo_V6.pdf), versión final entregada, pendiente de aprobación de la cátedra.
+- Memoria técnica: [`docs/memoria/TI_Rivas_Gustavo_V6.pdf`](docs/memoria/TI_Rivas_Gustavo_V6.pdf), versión final entregada, pendiente de aprobación de la cátedra. Índice de respaldo de sus cifras: [`docs/memoria/trazabilidad-cifras-memoria-v6.md`](docs/memoria/trazabilidad-cifras-memoria-v6.md).
 
 ## Estado del proyecto
 
