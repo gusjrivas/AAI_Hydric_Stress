@@ -71,6 +71,16 @@ fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# En WSL existe /init (ayudante de interop registrado en binfmt_misc) y se
+# neutraliza con un bind de /dev/null. En otros Linux (p. ej. el runner de CI)
+# /init no existe y bwrap no puede crear el punto de montaje sobre una raiz de
+# solo lectura ("Can't create file at /init: Read-only file system"), asi que
+# la opcion se agrega unicamente cuando /init esta presente.
+INIT_ARGS=()
+if [ -e /init ]; then
+    INIT_ARGS=(--ro-bind /dev/null /init)
+fi
+
 # --unshare-all incluye --unshare-net: el proceso queda sin red.
 # --ro-bind / / monta la raiz completa de solo lectura; /dev y /proc se
 # reconstruyen; /tmp es un tmpfs efimero exclusivo del hijo.
@@ -81,7 +91,7 @@ exec bwrap \
     --tmpfs /tmp \
     --tmpfs /mnt \
     --tmpfs /run \
-    --ro-bind /dev/null /init \
+    ${INIT_ARGS[@]+"${INIT_ARGS[@]}"} \
     --unshare-all \
     --die-with-parent \
     --new-session \
