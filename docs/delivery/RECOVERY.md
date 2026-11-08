@@ -1,5 +1,7 @@
 # Recuperación de los faltantes obligatorios del paquete
 
+> **Actualización (2026-11-08).** Los dos faltantes de esta guía se resolvieron con el respaldo `backup_AAI_Hydric_strees-20261108T152637Z-1-001.zip` (ver `verification-report.md`): las salidas A/B/C y la evidencia H se recuperaron de él y verificaron contra sus manifiestos históricos. La operación privilegiada de la sección 1 **no se ejecutó**; queda documentada solo como alternativa para comparar byte a byte los originales protegidos de WSL con el respaldo.
+
 El paquete está en estado **PARCIAL** mientras falten las evidencias de esta guía. Ninguna operación aquí reentrena, repite A/B/C/H ni evalúa el holdout 2024-2025; solo copia y verifica bytes ya existentes.
 
 ## 1. Salidas crudas de A, A_sensitivity_7_28cm, B y C (75 archivos ilegibles)

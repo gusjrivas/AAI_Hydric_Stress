@@ -2,37 +2,25 @@
   "schema": "aai_delivery_package.v1",
   "artifact_base_commit": "02b4036eff939d442d63c10af99c0bc433917316",
   "tooling_note": "delivery_package.py llega con el PR 239, posterior a la base",
-  "package_status": "PARTIAL",
+  "package_status": "COMPLETE",
   "build_problems": [],
-  "known_missing": [
-    {
-      "id": "salidas-crudas-ABC",
-      "required": true,
-      "what": "evidence/{A,A_sensitivity_7_28cm,B,C}/* de la campaña de cierre (metrics.json, oof_predictions_*.csv, predictions_2023.csv, predictions_2024_2025.csv, integrity_manifest.json, etc.; 75 archivos ilegibles, más los de H).",
-      "reason": "En /home/gus/scientific-closure-runtime/evidence pertenecen a root con modo 0600; el usuario de trabajo no puede leerlos y no se elevaron privilegios. La copia de respaldo documentada (/mnt/scientific-backup) no está montada.",
-      "blocks": "Recalcular desde cero las cifras de las etapas A, B y C (verificación de procedencia completa)."
-    },
-    {
-      "id": "evidencia-H",
-      "required": true,
-      "what": "evidence/governance/hitl-complement-2026-09-21/ y las salidas del complemento H.",
-      "reason": "No existe en el árbol de trabajo WSL; según los congelados de sc-08 reside en /mnt/scientific-backup/AAI_Hydric_Stress/hitl-complement-2026-09-21, que no está montado.",
-      "blocks": "Verificar la evidencia del complemento H y su manifest/SHA256SUMS."
-    },
-    {
-      "id": "respaldo-usb-cierre",
-      "required": false,
-      "what": "/mnt/scientific-backup/AAI_Hydric_Stress/closure-campaign-2026-09-21 (disco USB 1).",
-      "reason": "Punto de montaje presente pero vacío.",
-      "blocks": "Contrastar la copia de trabajo con el respaldo."
-    }
+  "package_version": "v2",
+  "known_missing": [],
+  "limitations": [
+    "Los 75 archivos de A/A_sensitivity_7_28cm/B/C que en WSL son de root con modo 0600 no se leyeron: la comparación con los originales fue por nombre y tamaño (76/76 idénticos) y, para los 16 archivos legibles, por bytes. No se ejecutó la copia con privilegios porque el respaldo resolvió A/B/C.",
+    "El respaldo recibido es un ZIP de Google Drive con tres ZIP anidados; no se puede demostrar que sea una copia exacta del disco USB 1 (serie 8986451183503575922), solo que sus manifiestos internos verifican.",
+    "El hash del ZIP calculado hoy acredita únicamente la recepción; la integridad histórica descansa en los SHA256SUMS y manifiestos de la campaña.",
+    "No se repitió A/B/C/H ni se ejecutaron modelos; el contraste de cifras agregó predicciones ya existentes.",
+    "Entrega completa para el alcance definido (demostración, evidencia de cifras y procedencia); no equivale a reproducción de los experimentos ni a una validación científica nueva."
   ],
   "excluded_on_purpose": [
     "pergamino-ensemble-demo-...-httpdata (copia de verificación HTTP con hash distinto del recorrido) ",
     "pergamino-walkthrough-2023-06-13_17/historical_feedback (estado de revisiones de una sesión de demo)",
     "pergamino-ensemble-retrospective-2023-attempt2-* (corrida duplicada, no canónica) y table-export-check-*",
     "archivos *.lock, entornos virtuales (scientific-closure-runtime/env, 680 MB), logs de ejecución, copias de ensayo (backups/rehearsal)",
-    "Cualquier .env, credencial o token (no se encontraron en los directorios seleccionados)"
+    "Cualquier .env, credencial o token (no se encontraron en los directorios seleccionados)",
+    "Instantáneas intermedias de la campaña (after-A, after-B, after-B-with-governance, after-C-corrected, after-C-final): A/B/C idénticos a los de final; solo la final se empaqueta",
+    "closure-campaign-2026-09-21/rehearsal y code-final (no cubiertos por SHA256SUMS de la campaña)"
   ],
   "tracked_in_git": [
     {
@@ -744,6 +732,2148 @@
       "restore_path": "evidence/closure-campaign-2026-09-21/validation-windows/v4-tests.xml",
       "size": 73874,
       "sha256": "0ee57b78da281d660b32d6f4032a8a16ab6a8e76278574d3be30270370eac196"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/code_version.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/code_version.json",
+      "size": 150,
+      "sha256": "902f618766e90b1c8e5fe11caf57ebc7c7907a71c42474f8b5d5f9ce75adb03c"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/dataset_fingerprint.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/dataset_fingerprint.json",
+      "size": 1151,
+      "sha256": "8e39045ee81619ff17a7f11477a13c839e337a524876b574ae5dabd7c5001325"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/environment.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/environment.json",
+      "size": 714,
+      "sha256": "6156dbd35c55573a08ab4f11017626d55ab42c41f46c3587074fcc13e3b46f20"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/freeze_fold_boundaries.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/freeze_fold_boundaries.json",
+      "size": 946,
+      "sha256": "bbaa9b489f06758bee1ef8ac40c852de036deb58e271d133f5ca83f8e40e6375"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/frozen_config.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/frozen_config.json",
+      "size": 2346,
+      "sha256": "aaad3c090c704e6971b9b1c9e5eb91fffc7be78ac2fa8ea600e231b38594d95b"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/holdout_status.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/holdout_status.json",
+      "size": 182,
+      "sha256": "76114540fcc2216aa1e039cd5e5dc95dc863241205d80707404947754f4cce10"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/hyperparameters_inner_selected.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/hyperparameters_inner_selected.json",
+      "size": 11288,
+      "sha256": "67c209acf2d916fb29d0f5155608f5dcfeb9210ea412abdbfba1f0b0f102a0c0"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/inner_fold_boundaries.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/inner_fold_boundaries.json",
+      "size": 3050,
+      "sha256": "d8922547481528a7ccc996bd6f64c4ed11d44edc4a831d822423703d3e0c82e8"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/input_hashes.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/input_hashes.json",
+      "size": 178,
+      "sha256": "4d963d91ab0220911c0bc769dfca44469c9a16a72b51c101d022b473e3ac7c4e"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/metrics.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/metrics.json",
+      "size": 206336,
+      "sha256": "57507f76a5a375ac611cf89d30ba2565c3ac79b73066a7c76ed35d7d0c720c8a"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/oof_predictions_hist_gradient_boosting_classifier.csv",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/oof_predictions_hist_gradient_boosting_classifier.csv",
+      "size": 104159,
+      "sha256": "0c63df9d16998a9855a84f6a2345d8a43474e6dc70fc7e184f194ef586fd5ce9"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/oof_predictions_logistic_regression.csv",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/oof_predictions_logistic_regression.csv",
+      "size": 104209,
+      "sha256": "ab3e128aa41dd1df6260d97132b5472cf802bd2850cdc73d5958ecad7c84c438"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/oof_predictions_random_forest.csv",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/oof_predictions_random_forest.csv",
+      "size": 104057,
+      "sha256": "caee8fe53b6be1b4f085d3bb705a09b101701f68ff614160455b17ab5be05974"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/oof_predictions_soft_voting.csv",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/oof_predictions_soft_voting.csv",
+      "size": 104184,
+      "sha256": "eeeba01cdf5dc9d59677c8f624531d0d97fb41748ad43047261792ded779d7c2"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/outer_fold_boundaries.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/outer_fold_boundaries.json",
+      "size": 964,
+      "sha256": "07eadb4450ce1170db1d8bc9891902ece5953c444a03a65c89d1bc90c5d915c6"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/p20_by_fold.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/p20_by_fold.json",
+      "size": 1010,
+      "sha256": "ebc40aa6ce4ae41f05ace0b7555f2823df8fc85ac6e28efaa47477ced73e8d53"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/provenance.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/provenance.json",
+      "size": 934,
+      "sha256": "ecbd0e1106ccdb8aa876a5b55dd67b5fd35ba5db40b525574f01cbd6b74b595b"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/resolved_config.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/resolved_config.json",
+      "size": 2652,
+      "sha256": "b68590697da5de205a0cee3c82e2179d85662e1588d88d05f643ab0abceea4f8"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/schema_version.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/schema_version.json",
+      "size": 56,
+      "sha256": "b5f29f16e672d934c481facc109843c8d1cee3048a447db0c9c7edf17077ed1d"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/selection_decision.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/selection_decision.json",
+      "size": 10358,
+      "sha256": "018334a2b0c2a24aa9c537c5f487e23eb7237eed5e430088952f12ce0331c7f9"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/warnings.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A/warnings.json",
+      "size": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/code_version.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/code_version.json",
+      "size": 150,
+      "sha256": "902f618766e90b1c8e5fe11caf57ebc7c7907a71c42474f8b5d5f9ce75adb03c"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/dataset_fingerprint.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/dataset_fingerprint.json",
+      "size": 1151,
+      "sha256": "7468640a1bd38a4b5bc058e625e62da6abd4c5d1f9a1d66fa2461508bdd0c727"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/environment.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/environment.json",
+      "size": 714,
+      "sha256": "6156dbd35c55573a08ab4f11017626d55ab42c41f46c3587074fcc13e3b46f20"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/freeze_fold_boundaries.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/freeze_fold_boundaries.json",
+      "size": 946,
+      "sha256": "bbaa9b489f06758bee1ef8ac40c852de036deb58e271d133f5ca83f8e40e6375"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/frozen_config.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/frozen_config.json",
+      "size": 2365,
+      "sha256": "96e3dbfd7204e7754a9c5e13a709e379e6faf495186f6e22bc8d6a38e3b70e81"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/holdout_status.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/holdout_status.json",
+      "size": 182,
+      "sha256": "76114540fcc2216aa1e039cd5e5dc95dc863241205d80707404947754f4cce10"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/hyperparameters_inner_selected.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/hyperparameters_inner_selected.json",
+      "size": 11266,
+      "sha256": "80104bdc390b0451d1b28347913971ce31a12a1c19a46212fa18a2b8c7b3a15f"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/inner_fold_boundaries.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/inner_fold_boundaries.json",
+      "size": 3050,
+      "sha256": "d8922547481528a7ccc996bd6f64c4ed11d44edc4a831d822423703d3e0c82e8"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/input_hashes.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/input_hashes.json",
+      "size": 178,
+      "sha256": "4d963d91ab0220911c0bc769dfca44469c9a16a72b51c101d022b473e3ac7c4e"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/metrics.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/metrics.json",
+      "size": 155762,
+      "sha256": "854651cf297d7d3358c19436dd317db112992577664467eb5d66a9f33860ad30"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/oof_predictions_hist_gradient_boosting_classifier.csv",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/oof_predictions_hist_gradient_boosting_classifier.csv",
+      "size": 106191,
+      "sha256": "5cb3f775da35f5e2365c42781b8195040e80892eb77e3ca433e03e7b52fa17e9"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/oof_predictions_logistic_regression.csv",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/oof_predictions_logistic_regression.csv",
+      "size": 105845,
+      "sha256": "998f5e8be0f96019fc7b17d69c93e33b6cb6665e48c74449e75dca41a3df7750"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/oof_predictions_random_forest.csv",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/oof_predictions_random_forest.csv",
+      "size": 88877,
+      "sha256": "6937b276511a06a319ba81d8dcee073a928d5152922af5585f5af3b66d29c060"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/oof_predictions_soft_voting.csv",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/oof_predictions_soft_voting.csv",
+      "size": 105617,
+      "sha256": "f88c03152a3dd5251b1b774668bf07e5a0b65d3b49ceb0a40899048808a6154b"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/outer_fold_boundaries.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/outer_fold_boundaries.json",
+      "size": 964,
+      "sha256": "07eadb4450ce1170db1d8bc9891902ece5953c444a03a65c89d1bc90c5d915c6"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/p20_by_fold.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/p20_by_fold.json",
+      "size": 1094,
+      "sha256": "d2aaa56ab6c37c6c04e20fa1bbacb3aab3994ff0fe8795637d4d4b5a3abbfcac"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/provenance.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/provenance.json",
+      "size": 934,
+      "sha256": "ecbd0e1106ccdb8aa876a5b55dd67b5fd35ba5db40b525574f01cbd6b74b595b"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/resolved_config.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/resolved_config.json",
+      "size": 2653,
+      "sha256": "fa26c1e081cf104988343fa08cc301e98797ffd0ee800e1e2422359309c6bb60"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/schema_version.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/schema_version.json",
+      "size": 56,
+      "sha256": "b5f29f16e672d934c481facc109843c8d1cee3048a447db0c9c7edf17077ed1d"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/selection_decision.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/selection_decision.json",
+      "size": 10325,
+      "sha256": "4babd43a20bbb31a188f8e2e81f3bac441518424955962321eddd5b65350008f"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/warnings.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/A_sensitivity_7_28cm/warnings.json",
+      "size": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/bootstrap.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/bootstrap.json",
+      "size": 552,
+      "sha256": "4eb503d0bbb795c39805889c6f4f8541c63a10622cf41346ed795f267938f352"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/code_version.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/code_version.json",
+      "size": 150,
+      "sha256": "902f618766e90b1c8e5fe11caf57ebc7c7907a71c42474f8b5d5f9ce75adb03c"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/decision.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/decision.json",
+      "size": 192,
+      "sha256": "77ef015a729582e3cd4db2df01dae27cbb5f2ca2f986c977277bdcbd60901ba9"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/environment.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/environment.json",
+      "size": 714,
+      "sha256": "268a1fc3cb8b8c09d813feb481cf9c9a2447a047d92b6e3ab5ebe64f5dd273b6"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/holdout_status.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/holdout_status.json",
+      "size": 372,
+      "sha256": "0b76d9bb26469f132d8c9cdbd09d5f8480697da3fbd41e8e8ad9696964b8ef1d"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/metrics.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/metrics.json",
+      "size": 32481,
+      "sha256": "dec071b7a8b0128c298089a7599cc1546de3eb3fb3f9aa5717ba4ea8adfa814e"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/p20_train.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/p20_train.json",
+      "size": 38,
+      "sha256": "000cb0b9a61b062624cea22090675bc76693c8feed4d553b122b27d56154f6e7"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/predictions_2023.csv",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/predictions_2023.csv",
+      "size": 14898,
+      "sha256": "8d616622200facf1b68e8f7b06b4dc6878d4ea2bb808c838880bb0c6ccc6b433"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/producer_reference.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/producer_reference.json",
+      "size": 2609,
+      "sha256": "c33c23d27b60053efe21e2dc116828ab386b5648c06720cac3a634c480d10ba5"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/resolved_config.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/resolved_config.json",
+      "size": 1002,
+      "sha256": "135239a4109c523ae57d4ac4db0ce98f7db1989921a391d54a977e09b3b62be4"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/schema_version.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/schema_version.json",
+      "size": 56,
+      "sha256": "565e3864257f2ab56df617e9677dec8127b7023902cbec0000289370e409d1e7"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/stage_b_custody.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/stage_b_custody.json",
+      "size": 6456,
+      "sha256": "c87750a2f6d50ce829a531c2dacf6c441ebfe8eb393fcddb33a09c7ad71c0173"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/temporal_boundaries.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/temporal_boundaries.json",
+      "size": 241,
+      "sha256": "23115bde94af11b670b758059f8adf491fafb14eaf1fdbbe8d979d32ab1c6fa6"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/training_dataset_fingerprint.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/training_dataset_fingerprint.json",
+      "size": 1151,
+      "sha256": "8e39045ee81619ff17a7f11477a13c839e337a524876b574ae5dabd7c5001325"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/warnings.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/B/warnings.json",
+      "size": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/bootstrap.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/bootstrap.json",
+      "size": 555,
+      "sha256": "092ed04e2f7d651e5e8dcf98418d8faa0c3546aabad5e86f3c51ab717a9f54c5"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/code_version.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/code_version.json",
+      "size": 150,
+      "sha256": "902f618766e90b1c8e5fe11caf57ebc7c7907a71c42474f8b5d5f9ce75adb03c"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/environment.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/environment.json",
+      "size": 714,
+      "sha256": "268a1fc3cb8b8c09d813feb481cf9c9a2447a047d92b6e3ab5ebe64f5dd273b6"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/evaluation_dataset_fingerprint.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/evaluation_dataset_fingerprint.json",
+      "size": 1152,
+      "sha256": "03522669f00397a1c83a1e797282b4dcae0eeb4782734ccfaad310000e9ade64"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/holdout_ledger_reference.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/holdout_ledger_reference.json",
+      "size": 346,
+      "sha256": "090db09d2e5f1bbc8d30ea65bcd6da4dfd06cd25dc64bffca9ef667855cb5ba9"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/holdout_status.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/holdout_status.json",
+      "size": 393,
+      "sha256": "dddb473f45d831b76c6d2aef739bd9489fb7bdc59e6320e56fda9ef9668eaf21"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/input_hashes.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/input_hashes.json",
+      "size": 178,
+      "sha256": "4d963d91ab0220911c0bc769dfca44469c9a16a72b51c101d022b473e3ac7c4e"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/integrity_manifest.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/integrity_manifest.json",
+      "size": 1989,
+      "sha256": "7ef87b1362010d9350465709e554427037b7f84d9b0dfb8d1b26b3dc85a39109"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/metrics.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/metrics.json",
+      "size": 34821,
+      "sha256": "18eca4fca7c4779922c315c8cce122208f3d6a089ea62aa568b176513d577efc"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/outcome.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/outcome.json",
+      "size": 259,
+      "sha256": "5211af6aa9485d58017d9bde5b3f139c95f695ef6eb78ef20a3e081a39d45922"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/p20_train.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/p20_train.json",
+      "size": 27,
+      "sha256": "a7398fd4a41d409884b625f8cfa9bf5e1528efb2707fa6e4ed422785c93e6d13"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/predictions_2024_2025.csv",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/predictions_2024_2025.csv",
+      "size": 38069,
+      "sha256": "c012314414f19ce940c94d0fd6ea82227352f99fea3a9c1308c559b8d3d910cc"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/producer_reference.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/producer_reference.json",
+      "size": 2881,
+      "sha256": "1224f98d5426e9eb6bcfab722c726bcd8995b996913916da3eb118ee0ea099d3"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/provenance.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/provenance.json",
+      "size": 934,
+      "sha256": "ecbd0e1106ccdb8aa876a5b55dd67b5fd35ba5db40b525574f01cbd6b74b595b"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/resolved_config.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/resolved_config.json",
+      "size": 1042,
+      "sha256": "50a800a7dd25ad107d702990249cb35f09e15271897e91e36db7cb9cb2280a01"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/schema_version.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/schema_version.json",
+      "size": 56,
+      "sha256": "9b46f4dd6a67c103df4dd8ef6b4ba9a02f3405383d0d9df18173c929b70fa195"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/temporal_boundaries.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/temporal_boundaries.json",
+      "size": 241,
+      "sha256": "a968c7eed39ec681e58e014bf9ca4b68260ba9dd292de0516d3de1955d60618d"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/training_dataset_fingerprint.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/training_dataset_fingerprint.json",
+      "size": 1163,
+      "sha256": "02ab38cc518b9660ac9d07e117a115abb0f26d27a1cf1e4d715d75d995d8615d"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/warnings.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/C/warnings.json",
+      "size": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/environment-identity.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/environment-identity.json",
+      "size": 3555,
+      "sha256": "c6fa30cb00954298476f942c6f3445561526eb802b62f70eb098046c913a51f7"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/execution-record.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/execution-record.json",
+      "size": 6385,
+      "sha256": "3efc14ba877a6dccc2c061ae1d511fcd41a3289d65eaa2b5d56da671de280833"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/gate-review.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/gate-review.json",
+      "size": 2116,
+      "sha256": "81e4155118caeddf2b83a1f6e296a97049ab098be00ff5a0196ca672ee59f9b6"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/sensitivity-7-28cm-record.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/sensitivity-7-28cm-record.json",
+      "size": 2597,
+      "sha256": "26035522ca75524a486d96d9e25bf824224bbc60faa81da81a8b8822acf6c94f"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/statistical-review.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/statistical-review.json",
+      "size": 2855,
+      "sha256": "9ad511ee30756dfff8e9c64edc9e66cc5e45944a0adbc2b41104d942d18f3802"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/temporal-contract-check.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-03-stage-a/temporal-contract-check.json",
+      "size": 2686,
+      "sha256": "cf8f97e7fadb265fb7c9430c137849fb6c7e79c71cd38a37015b804d5df9224e"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-04-stage-b/custody-review.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-04-stage-b/custody-review.json",
+      "size": 2550,
+      "sha256": "1bd18af3938ee8f3edfdc75563a511d6b2b715bbd9e0da17d7ec84bc93bcda70"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-04-stage-b/execution-record.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-04-stage-b/execution-record.json",
+      "size": 7096,
+      "sha256": "549b52abafe0ee30a747c9d6a6fe01f9135f719bbc436584a990d6d78c3b9ade"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-04-stage-b/gate-review.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-04-stage-b/gate-review.json",
+      "size": 2442,
+      "sha256": "bb952e64345a4babb5528573c9965f1f12df82848666edaf8a57643c8e6bd6ba"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-05-stage-c/execution-record.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-05-stage-c/execution-record.json",
+      "size": 12468,
+      "sha256": "9985ea9dee97bb31da8b8a4e9f27330be1221fec5fbc0e4e86ec03a3cad09194"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-05-stage-c/holdout-review.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/sc-05-stage-c/holdout-review.json",
+      "size": 7491,
+      "sha256": "35d1e8196f6e8596523cbf037abe9654ba7fa57d8839bd266dc172bba7f25fa1"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/validation/validation-record.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/governance/closure-campaign-2026-09-21/validation/validation-record.json",
+      "size": 2716,
+      "sha256": "6105f782ae7058306e4857ea21303eeffe0b48a51826c1a131fba105c14d5053"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/preflight.json",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/evidence/preflight.json",
+      "size": 2619,
+      "sha256": "fb0474f11cb28dc82a739848520a295fbbc0a4066f384b81962aa04bcf77fcf2"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/ledger/holdout.sqlite",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/ledger/holdout.sqlite",
+      "size": 16384,
+      "sha256": "5beb684adfd73ee574773c8a4ce20bb31b85e5f09368b8b921ee21e8a1bf717c"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/ledger/stage_b.sqlite",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/ledger/stage_b.sqlite",
+      "size": 24576,
+      "sha256": "141dd0a99c0ce56a840c42f814325b54e19016c43be8299f0dbb64226dbb71c4"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/SHA256SUMS",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/SHA256SUMS",
+      "size": 10001,
+      "sha256": "639fe09cd354a002704551b06ece4f9193f09cc9a7f265e1f9fde654ea232de1"
+    },
+    {
+      "group": "salidas-crudas-ABC",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/evidence-snapshots/final/verify.log",
+      "restore_path": "closure-campaign-2026-09-21/evidence-snapshots/final/verify.log",
+      "size": 4359,
+      "sha256": "33f4ea771ec2b0a0e46d5767330c28b8422a0a148a9cae70691cd896107f7792"
+    },
+    {
+      "group": "campana-cierre-entorno-y-codigo",
+      "category": "provenance",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/code/checkout-HEAD-37eed42.tar.gz",
+      "restore_path": "closure-campaign-2026-09-21/code/checkout-HEAD-37eed42.tar.gz",
+      "size": 6056508,
+      "sha256": "9ebdb571ae32ed31d6951c84609627a6d370fb23c622477d9465af250013ee2c"
+    },
+    {
+      "group": "campana-cierre-entorno-y-codigo",
+      "category": "provenance",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/code/HEAD-commit.txt",
+      "restore_path": "closure-campaign-2026-09-21/code/HEAD-commit.txt",
+      "size": 180,
+      "sha256": "b31cc07d4e1b259a76bd7f698f3c0b03d200a6502849a4e79f8916a77134f3d7"
+    },
+    {
+      "group": "campana-cierre-entorno-y-codigo",
+      "category": "provenance",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/code/HEAD.txt",
+      "restore_path": "closure-campaign-2026-09-21/code/HEAD.txt",
+      "size": 41,
+      "sha256": "5f0b37680037e9299481889dbc1bed6d275cd5a0279d7acc13638c91d42d1ff0"
+    },
+    {
+      "group": "campana-cierre-entorno-y-codigo",
+      "category": "provenance",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/code/repo-all-refs.bundle",
+      "restore_path": "closure-campaign-2026-09-21/code/repo-all-refs.bundle",
+      "size": 7095423,
+      "sha256": "84661ffb86a872bf624f471fd92a7ebfd1608cd1e4ff9bec0164a425dcf5f10e"
+    },
+    {
+      "group": "campana-cierre-entorno-y-codigo",
+      "category": "provenance",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/environment/build_identity.json",
+      "restore_path": "closure-campaign-2026-09-21/environment/build_identity.json",
+      "size": 207,
+      "sha256": "b85a2aec0d108c6d0141e2725d38d9d9b94bf7a4fc8a820b62de6e92583ab8d1"
+    },
+    {
+      "group": "campana-cierre-entorno-y-codigo",
+      "category": "provenance",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/environment/constraints.txt",
+      "restore_path": "closure-campaign-2026-09-21/environment/constraints.txt",
+      "size": 1004,
+      "sha256": "aa05b7b17ee4677839e724af7a768f532ba669514fb06ffe23f525cddd1efd6b"
+    },
+    {
+      "group": "campana-cierre-entorno-y-codigo",
+      "category": "provenance",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/environment/controlled-daily-v4-external-pergamino-manifest.yaml",
+      "restore_path": "closure-campaign-2026-09-21/environment/controlled-daily-v4-external-pergamino-manifest.yaml",
+      "size": 17983,
+      "sha256": "c07a9175b27518521828b526f12c7357095581c651650777419516e47058ba83"
+    },
+    {
+      "group": "campana-cierre-entorno-y-codigo",
+      "category": "provenance",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/environment/Dockerfile",
+      "restore_path": "closure-campaign-2026-09-21/environment/Dockerfile",
+      "size": 2733,
+      "sha256": "8e9f8ab262bc42f5b2e8060a6294b711af79f6449f60cd3c4f0409872c04c27a"
+    },
+    {
+      "group": "campana-cierre-entorno-y-codigo",
+      "category": "provenance",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/environment/image-inspect.json",
+      "restore_path": "closure-campaign-2026-09-21/environment/image-inspect.json",
+      "size": 3020,
+      "sha256": "29a31f21e9c82a7111615e9d91c1e64427c07dc9071e2c6858c0d26ceb3dcb35"
+    },
+    {
+      "group": "campana-cierre-entorno-y-codigo",
+      "category": "provenance",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/environment/pip-freeze-all.txt",
+      "restore_path": "closure-campaign-2026-09-21/environment/pip-freeze-all.txt",
+      "size": 426,
+      "sha256": "d0f0b9129c8229ce0ea281e02cf0066bbb00d369e511737fc07547956a387667"
+    },
+    {
+      "group": "campana-cierre-entorno-y-codigo",
+      "category": "provenance",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/environment/python-version.txt",
+      "restore_path": "closure-campaign-2026-09-21/environment/python-version.txt",
+      "size": 51,
+      "sha256": "0176a544965fa4e83aacdcf342215cc856cc23c28a0960fa3fad437b7fc4b224"
+    },
+    {
+      "group": "campana-cierre-entorno-y-codigo",
+      "category": "provenance",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/image/experiment-v4-scientific-closure.tar",
+      "restore_path": "closure-campaign-2026-09-21/image/experiment-v4-scientific-closure.tar",
+      "size": 226977792,
+      "sha256": "8368f2657a0203f784403e1387b657e1b097e8dd893316266660361a2d68e69c"
+    },
+    {
+      "group": "campana-cierre-entorno-y-codigo",
+      "category": "provenance",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/inputs/pergamino_era5land_soil_hourly_2015_2025.csv",
+      "restore_path": "closure-campaign-2026-09-21/inputs/pergamino_era5land_soil_hourly_2015_2025.csv",
+      "size": 3954003,
+      "sha256": "318edffb89c64d5f500e35b5530e6064cb02f68b89bd28a71262c2ebb01f485f"
+    },
+    {
+      "group": "campana-cierre-entorno-y-codigo",
+      "category": "provenance",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/inputs/pergamino_nasa_power_daily_2015_2025.csv",
+      "restore_path": "closure-campaign-2026-09-21/inputs/pergamino_nasa_power_daily_2015_2025.csv",
+      "size": 127568,
+      "sha256": "415b4f71abb78e419b765110f4a42c3f32587b204d12897812df9573c5c2202b"
+    },
+    {
+      "group": "campana-cierre-entorno-y-codigo",
+      "category": "provenance",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/manifest/inventory.tsv",
+      "restore_path": "closure-campaign-2026-09-21/manifest/inventory.tsv",
+      "size": 1492,
+      "sha256": "1cf249488b6566120bd0f12bcd7db5b7f2709b0598c281d3d6619d2dfc2ba586"
+    },
+    {
+      "group": "campana-cierre-entorno-y-codigo",
+      "category": "provenance",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/manifest/manifest.json",
+      "restore_path": "closure-campaign-2026-09-21/manifest/manifest.json",
+      "size": 2788,
+      "sha256": "052084dbed57ecc856c28745ee01cbef2e40d1dc873d0eb1a009f9b95fba160e"
+    },
+    {
+      "group": "campana-cierre-entorno-y-codigo",
+      "category": "provenance",
+      "required": true,
+      "package_path": "payload/closure-campaign-2026-09-21/manifest/SHA256SUMS",
+      "restore_path": "closure-campaign-2026-09-21/manifest/SHA256SUMS",
+      "size": 1403,
+      "sha256": "0d5d624e38da479ee9806fedb83aebfdb6c3699bbc9dd7cb058b9c9aed15ff58"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/code/checkout-HEAD-433450c.tar.gz",
+      "restore_path": "hitl-complement-2026-09-21/code/checkout-HEAD-433450c.tar.gz",
+      "size": 6178908,
+      "sha256": "ac594458e0231764406095d8b5ff8c38b991ba6125c9b2115814c67fa7d4b115"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/code/HEAD.txt",
+      "restore_path": "hitl-complement-2026-09-21/code/HEAD.txt",
+      "size": 41,
+      "sha256": "f5029c8e06dcb35b6751cee6c3e4b16cc3a025fcb069d88c9f6fc7c66cce139f"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/code/repo-all-refs.bundle",
+      "restore_path": "hitl-complement-2026-09-21/code/repo-all-refs.bundle",
+      "size": 7292342,
+      "sha256": "f706420ea5fea418202b695497c5cf24778b257f9ae13c104a8680178b4defb6"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/contract/contract-H-frozen.json",
+      "restore_path": "hitl-complement-2026-09-21/contract/contract-H-frozen.json",
+      "size": 45212,
+      "sha256": "2ebd6732046a5716f69ac3026e96de7ab8030beb67ff71653fb4b931691be901"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/environment/build_identity.json",
+      "restore_path": "hitl-complement-2026-09-21/environment/build_identity.json",
+      "size": 195,
+      "sha256": "53283bb33999d3ce793576228e8320b0cd4748672d71d48d3272a69244fc2c6f"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/environment/constraints.txt",
+      "restore_path": "hitl-complement-2026-09-21/environment/constraints.txt",
+      "size": 1004,
+      "sha256": "aa05b7b17ee4677839e724af7a768f532ba669514fb06ffe23f525cddd1efd6b"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/environment/Dockerfile",
+      "restore_path": "hitl-complement-2026-09-21/environment/Dockerfile",
+      "size": 2733,
+      "sha256": "8e9f8ab262bc42f5b2e8060a6294b711af79f6449f60cd3c4f0409872c04c27a"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/environment/image-id.txt",
+      "restore_path": "hitl-complement-2026-09-21/environment/image-id.txt",
+      "size": 72,
+      "sha256": "14318a7d6fd3ed6d28a23b48dd051d76a7c3e67c2c607d96c17cb7010ed94c31"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/environment/image-inspect-hitl.json",
+      "restore_path": "hitl-complement-2026-09-21/environment/image-inspect-hitl.json",
+      "size": 3013,
+      "sha256": "1180042c67ce0fd51298dd26e36409127f9efe8a9a4d07352f691d7ab1db725f"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/environment/pip-freeze-all.txt",
+      "restore_path": "hitl-complement-2026-09-21/environment/pip-freeze-all.txt",
+      "size": 426,
+      "sha256": "d0f0b9129c8229ce0ea281e02cf0066bbb00d369e511737fc07547956a387667"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/auxiliary/agreement-analysis.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/auxiliary/agreement-analysis.json",
+      "size": 12186,
+      "sha256": "8d292eed634ebf19b11cc15cfad1314b80244c60858307d5d575562ddd865cd4"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/code_version.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/code_version.json",
+      "size": 151,
+      "sha256": "ac7779beddbf56870fc4f1c5542c25aab47a183717a38086c431f643b0ce60db"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/contract_reference.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/contract_reference.json",
+      "size": 186,
+      "sha256": "ad446595402d022eb25e8ff645a5707bf91143f544e79b8b36a50f2e117b83b8"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/dataset_fingerprint.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/dataset_fingerprint.json",
+      "size": 1167,
+      "sha256": "d2b190bc5c1b6f2154ac5bc387963f0f502c4da796f01d1b68a2c73fd0b9e800"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/environment.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/environment.json",
+      "size": 715,
+      "sha256": "b87a0576aaf43d7e38ce475543e8a3df7d305fb91dfe581839400f519c3c072f"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/feedback_events_human.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/feedback_events_human.json",
+      "size": 25323,
+      "sha256": "5d2024ca551296a82b30ac62d03c034e4543249eb7332d665b40c75d2e050542"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/feedback_events_simulated.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/feedback_events_simulated.json",
+      "size": 108019,
+      "sha256": "6a02e42738e66782dddd2178d22f956f1c7458bdba209ec40b38d4841ebb8702"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/human_package_reference.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/human_package_reference.json",
+      "size": 526,
+      "sha256": "a6acfbf4865aacca21352c594d6ffe7ff50957d1a7342bdd67498174304ec6f2"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/human_response_record.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/human_response_record.json",
+      "size": 8203,
+      "sha256": "a6938e431b56bf991b74f0692f4a8b90193fe15be8f4b05ef48cfb9ba70fbd61"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/input_hashes.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/input_hashes.json",
+      "size": 179,
+      "sha256": "f7181151e9e93e696c839a1275c4fffae2f0c98c5e71b7080f3ad1177d0b3ba0"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/integrity_manifest.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/integrity_manifest.json",
+      "size": 1830,
+      "sha256": "4fe37ed43bd36549e62fcc364961c5d62ee74b633f12f1ef112e2ce275e03cc3"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/invariants.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/invariants.json",
+      "size": 3687,
+      "sha256": "d67758da2c7258b0782beb19f11822905ed8db964a20bfa5608d5f3e4f99faa4"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/mechanism_metrics.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/mechanism_metrics.json",
+      "size": 2205,
+      "sha256": "69243e255535d43a432713dbf8ffb01136fb8a1b3669a2e7ea267e8160e77c07"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/provenance.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/provenance.json",
+      "size": 935,
+      "sha256": "49bf3c4aa4064b4b2a826c4536391482d696178535a4220f8a8d28bebaf414da"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/resolved_config.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/resolved_config.json",
+      "size": 1835,
+      "sha256": "d3bccabbb1640fbbd8d56a93897d3c30bf38b7376c837a5bfe8025f40ec6576b"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/schema_version.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/schema_version.json",
+      "size": 92,
+      "sha256": "db61fdcc93706ee9697245744970022fc53d49f13d813bd8ce71d30d66807f0b"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/track_human.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/track_human.json",
+      "size": 27695,
+      "sha256": "b287f0e4653e191c339fe7710910282d9d92656f7ac9191dd4ac1126bea402a5"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/track_simulated.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/track_simulated.json",
+      "size": 166558,
+      "sha256": "ba8f015bb937315f46e652413776fe9d0304b7f816bb122a86b75cb5ede49723"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt/warnings.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt/warnings.json",
+      "size": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/agreement_analysis.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/agreement_analysis.json",
+      "size": 15033,
+      "sha256": "b7bce82f18fedcb1005f3a8c71b5f1af10e978e865700cf95c4316ce001ecb56"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/code_version.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/code_version.json",
+      "size": 151,
+      "sha256": "a4bb6ff70ab16c30618a9310f8f5529e47e24855435a9b16384f873b355bbcc9"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/contract_reference.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/contract_reference.json",
+      "size": 186,
+      "sha256": "ad446595402d022eb25e8ff645a5707bf91143f544e79b8b36a50f2e117b83b8"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/dataset_fingerprint.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/dataset_fingerprint.json",
+      "size": 1167,
+      "sha256": "d2b190bc5c1b6f2154ac5bc387963f0f502c4da796f01d1b68a2c73fd0b9e800"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/environment.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/environment.json",
+      "size": 715,
+      "sha256": "b87a0576aaf43d7e38ce475543e8a3df7d305fb91dfe581839400f519c3c072f"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/feedback_events_human.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/feedback_events_human.json",
+      "size": 25323,
+      "sha256": "5d2024ca551296a82b30ac62d03c034e4543249eb7332d665b40c75d2e050542"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/feedback_events_index.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/feedback_events_index.json",
+      "size": 60175,
+      "sha256": "7d691c5e70e9cfd7de3c4999bedd33c5ca1675a491aed55ff29cabe7bc61bce8"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/feedback_events_simulated.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/feedback_events_simulated.json",
+      "size": 108019,
+      "sha256": "6a02e42738e66782dddd2178d22f956f1c7458bdba209ec40b38d4841ebb8702"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/human_package_reference.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/human_package_reference.json",
+      "size": 526,
+      "sha256": "a6acfbf4865aacca21352c594d6ffe7ff50957d1a7342bdd67498174304ec6f2"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/human_response_record.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/human_response_record.json",
+      "size": 8203,
+      "sha256": "a6938e431b56bf991b74f0692f4a8b90193fe15be8f4b05ef48cfb9ba70fbd61"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/input_hashes.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/input_hashes.json",
+      "size": 179,
+      "sha256": "f7181151e9e93e696c839a1275c4fffae2f0c98c5e71b7080f3ad1177d0b3ba0"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/integrity_manifest.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/integrity_manifest.json",
+      "size": 4621,
+      "sha256": "8d0c1672087b5cd7e2f374825d8a77ef7dc7142cda4d62716bee86103cf7e8fc"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/invariants.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/invariants.json",
+      "size": 3687,
+      "sha256": "d67758da2c7258b0782beb19f11822905ed8db964a20bfa5608d5f3e4f99faa4"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/mechanism_metrics.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/mechanism_metrics.json",
+      "size": 2215,
+      "sha256": "5806209e9b40677c0922d672a71d8b7337dab7deb64fb8e471d77607307163ef"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_controlled_human_feedback_seed0_frozen.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_controlled_human_feedback_seed0_frozen.csv",
+      "size": 16127,
+      "sha256": "3a7e10647b7549adf72f0d4605d01db8fef3e503fb23d7614d9d5f52bc9d34d2"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_controlled_human_feedback_seed0_refit_no_corrections.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_controlled_human_feedback_seed0_refit_no_corrections.csv",
+      "size": 16529,
+      "sha256": "f9be4d776ebc0fdec8ce72a600e9626f15ed06fbc29999924db1f6c9f94c11b4"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_controlled_human_feedback_seed0_refit_with_corrections.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_controlled_human_feedback_seed0_refit_with_corrections.csv",
+      "size": 16529,
+      "sha256": "f9be4d776ebc0fdec8ce72a600e9626f15ed06fbc29999924db1f6c9f94c11b4"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed0_frozen.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed0_frozen.csv",
+      "size": 16127,
+      "sha256": "3a7e10647b7549adf72f0d4605d01db8fef3e503fb23d7614d9d5f52bc9d34d2"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed0_refit_no_corrections.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed0_refit_no_corrections.csv",
+      "size": 16529,
+      "sha256": "f9be4d776ebc0fdec8ce72a600e9626f15ed06fbc29999924db1f6c9f94c11b4"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed0_refit_with_corrections.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed0_refit_with_corrections.csv",
+      "size": 16519,
+      "sha256": "8b1058ef9bfc8e31c786c94b47af1ff626640f1dbd34b2dce1d954fb81ada1a1"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed1_frozen.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed1_frozen.csv",
+      "size": 16145,
+      "sha256": "55eb619d9722d9e7a36e641af9b6aac4d41d9c4798b45b92936a1850860aab30"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed1_refit_no_corrections.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed1_refit_no_corrections.csv",
+      "size": 16504,
+      "sha256": "2c8a02b9c4de44a95b84f276e574dd883e71c52c6e9cc8c821ec9dfb3bc4b424"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed1_refit_with_corrections.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed1_refit_with_corrections.csv",
+      "size": 16535,
+      "sha256": "3c30d36cc0e841f9ed41c3c4141c22d9dfad38978239f1f39f3f118662c310c5"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed2_frozen.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed2_frozen.csv",
+      "size": 16529,
+      "sha256": "d9beaa9a8345917d9b7a42660b3caafbe4eb2d02cb2e81cdf9c854f6270ad35d"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed2_refit_no_corrections.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed2_refit_no_corrections.csv",
+      "size": 16506,
+      "sha256": "00ac7980f6229b00e4c2123d2ff7cc96b43aa3b800c6d4096a9aba41d30364da"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed2_refit_with_corrections.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed2_refit_with_corrections.csv",
+      "size": 16517,
+      "sha256": "093a5e8bad173a390833a3151aceaf18479b88d4220120f3f0a82773b5865791"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed3_frozen.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed3_frozen.csv",
+      "size": 16365,
+      "sha256": "fdf1c0dcb5ce36da08298a2582161572a1e77e68895a6bf49f216d2a7464a61d"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed3_refit_no_corrections.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed3_refit_no_corrections.csv",
+      "size": 16497,
+      "sha256": "e625c7fb57e60838031eb67c99ded2ddac4baf394bbfbcc73faebe058bca70fb"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed3_refit_with_corrections.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed3_refit_with_corrections.csv",
+      "size": 16499,
+      "sha256": "3f3f304f72512c8901da73b85397fc5c6db09b4d0a5191679b188f64ef1b3fbc"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed4_frozen.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed4_frozen.csv",
+      "size": 16248,
+      "sha256": "9eb70cf7caa4b76e9ad297f9d6d26e7c9bfaf50d528a48801a82cc20c31c9ed2"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed4_refit_no_corrections.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed4_refit_no_corrections.csv",
+      "size": 16503,
+      "sha256": "304a3446bad590345d2a4a0eed04d3b685c7a3e9efa8ec988925e6d9be6c6343"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed4_refit_with_corrections.csv",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/predictions_simulated_supervised_feedback_seed4_refit_with_corrections.csv",
+      "size": 16506,
+      "sha256": "0c690d76c4cc58a3e9c21c502053e77e8a36b843f1db786bf225e3cb80d6fa5e"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/provenance.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/provenance.json",
+      "size": 935,
+      "sha256": "49bf3c4aa4064b4b2a826c4536391482d696178535a4220f8a8d28bebaf414da"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/resolved_config.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/resolved_config.json",
+      "size": 1835,
+      "sha256": "d3bccabbb1640fbbd8d56a93897d3c30bf38b7376c837a5bfe8025f40ec6576b"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/schema_version.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/schema_version.json",
+      "size": 92,
+      "sha256": "db61fdcc93706ee9697245744970022fc53d49f13d813bd8ce71d30d66807f0b"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/track_human.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/track_human.json",
+      "size": 27695,
+      "sha256": "b287f0e4653e191c339fe7710910282d9d92656f7ac9191dd4ac1126bea402a5"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/track_simulated.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/track_simulated.json",
+      "size": 166558,
+      "sha256": "ba8f015bb937315f46e652413776fe9d0304b7f816bb122a86b75cb5ede49723"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/first-attempt-completed/warnings.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/first-attempt-completed/warnings.json",
+      "size": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/governance/hitl-complement-2026-09-21/auxiliary/H/review.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/governance/hitl-complement-2026-09-21/auxiliary/H/review.json",
+      "size": 16223,
+      "sha256": "55b86d46824a4687ac163e9ba7450a8f155ae9e2059220593e1b98a2ebb0d08f"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/governance/hitl-complement-2026-09-21/sc-08-aux-hitl/execution-record.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/governance/hitl-complement-2026-09-21/sc-08-aux-hitl/execution-record.json",
+      "size": 15751,
+      "sha256": "5d1a4b610f5f57d2b434d1b8d9928ce12143f1141efa0062c4e92162373e5141"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/governance/hitl-complement-2026-09-21/sc-08-aux-hitl/findings-resolution.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/governance/hitl-complement-2026-09-21/sc-08-aux-hitl/findings-resolution.json",
+      "size": 11929,
+      "sha256": "ca71f8540d00b4c270e6342c4d7a31de22339243635b8aca7c91d339e6358cf7"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/governance/hitl-complement-2026-09-21/sc-08-aux-hitl/recovery-rehearsal.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/governance/hitl-complement-2026-09-21/sc-08-aux-hitl/recovery-rehearsal.json",
+      "size": 2150,
+      "sha256": "0272634e5220ac9861ccd525559c4c8585be43a55dde61d5691daaf3e1b839b5"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/governance/hitl-complement-2026-09-21/sc-08-aux-hitl/reproduction-record.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/governance/hitl-complement-2026-09-21/sc-08-aux-hitl/reproduction-record.json",
+      "size": 2468,
+      "sha256": "282327a8cac5db30026425f0d7da140ff77f8da2956d5b7c14ce5f63739c29dc"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/evidence/governance/hitl-complement-2026-09-21/validation/validation-record.json",
+      "restore_path": "hitl-complement-2026-09-21/evidence/governance/hitl-complement-2026-09-21/validation/validation-record.json",
+      "size": 4489,
+      "sha256": "913cae7bd3880a612802882fe9e7db8170d017e533b8c299cc920d5483c3fcf2"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/logs/black.log",
+      "restore_path": "hitl-complement-2026-09-21/logs/black.log",
+      "size": 58,
+      "sha256": "1534cbbce8db270e0489c97d89b28bc01a6596d362c0206ab80103df696d1ea8"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/logs/closure-checker.log",
+      "restore_path": "hitl-complement-2026-09-21/logs/closure-checker.log",
+      "size": 69,
+      "sha256": "dbda61e04f57843123d379fc58a2eec20e88c9228c07a880151abacad871abfe"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/logs/focused-tests.log",
+      "restore_path": "hitl-complement-2026-09-21/logs/focused-tests.log",
+      "size": 180,
+      "sha256": "1cf6825178c6d4be87232f0f3931018a1d786bfa54c6283924fb9ef3102bc650"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/logs/full-suite-2.log",
+      "restore_path": "hitl-complement-2026-09-21/logs/full-suite-2.log",
+      "size": 1654,
+      "sha256": "149ec7b8d84bdc03229a7f6286ae241aebae8063e04e40ee82660f1051ed6b6f"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/logs/full-suite-3.log",
+      "restore_path": "hitl-complement-2026-09-21/logs/full-suite-3.log",
+      "size": 1653,
+      "sha256": "a176a24afbfbb5c616c8ca3f05e23d5ad26380f9afdb6327b897923fcd95e512"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/logs/full-suite-final.log",
+      "restore_path": "hitl-complement-2026-09-21/logs/full-suite-final.log",
+      "size": 1653,
+      "sha256": "8d71e05f0b9b8cb3b1d7c3bc8b6371e4c131686b1ab23e4d24e004fb813394dd"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/logs/full-suite.log",
+      "restore_path": "hitl-complement-2026-09-21/logs/full-suite.log",
+      "size": 3159,
+      "sha256": "cfde345a4222d0b43c3468a21afc93ce8be460276406144b47dd69609ba577ee"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/logs/git-diff-check.log",
+      "restore_path": "hitl-complement-2026-09-21/logs/git-diff-check.log",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/logs/governance-tests.log",
+      "restore_path": "hitl-complement-2026-09-21/logs/governance-tests.log",
+      "size": 147,
+      "sha256": "8c43b151a3f58a6826bd0a713cdf8fea3e8122eefdc6a44850b61526533304b0"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/logs/h-run-window.txt",
+      "restore_path": "hitl-complement-2026-09-21/logs/h-run-window.txt",
+      "size": 64,
+      "sha256": "47db38f999783aadafc9b34d05d8b832ee2d47357e35c4bdce99dc76c9a262e6"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/logs/hitl-core-tests.log",
+      "restore_path": "hitl-complement-2026-09-21/logs/hitl-core-tests.log",
+      "size": 99,
+      "sha256": "37de6a5aa705a16836684ed910e3c1a6e690cee9440b9eb35bf670f413309edd"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/logs/pip-check.log",
+      "restore_path": "hitl-complement-2026-09-21/logs/pip-check.log",
+      "size": 30,
+      "sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/logs/ruff.log",
+      "restore_path": "hitl-complement-2026-09-21/logs/ruff.log",
+      "size": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/manifest/inventory.tsv",
+      "restore_path": "hitl-complement-2026-09-21/manifest/inventory.tsv",
+      "size": 12500,
+      "sha256": "043049a1235e1988e551a705406e693884d9f7687b3901210fe352e49db98e54"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/manifest/SHA256SUMS",
+      "restore_path": "hitl-complement-2026-09-21/manifest/SHA256SUMS",
+      "size": 12075,
+      "sha256": "45b030178c945d57cce435e44fd1a4eec51aa310c586bcd6b914f83ea3a635ff"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/package/human-package-freeze.json",
+      "restore_path": "hitl-complement-2026-09-21/package/human-package-freeze.json",
+      "size": 4687,
+      "sha256": "d57325b717be3c37daf2399b0ff387719c28590b36184ac32534d7af1fdb62f3"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/package/human-package.json",
+      "restore_path": "hitl-complement-2026-09-21/package/human-package.json",
+      "size": 22485,
+      "sha256": "5a37e1a81090878f19d89289112bf771bfb0792af1d7685d116dbdfdbd423e6f"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/package/package-preparation-record.json",
+      "restore_path": "hitl-complement-2026-09-21/package/package-preparation-record.json",
+      "size": 2593,
+      "sha256": "b74b02596ce506229bc70b359dba6a912c574c09ed458915ce2c26445be8475e"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/preflight-H.json",
+      "restore_path": "hitl-complement-2026-09-21/preflight-H.json",
+      "size": 5277,
+      "sha256": "32102381e7ecafbcb70244ebfab161b4a8c9f66eafcf116eaa070bb49132450c"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/response/human-response-freeze.json",
+      "restore_path": "hitl-complement-2026-09-21/response/human-response-freeze.json",
+      "size": 2934,
+      "sha256": "c7c81b23f2e4db07b38b02d611b559f044cea22c82a87988ba6119cbe68236bb"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/response/human-response-transcription-1.json",
+      "restore_path": "hitl-complement-2026-09-21/response/human-response-transcription-1.json",
+      "size": 9360,
+      "sha256": "45cd5a83a7e91aee1bdc26712fe54011c6db76eebf207b95b0ce57fb082271af"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/response/human-response.json",
+      "restore_path": "hitl-complement-2026-09-21/response/human-response.json",
+      "size": 9949,
+      "sha256": "5a0cc46955b2ce5b984965bc71ea62e6b5cefe73e4641dc7f78c806be5b8e352"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/response/human-response.sha256",
+      "restore_path": "hitl-complement-2026-09-21/response/human-response.sha256",
+      "size": 86,
+      "sha256": "7adacdf771f3ef9a14192300024359206002d5d7e94a690b3221264ebcfac5c2"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/reviews/README.md",
+      "restore_path": "hitl-complement-2026-09-21/reviews/README.md",
+      "size": 2556,
+      "sha256": "e0cdf67ed23db82ce3575af2446e0de5920fc2e5c74631f5c6a937dce26dd9cd"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/reviews/review-audit-final.md",
+      "restore_path": "hitl-complement-2026-09-21/reviews/review-audit-final.md",
+      "size": 50443,
+      "sha256": "8626cbccdafe803acd4515b33a1f1da9f12562fba3bfb0458b5455ae2c8e31b6"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/reviews/review-critic-execution.md",
+      "restore_path": "hitl-complement-2026-09-21/reviews/review-critic-execution.md",
+      "size": 19913,
+      "sha256": "9f17d2ddef7e6a306c1d0e72f4d575e58169a4d6a045742971f4b7e0e36141c1"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/reviews/review-critic-package-1.md",
+      "restore_path": "hitl-complement-2026-09-21/reviews/review-critic-package-1.md",
+      "size": 21633,
+      "sha256": "eb0e980ffbf513a4f0a62423868a67efc327ef3dbf68a4401753757405dda8e3"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/reviews/review-critic-package-2.md",
+      "restore_path": "hitl-complement-2026-09-21/reviews/review-critic-package-2.md",
+      "size": 22088,
+      "sha256": "b6bad60aa4ea2752612c41b0e6d2d7c3092ce5c89ec8f4119e990c18d7636ec6"
+    },
+    {
+      "group": "evidencia-H",
+      "category": "figures-evidence",
+      "required": true,
+      "package_path": "payload/hitl-complement-2026-09-21/reviews/review-critic-package-3.md",
+      "restore_path": "hitl-complement-2026-09-21/reviews/review-critic-package-3.md",
+      "size": 16807,
+      "sha256": "fec8ff7ad477a5fd7d0d60c975e06f1e9164a274ff62ff6a8ab96c7a9af3f8c6"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/code/HEAD.txt",
+      "restore_path": "evidence-finalization-2026-09-22/code/HEAD.txt",
+      "size": 41,
+      "sha256": "4153b7a5a5229f69444a485b7d4234ab3ef375f75286a0b5ee26450fb4203b3e"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/code/recent-commits.txt",
+      "restore_path": "evidence-finalization-2026-09-22/code/recent-commits.txt",
+      "size": 498,
+      "sha256": "6911782c9fdd2c9c8ce8bf45ecdb44982861dc7b00f40be037cca256512b93a2"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/code/repo-all-refs-finalization.bundle",
+      "restore_path": "evidence-finalization-2026-09-22/code/repo-all-refs-finalization.bundle",
+      "size": 7495364,
+      "sha256": "6d54ea9b0eacee9465098cd4609e9e44463cf117d8cd7494ed073208d047fc32"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/evidence-finalization/audit.json",
+      "restore_path": "evidence-finalization-2026-09-22/documents/evidence-finalization/audit.json",
+      "size": 10166,
+      "sha256": "808b25434f3157c49ad3486d9eabca1476c1ce5e397a582d993bc28e6448d9a2"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/evidence-finalization/auxiliary/N/review.json",
+      "restore_path": "evidence-finalization-2026-09-22/documents/evidence-finalization/auxiliary/N/review.json",
+      "size": 8172,
+      "sha256": "37760e97b47554a108f1cba6bfc12e57e00465888ce736beee189cdc1537a4ed"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/evidence-finalization/auxiliary/R/review.json",
+      "restore_path": "evidence-finalization-2026-09-22/documents/evidence-finalization/auxiliary/R/review.json",
+      "size": 8273,
+      "sha256": "fbf55042881007c711e0de3044d8444de14873c8ef2ec4dee287d48a6006caba"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/evidence-finalization/auxiliary/S/review.json",
+      "restore_path": "evidence-finalization-2026-09-22/documents/evidence-finalization/auxiliary/S/review.json",
+      "size": 8210,
+      "sha256": "1bd614d88f2b4d92de8bb1a91058b3c2b21339eb53d5e4cc60bb7c68066748c9"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/evidence-finalization/claim-evidence-review.json",
+      "restore_path": "evidence-finalization-2026-09-22/documents/evidence-finalization/claim-evidence-review.json",
+      "size": 10100,
+      "sha256": "05b652661d26913e7536b6d1cec89f834cb8f69db43e5ac5d12a8c6d5b8c0365"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/evidence-finalization/reviews/README.md",
+      "restore_path": "evidence-finalization-2026-09-22/documents/evidence-finalization/reviews/README.md",
+      "size": 3106,
+      "sha256": "f21b5d7c941698ca4a44fbccd7fde213ec50990d4e5fecc3e94bc1a328df3872"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/evidence-finalization/reviews/review-audit-final-correction.md",
+      "restore_path": "evidence-finalization-2026-09-22/documents/evidence-finalization/reviews/review-audit-final-correction.md",
+      "size": 25429,
+      "sha256": "7bd872b32c05b665e71f837aed62749cc2968cf1c9be398480b2e37b1dc5b2cf"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/evidence-finalization/reviews/review-audit-final.md",
+      "restore_path": "evidence-finalization-2026-09-22/documents/evidence-finalization/reviews/review-audit-final.md",
+      "size": 62749,
+      "sha256": "b75c10232cb4f876de64d98446457e72de097f37f6747b5b18c7ff4357c5f6d2"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/evidence-finalization/scientific-closure-audit.json",
+      "restore_path": "evidence-finalization-2026-09-22/documents/evidence-finalization/scientific-closure-audit.json",
+      "size": 10514,
+      "sha256": "2442ee1c54e9c2c83399aa0aa1ad49e6a606de96173d7294e38d73f89865aa41"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/evidence-finalization/thesis-traceability.md",
+      "restore_path": "evidence-finalization-2026-09-22/documents/evidence-finalization/thesis-traceability.md",
+      "size": 18212,
+      "sha256": "7020519d12a616f28a7c02840d57239dca8d14a4b0aeb33f30a4d32f8cde952e"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/evidence-finalization/validation-record.json",
+      "restore_path": "evidence-finalization-2026-09-22/documents/evidence-finalization/validation-record.json",
+      "size": 8899,
+      "sha256": "757dfa7af68902fe7c1809053fb784c640bbcf162d5e89fa6e90afc08a2e5951"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/governance/changes.json",
+      "restore_path": "evidence-finalization-2026-09-22/documents/governance/changes.json",
+      "size": 53591,
+      "sha256": "49ae34ad6121cb29fcd014896420b8b33fd638c2d6629f5e1e0794981da0a01b"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/governance/claims.md",
+      "restore_path": "evidence-finalization-2026-09-22/documents/governance/claims.md",
+      "size": 18381,
+      "sha256": "d7aeff6690c694b443c991e850e8ee4f37ba7d866ed25f020c9c369de59ab6e6"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/governance/decisions.md",
+      "restore_path": "evidence-finalization-2026-09-22/documents/governance/decisions.md",
+      "size": 36316,
+      "sha256": "4e2f0355e516f4d9870ea664cb22eb9304e9601656fd9167351aa91931a02f20"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/governance/plan.md",
+      "restore_path": "evidence-finalization-2026-09-22/documents/governance/plan.md",
+      "size": 7635,
+      "sha256": "22e7ebd2988ecf4ebd05abb52623f0c8c17abf58b0f9b931ae5047367e90cebf"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/governance/README.md",
+      "restore_path": "evidence-finalization-2026-09-22/documents/governance/README.md",
+      "size": 6161,
+      "sha256": "2848d9125ecb98b3cb9e3840cd4447f0f68b132975457aa1bc0938aa07f6010c"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/governance/sc-06-tasks.md",
+      "restore_path": "evidence-finalization-2026-09-22/documents/governance/sc-06-tasks.md",
+      "size": 2534,
+      "sha256": "a5da9301ace1d68dcb7c83eb1e604074f9e416e78c876e7f0614c608d234ab31"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/governance/traceability.md",
+      "restore_path": "evidence-finalization-2026-09-22/documents/governance/traceability.md",
+      "size": 66492,
+      "sha256": "705b2a470b8e1e9afb931b626bacc55eb65f976101e41de9b12ddbfe1688dbf4"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/documents/scientific-closure-synthesis-2026-09-22.md",
+      "restore_path": "evidence-finalization-2026-09-22/documents/scientific-closure-synthesis-2026-09-22.md",
+      "size": 28844,
+      "sha256": "b3d629f267abce660d706a1fdde3ce8efc0e1c95aad0fc49ccf400528509ccfb"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/manifest/SHA256SUMS",
+      "restore_path": "evidence-finalization-2026-09-22/manifest/SHA256SUMS",
+      "size": 2778,
+      "sha256": "ec20053dd59566ee0d3b033c43a7c1693c1671d3a91a383c8ff7a79eb86e5f8a"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/reviews/README.md",
+      "restore_path": "evidence-finalization-2026-09-22/reviews/README.md",
+      "size": 3106,
+      "sha256": "f21b5d7c941698ca4a44fbccd7fde213ec50990d4e5fecc3e94bc1a328df3872"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/reviews/review-audit-final-correction.md",
+      "restore_path": "evidence-finalization-2026-09-22/reviews/review-audit-final-correction.md",
+      "size": 25429,
+      "sha256": "7bd872b32c05b665e71f837aed62749cc2968cf1c9be398480b2e37b1dc5b2cf"
+    },
+    {
+      "group": "finalizacion-evidencia-2026-09-22",
+      "category": "provenance",
+      "required": false,
+      "package_path": "payload/evidence-finalization-2026-09-22/reviews/review-audit-final.md",
+      "restore_path": "evidence-finalization-2026-09-22/reviews/review-audit-final.md",
+      "size": 62749,
+      "sha256": "b75c10232cb4f876de64d98446457e72de097f37f6747b5b18c7ff4357c5f6d2"
     }
   ]
 }

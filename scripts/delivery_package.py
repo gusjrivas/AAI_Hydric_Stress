@@ -5,7 +5,7 @@ Solo copia bytes de una selección explícita (docs/delivery/artifact-selection.
 calcula SHA-256 y no ejecuta entrenamiento ni inferencia. Las rutas de origen se
 pasan por variables de entorno AAI_SRC_<ROOT>; no se escriben en el manifiesto.
 
-  build   --out DIR --commit SHA   crea paquete (zip + manifiesto + SHA256SUMS)
+  build   --out DIR --commit SHA [--version V]   crea paquete (zip + manifiesto + SHA256SUMS)
   verify  PACKAGE                  comprueba un .zip o un directorio extraído
   restore PACKAGE --target DIR     restaura (valida rutas y hashes antes y después)
 
@@ -142,7 +142,7 @@ def expand(selection: dict, roots: dict[str, Path]) -> tuple[list[dict], list[st
     return entries, problems
 
 
-def build(out: Path, commit: str) -> int:
+def build(out: Path, commit: str, version: str = "") -> int:
     selection = json.loads(SELECTION.read_text(encoding="utf-8"))
     roots = {}
     for key in selection["roots"]:
@@ -160,7 +160,9 @@ def build(out: Path, commit: str) -> int:
         "tooling_note": "delivery_package.py llega con el PR 239, posterior a la base",
         "package_status": "PARTIAL" if partial else "COMPLETE",
         "build_problems": problems,
+        "package_version": version or "v1",
         "known_missing": selection["known_missing"],
+        "limitations": selection.get("limitations", []),
         "excluded_on_purpose": selection["excluded_on_purpose"],
         "tracked_in_git": selection["tracked_in_git"],
         "compatible_environment": {
@@ -177,7 +179,7 @@ def build(out: Path, commit: str) -> int:
     if errors:
         print("Manifiesto inválido:", *errors, sep="\n  ", file=sys.stderr)
         return 2
-    name = f"aai-hydric-stress-delivery-package-{commit[:7]}"
+    name = f"aai-hydric-stress-delivery-package-{commit[:7]}" + (f"-{version}" if version else "")
     zpath = out / f"{name}.zip"
     sums = "".join(f"{e['sha256']}  {e['package_path']}\n" for e in entries)
     mtext = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
@@ -314,6 +316,7 @@ def main(argv: list[str] | None = None) -> int:
     b = sub.add_parser("build")
     b.add_argument("--out", type=Path, required=True)
     b.add_argument("--commit", required=True)
+    b.add_argument("--version", default="")
     v = sub.add_parser("verify")
     v.add_argument("package", type=Path)
     r = sub.add_parser("restore")
@@ -321,7 +324,7 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--target", type=Path, required=True)
     a = ap.parse_args(argv)
     if a.cmd == "build":
-        return build(a.out, a.commit)
+        return build(a.out, a.commit, a.version)
     if a.cmd == "verify":
         return verify(a.package)
     return restore(a.package, a.target)

@@ -2,7 +2,7 @@
 
 Guía portable. No depende de usuarios ni de rutas de una máquina concreta. El paquete **no** está en Git ni en ninguna release: se entrega aparte, con su archivo `.zip.sha256`.
 
-**Estado del paquete: PARCIAL.** Cubre la demostración de Pergamino y la evidencia necesaria para contrastar las cifras de la memoria del ensamble retrospectivo; **no** incluye las salidas crudas de las etapas A/B/C ni la evidencia del complemento H (ver `known_missing` en `PACKAGE_MANIFEST.json`). Cómo recuperar los faltantes: `docs/delivery/RECOVERY.md` del repositorio. Por eso no permite reproducir completamente la procedencia de la campaña `controlled_daily_v4_external_pergamino`.
+**Estado del paquete: COMPLETE para el alcance definido** (`package_status` en `PACKAGE_MANIFEST.json`): todos los grupos obligatorios —demostración de Pergamino, evidencia de las cifras (ensamble retrospectivo 2023, salidas originales de A/B/C, complemento H) y procedencia de la campaña— están presentes y verifican contra sus hashes y manifiestos históricos. **No equivale a reproducción por reejecución** ni a una validación científica nueva; ver `limitations` en el manifiesto. Los estados científicos (RB-05, `sc-06`, `SC-GOV-025` y GF en FAIL; `sc-08` en PASS) no cambian.
 
 ## Contenido por finalidad
 
@@ -10,7 +10,10 @@ Guía portable. No depende de usuarios ni de rutas de una máquina concreta. El 
 | --- | --- | --- |
 | Demostración | `demo-datos-pergamino`, `demo-bundles-ensamble` | Obligatorio para arrancar el modo Pergamino |
 | Verificación de cifras publicadas | `evidencia-ensamble-retrospectivo-2023`, `evidencia-cierre-gobernanza` | Obligatorio para regenerar las tablas del ensamble y contrastar registros de gobernanza |
-| Procedencia | `demo-procedencia-ejecucion`, `ledger-holdout`, `entorno-preejecucion` | Opcional, solo lectura |
+| Salidas originales A/B/C | `salidas-crudas-ABC` (instantánea final de la campaña, 93 archivos) | Obligatorio para recalcular las cifras de A/B/C |
+| Complemento H | `evidencia-H` (102 archivos, con `manifest/SHA256SUMS` de 100) | Obligatorio para verificar H |
+| Procedencia de la campaña | `campana-cierre-entorno-y-codigo` (imagen Docker, código, entorno, entradas, manifiesto) | Obligatorio para la procedencia completa |
+| Procedencia adicional | `demo-procedencia-ejecucion`, `ledger-holdout`, `entorno-preejecucion`, `finalizacion-evidencia-2026-09-22` | Opcional, solo lectura |
 
 Versionado en Git (no está en el paquete): `data/external/raw/` (CSV crudos), `docs/research/tables/ensemble-retrospective-2023/`, `docs/research/reference-v3-formal-results.json` y el conjunto de Melchor Romero.
 
@@ -92,6 +95,14 @@ $env:AAI_ARTIFACT_ROOT = "<directorio NUEVO y vacío donde restaurar>"
      --source-dir "$env:AAI_ARTIFACT_ROOT/evidence/pergamino-ensemble-retrospective-2023-20260927T062026Z" `
      --output-dir "<directorio nuevo>"
    ```
+
+7. Evidencia de A/B/C y de H: manifiestos y SHA256SUMS históricos, congelados de `sc-08-aux-hitl` y contraste de cifras agregando predicciones ya existentes (no ejecuta modelos; requiere pandas y scikit-learn del entorno anterior):
+
+   ```powershell
+   python scripts/verify_delivery_evidence.py --root $env:AAI_ARTIFACT_ROOT
+   ```
+
+   Rutas restauradas: `$AAI_ARTIFACT_ROOT/closure-campaign-2026-09-21/evidence-snapshots/final/evidence/{A,A_sensitivity_7_28cm,B,C}` y `$AAI_ARTIFACT_ROOT/hitl-complement-2026-09-21/`. Cada árbol conserva su `SHA256SUMS` para `sha256sum -c`.
 
 ## Qué no hacer
 
